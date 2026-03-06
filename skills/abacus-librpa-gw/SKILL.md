@@ -14,6 +14,8 @@ Execution order depends on system type:
 
 - Verify `nbands` in both `INPUT_scf` and `INPUT_nscf` is equal to the basis-function count.
 - Verify `INPUT_scf` and `INPUT_nscf` use the same `nbands`.
+- Compute basis-function count from `.orb` files using angular-momentum degeneracy (`s=1`, `p=3`, `d=5`, `f=7`, ...), multiply by radial multiplicity, sum over all atoms in the primitive cell, and multiply by `2` when SOC is enabled.
+- Cross-check the final `nbands` against `NBASE` in ABACUS output.
 - Verify spin/SOC settings are aligned across files:
   - collinear spin without SOC -> `nspin = 2`, `lspinorb = 0`
   - noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
@@ -53,6 +55,25 @@ For GW requests, set:
 - `libri_g0w0_threshold_C = 1e-5`
 - `libri_g0w0_threshold_G = 1e-5`
 - `libri_g0w0_threshold_Wc = 1e-6`
+
+## NBANDS Counting Rule
+
+Use the `.orb` filenames to determine basis count:
+
+- degeneracy by angular momentum: `s=1`, `p=3`, `d=5`, `f=7`, ...
+- multiply each channel by its radial multiplicity in the filename
+- sum over all atoms in the primitive cell
+- if SOC is enabled, multiply the final total by `2`
+- set the result as `nbands` in both `INPUT_scf` and `INPUT_nscf`
+- verify the result against ABACUS `NBASE`
+
+Example:
+
+- `Ni_gga_10au_100Ry_6s3p3d2f.orb` -> `6*1 + 3*3 + 3*5 + 2*7 = 44` per Ni
+- `3 Ni` atoms -> `3 * 44 = 132`
+- for the full NiI2 primitive cell the total is `264` without SOC
+- with SOC -> `264 * 2 = 528`
+- therefore set `nbands = 528` for the SOC NiI2 case
 
 ## Spin and SOC Branches
 

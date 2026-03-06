@@ -1,5 +1,5 @@
 # Minimal NSCF template (placeholder)
-# `nbands` must equal the basis-function count and match `INPUT_scf`.
+# `nbands` must equal the basis-function count, match `INPUT_scf`, and match ABACUS `NBASE`.
 
 calculation nscf
 nbands <FILL_ME>

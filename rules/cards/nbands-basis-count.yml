@@ -3,12 +3,29 @@
   symptom: Need to choose `nbands` consistently for SCF and NSCF
   root_cause: `nbands` must match the basis-function count, otherwise downstream ABACUS/LibRPA stages become inconsistent
   fix:
-    - Set `nbands` equal to the basis-function count
-    - Use the same `nbands` in `INPUT_scf` and `INPUT_nscf`
+    - Set `nbands` equal to the basis-function count in both `INPUT_scf` and `INPUT_nscf`
+    - Count basis functions from each `.orb` file using angular-momentum degeneracy:
+      - `s = 1`
+      - `p = 3`
+      - `d = 5`
+      - `f = 7`
+      - continue as `2l + 1`
+    - Multiply each angular channel by the radial multiplicity shown in the `.orb` filename
+    - Sum over all species and all atoms in the primitive cell
+    - If SOC is enabled, multiply the final total by `2`
     - If basis counting is unclear, stop and explain the counting rule before continuing
   verify:
     - Confirm `INPUT_scf` and `INPUT_nscf` have identical `nbands`
     - Confirm `nbands` equals the computed basis-function count
+    - Confirm `nbands` matches `NBASE` in ABACUS output
+  example:
+    system: NiI2
+    orbital_count:
+      - "Ni_gga_10au_100Ry_6s3p3d2f.orb -> 6*1 + 3*3 + 3*5 + 2*7 = 44 per Ni"
+      - "3 Ni atoms -> 3 * 44 = 132"
+      - "sum over all atoms in the primitive cell -> 264 without SOC"
+      - "with SOC -> 264 * 2 = 528"
+    expected_nbands: 528
   applies_to:
     mode:
       - gw

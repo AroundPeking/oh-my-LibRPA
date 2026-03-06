@@ -105,8 +105,11 @@ Then proceed as follows:
    - `libri_g0w0_threshold_G = 1e-5`
    - `libri_g0w0_threshold_Wc = 1e-6`
 8. For both `molecule` and `solid` branches:
-   - Set `nbands` equal to the basis-function count
+   - Modify `INPUT_scf` and `INPUT_nscf` so `nbands` equals the basis-function count
+   - Count basis functions from `.orb` files using `s=1`, `p=3`, `d=5`, `f=7`, ... with radial multiplicity, then sum over all atoms in the primitive cell
+   - If SOC is enabled, multiply the final basis count by `2`
    - Check that both `INPUT_scf` and `INPUT_nscf` use the same `nbands`
+   - Cross-check the chosen `nbands` against ABACUS `NBASE`
    - If there is any ambiguity in basis counting, stop and explain the counting rule before proceeding
 9. If the system is `molecule`:
    - Set `KPT = 1 1 1`

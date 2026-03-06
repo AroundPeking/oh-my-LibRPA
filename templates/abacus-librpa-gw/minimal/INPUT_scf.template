@@ -1,6 +1,8 @@
 # Minimal SCF template (placeholder)
 # Fill according to your system and basis.
-# `nbands` must equal the basis-function count.
+# `nbands` must equal the basis-function count and match ABACUS `NBASE`.
+# Count from `.orb` channels with degeneracy `s=1`, `p=3`, `d=5`, `f=7`, ...;
+# multiply by radial multiplicity, sum over all atoms, and multiply by 2 if SOC is enabled.
 
 calculation scf
 # Spin/SOC examples:
