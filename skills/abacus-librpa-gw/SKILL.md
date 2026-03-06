@@ -184,3 +184,4 @@ For each recommendation, provide:
 - why this change is needed
 - what risk it addresses
 - how to validate it with minimal cost
+- update the task Markdown run log and send the user a short stage summary

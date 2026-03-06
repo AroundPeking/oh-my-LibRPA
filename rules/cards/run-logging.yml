@@ -1,0 +1,33 @@
+- id: run-logging-701
+  scene: Any GW, RPA, or debug task is started
+  symptom: Users need visible progress updates and a durable run record
+  root_cause: Without a structured run log, the workflow is hard to audit, resume, or compare across runs
+  fix:
+    - Create one Markdown run log per task under `logs/runs/`
+    - Name the file as `<timestamp>-<mode>.md`, for example `2026-03-06-2222-gw.md`
+    - Update the file at every stage transition instead of only writing the final result
+    - Send the user a short stage summary after each update
+  verify:
+    - Confirm the Markdown file contains task metadata, stage timeline, outputs, and final conclusion
+    - Confirm the user-facing summary is shorter than the full log and reports `what was done`, `what was observed`, and `what is next`
+  applies_to:
+    mode: any
+    stage: logging
+
+- id: run-logging-content-702
+  scene: Writing the Markdown run log for a compute or debug task
+  symptom: Need a consistent record format across runs
+  root_cause: Inconsistent logs make it hard to compare runs or diagnose regressions
+  fix:
+    - Record task type: `gw`, `rpa`, or `debug`
+    - Record compute location: `local` or `server`
+    - Record working directory and reference/template source when used
+    - Record input files and key parameters such as `task`, `nfreq`, `use_soc`, `nbands`, and `KPT`
+    - Record each stage with start time, end time, status, and key outputs
+    - Record the final result and the next suggested action
+  verify:
+    - Confirm every stage entry has a status from `success`, `running`, or `failed`
+    - Confirm the final section states the overall result clearly
+  applies_to:
+    mode: any
+    stage: logging_content

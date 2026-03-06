@@ -72,9 +72,10 @@ Then proceed as follows:
 ## Execution Protocol (after location is confirmed)
 
 1. Create a fresh isolated run directory (timestamped).
-2. Verify no overwrite of original data directories.
-3. Classify system type (`molecule` / `solid` / `2D`).
-4. Classify task type:
+2. Create one Markdown run log for the task under `logs/runs/` using `<timestamp>-<mode>.md`.
+3. Verify no overwrite of original data directories.
+4. Classify system type (`molecule` / `solid` / `2D`).
+5. Classify task type:
    - GW request -> `task = g0w0_band`
    - RPA request -> `task = rpa`
 5. Branch the workflow accordingly:
@@ -149,7 +150,8 @@ Then proceed as follows:
    - LibRPA success: rank-0 output reaches `Timer stop:  total.` and `GW_band_spin_*.dat` exists
    - LibRPA running: rank-0 output exists, has no final `Timer stop:  total.` yet, and is still growing
    - LibRPA failed: no final `Timer stop:  total.` and the rank-0 output is no longer growing, or the output file is missing
-17. Report each stage before moving to the next critical stage.
+17. After each stage update, write the stage result into the Markdown run log.
+18. Report each stage before moving to the next critical stage using a short summary with `what was done`, `what was observed`, and `what is next`.
 
 ## Routing Rules
 
