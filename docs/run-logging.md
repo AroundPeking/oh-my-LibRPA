@@ -3,19 +3,25 @@
 Every compute or debug task should produce two outputs:
 
 1. a short user-facing progress update after each stage
-2. a durable Markdown run log saved under `logs/runs/`
+2. two durable Markdown run logs saved outside the repository:
+   - one in the active run directory as `run-report.md`
+   - one archived under `~/.openclaw/workspace/librpa/oh-my-librpa/`
+
+The repository should keep only the logging rules and templates. Runtime logs must not be written into the `oh-my-LibRPA` git tree.
 
 ## File Naming
 
-Use one file per task:
+Use one report per task in both locations:
 
-- `logs/runs/<timestamp>-gw.md`
-- `logs/runs/<timestamp>-rpa.md`
-- `logs/runs/<timestamp>-debug.md`
+- `<run_dir>/run-report.md`
+- `~/.openclaw/workspace/librpa/oh-my-librpa/<timestamp>-gw.md`
+- `~/.openclaw/workspace/librpa/oh-my-librpa/<timestamp>-rpa.md`
+- `~/.openclaw/workspace/librpa/oh-my-librpa/<timestamp>-debug.md`
 
 Example:
 
-- `logs/runs/2026-03-06-2222-gw.md`
+- `/path/to/calc/run-report.md`
+- `~/.openclaw/workspace/librpa/oh-my-librpa/2026-03-06-2235-gw.md`
 
 ## Minimum Required Content
 

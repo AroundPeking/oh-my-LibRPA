@@ -72,23 +72,24 @@ Then proceed as follows:
 ## Execution Protocol (after location is confirmed)
 
 1. Create a fresh isolated run directory (timestamped).
-2. Create one Markdown run log for the task under `logs/runs/` using `<timestamp>-<mode>.md`.
-3. Verify no overwrite of original data directories.
-4. Classify system type (`molecule` / `solid` / `2D`).
-5. Classify task type:
+2. Create `run-report.md` inside the run directory.
+3. Create one archived Markdown copy under `~/.openclaw/workspace/librpa/oh-my-librpa/` using `<timestamp>-<mode>.md`.
+4. Verify no overwrite of original data directories.
+5. Classify system type (`molecule` / `solid` / `2D`).
+6. Classify task type:
    - GW request -> `task = g0w0_band`
    - RPA request -> `task = rpa`
-6. Branch the workflow accordingly:
+7. Branch the workflow accordingly:
    - GW route uses the full chain when needed: dielectric-function path, `pyatb`, NSCF, and band preprocessing
    - RPA route skips GW-only preprocessing: no dielectric-function path, no `pyatb`, no NSCF, no `preprocess_abacus_for_librpa_band.py`
-7. Classify spin/SOC state and keep `INPUT`, workflow scripts, and `librpa.in` aligned:
+8. Classify spin/SOC state and keep `INPUT`, workflow scripts, and `librpa.in` aligned:
    - Collinear spin, no SOC -> `nspin = 2`, `lspinorb = 0`
    - Noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
    - In `get_diel.py`, update `nspin` and `use_soc` consistently
    - In `preprocess_abacus_for_librpa_band.py`, update `use_soc` consistently
    - In `librpa.in`, only switch `use_soc = 0/1`
-8. Generate workflow inputs from matched experience rules.
-9. Apply task-specific `librpa.in` defaults unless a stronger rule overrides them:
+9. Generate workflow inputs from matched experience rules.
+10. Apply task-specific `librpa.in` defaults unless a stronger rule overrides them:
    - shared runtime baseline:
      - `nfreq = 16`
      - `use_soc = 0/1` according to the chosen spin/SOC branch
@@ -113,19 +114,19 @@ Then proceed as follows:
    - RPA-specific rule:
      - keep `task = rpa`
      - do not insert GW-only dielectric-function preprocessing settings into the workflow
-10. For both `molecule` and `solid` branches:
+11. For both `molecule` and `solid` branches:
    - Modify `INPUT_scf` and `INPUT_nscf` so `nbands` equals the basis-function count when both files are part of the route
    - Count basis functions from `.orb` files using `s=1`, `p=3`, `d=5`, `f=7`, ... with radial multiplicity, then sum over all atoms in the primitive cell
    - If SOC is enabled, multiply the final basis count by `2`
    - Cross-check the chosen `nbands` against ABACUS `NBASE`
    - If there is any ambiguity in basis counting, stop and explain the counting rule before proceeding
-11. If the system is `molecule`:
+12. If the system is `molecule`:
    - Set `KPT = 1 1 1`
    - Add `gamma_only 1` to `INPUT_scf`
    - Use official ABACUS input names from the ABACUS input documentation
    - For GW: do not run `pyatb` and set `replace_w_head = f` in `librpa.in`
    - For RPA: keep the short route `SCF -> LibRPA`
-12. If the system is `solid`:
+13. If the system is `solid`:
    - Ask how many k-points to use in `KPT`; default to `8 8 8`
    - For GW:
      - `KPT_nscf` must be defined by the user
@@ -138,11 +139,11 @@ Then proceed as follows:
      - do not run NSCF
      - do not require `KPT_nscf`
      - run `SCF -> LibRPA`
-13. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
-14. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
-15. Run smoke-first setup.
-16. Validate outputs using stage-specific success criteria before escalation.
-17. For a full GW chain, judge stages with generic markers. Only `LibRPA` needs explicit status monitoring; `pyatb` and `preprocess` usually only need completion checks:
+14. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
+15. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
+16. Run smoke-first setup.
+17. Validate outputs using stage-specific success criteria before escalation.
+18. For a full GW chain, judge stages with generic markers. Only `LibRPA` needs explicit status monitoring; `pyatb` and `preprocess` usually only need completion checks:
    - SCF: completed `running_scf.log` + `ABACUS-CHARGE-DENSITY.restart`
    - pyatb: `pyatb_librpa_df/` + `band_out` + `KS_eigenvector_*.dat`
    - NSCF: completed `running_nscf.log` + `eig.txt`
@@ -150,8 +151,8 @@ Then proceed as follows:
    - LibRPA success: rank-0 output reaches `Timer stop:  total.` and `GW_band_spin_*.dat` exists
    - LibRPA running: rank-0 output exists, has no final `Timer stop:  total.` yet, and is still growing
    - LibRPA failed: no final `Timer stop:  total.` and the rank-0 output is no longer growing, or the output file is missing
-18. After each stage update, write the stage result into the Markdown run log.
-19. Report each stage before moving to the next critical stage using a short summary with `what was done`, `what was observed`, and `what is next`.
+19. After each stage update, write the stage result into both Markdown logs: the run-directory `run-report.md` and the archived copy under `~/.openclaw/workspace/librpa/oh-my-librpa/`.
+20. Report each stage before moving to the next critical stage using a short summary with `what was done`, `what was observed`, and `what is next`.
 
 ## Routing Rules
 

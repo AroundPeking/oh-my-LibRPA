@@ -39,7 +39,7 @@ After installation, users can interact only through chat, for example:
 - Rule cards (structured experience): scene, symptom, root cause, fix, verify
 - Templates: minimal `INPUT_scf`, `INPUT_nscf`, `librpa.in`
 - Static checker scripts: consistency and run-safety constraints
-- Run logging: one Markdown log per task plus short stage summaries for users
+- Run logging: one Markdown report in the run directory, one archived copy in `~/.openclaw/workspace/librpa/oh-my-librpa/`, plus short stage summaries for users
 
 ## Repository Layout
 
@@ -56,8 +56,6 @@ oh-my-librpa/
 |-- scripts/
 |-- examples/
 |-- registry/
-|-- logs/
-|   `-- runs/
 `-- docs/
 ```
 

@@ -3,12 +3,14 @@
   symptom: Users need visible progress updates and a durable run record
   root_cause: Without a structured run log, the workflow is hard to audit, resume, or compare across runs
   fix:
-    - Create one Markdown run log per task under `logs/runs/`
-    - Name the file as `<timestamp>-<mode>.md`, for example `2026-03-06-2222-gw.md`
-    - Update the file at every stage transition instead of only writing the final result
+    - Create `run-report.md` inside the active run directory
+    - Create a second archived Markdown copy under `~/.openclaw/workspace/librpa/oh-my-librpa/`
+    - Name the archived file as `<timestamp>-<mode>.md`, for example `2026-03-06-2235-gw.md`
+    - Update both files at every stage transition instead of only writing the final result
     - Send the user a short stage summary after each update
   verify:
-    - Confirm the Markdown file contains task metadata, stage timeline, outputs, and final conclusion
+    - Confirm the run-directory Markdown file contains task metadata, stage timeline, outputs, and final conclusion
+    - Confirm the archived Markdown file exists outside the repository tree
     - Confirm the user-facing summary is shorter than the full log and reports `what was done`, `what was observed`, and `what is next`
   applies_to:
     mode: any

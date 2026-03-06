@@ -6,6 +6,8 @@
 - `system_type`: `{{system_type}}`
 - `compute_location`: `{{compute_location}}`
 - `workdir`: `{{workdir}}`
+- `run_report_path`: `{{run_report_path}}`
+- `archive_report_path`: `{{archive_report_path}}`
 - `status`: `{{overall_status}}`
 - `started_at`: `{{started_at}}`
 - `updated_at`: `{{updated_at}}`

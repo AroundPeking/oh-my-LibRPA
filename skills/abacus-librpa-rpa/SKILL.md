@@ -55,4 +55,4 @@ For RPA requests, set:
 
 - Prioritize minimal viable fixes.
 - Change one major variable per iteration to reduce coupled uncertainty.
-- Update the task Markdown run log and send the user a short stage summary after each stage.
+- Update both task Markdown logs and send the user a short stage summary after each stage.
