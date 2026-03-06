@@ -77,58 +77,71 @@ Then proceed as follows:
 4. Classify task type:
    - GW request -> `task = g0w0_band`
    - RPA request -> `task = rpa`
-5. Classify spin/SOC state and keep `INPUT`, workflow scripts, and `librpa.in` aligned:
+5. Branch the workflow accordingly:
+   - GW route uses the full chain when needed: dielectric-function path, `pyatb`, NSCF, and band preprocessing
+   - RPA route skips GW-only preprocessing: no dielectric-function path, no `pyatb`, no NSCF, no `preprocess_abacus_for_librpa_band.py`
+6. Classify spin/SOC state and keep `INPUT`, workflow scripts, and `librpa.in` aligned:
    - Collinear spin, no SOC -> `nspin = 2`, `lspinorb = 0`
    - Noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
    - In `get_diel.py`, update `nspin` and `use_soc` consistently
    - In `preprocess_abacus_for_librpa_band.py`, update `use_soc` consistently
    - In `librpa.in`, only switch `use_soc = 0/1`
-6. Generate workflow inputs from matched experience rules.
-7. Apply shared default `librpa.in` baseline unless a stronger rule overrides it:
-   - `nfreq = 16`
-   - `option_dielect_func = 3`
-   - `replace_w_head = t`
-   - `use_soc = 0/1` according to the chosen spin/SOC branch
-   - `use_scalapack_gw_wc = t`
-   - `use_scalapack_ecrpa = t`
-   - `parallel_routing = libri`
-   - `vq_threshold = 0`
-   - `sqrt_coulomb_threshold = 0`
-   - `use_fullcoul_exx = t`
-   - `output_gw_sigc_mat_rf = t`
-   - `libri_chi0_threshold_C = 1e-4`
-   - `libri_chi0_threshold_G = 1e-5`
-   - `libri_exx_threshold_V = 1e-1`
-   - `libri_exx_threshold_C = 1e-4`
-   - `libri_exx_threshold_D = 1e-4`
-   - `libri_g0w0_threshold_C = 1e-5`
-   - `libri_g0w0_threshold_G = 1e-5`
-   - `libri_g0w0_threshold_Wc = 1e-6`
-8. For both `molecule` and `solid` branches:
-   - Modify `INPUT_scf` and `INPUT_nscf` so `nbands` equals the basis-function count
+7. Generate workflow inputs from matched experience rules.
+8. Apply task-specific `librpa.in` defaults unless a stronger rule overrides them:
+   - shared runtime baseline:
+     - `nfreq = 16`
+     - `use_soc = 0/1` according to the chosen spin/SOC branch
+     - `use_scalapack_gw_wc = t`
+     - `use_scalapack_ecrpa = t`
+     - `parallel_routing = libri`
+     - `vq_threshold = 0`
+     - `sqrt_coulomb_threshold = 0`
+     - `use_fullcoul_exx = t`
+     - `libri_chi0_threshold_C = 1e-4`
+     - `libri_chi0_threshold_G = 1e-5`
+     - `libri_exx_threshold_V = 1e-1`
+     - `libri_exx_threshold_C = 1e-4`
+     - `libri_exx_threshold_D = 1e-4`
+   - GW-specific additions:
+     - `option_dielect_func = 3`
+     - `replace_w_head = t`
+     - `output_gw_sigc_mat_rf = t`
+     - `libri_g0w0_threshold_C = 1e-5`
+     - `libri_g0w0_threshold_G = 1e-5`
+     - `libri_g0w0_threshold_Wc = 1e-6`
+   - RPA-specific rule:
+     - keep `task = rpa`
+     - do not insert GW-only dielectric-function preprocessing settings into the workflow
+9. For both `molecule` and `solid` branches:
+   - Modify `INPUT_scf` and `INPUT_nscf` so `nbands` equals the basis-function count when both files are part of the route
    - Count basis functions from `.orb` files using `s=1`, `p=3`, `d=5`, `f=7`, ... with radial multiplicity, then sum over all atoms in the primitive cell
    - If SOC is enabled, multiply the final basis count by `2`
-   - Check that both `INPUT_scf` and `INPUT_nscf` use the same `nbands`
    - Cross-check the chosen `nbands` against ABACUS `NBASE`
    - If there is any ambiguity in basis counting, stop and explain the counting rule before proceeding
-9. If the system is `molecule`:
+10. If the system is `molecule`:
    - Set `KPT = 1 1 1`
    - Add `gamma_only 1` to `INPUT_scf`
    - Use official ABACUS input names from the ABACUS input documentation
-   - Do not run `pyatb`
-   - Set `replace_w_head = f` in `librpa.in`
-10. If the system is `solid`:
+   - For GW: do not run `pyatb` and set `replace_w_head = f` in `librpa.in`
+   - For RPA: keep the short route `SCF -> LibRPA`
+11. If the system is `solid`:
    - Ask how many k-points to use in `KPT`; default to `8 8 8`
-   - `KPT_nscf` must be defined by the user
-   - After SCF, run `pyatb` to generate `pyatb_librpa_df`
-   - Then run NSCF
-   - Then run `preprocess_abacus_for_librpa_band.py` to generate band information files
-   - Then run `LibRPA`
-11. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
-12. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
-13. Run smoke-first setup.
-14. Validate outputs and then escalate accuracy stepwise.
-15. Report each stage before moving to the next critical stage.
+   - For GW:
+     - `KPT_nscf` must be defined by the user
+     - After SCF, run `pyatb` to generate `pyatb_librpa_df`
+     - Then run NSCF
+     - Then run `preprocess_abacus_for_librpa_band.py` to generate band information files
+     - Then run `LibRPA`
+   - For RPA:
+     - do not run `pyatb`
+     - do not run NSCF
+     - do not require `KPT_nscf`
+     - run `SCF -> LibRPA`
+12. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
+13. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
+14. Run smoke-first setup.
+15. Validate outputs and then escalate accuracy stepwise.
+16. Report each stage before moving to the next critical stage.
 
 ## Routing Rules
 
