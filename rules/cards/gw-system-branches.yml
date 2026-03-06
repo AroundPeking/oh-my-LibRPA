@@ -1,0 +1,39 @@
+- id: gw-molecule-branch-301
+  scene: User requests GW for a molecular system
+  symptom: Need a molecule-specific workflow path instead of the solid-state default chain
+  root_cause: Molecules use a Gamma-only path and do not need the head-function DF stage
+  fix:
+    - Set `KPT` to `1 1 1`
+    - Add `gamma_only 1` to `INPUT_scf`
+    - Use official ABACUS input parameter names from the ABACUS input documentation
+    - Do not run `pyatb`
+    - Set `replace_w_head = f` in `librpa.in`
+  verify:
+    - Confirm `KPT` is `1 1 1`
+    - Confirm `gamma_only 1` exists in `INPUT_scf`
+    - Confirm `replace_w_head = f` in `librpa.in`
+    - Confirm no `pyatb_librpa_df` stage is inserted into the workflow
+  applies_to:
+    mode: gw
+    system_type: molecule
+
+- id: gw-solid-branch-302
+  scene: User requests GW for a solid-state system
+  symptom: Need the full periodic workflow with dielectric preprocessing and band-path preparation
+  root_cause: Solids require k-point sampling, DF generation, and NSCF band-path preprocessing
+  fix:
+    - Ask for `KPT` mesh size; default to `8 8 8`
+    - Require a band path in `KPT_nscf`
+    - Run `SCF`
+    - Run `pyatb` to generate `pyatb_librpa_df`
+    - Run `NSCF`
+    - Run `preprocess_abacus_for_librpa_band.py`
+    - Run `LibRPA`
+  verify:
+    - Confirm the chosen `KPT` mesh in `KPT`
+    - Confirm a band path exists in `KPT_nscf`
+    - Confirm the `pyatb_librpa_df` directory is generated after `pyatb`
+    - Confirm band information files are generated before `LibRPA`
+  applies_to:
+    mode: gw
+    system_type: solid

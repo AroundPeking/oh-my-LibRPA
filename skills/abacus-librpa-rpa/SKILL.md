@@ -16,6 +16,7 @@ For RPA requests, set:
 - `option_dielect_func = 3`
 - `replace_w_head = t`
 - `use_scalapack_gw_wc = t`
+- `use_scalapack_ecrpa = t`
 - `parallel_routing = libri`
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`

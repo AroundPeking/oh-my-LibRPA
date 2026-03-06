@@ -5,7 +5,10 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 
 # ABACUS + LibRPA GW
 
-Execution order: `SCF -> DF (pyatb_librpa_df) -> NSCF -> LibRPA`.
+Execution order depends on system type:
+
+- `molecule`: `SCF -> NSCF/band preparation as needed -> LibRPA` (skip `pyatb`)
+- `solid`: `SCF -> DF (pyatb_librpa_df) -> NSCF -> preprocess_abacus_for_librpa_band.py -> LibRPA`
 
 ## Required Checks
 
@@ -22,6 +25,7 @@ For GW requests, set:
 - `option_dielect_func = 3`
 - `replace_w_head = t`
 - `use_scalapack_gw_wc = t`
+- `use_scalapack_ecrpa = t`
 - `parallel_routing = libri`
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
@@ -35,6 +39,25 @@ For GW requests, set:
 - `libri_g0w0_threshold_C = 1e-5`
 - `libri_g0w0_threshold_G = 1e-5`
 - `libri_g0w0_threshold_Wc = 1e-6`
+
+## System-Type Branches for GW
+
+### Molecule
+
+- Set `KPT` to `1 1 1`
+- Add `gamma_only 1` to `INPUT_scf`
+- Use official ABACUS input names from the ABACUS input reference
+- Do not run `pyatb`
+- Set `replace_w_head = f`
+
+### Solid
+
+- Ask the user how many k-points to use in `KPT`; default to `8 8 8`
+- Require a band path in `KPT_nscf`
+- After SCF, run `pyatb` to generate the `pyatb_librpa_df` directory
+- Then run NSCF
+- Then run `preprocess_abacus_for_librpa_band.py`
+- Then run `LibRPA`
 
 ## Coupled Parameter Rule
 

@@ -51,6 +51,7 @@ Then proceed as follows:
    - `option_dielect_func = 3`
    - `replace_w_head = t`
    - `use_scalapack_gw_wc = t`
+   - `use_scalapack_ecrpa = t`
    - `parallel_routing = libri`
    - `vq_threshold = 0`
    - `sqrt_coulomb_threshold = 0`
@@ -64,9 +65,22 @@ Then proceed as follows:
    - `libri_g0w0_threshold_C = 1e-5`
    - `libri_g0w0_threshold_G = 1e-5`
    - `libri_g0w0_threshold_Wc = 1e-6`
-7. Run smoke-first setup.
-8. Validate outputs and then escalate accuracy stepwise.
-9. Report each stage before moving to the next critical stage.
+7. If the system is `molecule`:
+   - Set `KPT = 1 1 1`
+   - Add `gamma_only 1` to `INPUT_scf`
+   - Use official ABACUS input names from the ABACUS input documentation
+   - Do not run `pyatb`
+   - Set `replace_w_head = f` in `librpa.in`
+8. If the system is `solid`:
+   - Ask how many k-points to use in `KPT`; default to `8 8 8`
+   - Require a band path in `KPT_nscf`
+   - After SCF, run `pyatb` to generate `pyatb_librpa_df`
+   - Then run NSCF
+   - Then run `preprocess_abacus_for_librpa_band.py` to generate band information files
+   - Then run `LibRPA`
+9. Run smoke-first setup.
+10. Validate outputs and then escalate accuracy stepwise.
+11. Report each stage before moving to the next critical stage.
 
 ## Routing Rules
 
