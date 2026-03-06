@@ -36,8 +36,11 @@ If the user provides files:
 
 - `structure files` -> generate or complete the workflow
 - `input bundle` -> audit and patch instead of rewriting blindly
+- `basis/pseudopotential assets` -> use them directly as authoritative inputs for basis and auxiliary-basis setup
 - `logs/results` -> enter debug mode first
 - `archives` -> unpack and classify before proceeding
+
+When the user provides `.abfs` files, treat them as direct candidates for `ABFS_ORBITAL` entries in `STRU`.
 
 Canonical server-side template bundle is under `/mnt/sg001/home/ks_iopcas_ghj/gw/template` and includes:
 

@@ -26,10 +26,12 @@
     - Set `shrink_lu_inv_thr 1e-3`
     - Set `cs_inv_thr 1e-5`
     - Require the user to specify `ABFS_ORBITAL` in `STRU`
+    - If the user provides `.abfs` files, use those filenames directly in `ABFS_ORBITAL`
   verify:
     - Check all coupled parameters exist and are parsed correctly
     - Confirm shrink is enabled explicitly in `librpa.in`
     - Confirm `ABFS_ORBITAL` exists in `STRU`
+    - Confirm referenced `.abfs` filenames exist in the working directory or specified path
     - Perform short smoke test first
   applies_to:
     mode: gw
