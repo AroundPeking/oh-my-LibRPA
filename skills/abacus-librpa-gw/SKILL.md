@@ -130,6 +130,50 @@ Interpretation:
 - If the user provides `.abfs` files, use those filenames directly in `ABFS_ORBITAL` entries.
 - Server examples include names such as `Ga_str_4s4p3d2f2g_1e-4.abfs` and `As_str_4s4p3d2f2g_1e-4.abfs`.
 
+## Stage Success Criteria
+
+Use these generic checks for a full ABACUS + LibRPA GW chain.
+
+### SCF success
+
+- `OUT.ABACUS/running_scf.log` exists
+- `running_scf.log` contains both `Finish Time` and `Total Time`
+- `OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart` exists and is non-empty
+
+### pyatb success
+
+- `pyatb_librpa_df/` exists
+- `pyatb_librpa_df/band_out` exists
+- at least one `pyatb_librpa_df/KS_eigenvector_*.dat` file exists
+
+### NSCF success
+
+- `OUT.ABACUS/running_nscf.log` exists
+- `running_nscf.log` contains both `Finish Time` and `Total Time`
+- `OUT.ABACUS/eig.txt` exists and is non-empty
+
+### preprocess success
+
+- `band_out` exists in the working directory
+- `band_kpath_info` exists in the working directory
+- at least one `KS_band_spin_*.dat` file exists
+
+### LibRPA success
+
+- `librpa_para_nprocs_*_myid_0.out` exists
+- the rank-0 output contains `Timer stop:  total.`
+- at least one `GW_band_spin_*.dat` file exists
+
+### LibRPA still running
+
+- `librpa_para_nprocs_*_myid_0.out` exists but does not yet contain `Timer stop:  total.`
+- the file modification time is still recent
+- new timer lines or GW-stage lines continue to appear, such as:
+  - `Timer start:` / `Timer stop:`
+  - `g0w0_sigc_*`
+  - `g0w0_build_sigc_KS`
+  - `g0w0_solve_band_qpe`
+
 ## Output Requirement
 
 For each recommendation, provide:

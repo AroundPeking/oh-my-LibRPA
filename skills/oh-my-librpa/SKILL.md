@@ -140,8 +140,15 @@ Then proceed as follows:
 12. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
 13. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
 14. Run smoke-first setup.
-15. Validate outputs and then escalate accuracy stepwise.
-16. Report each stage before moving to the next critical stage.
+15. Validate outputs using stage-specific success criteria before escalation.
+16. For a full GW chain, judge stages with generic markers:
+   - SCF: completed `running_scf.log` + `ABACUS-CHARGE-DENSITY.restart`
+   - pyatb: `pyatb_librpa_df/` + `band_out` + `KS_eigenvector_*.dat`
+   - NSCF: completed `running_nscf.log` + `eig.txt`
+   - preprocess: `band_out` + `band_kpath_info` + `KS_band_spin_*.dat`
+   - LibRPA success: rank-0 output reaches `Timer stop:  total.` and `GW_band_spin_*.dat` exists
+   - LibRPA running: rank-0 output exists, is still growing, and has no final `Timer stop:  total.` yet
+17. Report each stage before moving to the next critical stage.
 
 ## Routing Rules
 

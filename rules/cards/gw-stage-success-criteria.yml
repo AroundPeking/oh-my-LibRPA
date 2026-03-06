@@ -1,0 +1,88 @@
+- id: gw-scf-success-601
+  scene: Judge whether ABACUS SCF finished successfully
+  symptom: Need a generic success signal after the SCF stage
+  root_cause: SCF completion should be judged from both log termination and durable output artifacts
+  fix:
+    - Check that `OUT.ABACUS/running_scf.log` exists
+    - Check that `running_scf.log` contains both `Finish Time` and `Total Time`
+    - Check that `OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart` exists
+  verify:
+    - Confirm the SCF log ends normally rather than with an error backtrace
+    - Confirm the charge-density restart file is non-empty
+  applies_to:
+    mode: gw
+    stage: scf
+
+- id: gw-pyatb-success-602
+  scene: Judge whether the pyatb dielectric-data stage finished successfully
+  symptom: Need a generic success signal after the `pyatb` stage
+  root_cause: pyatb success is best judged by the generated `pyatb_librpa_df` payload rather than a fragile single log string
+  fix:
+    - Check that the `pyatb_librpa_df` directory exists
+    - Check that `pyatb_librpa_df/band_out` exists
+    - Check that at least one `pyatb_librpa_df/KS_eigenvector_*.dat` file exists
+  verify:
+    - Confirm the directory is non-empty
+    - Confirm representative eigenvector files are non-zero size
+  applies_to:
+    mode: gw
+    stage: pyatb
+
+- id: gw-nscf-success-603
+  scene: Judge whether ABACUS NSCF finished successfully
+  symptom: Need a generic success signal after the NSCF stage
+  root_cause: NSCF completion should be judged from both log termination and band-oriented output artifacts
+  fix:
+    - Check that `OUT.ABACUS/running_nscf.log` exists
+    - Check that `running_nscf.log` contains both `Finish Time` and `Total Time`
+    - Check that `OUT.ABACUS/eig.txt` exists
+  verify:
+    - Confirm the NSCF log ends normally rather than with an error backtrace
+    - Confirm `eig.txt` is non-empty
+  applies_to:
+    mode: gw
+    stage: nscf
+
+- id: gw-preprocess-success-604
+  scene: Judge whether `preprocess_abacus_for_librpa_band.py` finished successfully
+  symptom: Need a generic success signal after band preprocessing
+  root_cause: Preprocess success is best judged from the presence of produced band-data files
+  fix:
+    - Check that `band_out` exists in the working directory
+    - Check that `band_kpath_info` exists in the working directory
+    - Check that at least one `KS_band_spin_*.dat` file exists
+  verify:
+    - Confirm all generated files are non-empty
+  applies_to:
+    mode: gw
+    stage: preprocess
+
+- id: gw-librpa-success-605
+  scene: Judge whether LibRPA finished successfully for GW
+  symptom: Need a generic success signal for the long LibRPA stage
+  root_cause: LibRPA completion is best judged from the rank-0 output and final GW products, not from transient mid-run timer lines
+  fix:
+    - Check that `librpa_para_nprocs_*_myid_0.out` exists
+    - Check that the rank-0 output contains `Timer stop:  total.`
+    - Check that at least one `GW_band_spin_*.dat` file exists
+  verify:
+    - Confirm the rank-0 output reaches the final `Timer stop:  total.` marker
+    - Confirm final GW band files are non-empty
+  applies_to:
+    mode: gw
+    stage: librpa
+
+- id: gw-librpa-running-606
+  scene: Judge whether LibRPA is still progressing rather than stalled or finished
+  symptom: LibRPA is long-running and users need a progress-aware status check
+  root_cause: During execution, the strongest generic signal is an active rank-0 output file with advancing timer stages but without the final completion marker yet
+  fix:
+    - Check that `librpa_para_nprocs_*_myid_0.out` exists
+    - If `Timer stop:  total.` is absent, inspect whether the file is still growing or has recent timestamp updates
+    - Treat repeated stage markers such as `Timer start:` / `Timer stop:` and GW-specific sections such as `g0w0_sigc_*`, `g0w0_build_sigc_KS`, or `g0w0_solve_band_qpe` as evidence of ongoing progress
+  verify:
+    - Confirm file modification time is recent relative to the current check
+    - Confirm new lines are being appended between checks
+  applies_to:
+    mode: gw
+    stage: librpa_running
