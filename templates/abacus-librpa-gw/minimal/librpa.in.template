@@ -24,4 +24,5 @@ libri_g0w0_threshold_C = 1e-5
 libri_g0w0_threshold_G = 1e-5
 libri_g0w0_threshold_Wc = 1e-6
 
+# Shrink is the default strategy
 use_shrink_abfs = t

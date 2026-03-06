@@ -15,17 +15,33 @@
     librpa: ">=0.x"
 
 - id: shrink-abfs-coupling-002
-  scene: use_shrink_abfs enabled
-  symptom: unstable/failed run due to missing coupled thresholds
-  root_cause: shrink_abfs enabled without required companion parameters
+  scene: default GW workflow with shrink enabled
+  symptom: unstable/failed run due to missing or inconsistent shrink-related thresholds
+  root_cause: shrink_abfs should be enabled by default, but companion parameters are missing or misunderstood
   fix:
-    - rpa 1
-    - exx_pca_threshold 10
-    - shrink_abfs_pca_thr 1e-4
-    - shrink_lu_inv_thr 1e-3
-    - cs_inv_thr 1e-5
+    - Set `use_shrink_abfs = t`
+    - Set `rpa 1`
+    - Set `exx_pca_threshold 10`
+    - Set `shrink_abfs_pca_thr 1e-4`
+    - Set `shrink_lu_inv_thr 1e-3`
+    - Set `cs_inv_thr 1e-5`
   verify:
     - Check all coupled parameters exist and are parsed correctly
+    - Confirm shrink is enabled explicitly in `librpa.in`
     - Perform short smoke test first
+  applies_to:
+    mode: gw
+
+- id: shrink-parameter-meaning-003
+  scene: user asks how shrink defaults should be interpreted
+  symptom: parameters are present but their roles are unclear
+  root_cause: shrink-related defaults encode different controls for compressed basis size, inversion stability, and external-input routing
+  fix:
+    - Treat `shrink_abfs_pca_thr = 1e-4` as the default control on compressed auxiliary-basis size
+    - Treat `shrink_lu_inv_thr = 1e-3` as the default control for inversion-error handling in output `sinvS`
+    - Treat `exx_pca_threshold = 10` as the switch meaning the large-basis path expects external input when shrink is enabled
+  verify:
+    - Explain each parameter role before changing it
+    - Only tune one shrink-related threshold at a time
   applies_to:
     mode: gw

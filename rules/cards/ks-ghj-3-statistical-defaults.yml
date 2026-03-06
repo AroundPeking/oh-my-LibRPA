@@ -17,15 +17,18 @@
 - id: shrink-abfs-default-lane-102
   scene: GW calculations with shrink_abfs path
   symptom: Frequent setup confusion around coupled thresholds
-  root_cause: shrink_abfs enabled but companion threshold set is incomplete or nonstandard
+  root_cause: shrink should be the default lane, but companion thresholds are easy to misuse
   fix:
-    - Enable use_shrink_abfs = t when using shrink lane
-    - Ensure INPUT_scf contains:
-      - rpa 1
-      - exx_pca_threshold 10
-      - shrink_lu_inv_thr 1e-3
-      - cs_inv_thr 1e-5
-    - Keep shrink_abfs_pca_thr explicit and tune per system (start from 1e-6 or 1e-4)
+    - Enable `use_shrink_abfs = t` by default
+    - Ensure `INPUT_scf` contains:
+      - `rpa 1`
+      - `exx_pca_threshold 10`
+      - `shrink_abfs_pca_thr 1e-4`
+      - `shrink_lu_inv_thr 1e-3`
+      - `cs_inv_thr 1e-5`
+    - Interpret `shrink_abfs_pca_thr` as the control on compressed auxiliary-basis size
+    - Interpret `shrink_lu_inv_thr` as the inversion-error control for output `sinvS`
+    - Interpret `exx_pca_threshold = 10` as the external-input route when shrink is enabled
   verify:
     - Static checker passes all required coupled keys
     - Short smoke run succeeds before scaling up

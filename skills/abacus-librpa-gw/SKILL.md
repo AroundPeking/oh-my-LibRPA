@@ -61,15 +61,22 @@ For GW requests, set:
 - Then run `preprocess_abacus_for_librpa_band.py`
 - Then run `LibRPA`
 
-## Coupled Parameter Rule
+## Default Shrink Strategy
 
-If `use_shrink_abfs = t`, the following coupled parameters must exist:
+Use shrink by default:
 
+- `use_shrink_abfs = t`
 - `rpa 1`
 - `exx_pca_threshold 10`
 - `shrink_abfs_pca_thr 1e-4`
 - `shrink_lu_inv_thr 1e-3`
 - `cs_inv_thr 1e-5`
+
+Interpretation:
+
+- `shrink_abfs_pca_thr` controls the size of the compressed auxiliary basis; default to `1e-4`.
+- `shrink_lu_inv_thr` is used to control inversion-error handling for the output `sinvS`; default to `1e-3`.
+- `exx_pca_threshold = 10` means the large-basis path expects external input when shrink is enabled.
 
 ## Output Requirement
 
