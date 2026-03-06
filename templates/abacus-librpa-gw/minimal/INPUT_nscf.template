@@ -1,0 +1,5 @@
+# Minimal NSCF template (placeholder)
+
+calculation nscf
+# Keep consistent with SCF chain and basis convention
+nbands <FILL_ME>

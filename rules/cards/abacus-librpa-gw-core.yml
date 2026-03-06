@@ -1,0 +1,30 @@
+- id: gw-flow-consistency-001
+  scene: ABACUS + LibRPA GW workflow
+  symptom: LibRPA input parsing/read failure or inconsistent outputs
+  root_cause: Inputs assembled from mixed directories or stale outputs remain
+  fix:
+    - Regenerate librpa inputs from the same ABACUS workflow outputs
+    - Run in a fresh directory
+    - Remove stale output artifacts before rerun
+  verify:
+    - Confirm source paths for SCF/DF/NSCF are from one run chain
+    - Re-run minimal smoke with nfreq=16
+  applies_to:
+    abacus: ">=3.x"
+    librpa: ">=0.x"
+
+- id: shrink-abfs-coupling-002
+  scene: use_shrink_abfs enabled
+  symptom: unstable/failed run due to missing coupled thresholds
+  root_cause: shrink_abfs enabled without required companion parameters
+  fix:
+    - rpa 1
+    - exx_pca_threshold 10
+    - shrink_abfs_pca_thr 1e-4
+    - shrink_lu_inv_thr 1e-3
+    - cs_inv_thr 1e-5
+  verify:
+    - Check all coupled parameters exist and are parsed correctly
+    - Perform short smoke test first
+  applies_to:
+    mode: gw

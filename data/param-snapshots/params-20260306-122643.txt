@@ -1,0 +1,3733 @@
+===== /./AlSb/gw_shrink_apns/INPUT_nscf =====
+nbands			63
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/gw_shrink_apns/INPUT_scf =====
+nbands			63
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-5
+
+===== /./AlSb/gw_shrink_apns/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlSb/sg15/exx/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     7
+
+===== /./AlSb/sg15/exx/librpa.in =====
+nfreq = 16
+
+===== /./AlSb/sg15/exx/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/apns/INPUT_nscf =====
+nbands			72
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/apns/INPUT_scf =====
+nbands			72
+rpa				1
+exx_pca_threshold		1e-10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-4
+
+===== /./AlSb/apns/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlSb/template/INPUT_scf =====
+nbands			72
+rpa				1
+exx_pca_threshold		1e-10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-4
+
+===== /./AlSb/template/INPUT_nscf =====
+nbands			72
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/template/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlSb/Dojov5/fix_sinv/INPUT_scf =====
+nbands			79
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./AlSb/Dojov5/fix_sinv/INPUT_nscf =====
+nbands			79
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/Dojov5/fix_sinv/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlSb/Dojov5/xsinv/INPUT_nscf =====
+nbands			79
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/Dojov5/xsinv/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlSb/Dojov5/xsinv/INPUT_scf =====
+nbands			79
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+
+===== /./AlSb/Dojov5/new_orb/INPUT_nscf =====
+nbands			79
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlSb/Dojov5/new_orb/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlSb/Dojov5/new_orb/INPUT_scf =====
+nbands			79
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaP/gth/INPUT_scf =====
+nbands			71
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaP/gth/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaP/gth/INPUT_nscf =====
+nbands			71
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaP/gth+dojo/INPUT_nscf =====
+nbands			64
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaP/gth+dojo/INPUT_scf =====
+nbands			64
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaP/gth+dojo/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaP/apns/INPUT_nscf =====
+nbands			70
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaP/apns/INPUT_scf =====
+nbands			70
+rpa				1
+exx_pca_threshold		1e-10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-4
+
+===== /./GaP/apns/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaP/dojov5/exx_neworb/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaP/dojov5/exx_neworb/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./GaP/dojov5/exx_neworb/librpa.in =====
+nfreq = 16
+
+===== /./GaP/dojov5/gw/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaP/dojov5/gw/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaP/dojov5/gw/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaP/dojov5/gw_shrink_chi/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaP/dojov5/exx/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaP/dojov5/exx/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./GaP/dojov5/exx/librpa.in =====
+nfreq = 16
+
+===== /./BN/test_gw/x/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/test_gw/x/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-3
+rpa_ccp_rmesh_times     5
+cs_inv_thr          1e-5
+
+===== /./BN/test_gw/x/librpa.in =====
+nfreq = 16
+
+===== /./BN/test_gw/o/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-3
+rpa_ccp_rmesh_times     5
+cs_inv_thr          1e-5
+
+===== /./BN/test_gw/o/librpa.in =====
+nfreq = 16
+
+===== /./BN/test_gw/o/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/test_gw/x_cutcoul/librpa.in =====
+nfreq = 16
+
+===== /./BN/test_gw/cp/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/test_gw/cp/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-3
+rpa_ccp_rmesh_times     5
+cs_inv_thr          1e-5
+
+===== /./BN/test_gw/cp/librpa.in =====
+nfreq = 16
+
+===== /./BN/dojov5/hyk_basis/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/dojov5/hyk_basis/librpa.in =====
+nfreq = 16
+
+===== /./BN/dojov5/hyk_basis/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     7
+cs_inv_thr              1e-5
+
+===== /./BN/dojov5/zws_basis/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./BN/dojov5/zws_basis/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/dojov5/zws_basis/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./BN/dojov5/cs_test/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/dojov5/cs_test/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-3
+
+===== /./BN/dojov5/cs_test/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./BN/sg15/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/sg15/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+cs_inv_thr          1e-5
+
+===== /./BN/sg15/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./BN/test_rotate/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/test_rotate/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+cs_inv_thr          1e-5
+
+===== /./BN/test_rotate/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./BN/test_xro/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./BN/test_xro/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+cs_inv_thr          1e-5
+
+===== /./BN/test_xro/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/aims_librpa/librpa.in =====
+nfreq = 16
+
+===== /./Si/Si/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Si/Si/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/Si/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/all_kpath/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Si/all_kpath/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/all_kpath/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/jy_test/k8/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/jy_test/k8/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Si/jy_test/k8/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/jy_test/k6/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/jy_test/k6/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Si/jy_test/k6/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/exx_rotate/dr_1e-4/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/exx_rotate/dr_1e-4/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     5
+cs_inv_thr		1e-5
+
+===== /./Si/exx_rotate/dr_1e-4/librpa.in =====
+nfreq = 16
+use_shrink_abfs = f
+
+===== /./Si/exx_rotate/dr_1e-2/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/exx_rotate/dr_1e-2/librpa.in =====
+nfreq = 16
+use_shrink_abfs = f
+
+===== /./Si/exx_rotate/dr_1e-2/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     5
+cs_inv_thr		1e-5
+
+===== /./Si/exx_rotate/gw_xrotate_10ccp/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/exx_rotate/gw_xrotate_10ccp/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     10
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Si/exx_rotate/gw_xrotate_10ccp/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/exx_rotate/gw_rotate/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     10
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr		1e-5
+
+===== /./Si/exx_rotate/gw_rotate/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/exx_rotate/gw_rotate/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/exx_rotate/mom/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/exx_rotate/mom/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     5
+cs_inv_thr		1e-5
+
+===== /./Si/exx_rotate/mom/librpa.in =====
+nfreq = 16
+use_shrink_abfs = f
+
+===== /./Si/exx_rotate/gw_10ccp_moment/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Si/exx_rotate/gw_10ccp_moment/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Si/exx_rotate/gw_10ccp_moment/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     10
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./NiO/gw/malloc/INPUT_nscf =====
+nbands			132
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./NiO/gw/malloc/INPUT_scf =====
+nbands			132
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-4
+
+===== /./NiO/gw/malloc/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./NiO/gw/dojov4/INPUT_nscf =====
+nbands			146
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./NiO/gw/dojov4/librpa.in =====
+nfreq = 16
+
+===== /./NiO/gw/dojov4/INPUT_scf =====
+nbands			146
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./NiO/gw/test/INPUT_nscf =====
+nbands			146
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./NiO/gw/test/INPUT_scf =====
+nbands			146
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times     5
+
+===== /./NiO/gw/test/librpa.in =====
+nfreq = 16
+
+===== /./NiO/gw/NiO/INPUT_scf =====
+nbands			146
+exx_pca_threshold		10
+
+===== /./NiO/gw/NiO/INPUT_nscf =====
+nbands			146
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./NiO/gw/NiO/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./NiO/gw/dzp/INPUT_nscf =====
+nbands			98
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./NiO/gw/dzp/librpa.in =====
+nfreq = 16
+
+===== /./NiO/gw/dzp/INPUT_scf =====
+nbands			98
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+cs_inv_thr              1e-5
+
+===== /./reg_test/g0w0_band_abacus_BN_soc_libri/INPUT_scf =====
+nbands			52
+rpa				1
+exx_pca_threshold		1e-3
+rpa_ccp_rmesh_times	    1
+
+===== /./reg_test/g0w0_band_abacus_BN_soc_libri/INPUT_nscf =====
+nbands			52
+
+===== /./reg_test/g0w0_band_abacus_BN_soc_libri/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/g0w0_band_abacus_BN_soc_libri/test_librpa/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/soc_k4_AlAs/INPUT_nscf =====
+nbands			126
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./reg_test/soc_k4_AlAs/librpa.in =====
+nfreq = 16
+
+===== /./reg_test/soc_k4_AlAs/INPUT_scf =====
+nbands			126
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times	    4
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_shrink_libri/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_headwing_libri/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_headwing_shrink_soc_libri/INPUT_nscf =====
+nbands			76
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_headwing_shrink_soc_libri/INPUT_scf =====
+nbands			76
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times	    1
+shrink_abfs_pca_thr     1e-1
+shrink_lu_inv_thr       1e-4
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_headwing_shrink_soc_libri/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./reg_test/reg_test/g0w0_band_abacus_MnO2_nspin2_shrink_wing_libri/INPUT_scf =====
+nbands			36
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+shrink_lu_inv_thr       1e-3
+
+===== /./reg_test/reg_test/g0w0_band_abacus_MnO2_nspin2_shrink_wing_libri/INPUT_nscf =====
+nbands			36
+exx_pca_threshold		10
+
+===== /./reg_test/reg_test/g0w0_band_abacus_MnO2_nspin2_shrink_wing_libri/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_soc_libri/INPUT_scf =====
+nbands			52
+rpa				1
+exx_pca_threshold		1e-3
+rpa_ccp_rmesh_times	    1
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_soc_libri/INPUT_nscf =====
+nbands			52
+
+===== /./reg_test/reg_test/g0w0_band_abacus_BN_soc_libri/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/reg_test/g0w0_band_aims_GaAs_soc_wing_libri/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/test_abacus/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/test_abacus/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times	    1
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/test_abacus/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/test_librpa/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times	    1
+
+===== /./reg_test/g0w0_band_abacus_BN_headwing_libri/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/g0w0_band_abacus_BN_shrink_libri/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/g0w0_band_abacus_BN_shrink_libri/librpa_test/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/g0w0_band_abacus_BN_shrink_libri/abacus_test/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/soc/INPUT_scf =====
+nbands			52
+rpa				1
+exx_pca_threshold		1e-3
+rpa_ccp_rmesh_times	    1
+
+===== /./reg_test/merge_test/soc/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/merge_test/soc/INPUT_nscf =====
+nbands			52
+
+===== /./reg_test/merge_test/hw_shrink_soc/INPUT_nscf =====
+nbands			76
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./reg_test/merge_test/hw_shrink_soc/INPUT_scf =====
+nbands			76
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times	    1
+shrink_abfs_pca_thr     1e-1
+shrink_lu_inv_thr       1e-4
+
+===== /./reg_test/merge_test/hw_shrink_soc/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/out_hamgnn/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times	    1
+
+===== /./reg_test/merge_test/out_hamgnn/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/merge_test/aims_soc_wing/librpa.in =====
+nfreq = 6
+
+===== /./reg_test/merge_test/nspin2_shrink_wing_fix/INPUT_nscf =====
+nbands			36
+exx_pca_threshold		10
+
+===== /./reg_test/merge_test/nspin2_shrink_wing_fix/INPUT_scf =====
+nbands			36
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+shrink_lu_inv_thr       1e-3
+
+===== /./reg_test/merge_test/nspin2_shrink_wing_fix/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/test_Cs/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/shrink/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/test_inv/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/0/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./reg_test/merge_test/nspin2_shrink_wing/INPUT_nscf =====
+nbands			36
+exx_pca_threshold		10
+
+===== /./reg_test/merge_test/nspin2_shrink_wing/INPUT_scf =====
+nbands			36
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+shrink_lu_inv_thr       1e-3
+
+===== /./reg_test/merge_test/nspin2_shrink_wing/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./CaO/pbe/myorb/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CaO/pbe/myorb/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./CaO/pbe/myorb/INPUT_scf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./CaO/pbe/apns/INPUT_scf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./CaO/pbe/apns/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./CaO/pbe/apns/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CaO/k8_shrink_wing/INPUT_scf =====
+nbands			54
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-6
+
+===== /./CaO/k8_shrink_wing/INPUT_nscf =====
+nbands			54
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CaO/k8_shrink_wing/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./CaO/sg15/1mpi/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    6
+
+===== /./CaO/sg15/1mpi/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./CaO/sg15/1mpi/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr             1e-8
+
+===== /./CaO/sg15/4mpi_fix/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr             1e-8
+
+===== /./CaO/sg15/4mpi_fix/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./CaO/sg15/4mpi_fix/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    6
+
+===== /./CaO/sg15/24freq/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./CaO/sg15/CaO/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+
+===== /./CaO/sg15/CaO/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    6
+
+===== /./CaO/sg15/CaO/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./template/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-4
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./template/INPUT_nscf =====
+nbands			79
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./template/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./LiF/sg15/1mpi/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+
+===== /./LiF/sg15/1mpi/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./LiF/sg15/1mpi/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/sg15/old_orb/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/sg15/old_orb/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./LiF/sg15/old_orb/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-5
+
+===== /./LiF/sg15/jy/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/sg15/jy/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-5
+cs_inv_thr		1e-5
+
+===== /./LiF/sg15/jy/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./LiF/sg15/jy_large/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-5
+cs_inv_thr		1e-5
+
+===== /./LiF/sg15/jy_large/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./LiF/sg15/jy_large/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/sg15/cs_inv_1e-5/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/sg15/cs_inv_1e-5/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./LiF/sg15/cs_inv_1e-5/librpa.in =====
+nfreq = 16
+
+===== /./LiF/sg15/cs_inv_1e-3/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/sg15/cs_inv_1e-3/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-3
+
+===== /./LiF/sg15/cs_inv_1e-3/librpa.in =====
+nfreq = 16
+
+===== /./LiF/dojov5/pbe/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/dojov5/pbe/INPUT_scf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./LiF/dojov5/pbe/librpa.in =====
+nfreq = 16
+
+===== /./LiF/dojov5/gw/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     10
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./LiF/dojov5/gw/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./LiF/dojov5/gw/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./LiF/dojov5/exx/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./LiF/dojov5/exx/librpa.in =====
+nfreq = 16
+
+===== /./LiF/dojov5/exx/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/Dojov5/CdS/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./CdS/Dojov5/CdS/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/Dojov5/CdS/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./CdS/Dojov5/old_orb/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./CdS/Dojov5/old_orb/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/Dojov5/old_orb/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./CdS/test_sigma/1e-8/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/1e-8/librpa.in =====
+nfreq = 24
+
+===== /./CdS/test_sigma/1e-8/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+
+===== /./CdS/test_sigma/10_7/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/10_7/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		-1
+rpa_ccp_rmesh_times     10
+shrink_abfs_pca_thr     1e-6
+
+===== /./CdS/test_sigma/10_7/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./CdS/test_sigma/1e-8_shrink_1e-6/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/1e-8_shrink_1e-6/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+
+===== /./CdS/test_sigma/1e-8_shrink_1e-6/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./CdS/test_sigma/shrink_s/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-2
+
+===== /./CdS/test_sigma/shrink_s/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/shrink_s/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./CdS/test_sigma/cutCoul/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/cutCoul/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		-1
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+
+===== /./CdS/test_sigma/cutCoul/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./CdS/test_sigma/7_4/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/7_4/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		-1
+rpa_ccp_rmesh_times     7
+shrink_abfs_pca_thr     1e-6
+
+===== /./CdS/test_sigma/7_4/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./CdS/test_sigma/1e-8_shrink_1e-8/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/test_sigma/1e-8_shrink_1e-8/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+
+===== /./CdS/test_sigma/1e-8_shrink_1e-8/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./CdS/sg15/exx/INPUT_nscf =====
+nbands			66
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/sg15/exx/INPUT_scf =====
+nbands			66
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     6
+
+===== /./CdS/sg15/exx/librpa.in =====
+nfreq = 16
+
+===== /./CdS/apns/INPUT_nscf =====
+nbands			73
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/apns/INPUT_scf =====
+nbands			73
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./CdS/apns/librpa.in =====
+nfreq = 16
+
+===== /./CdS/dojo+sg15/INPUT_scf =====
+nbands			66
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     6
+
+===== /./CdS/dojo+sg15/librpa.in =====
+nfreq = 16
+
+===== /./CdS/dojo+sg15/INPUT_nscf =====
+nbands			66
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/gth/gth_S/INPUT_nscf =====
+nbands			80
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/gth/gth_S/INPUT_scf =====
+nbands			80
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+
+===== /./CdS/gth/gth_S/librpa.in =====
+nfreq = 16
+
+===== /./CdS/gth/all_gth/INPUT_scf =====
+nbands			72
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+
+===== /./CdS/gth/all_gth/INPUT_nscf =====
+nbands			72
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/gth/all_gth/librpa.in =====
+nfreq = 16
+
+===== /./CdS/gth/pbe/INPUT_nscf =====
+nbands			54
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./CdS/gth/pbe/INPUT_scf =====
+nbands			54
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+
+===== /./CdS/gth/pbe/librpa.in =====
+nfreq = 16
+
+===== /./nonlin_soc_gw/Cr3/pbe/INPUT_nscf =====
+nbands			150
+exx_pca_threshold		10
+
+===== /./nonlin_soc_gw/Cr3/pbe/INPUT_scf =====
+nbands			150
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./nonlin_soc_gw/Mn3Sn/gw/INPUT_scf =====
+nbands			346
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./nonlin_soc_gw/Mn3Sn/gw/INPUT_nscf =====
+nbands			346
+exx_pca_threshold		10
+
+===== /./nonlin_soc_gw/Mn3Sn/pbe/INPUT_scf =====
+nbands			150
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./nonlin_soc_gw/Mn3Sn/pbe/INPUT_nscf =====
+nbands			150
+exx_pca_threshold		10
+
+===== /./nonlin_soc_gw/Mn3Sn/test_grids/INPUT_nscf =====
+nbands			346
+exx_pca_threshold		10
+
+===== /./nonlin_soc_gw/Mn3Sn/test_grids/INPUT_scf =====
+nbands			346
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times     5
+
+===== /./nonlin_soc_gw/Mn3Sn/test_grids/librpa.in =====
+nfreq = 16
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_precheck_20260228_201017/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_k6_band_chiral_20260228_223500/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_k6_band_chiral_20260228_223500/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_k6_band_chiral_fix_20260228_230713/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_k6_band_chiral_fix_20260228_230713/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_collinear_fm_k6_baseline_retry_20260301_103003/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_collinear_fm_k6_baseline_retry_20260301_103003/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_nonmag_k6_baseline_retry_20260301_103003/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_nonmag_k6_baseline_retry_20260301_103003/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_theta0_precheck_20260228_173319/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_relaxed_20260228_205229/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_k6_band_20260228_221426/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_120_k6_band_20260228_221426/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_collinear_fm_k6_baseline_20260301_102533/INPUT_nscf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_collinear_fm_k6_baseline_20260301_102533/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_nonmag_k6_baseline_20260301_102533/INPUT_scf =====
+nbands                           120
+
+===== /./nonlin_soc_gw/NiI2/nonlin_soc_pbe_nonmag_k6_baseline_20260301_102533/INPUT_nscf =====
+nbands                           120
+
+===== /./abacus_input/GaAs/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./abacus_input/GaAs/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/GaAs/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./abacus_input/C/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/C/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/C/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/Si/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/Si/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/Si/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/AlAs/INPUT_nscf =====
+nbands			56
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/AlAs/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/AlAs/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/BN/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/BN/librpa.in =====
+nfreq = 32
+use_shrink_abfs = t
+
+===== /./abacus_input/BN/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/BAs/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/BAs/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/BAs/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/BP/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/BP/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/BP/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/MgO/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/MgO/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/MgO/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/MgO/MgO/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/MgO/MgO/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-5
+
+===== /./abacus_input/MgO/MgO/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/SiC/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/SiC/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/SiC/librpa.in =====
+nfreq = 32
+use_shrink_abfs = t
+
+===== /./abacus_input/Bi2Se3/INPUT_nscf =====
+nbands			110
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/Bi2Se3/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/Bi2Se3/INPUT_scf =====
+nbands			110
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/AlP/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/AlP/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/AlP/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./abacus_input/CaO/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/CaO/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./abacus_input/CaO/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    6
+
+===== /./abacus_input/GaP/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./abacus_input/GaP/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/GaP/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/NaCl/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./abacus_input/NaCl/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./abacus_input/NaCl/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./SiC/SiC/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./SiC/SiC/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./SiC/SiC/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     7
+shrink_abfs_pca_thr     1e-4
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./SiC/sg15/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./SiC/sg15/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./SiC/sg15/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/apns/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-4
+
+===== /./AlAs/apns/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/apns/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/gw_shrink/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/gw_shrink/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-4
+
+===== /./AlAs/gw_shrink/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/wing_time_test/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/aims_soc/wing/librpa.in =====
+nfreq = 16
+
+===== /./AlAs/aims_soc/head/librpa.in =====
+nfreq = 16
+
+===== /./AlAs/test_moment/old_m/librpa.in =====
+nfreq = 16
+
+===== /./AlAs/test_moment/new_m/librpa.in =====
+nfreq = 16
+
+===== /./AlAs/k4/INPUT_nscf =====
+nbands			56
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/k4/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/k4/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+
+===== /./AlAs/jy_test/5_jy/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./AlAs/jy_test/5_jy/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/5_jy/librpa.in =====
+nfreq = 8
+
+===== /./AlAs/jy_test/xjy/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/xjy/librpa.in =====
+nfreq = 8
+use_shrink_abfs = t
+
+===== /./AlAs/jy_test/xjy/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./AlAs/jy_test/2_jy/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./AlAs/jy_test/2_jy/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/2_jy/librpa.in =====
+nfreq = 8
+use_shrink_abfs = t
+
+===== /./AlAs/jy_test/nl5_ne20/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl5_ne20/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./AlAs/jy_test/nl5_ne20/librpa.in =====
+nfreq = 8
+
+===== /./AlAs/jy_test/nl5_ne30/librpa.in =====
+nfreq = 8
+
+===== /./AlAs/jy_test/nl5_ne30/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl5_ne30/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./AlAs/jy_test/nl6_ne30/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./AlAs/jy_test/nl6_ne30/librpa.in =====
+nfreq = 8
+
+===== /./AlAs/jy_test/nl6_ne30/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl6_ne50_shrink_16freq/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/jy_test/angular_test/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./AlAs/jy_test/angular_test/librpa.in =====
+nfreq = 8
+use_shrink_abfs = t
+
+===== /./AlAs/jy_test/angular_test/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl5_ne10/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl5_ne10/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./AlAs/jy_test/nl5_ne10/librpa.in =====
+nfreq = 8
+
+===== /./AlAs/jy_test/nl5_ne50/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./AlAs/jy_test/nl5_ne50/librpa.in =====
+nfreq = 8
+
+===== /./AlAs/jy_test/nl5_ne50/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl5_ne30_shrink/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl5_ne30_shrink/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./AlAs/jy_test/nl5_ne30_shrink/librpa.in =====
+nfreq = 8
+use_shrink_abfs = t
+
+===== /./AlAs/jy_test/nl6_ne50_shrink/INPUT_nscf =====
+nbands			34
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/jy_test/nl6_ne50_shrink/librpa.in =====
+nfreq = 8
+use_shrink_abfs = t
+
+===== /./AlAs/jy_test/nl6_ne50_shrink/INPUT_scf =====
+nbands			34
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./AlAs/jy_test/nl5_ne50_16freq/librpa.in =====
+nfreq = 16
+
+===== /./AlAs/jy_test/nl5_ne50_32freq/librpa.in =====
+nfreq = 32
+
+===== /./AlAs/dojov5/zws_basis/INPUT_nscf =====
+nbands			63
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/dojov5/zws_basis/INPUT_scf =====
+nbands			63
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./AlAs/dojov5/zws_basis/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/dojov5/spencer/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/dojov5/ewald/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/dojov5/input/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./AlAs/dojov5/input/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/dojov5/input/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/k4_out_vel/INPUT_nscf =====
+nbands			56
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/k4_out_vel/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+
+===== /./AlAs/k4_out_vel/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/AlAs/INPUT_nscf =====
+nbands			56
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/AlAs/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     7
+shrink_abfs_pca_thr     1e-8
+
+===== /./AlAs/AlAs/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./AlAs/k8_shrink_wing/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./AlAs/k8_shrink_wing/INPUT_nscf =====
+nbands			56
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/k8_shrink_wing/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./AlAs/test_soc/librpa.in =====
+nfreq = 6
+
+===== /./AlAs/paper/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./AlAs/paper/INPUT_nscf =====
+nbands			56
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./AlAs/paper/INPUT_scf =====
+nbands			56
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     7
+shrink_abfs_pca_thr     1e-8
+
+===== /./C/sg15/pca1e-8/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/sg15/pca1e-8/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+
+===== /./C/sg15/pca1e-8/librpa.in =====
+nfreq = 16
+
+===== /./C/sg15/pca1e-6/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/sg15/pca1e-6/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./C/sg15/pca1e-6/librpa.in =====
+nfreq = 16
+
+===== /./C/paper/exx/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/exx/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./C/paper/exx/librpa.in =====
+nfreq = 16
+
+===== /./C/paper/sg15/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/sg15/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-4
+
+===== /./C/paper/sg15/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/sg15_cs1e-5/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/sg15_cs1e-5/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-4
+cs_inv_thr              1e-5
+
+===== /./C/paper/sg15_cs1e-5/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/1fnao/INPUT_scf =====
+nbands			72
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-4
+cs_inv_thr              1e-4
+
+===== /./C/paper/1fnao/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/1fnao/INPUT_nscf =====
+nbands			72
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/sg15_10au/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/sg15_10au/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/sg15_10au/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+
+===== /./C/paper/sg15_cs1e-4/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/sg15_cs1e-4/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-4
+cs_inv_thr              1e-4
+
+===== /./C/paper/sg15_cs1e-4/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/pbe/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/pbe/INPUT_scf =====
+nbands			26
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./C/paper/pbe/librpa.in =====
+nfreq = 16
+
+===== /./C/paper/freq/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./C/paper/gth/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/gth/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./C/paper/gth/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/gth_gw_cs/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/gth_gw_cs/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./C/paper/gth_gw_cs/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/test/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+
+===== /./C/paper/test/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./C/paper/test/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/gw/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./C/paper/gw/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-8
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./C/paper/gw/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/cs_inv_1e-4_shrink_inv_1e-4/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/cs_inv_1e-4_shrink_inv_1e-4/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/cs_inv_1e-4_shrink_inv_1e-4/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+cs_inv_thr              1e-4
+
+===== /./GaAs/gth_exx/INPUT_scf =====
+nbands			71
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./GaAs/gth_exx/INPUT_nscf =====
+nbands			71
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/gth_exx/librpa.in =====
+nfreq = 16
+
+===== /./GaAs/dzp/soc/INPUT_nscf =====
+nbands			84
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dzp/soc/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/dzp/soc/INPUT_scf =====
+nbands			84
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaAs/dzp/xsoc/INPUT_scf =====
+nbands			42
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaAs/dzp/xsoc/INPUT_nscf =====
+nbands			42
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dzp/xsoc/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/nbands45/INPUT_nscf =====
+nbands			45
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/nbands45/INPUT_scf =====
+nbands			45
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/nbands45/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/gw_xsoc_1e-10/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/gw_xsoc_1e-10/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaAs/gw_xsoc_1e-10/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/gth_gw/INPUT_nscf =====
+nbands			71
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/gth_gw/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/gth_gw/INPUT_scf =====
+nbands			71
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/dojofr_str_exx/librpa.in =====
+nfreq = 16
+
+===== /./GaAs/dojofr_str_exx/INPUT_nscf =====
+nbands			90
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dojofr_str_exx/INPUT_scf =====
+nbands			90
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./GaAs/dojofr_std_exx/INPUT_scf =====
+nbands			82
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./GaAs/dojofr_std_exx/INPUT_nscf =====
+nbands			82
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dojofr_std_exx/librpa.in =====
+nfreq = 16
+
+===== /./GaAs/soc_16freq/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/stri_2/INPUT_scf =====
+nbands			50
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./GaAs/stri_2/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./GaAs/stri_2/INPUT_nscf =====
+nbands			50
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/gw_soc/INPUT_nscf =====
+nbands			134
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/gw_soc/INPUT_scf =====
+nbands			134
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaAs/gw_soc/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/lu_inv/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/lu_inv/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./GaAs/lu_inv/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/GaAs/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./GaAs/GaAs/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/GaAs/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-4
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/xsocpp_pbe/INPUT_scf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./GaAs/xsocpp_pbe/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/xsocpp_pbe/librpa.in =====
+nfreq = 20
+use_shrink_abfs = t
+
+===== /./GaAs/gw_xsoc_1e-8/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/gw_xsoc_1e-8/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/gw_xsoc_1e-8/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/strigent/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaAs/strigent/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/strigent/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/freq_test/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./GaAs/dojofr_std_gw/INPUT_scf =====
+nbands			82
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/dojofr_std_gw/INPUT_nscf =====
+nbands			82
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dojofr_std_gw/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/dojofr_str_gw/INPUT_nscf =====
+nbands			65
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dojofr_str_gw/INPUT_scf =====
+nbands			65
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/dojofr_str_gw/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/dojofr_str_gw_modbasis/INPUT_nscf =====
+nbands			108
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/dojofr_str_gw_modbasis/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaAs/dojofr_str_gw_modbasis/INPUT_scf =====
+nbands			108
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-4
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/soc_32freq_pack/INPUT_nscf =====
+nbands			160
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaAs/soc_32freq_pack/INPUT_scf =====
+nbands			160
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-4
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./GaAs/soc_32freq_pack/librpa.in =====
+nfreq = 32
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/old_k8/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/old_k8/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/old_k8/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaN/Dojov5/old_k4/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/old_k4/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaN/Dojov5/old_k4/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/new_cs_1e-3/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/new_cs_1e-3/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-3
+
+===== /./GaN/Dojov5/new_cs_1e-3/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/new_cs_1e-4/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/new_cs_1e-4/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-4
+
+===== /./GaN/Dojov5/new_cs_1e-4/librpa.in =====
+nfreq = 16
+
+===== /./GaN/Dojov5/old_k8_smaller_abfs/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/old_k8_smaller_abfs/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/old_k8_smaller_abfs/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaN/Dojov5/dojov5/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     6
+cs_inv_thr              1e-5
+
+===== /./GaN/Dojov5/dojov5/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/dojov5/librpa.in =====
+nfreq = 16
+
+===== /./GaN/Dojov5/freq/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/GaN/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/GaN/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/Dojov5/GaN/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./GaN/Dojov5/new_cs_1e-2/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-2
+
+===== /./GaN/Dojov5/new_cs_1e-2/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/Dojov5/new_cs_1e-2/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/sigma_test/1e-8/INPUT_scf =====
+nbands			67
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     7
+shrink_abfs_pca_thr     1e-3
+
+===== /./GaN/sigma_test/1e-8/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/sigma_test/1e-8/INPUT_nscf =====
+nbands			67
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/gth/INPUT_nscf =====
+nbands			71
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./GaN/gth/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./GaN/gth/INPUT_scf =====
+nbands			71
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./MgO/gw_shrink_apns/cs1e-5/INPUT_nscf =====
+nbands			59
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/gw_shrink_apns/cs1e-5/INPUT_scf =====
+nbands			59
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     7
+cs_inv_thr              1e-5
+
+===== /./MgO/gw_shrink_apns/cs1e-5/librpa.in =====
+nfreq = 16
+
+===== /./MgO/gw_shrink_apns/cs1e-4/INPUT_nscf =====
+nbands			59
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/gw_shrink_apns/cs1e-4/INPUT_scf =====
+nbands			59
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     7
+cs_inv_thr              1e-4
+
+===== /./MgO/gw_shrink_apns/cs1e-4/librpa.in =====
+nfreq = 16
+
+===== /./MgO/inv_thr/1e-4/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-4
+
+===== /./MgO/inv_thr/1e-4/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/1e-4/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/1e-2/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/1e-2/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-2
+
+===== /./MgO/inv_thr/1e-2/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/low/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/low/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./MgO/inv_thr/low/librpa.in =====
+nfreq = 16
+
+===== /./MgO/inv_thr/MgO/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/MgO/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-5
+
+===== /./MgO/inv_thr/MgO/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/xunfold/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/false_shrink/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+
+===== /./MgO/inv_thr/false_shrink/librpa.in =====
+nfreq = 16
+
+===== /./MgO/inv_thr/false_shrink/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/1e-3/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/1e-3/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/1e-3/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./MgO/inv_thr/0/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/0/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./MgO/inv_thr/0/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/1e-5/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-5
+
+===== /./MgO/inv_thr/1e-5/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/1e-5/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/xshrink/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/fix_gap/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/inv_thr/fix_gap/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+cs_inv_thr              1e-5
+
+===== /./MgO/inv_thr/fix_gap/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./MgO/inv_thr/jy_for_aux_test/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-6
+rpa_ccp_rmesh_times     5
+cs_inv_thr              1e-5
+
+===== /./MgO/inv_thr/jy_for_aux_test/librpa.in =====
+nfreq = 16
+
+===== /./MgO/inv_thr/jy_for_aux_test/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/dojov5/gth/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/dojov5/gth/librpa.in =====
+nfreq = 16
+
+===== /./MgO/dojov5/gth/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+
+===== /./MgO/dojov5/exx_cs1e-5/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/dojov5/exx_cs1e-5/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+cs_inv_thr          1e-5
+
+===== /./MgO/dojov5/exx_cs1e-5/librpa.in =====
+nfreq = 16
+
+===== /./MgO/dojov5/zws_basis/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/dojov5/zws_basis/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+
+===== /./MgO/dojov5/zws_basis/librpa.in =====
+nfreq = 16
+
+===== /./MgO/dojov5/exx_lu/librpa.in =====
+nfreq = 16
+
+===== /./MgO/dojov5/exx_lu/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/dojov5/exx_lu/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+
+===== /./MgO/dojov5/exx_cs1e-4/INPUT_nscf =====
+nbands			47
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./MgO/dojov5/exx_cs1e-4/librpa.in =====
+nfreq = 16
+
+===== /./MgO/dojov5/exx_cs1e-4/INPUT_scf =====
+nbands			47
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     5
+cs_inv_thr          1e-4
+
+===== /./shrink_test/test/wc_unfold_refactor/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./shrink_test/test/chi0_shrink_refactor/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./shrink_test/wing_mpi/k222/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/wing_mpi/k222/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times	    4
+
+===== /./shrink_test/wing_mpi/k222/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./shrink_test/wing_mpi/xwing/librpa.in =====
+nfreq = 16
+use_shrink_abfs = f
+
+===== /./shrink_test/wing_mpi/k111/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/wing_mpi/k111/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times	    1
+
+===== /./shrink_test/wing_mpi/k111/librpa.in =====
+nfreq = 6
+
+===== /./shrink_test/wing_mpi/1mpi/librpa.in =====
+nfreq = 16
+use_shrink_abfs = f
+
+===== /./shrink_test/wing_mpi/2mpi/librpa.in =====
+nfreq = 16
+use_shrink_abfs = f
+
+===== /./shrink_test/wing_mpi/small_abfs/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-1
+rpa_ccp_rmesh_times	    1
+
+===== /./shrink_test/wing_mpi/small_abfs/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/wing_mpi/small_abfs/librpa.in =====
+nfreq = 6
+
+===== /./shrink_test/GaAs/temp/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/temp/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/temp/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/tzdp1e-4_tight/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/tzdp1e-4_tight/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     6
+
+===== /./shrink_test/GaAs/tzdp1e-4_tight/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/1f1g_pca1e-6_tight/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     7
+
+===== /./shrink_test/GaAs/1f1g_pca1e-6_tight/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/1f1g_pca1e-6_tight/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/test/INPUT_nscf =====
+nbands			108
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/test/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/test/INPUT_scf =====
+nbands			108
+rpa				1
+exx_pca_threshold		1e-8
+rpa_ccp_rmesh_times     7
+
+===== /./shrink_test/GaAs/tzdp1e-4/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/tzdp1e-4/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/tzdp1e-4/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/1f1g_pca1e-4/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/1f1g_pca1e-4/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/1f1g_pca1e-4/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/1f1g_pca1e-6/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/1f1g_pca1e-6/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/1f1g_pca1e-6/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/1f1g_pca1e-8/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/1f1g_pca1e-8/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/GaAs/1f1g_pca1e-8/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/shrink_pca1e-8_tzdp1e-6/INPUT_nscf =====
+nbands			58
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/shrink_pca1e-8_tzdp1e-6/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./shrink_test/GaAs/shrink_pca1e-8_tzdp1e-6/INPUT_scf =====
+nbands			58
+rpa				1
+exx_pca_threshold		10
+shrink_abfs_pca_thr     1e-6
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/bigbas/INPUT_scf =====
+nbands			108
+rpa				1
+exx_pca_threshold		1e-5
+rpa_ccp_rmesh_times     5
+
+===== /./shrink_test/GaAs/bigbas/INPUT_nscf =====
+nbands			108
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/GaAs/bigbas/librpa.in =====
+nfreq = 16
+
+===== /./shrink_test/BP/1f1g_pca1e-4/librpa.in =====
+nfreq = 12
+
+===== /./shrink_test/BP/1f1g_pca1e-4/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/1f1g_pca1e-4/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/1f1g_pca1e-6/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/1f1g_pca1e-6/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/1f1g_pca1e-6/librpa.in =====
+nfreq = 12
+
+===== /./shrink_test/BP/temp/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/temp/librpa.in =====
+nfreq = 12
+
+===== /./shrink_test/BP/temp/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/big_abf/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/big_abf/librpa.in =====
+nfreq = 12
+
+===== /./shrink_test/BP/big_abf/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/tzdp_1e-4/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/tzdp_1e-4/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/tzdp_1e-4/librpa.in =====
+nfreq = 12
+
+===== /./shrink_test/BP/shrink_big_tzdp1e-4/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/shrink_big_tzdp1e-4/librpa.in =====
+nfreq = 12
+use_shrink_abfs = t
+
+===== /./shrink_test/BP/shrink_big_tzdp1e-4/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+shrink_abfs_pca_thr     1e-4
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/shrink_pca1e-6_tzdp1e-4/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+shrink_abfs_pca_thr     1e-4
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/shrink_pca1e-6_tzdp1e-4/librpa.in =====
+nfreq = 12
+use_shrink_abfs = t
+
+===== /./shrink_test/BP/shrink_pca1e-6_tzdp1e-4/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/shrink_pca1e-6_tzdp1e-6/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+shrink_abfs_pca_thr     1e-6
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/shrink_pca1e-6_tzdp1e-6/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./shrink_test/BP/shrink_pca1e-6_tzdp1e-6/librpa.in =====
+nfreq = 12
+use_shrink_abfs = t
+
+===== /./ZnO/gw/sg15/INPUT_scf =====
+nbands			66
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr             1e-6
+
+===== /./ZnO/gw/sg15/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./ZnO/gw/sg15/INPUT_nscf =====
+nbands			66
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./rotate_abfs/rotate/ccp4/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/ccp4/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    4
+
+===== /./rotate_abfs/rotate/ccp2/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/ccp2/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    2
+
+===== /./rotate_abfs/rotate/cs_inv_1e-5/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/cs_inv_1e-5/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+cs_inv_thr		1e-5
+
+===== /./rotate_abfs/rotate/o/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	5
+
+===== /./rotate_abfs/rotate/o/librpa.in =====
+nfreq = 8
+use_shrink_abfs = f
+
+===== /./rotate_abfs/rotate/o/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/ccp5/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./rotate_abfs/rotate/ccp5/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/gw_ref/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/gw_ref/librpa.in =====
+nfreq = 8
+use_shrink_abfs = f
+
+===== /./rotate_abfs/rotate/gw_ref/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times	5
+
+===== /./rotate_abfs/rotate/gw_rotate/INPUT_scf =====
+nbands			26
+rpa				1
+exx_pca_threshold		1e-4
+rpa_ccp_rmesh_times	5
+
+===== /./rotate_abfs/rotate/gw_rotate/INPUT_nscf =====
+nbands			26
+exx_pca_threshold		10
+
+===== /./rotate_abfs/rotate/gw_rotate/librpa.in =====
+nfreq = 8
+use_shrink_abfs = f
+
+===== /./2d/bi-hBN/sg15/INPUT_nscf =====
+nbands			88
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/bi-hBN/sg15/INPUT_scf =====
+nbands			88
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./2d/bi-hBN/sg15/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./2d/bi-MoS2/Dojov5/INPUT_nscf =====
+nbands			186
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/bi-MoS2/Dojov5/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./2d/bi-MoS2/Dojov5/INPUT_scf =====
+nbands			186
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+
+===== /./2d/bi-MoS2/pbe/librpa.in =====
+nfreq = 24
+use_shrink_abfs = t
+
+===== /./2d/bi-MoS2/pbe/INPUT_nscf =====
+nbands			186
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/bi-MoS2/pbe/INPUT_scf =====
+nbands			186
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+
+===== /./2d/bi-MoS2/head/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./2d/bi-MoS2/fixread/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./2d/phosphorene/gw/INPUT_nscf =====
+nbands			88
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/phosphorene/gw/INPUT_scf =====
+nbands			88
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./2d/phosphorene/gw/librpa.in =====
+nfreq = 32
+use_shrink_abfs = t
+
+===== /./2d/phosphorene/pbe/INPUT_scf =====
+nbands			88
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-8
+
+===== /./2d/phosphorene/pbe/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./2d/phosphorene/pbe/INPUT_nscf =====
+nbands			88
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/mono-hBN/50A/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/mono-hBN/50A/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-4
+shrink_lu_inv_thr       1e-3
+
+===== /./2d/mono-hBN/50A/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./2d/mono-MoS2/sg15/INPUT_nscf =====
+nbands			40
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./2d/mono-MoS2/sg15/INPUT_scf =====
+nbands			40
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-6
+
+===== /./2d/mono-MoS2/sg15/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./mpitest/C/1mpi/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./mpitest/C/1mpi/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+
+===== /./mpitest/C/1mpi/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./mpitest/C/IJR_xcomm/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./mpitest/C/IJR_xcomm/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./mpitest/C/IJR_xcomm/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+
+===== /./mpitest/C/IJR_fixcomm/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+
+===== /./mpitest/C/IJR_fixcomm/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./mpitest/C/IJR_fixcomm/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./mpitest/C/develop/INPUT_nscf =====
+nbands			44
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./mpitest/C/develop/librpa.in =====
+nfreq = 6
+use_shrink_abfs = t
+
+===== /./mpitest/C/develop/INPUT_scf =====
+nbands			44
+rpa				1
+exx_pca_threshold		1e-2
+rpa_ccp_rmesh_times     5
+shrink_abfs_pca_thr     1e-1
+
+===== /./cplx_double_libri_test/librpa.in =====
+nfreq = 6
+
+===== /./Bi2Se3/dojov4-fr/gw_dzp/INPUT_scf =====
+nbands			110
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Bi2Se3/dojov4-fr/gw_dzp/INPUT_nscf =====
+nbands			110
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Bi2Se3/dojov4-fr/gw_dzp/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+
+===== /./Bi2Se3/dojov4-fr/pbe_dzp/INPUT_nscf =====
+nbands			110
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Bi2Se3/dojov4-fr/pbe_dzp/INPUT_scf =====
+nbands			110
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-10
+shrink_lu_inv_thr       1e-4
+cs_inv_thr              1e-5
+
+===== /./Bi2Se3/dojov4-fr/pbe_tzdp/INPUT_scf =====
+nbands			155
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-10
+shrink_lu_inv_thr       1e-4
+cs_inv_thr              1e-5
+
+===== /./Bi2Se3/dojov4-fr/pbe_tzdp/INPUT_nscf =====
+nbands			155
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Bi2Se3/dojov4-fr/Bi2Se3/INPUT_scf =====
+nbands			110
+rpa				1
+exx_pca_threshold		10
+rpa_ccp_rmesh_times     6
+shrink_abfs_pca_thr     1e-6
+shrink_lu_inv_thr       1e-3
+
+===== /./Bi2Se3/dojov4-fr/Bi2Se3/INPUT_nscf =====
+nbands			110
+exx_pca_threshold		10
+rpa_ccp_rmesh_times	    5
+
+===== /./Bi2Se3/dojov4-fr/Bi2Se3/librpa.in =====
+nfreq = 16
+use_shrink_abfs = t
+

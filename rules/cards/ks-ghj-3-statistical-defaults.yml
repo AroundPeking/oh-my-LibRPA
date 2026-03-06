@@ -1,0 +1,38 @@
+- id: nfreq-smoke-ladder-101
+  scene: Initial smoke run for GW/RPA workflow
+  symptom: Need a stable first-pass run before high-accuracy tuning
+  root_cause: Starting directly with aggressive frequency grids increases failure/debug complexity
+  fix:
+    - Set nfreq = 16 for first smoke pass
+    - After success, increase to 24 or 32 stepwise
+    - Change only one major parameter per iteration
+  verify:
+    - Smoke run completes and key outputs are generated
+    - First accuracy-upgrade run keeps numerical behavior stable
+  applies_to:
+    source: ks_ghj_3 ~/gw statistical scan
+    observed:
+      nfreq_16_count: 176
+
+- id: shrink-abfs-default-lane-102
+  scene: GW calculations with shrink_abfs path
+  symptom: Frequent setup confusion around coupled thresholds
+  root_cause: shrink_abfs enabled but companion threshold set is incomplete or nonstandard
+  fix:
+    - Enable use_shrink_abfs = t when using shrink lane
+    - Ensure INPUT_scf contains:
+      - rpa 1
+      - exx_pca_threshold 10
+      - shrink_lu_inv_thr 1e-3
+      - cs_inv_thr 1e-5
+    - Keep shrink_abfs_pca_thr explicit and tune per system (start from 1e-6 or 1e-4)
+  verify:
+    - Static checker passes all required coupled keys
+    - Short smoke run succeeds before scaling up
+  applies_to:
+    source: ks_ghj_3 ~/gw statistical scan
+    observed:
+      use_shrink_abfs_t_count: 156
+      exx_pca_threshold_10_count: 367
+      shrink_lu_inv_thr_1e-3_count: 74
+      cs_inv_thr_1e-5_count: 51

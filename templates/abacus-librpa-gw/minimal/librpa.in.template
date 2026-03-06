@@ -1,0 +1,8 @@
+# Minimal librpa.in template (placeholder)
+
+nfreq = 16
+use_shrink_abfs = t
+
+# Optional acceleration parameters (adjust as needed)
+# use_fullcoul_exx = t
+# output_gw_sigc_mat_rf = t

@@ -1,0 +1,13 @@
+# Minimal SCF template (placeholder)
+# Fill according to your system and basis.
+
+calculation scf
+# nbands must match basis size convention for your setup
+nbands <FILL_ME>
+
+# Required when use_shrink_abfs=t in librpa.in
+rpa 1
+exx_pca_threshold 10
+shrink_abfs_pca_thr 1e-4
+shrink_lu_inv_thr 1e-3
+cs_inv_thr 1e-5
