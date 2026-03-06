@@ -1,8 +1,8 @@
-# 术语（面向门外汉）
+# Terms (Beginner Friendly)
 
-- `SCF`：自洽电子结构计算，得到稳定电荷密度。
-- `NSCF`：非自洽计算，基于已有密度求更多能带信息。
-- `RPA`：随机相位近似，用于描述电子屏蔽等响应性质。
-- `GW`：通过自能修正能带，得到更可信的准粒子能量。
-- `RI/ABFs`：用辅助基展开降低四中心积分计算代价。
-- `DF`：这里指生成介电相关中间数据（如 `pyatb_librpa_df`）。
+- `SCF`: self-consistent field calculation that converges charge density.
+- `NSCF`: non-self-consistent calculation using converged density for band information.
+- `RPA`: random phase approximation for electronic response and screening.
+- `GW`: quasiparticle correction via self-energy.
+- `RI/ABFs`: resolution-of-identity with auxiliary basis functions to reduce integral cost.
+- `DF`: dielectric-function related intermediate generation (for example `pyatb_librpa_df`).

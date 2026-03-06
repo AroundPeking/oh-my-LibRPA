@@ -5,7 +5,7 @@
 Copy this prompt to your AI agent:
 
 ```text
-Install and configure oh-my-librpa by following:
+Install and configure oh-my-LibRPA by following:
 https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/docs/guide/installation.md
 ```
 
@@ -15,11 +15,11 @@ Or run one command:
 curl -fsSL https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/install.sh | bash
 ```
 
-That is all. After install, users only need natural language chat (no CLI memorization).
+After installation, users only need natural-language chat (no CLI memorization).
 
 ## For LLM Agents
 
-Use shell fetch (do not summarize away details):
+Fetch this guide via shell (do not summarize away actionable details):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/docs/guide/installation.md
@@ -38,23 +38,23 @@ cd ~/code/oh-my-librpa
 bash install.sh
 ```
 
-## What installer does
+## What the Installer Does
 
 - Detect OpenClaw workspace automatically (no hard-coded path required)
 - Install skills into `<workspace>/skills/`
 - Install rules/templates/docs/scripts into `<workspace>/oh-my-librpa/`
 - Restart gateway
 
-## Validate
+## Validation
 
 After install, test by chat only:
 
-- `帮我做 Si 的 GW，先按稳妥参数跑通。`
-- `这是分子体系，按分子路线给我准备输入。`
-- `这个报错怎么修，按你经验给最小修复动作。`
+- `Help me run GW for Si with a conservative setup first.`
+- `This is a molecular system. Prepare inputs with the molecular route.`
+- `How do we fix this error? Give me the minimal repair action based on experience.`
 
 Expected behavior:
 
 - AI routes to GW/RPA/debug workflow automatically
-- AI applies experience rules and explains why
-- AI enforces safe run-dir constraints (new directory, avoid overwrite)
+- AI applies curated experience rules and explains why
+- AI enforces run-safety constraints (new directory, no overwrite)

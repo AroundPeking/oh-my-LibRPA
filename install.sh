@@ -102,4 +102,4 @@ fi
 
 say "Install complete."
 say "Now just chat naturally, e.g.:"
-say "  帮我做 GaAs 的 GW，先按稳妥参数跑通。"
+say "  Help me run GW for GaAs with a conservative setup first."

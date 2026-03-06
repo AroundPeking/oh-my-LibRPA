@@ -1,24 +1,24 @@
-# ks_ghj_3 `~/gw` 样例采集结果（首轮）
+# ks_ghj_3 `~/gw` Sampling Results (Round 1)
 
-## 采集信息
+## Collection Metadata
 
-- 时间：2026-03-06 12:26 (GMT+8)
-- 数据源：`ks_ghj_3:~/gw`
-- 索引文件：`data/gw-index-20260306-122643.tsv`
-- 参数快照：`data/param-snapshots/params-20260306-122643.txt`
+- Time: 2026-03-06 12:26 (GMT+8)
+- Source: `ks_ghj_3:~/gw`
+- Index file: `data/gw-index-20260306-122643.tsv`
+- Parameter snapshot: `data/param-snapshots/params-20260306-122643.txt`
 
-## 样例规模
+## Dataset Size
 
-- 总条目（含表头）：278
-- 实际案例：277
+- Total lines (including header): 278
+- Actual cases: 277
   - `GW_CASE`: 258
   - `ABACUS_CASE`: 19
 
-说明：该目录主体是 GW 任务数据，符合 `oh-my-librpa` 首发聚焦 GW 的策略。
+Interpretation: this dataset is GW-heavy, matching the first-release focus of `oh-my-LibRPA`.
 
-## 目录分布（Top）
+## Top Directory Buckets
 
-按一级目录粗分（案例数）：
+Top-level buckets by case count:
 
 - `AlAs`: 31
 - `shrink_test`: 26
@@ -29,53 +29,53 @@
 - `CdS`: 15
 - `nonlin_soc_gw`: 14
 
-结论：`shrink_test/reg_test/nonlin_soc_gw` 非常适合优先提炼“参数联动 + 排错规则卡”。
+Interpretation: `shrink_test`, `reg_test`, and `nonlin_soc_gw` are strong candidates for next rule extraction.
 
-## 关键参数分布（快照）
+## Key Parameter Snapshot
 
 ### `nfreq`
 
-- 16（176 次）
-- 6（22 次）
-- 8（14 次）
-- 24（13 次）
+- 16 (176 occurrences)
+- 6 (22 occurrences)
+- 8 (14 occurrences)
+- 24 (13 occurrences)
 
-结论：`nfreq=16` 是最强主模态，可作为 smoke 默认值。
+Interpretation: `nfreq=16` is the strongest default mode for smoke runs.
 
 ### `use_shrink_abfs`
 
-- `t`（156 次）
-- `f`（9 次）
+- `t` (156 occurrences)
+- `f` (9 occurrences)
 
-结论：应把 shrink_abfs 路径作为默认流程，不应作为边缘分支处理。
+Interpretation: shrink-abfs should be treated as a primary workflow lane, not a corner case.
 
 ### `rpa`
 
-- `1`（208 次）
+- `1` (208 occurrences)
 
-结论：与已有经验一致，可在检查器中作为强约束。
+Interpretation: this aligns with existing experience and can be enforced as a strong check.
 
-### 典型耦合阈值
+### Typical Coupled Thresholds
 
-- `exx_pca_threshold`: 10（367 次）
-- `shrink_lu_inv_thr`: 1e-3（74 次）
-- `cs_inv_thr`: 1e-5（51 次）
-- `shrink_abfs_pca_thr`: 1e-6（92 次），其次 1e-4（14 次）
+- `exx_pca_threshold`: 10 (367 occurrences)
+- `shrink_lu_inv_thr`: 1e-3 (74 occurrences)
+- `cs_inv_thr`: 1e-5 (51 occurrences)
+- `shrink_abfs_pca_thr`: 1e-6 (92 occurrences), next is 1e-4 (14 occurrences)
 
-结论：`exx_pca_threshold=10` 与 `shrink_lu_inv_thr=1e-3`、`cs_inv_thr=1e-5` 可先作为推荐默认；`shrink_abfs_pca_thr` 需按体系再细分（1e-6 与 1e-4 并存）。
+Interpretation: a practical default set is `exx_pca_threshold=10`, `shrink_lu_inv_thr=1e-3`, `cs_inv_thr=1e-5`; `shrink_abfs_pca_thr` still needs system-level branching.
 
-## 对 oh-my-librpa 的直接动作建议
+## Direct Actions for oh-my-LibRPA
 
-1. 在 `check_consistency.sh` 中新增“建议等级”：
-   - 强约束：`rpa=1`、耦合参数齐全
-   - 建议项：`nfreq=16`（smoke）
+1. Add recommendation levels in `check_consistency.sh`:
+   - hard constraints: `rpa=1` + complete coupled keys
+   - recommendation: `nfreq=16` for smoke
 
-2. 新增规则卡两类：
+2. Add two rule-card families:
    - `shrink-abfs-default-lane`
-   - `nfreq-smoke-ladder`（16 -> 24/32 的升级策略）
+   - `nfreq-smoke-ladder` (16 -> 24/32 escalation)
 
-3. 下一轮采集聚焦：
+3. Next-round focus:
    - `shrink_test/*`
    - `reg_test/*`
    - `nonlin_soc_gw/*`
-   提取失败日志关键词（含 `stod`）并映射修复动作。
+   Then map failure keywords (including `stod`) to repair actions.

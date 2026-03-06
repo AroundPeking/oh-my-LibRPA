@@ -43,4 +43,4 @@ Treat user messages as task intents, not command requests.
 
 - Keep conversation concise and operational.
 - Give options only when there is a real tradeoff.
-- Default to “make progress now” with clear next action.
+- Default to "make progress now" with a clear next action.

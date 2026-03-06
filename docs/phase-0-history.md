@@ -1,23 +1,23 @@
-# Phase 0: 发展史调研（方向起点）
+# Phase 0: Method History Research (Entry Step)
 
-按你的规则，新方向第一步固定为发展史调研。
+Per project rules, every new direction starts with history research first.
 
-## 目标
+## Objectives
 
-- 给出 RPA/GW 方法从起点到当前主流实现的演化脉络
-- 标注 ABACUS + LibRPA 相关的关键节点
-- 提炼仍未解决的问题，转为后续规则卡输入
+- Map the evolution of RPA/GW methods from origin to mainstream practice.
+- Mark milestones relevant to ABACUS + LibRPA.
+- Extract unresolved problems and convert them into rule-card inputs.
 
-## 输出模板
+## Output Template
 
-每条里程碑建议包含：
+Each milestone should include:
 
-- `年份/时期`
-- `工作/论文`
-- `核心贡献`
-- `对当前工程实践的影响`
-- `与 oh-my-librpa 的关联（如何转成可执行规则）`
+- `year_or_period`
+- `paper_or_work`
+- `core_contribution`
+- `impact_on_current_engineering_practice`
+- `mapping_to_oh-my-librpa` (how to convert into executable rules)
 
-## 下一步
+## Next Step
 
-完成调研后，进入：问题归纳 -> 规则卡首批沉淀。
+After this phase, continue with: problem summary -> first batch of rule cards.

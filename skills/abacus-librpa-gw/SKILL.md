@@ -5,17 +5,17 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 
 # ABACUS + LibRPA GW
 
-执行顺序：`SCF -> DF(pyatb_librpa_df) -> NSCF -> LibRPA`。
+Execution order: `SCF -> DF (pyatb_librpa_df) -> NSCF -> LibRPA`.
 
-## 必做检查
+## Required Checks
 
-- 检查 `INPUT_scf` 与 `INPUT_nscf` 的 `nbands` 与体系基组规模一致
-- 检查 `librpa.in` 与 ABACUS 输出目录来自同一流程
-- 检查是否在新目录运行，避免旧输出残留污染
+- Verify `nbands` consistency between `INPUT_scf` and `INPUT_nscf` under the same basis-size convention.
+- Verify `librpa.in` is generated from the same ABACUS workflow chain.
+- Verify the run is in a fresh directory to avoid stale-output contamination.
 
-## 参数联动规则
+## Coupled Parameter Rule
 
-若 `use_shrink_abfs = t`，必须校验配套参数是否齐全：
+If `use_shrink_abfs = t`, the following coupled parameters must exist:
 
 - `rpa 1`
 - `exx_pca_threshold 10`
@@ -23,10 +23,10 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 - `shrink_lu_inv_thr 1e-3`
 - `cs_inv_thr 1e-5`
 
-## 输出要求
+## Output Requirement
 
-每次给建议时都同时给出：
+For each recommendation, provide:
 
-- 为什么这么改
-- 风险是什么
-- 如何用最小代价验证
+- why this change is needed
+- what risk it addresses
+- how to validate it with minimal cost

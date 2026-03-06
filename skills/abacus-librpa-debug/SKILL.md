@@ -5,23 +5,23 @@ description: Diagnose ABACUS + LibRPA RPA/GW failures from logs and inputs. Use 
 
 # ABACUS + LibRPA Debug
 
-先定位失败阶段，再给针对性修复，不做大范围盲改。
+Locate the failing stage first, then provide targeted fixes. Avoid broad blind modifications.
 
-## 诊断顺序
+## Diagnosis Order
 
-1. 判定失败阶段：SCF / DF / NSCF / LibRPA
-2. 检查输入来源是否混杂
-3. 检查旧输出残留是否污染当前任务
-4. 检查关键阈值参数是否缺项或冲突
+1. Identify failure stage: SCF / DF / NSCF / LibRPA.
+2. Check whether inputs are mixed from different workflow chains.
+3. Check stale-output contamination from previous runs.
+4. Check missing or conflicting threshold parameters.
 
-## 常见问题
+## Common Issues
 
-- `stod` 读取报错：优先检查输入格式和残留文件污染
-- 结果异常跳变：优先检查 `nbands` 与基组规模关系
+- `stod` parse/read failure: check input formatting and stale files first.
+- abnormal result jumps: check `nbands` against basis-size conventions.
 
-## 输出格式
+## Output Format
 
-- `症状`
-- `最可能根因`
-- `最小修复动作`
-- `验证动作`
+- `symptom`
+- `most_likely_root_cause`
+- `minimal_fix_action`
+- `validation_action`

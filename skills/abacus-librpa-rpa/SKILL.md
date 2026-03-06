@@ -5,20 +5,20 @@ description: ABACUS + LibRPA RPA workflow guidance with focus on dielectric setu
 
 # ABACUS + LibRPA RPA
 
-优先目标：先得到稳定、可复现实验级别的 RPA 结果，再追求性能和规模。
+Primary objective: get stable and reproducible RPA results first, then optimize performance and scale.
 
-## 建议流程
+## Recommended Flow
 
-- 先用小体系 smoke case 验证输入链路
-- 再逐步提高 `nfreq`、k 点与能带截断
+- Start with a small-system smoke case to validate the full input chain.
+- Increase `nfreq`, k-point density, and band cutoffs step by step.
 
-## 静态检查清单
+## Static Checklist
 
-- 目录来源一致（同一套 SCF/NSCF 输出）
-- 频率网格参数自洽
-- 关键文件路径不跨目录拼接
+- Ensure paths come from one consistent SCF/NSCF source chain.
+- Ensure frequency-grid parameters are self-consistent.
+- Ensure key file paths are not stitched from unrelated directories.
 
-## 输出要求
+## Output Requirement
 
-- 优先给“最小可行修复”
-- 每次只改一个变量，减少耦合不确定性
+- Prioritize minimal viable fixes.
+- Change one major variable per iteration to reduce coupled uncertainty.

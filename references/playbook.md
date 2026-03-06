@@ -1,23 +1,23 @@
-# Playbook（持续补充）
+# Playbook (Living Document)
 
-## 基本原则
+## Core Principles
 
-- 小步修改：每次只变一个关键参数
-- 先通链路：先跑通最小案例，再上大体系
-- 防污染：每次任务必须新建目录
+- Change in small steps: modify one major parameter at a time.
+- Close the chain first: get a minimal case running before scaling up.
+- Prevent contamination: always use a fresh run directory.
 
-## 快速 smoke 建议
+## Quick Smoke Guidance
 
-- `nfreq = 16`（先验证流程是否闭环）
-- 成功后再提升频率点和其他精度参数
+- Start with `nfreq = 16` to validate workflow closure.
+- Increase frequency points and accuracy settings only after smoke success.
 
-## 经验沉淀方式
+## How to Capture New Experience
 
-新经验一律转成 `rules/cards/*.yml`：
+Every new lesson should be converted into `rules/cards/*.yml` with fields:
 
-- 场景
-- 症状
-- 根因
-- 修复
-- 验证
-- 适用版本
+- scene
+- symptom
+- root_cause
+- fix
+- verify
+- applies_to

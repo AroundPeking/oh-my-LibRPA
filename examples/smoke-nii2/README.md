@@ -1,15 +1,15 @@
 # smoke-nii2
 
-这个目录用于最小 smoke 测试样例。
+This directory is for a minimal smoke-test case.
 
-建议流程：
+Suggested flow:
 
-1. 准备同一链路输出的 `INPUT_scf` / `INPUT_nscf` / `librpa.in`
-2. 执行静态检查：
+1. Prepare `INPUT_scf`, `INPUT_nscf`, and `librpa.in` from one consistent workflow chain.
+2. Run static checks:
    - `bash ../../scripts/check_consistency.sh .`
-3. 再决定是否提交远程小任务
+3. Decide whether to submit a remote small job.
 
-约束：
+Constraints:
 
-- 必须新建目录运行
-- 禁止覆盖原始数据目录
+- Always run in a newly created directory.
+- Never overwrite original source-data directories.
