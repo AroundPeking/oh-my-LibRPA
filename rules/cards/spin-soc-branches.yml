@@ -1,0 +1,33 @@
+- id: spin-soc-collinear-501
+  scene: Spin-polarized workflow without SOC
+  symptom: Need a consistent spin setup across ABACUS inputs, helper scripts, and LibRPA
+  root_cause: `INPUT`, `get_diel.py`, `preprocess_abacus_for_librpa_band.py`, and `librpa.in` must use the same spin/SOC branch
+  fix:
+    - In `INPUT`, set `nspin = 2` and `lspinorb = 0`
+    - In `get_diel.py`, set matching `nspin` and `use_soc = False`
+    - In `preprocess_abacus_for_librpa_band.py`, set `use_soc = False`
+    - In `librpa.in`, set `use_soc = 0`
+  verify:
+    - Confirm all four locations use the collinear/no-SOC branch consistently
+  applies_to:
+    mode:
+      - gw
+      - rpa
+    spin_branch: collinear_no_soc
+
+- id: spin-soc-noncollinear-502
+  scene: Noncollinear workflow with SOC
+  symptom: Need a consistent SOC setup across ABACUS inputs, helper scripts, and LibRPA
+  root_cause: SOC-sensitive preprocessing breaks if the branch is inconsistent across workflow stages
+  fix:
+    - In `INPUT`, set `nspin = 4` and `lspinorb = 1`
+    - In `get_diel.py`, set matching `nspin` and `use_soc = True`
+    - In `preprocess_abacus_for_librpa_band.py`, set `use_soc = True`
+    - In `librpa.in`, set `use_soc = 1`
+  verify:
+    - Confirm all four locations use the noncollinear/SOC branch consistently
+  applies_to:
+    mode:
+      - gw
+      - rpa
+    spin_branch: noncollinear_soc

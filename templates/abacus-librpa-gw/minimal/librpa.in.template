@@ -7,6 +7,7 @@ task = g0w0_band
 nfreq = 16
 option_dielect_func = 3
 replace_w_head = t
+use_soc = 0
 use_scalapack_gw_wc = t
 use_scalapack_ecrpa = t
 parallel_routing = libri

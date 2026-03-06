@@ -3,6 +3,9 @@
 # `nbands` must equal the basis-function count.
 
 calculation scf
+# Spin/SOC examples:
+# - collinear spin, no SOC: nspin 2 ; lspinorb 0
+# - noncollinear with SOC: nspin 4 ; lspinorb 1
 nbands <FILL_ME>
 
 # Default shrink settings for GW

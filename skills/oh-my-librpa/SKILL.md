@@ -74,11 +74,18 @@ Then proceed as follows:
 4. Classify task type:
    - GW request -> `task = g0w0_band`
    - RPA request -> `task = rpa`
-5. Generate workflow inputs from matched experience rules.
-6. Apply shared default `librpa.in` baseline unless a stronger rule overrides it:
+5. Classify spin/SOC state and keep `INPUT`, workflow scripts, and `librpa.in` aligned:
+   - Collinear spin, no SOC -> `nspin = 2`, `lspinorb = 0`
+   - Noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
+   - In `get_diel.py`, update `nspin` and `use_soc` consistently
+   - In `preprocess_abacus_for_librpa_band.py`, update `use_soc` consistently
+   - In `librpa.in`, only switch `use_soc = 0/1`
+6. Generate workflow inputs from matched experience rules.
+7. Apply shared default `librpa.in` baseline unless a stronger rule overrides it:
    - `nfreq = 16`
    - `option_dielect_func = 3`
    - `replace_w_head = t`
+   - `use_soc = 0/1` according to the chosen spin/SOC branch
    - `use_scalapack_gw_wc = t`
    - `use_scalapack_ecrpa = t`
    - `parallel_routing = libri`
@@ -94,28 +101,28 @@ Then proceed as follows:
    - `libri_g0w0_threshold_C = 1e-5`
    - `libri_g0w0_threshold_G = 1e-5`
    - `libri_g0w0_threshold_Wc = 1e-6`
-7. For both `molecule` and `solid` branches:
+8. For both `molecule` and `solid` branches:
    - Set `nbands` equal to the basis-function count
    - Check that both `INPUT_scf` and `INPUT_nscf` use the same `nbands`
    - If there is any ambiguity in basis counting, stop and explain the counting rule before proceeding
-8. If the system is `molecule`:
+9. If the system is `molecule`:
    - Set `KPT = 1 1 1`
    - Add `gamma_only 1` to `INPUT_scf`
    - Use official ABACUS input names from the ABACUS input documentation
    - Do not run `pyatb`
    - Set `replace_w_head = f` in `librpa.in`
-9. If the system is `solid`:
+10. If the system is `solid`:
    - Ask how many k-points to use in `KPT`; default to `8 8 8`
    - `KPT_nscf` must be defined by the user
    - After SCF, run `pyatb` to generate `pyatb_librpa_df`
    - Then run NSCF
    - Then run `preprocess_abacus_for_librpa_band.py` to generate band information files
    - Then run `LibRPA`
-10. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
-11. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
-12. Run smoke-first setup.
-13. Validate outputs and then escalate accuracy stepwise.
-14. Report each stage before moving to the next critical stage.
+11. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
+12. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
+13. Run smoke-first setup.
+14. Validate outputs and then escalate accuracy stepwise.
+15. Report each stage before moving to the next critical stage.
 
 ## Routing Rules
 

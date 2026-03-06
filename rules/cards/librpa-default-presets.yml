@@ -21,6 +21,7 @@
     - `nfreq = 16`
     - `option_dielect_func = 3`
     - `replace_w_head = t`
+    - `use_soc = 0/1` according to the INPUT spin/SOC state
     - `use_scalapack_gw_wc = t`
     - `use_scalapack_ecrpa = t`
     - `parallel_routing = libri`

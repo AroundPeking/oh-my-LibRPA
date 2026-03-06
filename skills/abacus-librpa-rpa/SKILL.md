@@ -18,6 +18,7 @@ For RPA requests, set:
 - `use_scalapack_gw_wc = t`
 - `use_scalapack_ecrpa = t`
 - `parallel_routing = libri`
+- `use_soc = 0/1` according to the INPUT spin/SOC state
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
 - `use_fullcoul_exx = t`

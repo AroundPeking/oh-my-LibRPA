@@ -14,6 +14,12 @@ Execution order depends on system type:
 
 - Verify `nbands` in both `INPUT_scf` and `INPUT_nscf` is equal to the basis-function count.
 - Verify `INPUT_scf` and `INPUT_nscf` use the same `nbands`.
+- Verify spin/SOC settings are aligned across files:
+  - collinear spin without SOC -> `nspin = 2`, `lspinorb = 0`
+  - noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
+- Verify `get_diel.py` uses matching `nspin` and `use_soc`.
+- Verify `preprocess_abacus_for_librpa_band.py` uses matching `use_soc`.
+- Verify `librpa.in` uses matching `use_soc = 0/1`.
 - Verify `librpa.in` is generated from the same ABACUS workflow chain.
 - Verify the run is in a fresh directory to avoid stale-output contamination.
 - Prefer server-side scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when available.
@@ -47,6 +53,22 @@ For GW requests, set:
 - `libri_g0w0_threshold_C = 1e-5`
 - `libri_g0w0_threshold_G = 1e-5`
 - `libri_g0w0_threshold_Wc = 1e-6`
+
+## Spin and SOC Branches
+
+Use the following alignment for spin-sensitive GW workflows:
+
+- Collinear spin, no SOC:
+  - `INPUT`: `nspin = 2`, `lspinorb = 0`
+  - `get_diel.py`: set matching `nspin` and `use_soc = False`
+  - `preprocess_abacus_for_librpa_band.py`: set `use_soc = False`
+  - `librpa.in`: set `use_soc = 0`
+
+- Noncollinear with SOC:
+  - `INPUT`: `nspin = 4`, `lspinorb = 1`
+  - `get_diel.py`: set matching `nspin` and `use_soc = True`
+  - `preprocess_abacus_for_librpa_band.py`: set `use_soc = True`
+  - `librpa.in`: set `use_soc = 1`
 
 ## System-Type Branches for GW
 
