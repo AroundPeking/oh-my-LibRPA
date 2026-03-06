@@ -77,6 +77,7 @@ Interpretation:
 - `shrink_abfs_pca_thr` controls the size of the compressed auxiliary basis; default to `1e-4`.
 - `shrink_lu_inv_thr` is used to control inversion-error handling for the output `sinvS`; default to `1e-3`.
 - `exx_pca_threshold = 10` means the large-basis path expects external input when shrink is enabled.
+- When shrink is enabled, `ABFS_ORBITAL` in `STRU` must be specified by the user.
 
 ## Output Requirement
 

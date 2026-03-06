@@ -82,10 +82,11 @@ Then proceed as follows:
    - Then run NSCF
    - Then run `preprocess_abacus_for_librpa_band.py` to generate band information files
    - Then run `LibRPA`
-10. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
-11. Run smoke-first setup.
-12. Validate outputs and then escalate accuracy stepwise.
-13. Report each stage before moving to the next critical stage.
+10. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
+11. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
+12. Run smoke-first setup.
+13. Validate outputs and then escalate accuracy stepwise.
+14. Report each stage before moving to the next critical stage.
 
 ## Routing Rules
 

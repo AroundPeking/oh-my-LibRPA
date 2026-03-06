@@ -25,9 +25,11 @@
     - Set `shrink_abfs_pca_thr 1e-4`
     - Set `shrink_lu_inv_thr 1e-3`
     - Set `cs_inv_thr 1e-5`
+    - Require the user to specify `ABFS_ORBITAL` in `STRU`
   verify:
     - Check all coupled parameters exist and are parsed correctly
     - Confirm shrink is enabled explicitly in `librpa.in`
+    - Confirm `ABFS_ORBITAL` exists in `STRU`
     - Perform short smoke test first
   applies_to:
     mode: gw
