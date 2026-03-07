@@ -75,8 +75,13 @@ for path in \
   "$skills_root/abacus-librpa-gw/SKILL.md" \
   "$skills_root/abacus-librpa-rpa/SKILL.md" \
   "$skills_root/abacus-librpa-debug/SKILL.md" \
+  "$skills_root/abacus-pyatb-librpa-stack/SKILL.md" \
   "$installed_root/rules/cards/librpa-default-presets.yml" \
+  "$installed_root/rules/cards/abacus-pyatb-librpa-env-fixes.yml" \
   "$installed_root/templates/abacus-librpa-gw/minimal/INPUT_scf.template" \
+  "$installed_root/templates/env/abacus-pyatb-librpa.env.sh.template" \
+  "$installed_root/docs/guide/abacus-pyatb-librpa-stack.md" \
+  "$installed_root/examples/smoke-abacus-pyatb-librpa/README.md" \
   "$installed_root/templates/run-log.template.md"; do
   if [[ -f "$path" ]]; then
     pass "Found required file: $path"
@@ -91,6 +96,8 @@ for script in \
   "$installed_root/scripts/report_stage.sh" \
   "$installed_root/scripts/run_gw_workflow.sh" \
   "$installed_root/scripts/run_rpa_workflow.sh" \
+  "$installed_root/scripts/stack_env_doctor.sh" \
+  "$installed_root/scripts/stack_smoke_test.sh" \
   "$installed_root/scripts/self_test.sh" \
   "$installed_root/scripts/workflow_common.sh"; do
   if [[ -f "$script" ]]; then

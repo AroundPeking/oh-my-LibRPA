@@ -1,0 +1,87 @@
+- id: stack-python-venv-301
+  scene: Ubuntu 23+ or 24+ Python package installation
+  symptom: `pip install` to system Python is blocked or unstable
+  root_cause: Externally-managed Python protection on modern Ubuntu releases
+  fix:
+    - create a dedicated venv for the stack
+    - install `numpy`, `scipy`, `mpi4py`, `matplotlib`, `pybind11`, `setuptools`, and `wheel` inside the venv
+  verify:
+    - `python -c 'import numpy, scipy, mpi4py, pybind11'`
+  applies_to:
+    stage: environment
+
+- id: stack-oneapi-compiler-302
+  scene: oneAPI-based builds for LibRPA, PYATB, or ABACUS
+  symptom: build scripts still reference `icpc` or `ifort`
+  root_cause: newer oneAPI toolchains renamed the classic compiler frontends
+  fix:
+    - replace `icpc -> icpx`
+    - replace `ifort -> ifx`
+    - replace `mpiicpc -> mpiicpx`
+    - replace `mpiifort -> mpiifx`
+  verify:
+    - `command -v icpx ifx mpiicpx mpiifx`
+  applies_to:
+    stage: build
+
+- id: stack-pyatb-eigen-303
+  scene: PYATB installation or runtime import problems
+  symptom: PYATB cannot compile or import correctly
+  root_cause: wrong compiler name, missing Eigen include path, or wrong Python interpreter
+  fix:
+    - use a venv-backed Python for PYATB
+    - point `siteconfig.py` to `icpx`
+    - point `siteconfig.py` to the real Eigen include directory
+    - if the `pyatb` launcher exists, prefer its shebang interpreter for validation
+  verify:
+    - inspect the first line of `$(command -v pyatb)`
+    - run that interpreter with `import pyatb`
+  applies_to:
+    stage: environment
+
+- id: stack-librpa-submodule-304
+  scene: LibRPA source build
+  symptom: LibRPA fails because third-party code is incomplete or inconsistent
+  root_cause: `LibComm` / `LibRI` submodules were not updated for the active tree
+  fix:
+    - initialize and update submodules recursively before build
+    - check whether the maintained `RPA.hpp` period-field fix is still required on this branch
+  verify:
+    - rerun CMake configure and build after the submodule update
+  applies_to:
+    stage: build
+
+- id: stack-librpa-runtime-305
+  scene: LibRPA runtime launch
+  symptom: `chi0_main.exe` fails with missing shared libraries such as `libqsgw.so`
+  root_cause: runtime library search path does not match the build/install tree
+  fix:
+    - export a matching `LD_LIBRARY_PATH`
+    - or use a consistent install tree where the needed shared libraries are visible to the binary
+  verify:
+    - `ldd <chi0_main.exe>` shows no `not found`
+  applies_to:
+    stage: runtime
+
+- id: stack-abacus-link-306
+  scene: ABACUS final link with ELPA and Libxc enabled
+  symptom: linker errors for Intel runtime math libraries or compiler runtime objects
+  root_cause: ELPA / Libxc linkage pulls in oneAPI runtime requirements not carried automatically by the current CMake logic
+  fix:
+    - add the needed oneAPI runtime libraries explicitly in the ABACUS target link section
+    - keep ELPA and Libxc paths aligned with the active toolchain
+  verify:
+    - rerun the verbose build and confirm the final link succeeds
+  applies_to:
+    stage: build
+
+- id: stack-gcc-sanitized-307
+  scene: custom GCC build for ABACUS support
+  symptom: GCC configure/build behaves strangely after oneAPI was loaded
+  root_cause: compiler environment contamination from oneAPI variables
+  fix:
+    - clear compiler-related environment variables before configuring GCC
+  verify:
+    - rerun GCC `configure` with the cleaned environment
+  applies_to:
+    stage: build

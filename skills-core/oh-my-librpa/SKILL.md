@@ -10,12 +10,23 @@ Treat user messages as task intents, not command requests.
 ## Core Behavior
 
 - Accept natural language only; do not require user-side custom commands.
-- Convert user intent into one of three paths:
+- Convert user intent into one of four paths:
   - `GW workflow`
   - `RPA workflow`
   - `Debug workflow`
+  - `Stack install / doctor workflow`
 - Determine system type early: `molecule` / `solid` / `2D`.
 - Explain major decisions with `why + risk + verification`.
+
+## Environment / Install Branch
+
+If the user is asking to install, compile, configure, or repair the `ABACUS + PYATB + LibRPA` software stack itself, route to the `abacus-pyatb-librpa-stack` skill before asking for workflow input files.
+
+For that branch:
+
+- use `docs/guide/abacus-pyatb-librpa-stack.md` as the canonical build-order reference
+- run `scripts/stack_env_doctor.sh` first when you can access the machine
+- only return to the workflow branches after the runtime layer is healthy
 
 ## Mandatory File-Intake Handshake
 

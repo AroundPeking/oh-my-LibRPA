@@ -1,14 +1,19 @@
 matrix:
-  - stack: abacus+librpa
+  - stack: abacus+pyatb+librpa
     status: draft
-    notes: Start with smoke-ready static checks; refine by real cases.
+    notes: Supports project-local OpenClaw/OpenCode/Codex installs plus Ubuntu/WSL stack bootstrap, doctor checks, and smoke validation.
     agent_homes:
       openclaw: ["project", "user"]
       opencode: ["project", "user"]
       codex: ["project", "user"]
     versions:
       abacus: ["3.x"]
+      pyatb: ["1.x"]
       librpa: ["0.x"]
+      oneapi: ["2025.1+", "2025.2+"]
+      os_profile: ["Ubuntu 24.04", "WSL"]
     constraints:
       - Inputs must come from one workflow chain
       - Run directory must be isolated and newly created
+      - Prefer Python venv for PYATB on modern Ubuntu releases
+      - oneAPI compiler name migration must be handled explicitly

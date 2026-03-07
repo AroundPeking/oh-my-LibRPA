@@ -67,11 +67,17 @@ OH_MY_LIBRPA_CODEX_HOME="$HOME/.codex" bash install.sh --target codex --layout u
 
 ## Install via AI Agent
 
-Copy this prompt to your AI agent:
+Copy one of these prompts to your AI agent:
 
 ```text
 Install and configure oh-my-LibRPA by following:
 https://raw.githubusercontent.com/bhjia-phys/oh-my-LibRPA/main/docs/guide/installation.md
+```
+
+```text
+Bootstrap a fresh Ubuntu/WSL ABACUS + PYATB + LibRPA stack for oh-my-LibRPA by following:
+https://raw.githubusercontent.com/bhjia-phys/oh-my-LibRPA/main/docs/guide/abacus-pyatb-librpa-stack.md
+Then run the stack doctor and a local smoke test.
 ```
 
 ## What the Installer Does
@@ -83,7 +89,7 @@ For each selected target, the installer:
 - prefers symlinks for project-local installs from a local repo checkout
 - falls back to copy mode when the source is temporary or remote
 - makes shipped shell scripts executable
-- runs a local post-install self-test for the installed skills, scripts, and default archive-root behavior
+- runs a local post-install self-test for the installed skills, scripts, stack helpers, and default archive-root behavior
 
 Target roots:
 
@@ -131,6 +137,17 @@ Examples:
   --installed-root ./.codex-home/oh-my-librpa
 ```
 
+For stack-level environment checks after installation:
+
+```bash
+<target-root>/oh-my-librpa/scripts/stack_env_doctor.sh --env-script <your-env.sh>
+<target-root>/oh-my-librpa/scripts/stack_smoke_test.sh --case-dir <case_dir> --env-script <your-env.sh>
+```
+
+The detailed Ubuntu/WSL stack recipe lives in:
+
+- `docs/guide/abacus-pyatb-librpa-stack.md`
+
 ## Runtime Hints
 
 After installation, test by chat only:
@@ -148,6 +165,7 @@ Platform hints:
 Expected behavior:
 
 - AI routes to GW/RPA/debug workflow automatically
+- AI routes install/repair requests for `ABACUS + PYATB + LibRPA` to the stack-bootstrap/doctor skill first
 - AI starts with intake/preflight and tells the user what is missing before execution
 - AI applies curated experience rules and explains why
 - AI enforces run-safety constraints (new directory, no overwrite)

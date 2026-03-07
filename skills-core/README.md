@@ -10,6 +10,7 @@ Current core skills:
 - `abacus-librpa-gw`
 - `abacus-librpa-rpa`
 - `abacus-librpa-debug`
+- `abacus-pyatb-librpa-stack`
 
 Boundary:
 

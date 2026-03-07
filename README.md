@@ -76,11 +76,17 @@ bash install.sh --target openclaw --layout user --restart-mode skip
 
 ## Install via AI
 
-Send this to your AI assistant:
+Send one of these prompts to your AI assistant:
 
 ```text
 Install and configure oh-my-LibRPA by following:
 https://raw.githubusercontent.com/bhjia-phys/oh-my-LibRPA/main/docs/guide/installation.md
+```
+
+```text
+Bootstrap a fresh Ubuntu/WSL ABACUS + PYATB + LibRPA stack for oh-my-LibRPA by following:
+https://raw.githubusercontent.com/bhjia-phys/oh-my-LibRPA/main/docs/guide/abacus-pyatb-librpa-stack.md
+Then run the stack doctor and a local smoke test.
 ```
 
 ## After Installation
@@ -90,6 +96,7 @@ After installation, users can interact only through chat, for example:
 - `Help me run GW for GaAs with a conservative setup first.`
 - `This is a molecular system. Prepare inputs using the molecular route.`
 - `How do we fix this error? Give me the minimal repair action.`
+- `Bootstrap a fresh Ubuntu WSL stack for ABACUS + PYATB + LibRPA, then run a local smoke test.`
 
 Platform-local runtime hints:
 
@@ -101,11 +108,12 @@ Platform-local runtime hints:
 
 - Chat orchestrator skill: `oh-my-librpa` (single entry point)
 - Core workflow skills: `abacus-librpa-gw`, `abacus-librpa-rpa`, `abacus-librpa-debug`
-- Rule cards (structured experience): scene, symptom, root cause, fix, verify
-- Templates: minimal `INPUT_scf`, `INPUT_nscf`, `librpa.in`
-- Static checker scripts and runners: intake/preflight, route-aware consistency checks, run-safety constraints, stage reporting, and GW/RPA workflow execution
+- Core stack/bootstrap skill: `abacus-pyatb-librpa-stack`
+- Rule cards (structured experience): workflow defaults plus environment/install repair rules
+- Templates: minimal `INPUT_scf`, `INPUT_nscf`, `librpa.in`, and a reusable stack env template
+- Static checker scripts and runners: intake/preflight, route-aware consistency checks, run-safety constraints, stage reporting, GW/RPA workflow execution, environment doctor, and stack smoke tests
 - Run logging: one Markdown report in the run directory, one archived copy under the active platform root, plus short stage summaries for users
-- Installer self-test: validate skills, scripts, and log-writing path right after installation
+- Installer self-test: validate skills, scripts, stack helpers, and default archive-root behavior right after installation
 
 ## Repository Layout
 
@@ -115,7 +123,8 @@ oh-my-librpa/
 |   |-- oh-my-librpa/
 |   |-- abacus-librpa-gw/
 |   |-- abacus-librpa-rpa/
-|   `-- abacus-librpa-debug/
+|   |-- abacus-librpa-debug/
+|   `-- abacus-pyatb-librpa-stack/
 |-- platform/
 |   |-- openclaw/
 |   |-- opencode/
