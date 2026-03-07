@@ -96,6 +96,7 @@ for script in \
   "$installed_root/scripts/report_stage.sh" \
   "$installed_root/scripts/run_gw_workflow.sh" \
   "$installed_root/scripts/run_rpa_workflow.sh" \
+  "$installed_root/scripts/generate_librpa_stru_out.py" \
   "$installed_root/scripts/stack_env_doctor.sh" \
   "$installed_root/scripts/stack_smoke_test.sh" \
   "$installed_root/scripts/self_test.sh" \
@@ -107,14 +108,27 @@ for script in \
     continue
   fi
 
-  if bash -n "$script"; then
-    pass "bash -n passed: $script"
-  else
-    fail "bash -n failed: $script"
-  fi
+  if [[ "$script" == *.sh ]]; then
+    if bash -n "$script"; then
+      pass "bash -n passed: $script"
+    else
+      fail "bash -n failed: $script"
+    fi
 
-  if [[ "$script" != *"workflow_common.sh" ]]; then
-    if "$script" --help >/dev/null 2>&1; then
+    if [[ "$script" != *"workflow_common.sh" ]]; then
+      if "$script" --help >/dev/null 2>&1; then
+        pass "--help works: $script"
+      else
+        fail "--help failed: $script"
+      fi
+    fi
+  elif [[ "$script" == *.py ]]; then
+    if python3 -m py_compile "$script"; then
+      pass "py_compile passed: $script"
+    else
+      fail "py_compile failed: $script"
+    fi
+    if python3 "$script" --help >/dev/null 2>&1; then
       pass "--help works: $script"
     else
       fail "--help failed: $script"

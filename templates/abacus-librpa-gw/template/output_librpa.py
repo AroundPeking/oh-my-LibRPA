@@ -1,12 +1,19 @@
 import numpy as np
+import os
 import sys
+
+def _resolve_existing(*candidates):
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    raise FileNotFoundError(f"No matrix file found among: {candidates}")
+
 def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int, nkx : int = 20, nky : int = 20, nkz : int = 20, nspin: int = 1, matrix_route: str = 'OUT.ABACUS', use_soc: bool = False):
     import pyatb
     from pyatb import RANK, COMM, SIZE
     from pyatb.kpt.kpoint_generator import mp_generator, kpoints_in_different_process
     from pyatb.parallel import op_sum
     from pyatb.tools.smearing import gauss
-    import os
 
     """----------------输入数据----------------"""
     # 1. 晶格参数
@@ -20,12 +27,33 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int, 
     #    ], dtype=float
     #)
     if(nspin==2):
-        HR_route = [os.path.join(matrix_route, 'hrs1_nao.csr'), os.path.join(matrix_route, 'hrs2_nao.csr')]
+        HR_route = [
+            _resolve_existing(
+                os.path.join(matrix_route, 'hrs1_nao.csr'),
+                os.path.join(matrix_route, 'data-HR-sparse_SPIN0.csr')
+            ),
+            _resolve_existing(
+                os.path.join(matrix_route, 'hrs2_nao.csr'),
+                os.path.join(matrix_route, 'data-HR-sparse_SPIN1.csr')
+            )
+        ]
     if(nspin==1 or nspin==4):
-        HR_route = os.path.join(matrix_route, 'hrs1_nao.csr')
-    SR_route = os.path.join(matrix_route, 'srs1_nao.csr')
-    rR_route = os.path.join(matrix_route, 'rr.csr')
-    pR_route = os.path.join(matrix_route, 'rr.csr')
+        HR_route = _resolve_existing(
+            os.path.join(matrix_route, 'hrs1_nao.csr'),
+            os.path.join(matrix_route, 'data-HR-sparse_SPIN0.csr')
+        )
+    SR_route = _resolve_existing(
+        os.path.join(matrix_route, 'srs1_nao.csr'),
+        os.path.join(matrix_route, 'data-SR-sparse_SPIN0.csr')
+    )
+    rR_route = _resolve_existing(
+        os.path.join(matrix_route, 'rr.csr'),
+        os.path.join(matrix_route, 'data-rR-sparse.csr')
+    )
+    pR_route = _resolve_existing(
+        os.path.join(matrix_route, 'rr.csr'),
+        os.path.join(matrix_route, 'data-rR-sparse.csr')
+    )
 
     # 2. 设置参数
     #fermi_energy = 13.063197611 # eV

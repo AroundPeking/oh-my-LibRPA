@@ -31,6 +31,7 @@ case_dir=""
 run_root="${TMPDIR:-/tmp}"
 env_script=""
 python_cmd="${PYTHON:-python3}"
+python_cmd_explicit=0
 abacus_bin="${ABACUS_BIN:-}"
 pyatb_cmd="${PYATB_CMD:-}"
 librpa_bin="${LIBRPA_BIN:-}"
@@ -43,7 +44,7 @@ while [[ $# -gt 0 ]]; do
     --case-dir) case_dir="$2"; shift 2 ;;
     --run-root) run_root="$2"; shift 2 ;;
     --env-script) env_script="$2"; shift 2 ;;
-    --python) python_cmd="$2"; shift 2 ;;
+    --python) python_cmd="$2"; python_cmd_explicit=1; shift 2 ;;
     --abacus-bin) abacus_bin="$2"; shift 2 ;;
     --pyatb-cmd) pyatb_cmd="$2"; shift 2 ;;
     --librpa-bin) librpa_bin="$2"; shift 2 ;;
@@ -124,7 +125,58 @@ has_exported_pyatb_bundle() {
 }
 
 has_abacus_pyatb_inputs() {
-  [[ -f "$1/OUT.ABACUS/hrs1_nao.csr" && -f "$1/OUT.ABACUS/srs1_nao.csr" && -f "$1/OUT.ABACUS/rr.csr" ]]
+  local out="$1/OUT.ABACUS"
+  local has_hr=0
+  local has_sr=0
+  local has_rr=0
+  [[ -f "$out/hrs1_nao.csr" || -f "$out/data-HR-sparse_SPIN0.csr" ]] && has_hr=1
+  [[ -f "$out/srs1_nao.csr" || -f "$out/data-SR-sparse_SPIN0.csr" ]] && has_sr=1
+  [[ -f "$out/rr.csr" || -f "$out/data-rR-sparse.csr" ]] && has_rr=1
+  [[ "$has_hr" -eq 1 && "$has_sr" -eq 1 && "$has_rr" -eq 1 ]]
+}
+
+assemble_generated_librpa_bundle() {
+  local dir="$1"
+  local bundle="$dir/input_librpa_generated"
+  local pyatb_dir="$dir/pyatb_librpa_df"
+  local copied=0
+
+  rm -rf "$bundle"
+  mkdir -p "$bundle"
+
+  shopt -s nullglob
+  local file
+  for file in "$dir"/coulomb_cut_*.txt "$dir"/coulomb_mat_*.txt "$dir"/Cs_data_*.txt "$dir"/Cs_shrinked_data_*.txt "$dir"/shrink_sinvS_*.txt; do
+    cp "$file" "$bundle/"
+    copied=1
+  done
+  shopt -u nullglob
+
+  if [[ -f "$dir/OUT.ABACUS/vxc_out.dat" ]]; then
+    cp "$dir/OUT.ABACUS/vxc_out.dat" "$bundle/vxc_out"
+    copied=1
+  fi
+
+  if [[ -d "$pyatb_dir" && -f "$pyatb_dir/band_out" ]]; then
+    cp "$pyatb_dir/band_out" "$bundle/"
+    cp "$pyatb_dir"/KS_eigenvector_*.dat "$bundle/"
+    copied=1
+  elif [[ -f "$dir/band_out" ]]; then
+    cp "$dir/band_out" "$bundle/"
+    cp "$dir"/KS_eigenvector_*.dat "$bundle/"
+    copied=1
+  fi
+
+  if [[ -f "$dir/librpa.in" ]]; then
+    cp "$dir/librpa.in" "$bundle/"
+  fi
+
+  if [[ -f "$repo_root/scripts/generate_librpa_stru_out.py" ]]; then
+    python3 "$repo_root/scripts/generate_librpa_stru_out.py" --stru "$dir/STRU" --kpt "$dir/KPT" --kpoints "$dir/OUT.ABACUS/kpoints" --output "$bundle/stru_out" >/dev/null 2>&1 || true
+  fi
+
+  [[ "$copied" -eq 1 && -f "$bundle/band_out" && -f "$bundle/stru_out" && -f "$bundle/librpa.in" ]] || return 1
+  printf '%s\n' "$bundle"
 }
 
 resolve_exported_bundle_dir() {
@@ -157,7 +209,9 @@ pyatb_cmd="$(resolve_tool "$pyatb_cmd" pyatb || true)"
 librpa_bin="$(resolve_tool "$librpa_bin" chi0_main.exe /home/bhj/software/LibRPA-merge-target-install/bin/chi0_main.exe /home/bhj/LibRPA-merge-target/build_fish/chi0_main.exe || true)"
 
 pyatb_python=""
-if [[ -n "$pyatb_cmd" && -x "$pyatb_cmd" ]]; then
+if [[ "$python_cmd_explicit" -eq 1 ]]; then
+  pyatb_python="$python_cmd"
+elif [[ -n "$pyatb_cmd" && -x "$pyatb_cmd" ]]; then
   shebang="$(head -n 1 "$pyatb_cmd" 2>/dev/null | sed 's/^#!//')"
   shebang="${shebang%% *}"
   if [[ -n "$shebang" && -x "$shebang" ]]; then
@@ -245,12 +299,17 @@ if [[ "$skip_librpa" -eq 0 ]]; then
   if has_librpa_success "$run_dir"; then
     librpa_dir="$run_dir"
     note_pass "Reused existing LibRPA outputs in the main run directory"
-  elif [[ -d "$run_dir/input_librpa" ]]; then
-    librpa_dir="$(resolve_exported_bundle_dir "$run_dir" || true)"
-  elif [[ -f "$run_dir/input_librpa.tar.gz" ]]; then
-    mkdir -p "$run_dir/input_librpa"
-    tar -xzf "$run_dir/input_librpa.tar.gz" -C "$run_dir/input_librpa"
-    librpa_dir="$(resolve_exported_bundle_dir "$run_dir" || true)"
+  else
+    librpa_dir="$(assemble_generated_librpa_bundle "$run_dir" || true)"
+    if [[ -n "$librpa_dir" ]]; then
+      note_pass "Assembled a fresh LibRPA input bundle from ABACUS + PYATB outputs"
+    elif [[ -d "$run_dir/input_librpa" ]]; then
+      librpa_dir="$(resolve_exported_bundle_dir "$run_dir" || true)"
+    elif [[ -f "$run_dir/input_librpa.tar.gz" ]]; then
+      mkdir -p "$run_dir/input_librpa"
+      tar -xzf "$run_dir/input_librpa.tar.gz" -C "$run_dir/input_librpa"
+      librpa_dir="$(resolve_exported_bundle_dir "$run_dir" || true)"
+    fi
   fi
 
   if [[ -n "$librpa_dir" && ! -f "$librpa_dir/librpa.in" && -f "$run_dir/librpa.in" ]]; then

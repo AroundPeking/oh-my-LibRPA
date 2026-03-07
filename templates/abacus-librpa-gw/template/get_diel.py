@@ -27,7 +27,7 @@ def get_param(work_dir : str = './'):
     '''
     get lattice_vector from STRU,
     get fermi_energy(eV) from running_scf.log,
-    get occ_band from band_out.
+    get occ_band from running_scf.log first, then fallback to band_out.
     '''
     import os
     f_stru = os.path.join(work_dir, 'STRU')
@@ -63,19 +63,29 @@ def get_param(work_dir : str = './'):
                 break
 
     occ_band = 0
-    with open(f_band, 'r') as file:
+    with open(f_running, 'r') as file:
         for line in file:
-            parts = line.split()
-            if len(parts) > 2:
-                try:
-                    # 检查第二列是否为占据数
-                    occ_value = float(parts[1])
-                    if occ_value == 0:
+            if 'occupied bands' in line:
+                parts = line.replace('=', ' ').split()
+                for token in reversed(parts):
+                    if token.isdigit():
+                        occ_band = int(token)
                         break
-                    occ_band += 1  # 计数非零占据数的能带
-                except ValueError:
-                    continue  # 跳过无法转换为浮点数的行
+                if occ_band:
+                    break
 
+    if occ_band == 0 and os.path.exists(f_band):
+        with open(f_band, 'r') as file:
+            for line in file:
+                parts = line.split()
+                if len(parts) > 2:
+                    try:
+                        occ_value = float(parts[1])
+                        if occ_value == 0:
+                            break
+                        occ_band += 1
+                    except ValueError:
+                        continue
 
     return lattice_vector, fermi_energy, occ_band
 
@@ -129,7 +139,8 @@ if __name__ == '__main__':
     abacus_dir = './'
     nspin = 1
     use_soc = False
-    kpt_file_dir = './KPT_scf'
+    import os
+    kpt_file_dir = './KPT_scf' if os.path.exists('./KPT_scf') else './KPT'
     # ------------ over
     nkx, nky, nkz = read_KPT(kpt_file_dir)
     #print(nkx, nky, nkz)
