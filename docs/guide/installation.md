@@ -43,7 +43,15 @@ bash install.sh
 - Detect OpenClaw workspace automatically (no hard-coded path required)
 - Install skills into `<workspace>/skills/`
 - Install rules/templates/docs/scripts into `<workspace>/oh-my-librpa/`
+- Make shipped shell scripts executable
+- Run a local post-install self-test for the installed skills, scripts, and log-writing path
 - Restart gateway
+
+You can rerun the validation manually after installation:
+
+```bash
+~/.openclaw/workspace/oh-my-librpa/scripts/self_test.sh
+```
 
 ## Validation
 
@@ -56,5 +64,6 @@ After install, test by chat only:
 Expected behavior:
 
 - AI routes to GW/RPA/debug workflow automatically
+- AI starts with intake/preflight and tells the user what is missing before execution
 - AI applies curated experience rules and explains why
 - AI enforces run-safety constraints (new directory, no overwrite)

@@ -23,6 +23,8 @@ Before starting any compute task, ask the user to provide files first when avail
 
 Treat uploaded files as the primary source of truth.
 
+As soon as files land in a working directory, run the installed `oh-my-librpa/scripts/intake_preflight.sh <case_dir>` helper to classify the bundle, infer the likely route, and report what is still missing before asking extra questions.
+
 Classify user-provided files into one of these groups:
 
 - `structure files`: `STRU`, `cif`, `xyz`, `geometry.in`
@@ -82,6 +84,7 @@ Then proceed as follows:
 7. Branch the workflow accordingly:
    - GW route uses the full chain when needed: dielectric-function path, `pyatb`, NSCF, and band preprocessing
    - RPA route skips GW-only preprocessing: no dielectric-function path, no `pyatb`, no NSCF, no `preprocess_abacus_for_librpa_band.py`
+   - Molecular GW is the short route `SCF -> LibRPA`; periodic GW (`solid` / `2D`) is the full route `SCF -> pyatb -> NSCF -> preprocess -> LibRPA`
 8. Classify spin/SOC state and keep `INPUT`, workflow scripts, and `librpa.in` aligned:
    - Collinear spin, no SOC -> `nspin = 2`, `lspinorb = 0`
    - Noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
@@ -142,8 +145,9 @@ Then proceed as follows:
 14. If shrink is enabled, require the user to specify `ABFS_ORBITAL` in `STRU` before continuing.
 15. Prefer scripts and reference inputs from `/mnt/sg001/home/ks_iopcas_ghj/gw/template` when working on the server.
 16. Run smoke-first setup.
-17. Validate outputs using stage-specific success criteria before escalation.
-18. For a full GW chain, judge stages with generic markers. Only `LibRPA` needs explicit status monitoring; `pyatb` and `preprocess` usually only need completion checks:
+17. Run the installed `oh-my-librpa/scripts/check_consistency.sh <case_dir> --mode <gw|rpa> --system-type <molecule|solid|2D>` helper before remote execution so the static checks follow the selected route instead of assuming every case needs NSCF.
+18. Validate outputs using stage-specific success criteria before escalation.
+19. For a full GW chain, judge stages with generic markers. Only `LibRPA` needs explicit status monitoring; `pyatb` and `preprocess` usually only need completion checks:
    - SCF: completed `running_scf.log` + `ABACUS-CHARGE-DENSITY.restart`
    - pyatb: `pyatb_librpa_df/` + `band_out` + `KS_eigenvector_*.dat`
    - NSCF: completed `running_nscf.log` + `eig.txt`
@@ -151,10 +155,10 @@ Then proceed as follows:
    - LibRPA success: rank-0 output reaches `Timer stop:  total.` and `GW_band_spin_*.dat` exists
    - LibRPA running: rank-0 output exists, has no final `Timer stop:  total.` yet, and is still growing
    - LibRPA failed: no final `Timer stop:  total.` and the rank-0 output is no longer growing, or the output file is missing
-19. For a full GW execution path, prefer the installed `run_gw_workflow.sh` runner so stage execution, verification, and reporting stay in one flow.
-20. For a full RPA execution path, prefer the installed `run_rpa_workflow.sh` runner so stage execution, verification, and reporting stay in one flow.
-21. After each verified stage update, call the installed `report_stage.sh` helper to write both Markdown logs: the run-directory `run-report.md` and the archived copy under `~/.openclaw/workspace/librpa/oh-my-librpa/`.
-22. Send the script stdout to the user as the stage summary before moving to the next critical stage.
+20. For GW execution, prefer the installed `run_gw_workflow.sh` runner so stage execution, route-aware skipping, verification, and reporting stay in one flow.
+21. For a full RPA execution path, prefer the installed `run_rpa_workflow.sh` runner so stage execution, verification, and reporting stay in one flow.
+22. After each verified stage update, call the installed `report_stage.sh` helper to write both Markdown logs: the run-directory `run-report.md` and the archived copy under `~/.openclaw/workspace/librpa/oh-my-librpa/`.
+23. Send the script stdout to the user as the stage summary before moving to the next critical stage.
 
 ## Routing Rules
 

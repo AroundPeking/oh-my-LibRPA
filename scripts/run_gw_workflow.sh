@@ -37,10 +37,11 @@ Usage:
     [--librpa-poll-seconds <seconds>]
 
 Behavior:
-  - Runs GW stages in order when a command is provided
+  - Runs route-aware GW stages when a command is provided
   - Verifies each stage immediately after execution
   - Calls report_stage.sh after each verified stage update
   - Reuses existing outputs when a stage command is omitted but success markers already exist
+  - Skips `pyatb -> NSCF -> preprocess` automatically for molecular GW routes
 EOF
 }
 
@@ -253,6 +254,12 @@ execute_librpa_stage() {
   fi
   return 1
 }
+
+if [[ "$system_type" == "molecule" ]]; then
+  execute_verified_stage scf "$scf_cmd" verify_scf_stage 'OUT.ABACUS/running_scf.log, OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart' 'Run LibRPA.'
+  execute_librpa_stage
+  exit 0
+fi
 
 execute_verified_stage scf "$scf_cmd" verify_scf_stage 'OUT.ABACUS/running_scf.log, OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart' 'Run pyatb.'
 execute_verified_stage pyatb "$pyatb_cmd" verify_pyatb_stage 'pyatb_librpa_df/band_out, pyatb_librpa_df/KS_eigenvector_*.dat' 'Run NSCF.'
