@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 180" width="980" height="180" role="img" aria-label="oh-my-LibRPA wordmark">
+  <defs>
+    <linearGradient id="oml-text-main" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#26A69A"/>
+      <stop offset="100%" stop-color="#00796B"/>
+    </linearGradient>
+    <g id="b-full" fill="none" stroke-width="4" stroke-linecap="round">
+      <path d="M-14,0 A17,17 0 0,1 14,0 A17,17 0 0,1 -14,0" stroke="#00796B"/>
+      <path d="M-14,0 A17,17 0 0,0 14,0 A17,17 0 0,0 -14,0" stroke="#004D40"/>
+    </g>
+    <g id="b-md" fill="none" stroke-width="3.5" stroke-linecap="round">
+      <path d="M-12,0 A15,15 0 0,1 12,0 A15,15 0 0,1 -12,0" stroke="#00796B"/>
+      <path d="M-12,0 A15,15 0 0,0 12,0 A15,15 0 0,0 -12,0" stroke="#004D40"/>
+    </g>
+    <g id="b-sm" fill="none" stroke-width="3" stroke-linecap="round">
+      <path d="M-10,0 A12,12 0 0,1 10,0 A12,12 0 0,1 -10,0" stroke="#00796B"/>
+      <path d="M-10,0 A12,12 0 0,0 10,0 A12,12 0 0,0 -10,0" stroke="#004D40"/>
+    </g>
+    <g id="b-xs" fill="none" stroke-width="2.5" stroke-linecap="round">
+      <path d="M-7,0 A9,9 0 0,1 7,0 A9,9 0 0,1 -7,0" stroke="#00796B"/>
+      <path d="M-7,0 A9,9 0 0,0 7,0 A9,9 0 0,0 -7,0" stroke="#004D40"/>
+    </g>
+    <g id="b-xxs" fill="none" stroke-width="2" stroke-linecap="round">
+      <path d="M-5,0 A7,7 0 0,1 5,0 A7,7 0 0,1 -5,0" stroke="#00796B"/>
+      <path d="M-5,0 A7,7 0 0,0 5,0 A7,7 0 0,0 -5,0" stroke="#004D40"/>
+    </g>
+  </defs>
+
+  <g transform="translate(6,10) scale(0.31)">
+    <line x1="107.5" y1="202.0" x2="135.0" y2="154.4" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="135.0" y1="154.4" x2="177.0" y2="119.2" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="177.0" y1="119.2" x2="228.6" y2="100.4" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="228.6" y1="100.4" x2="283.4" y2="100.4" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="283.4" y1="100.4" x2="335.0" y2="119.2" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="335.0" y1="119.2" x2="377.0" y2="154.4" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="377.0" y1="154.4" x2="404.5" y2="202.0" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="404.5" y1="202.0" x2="414.0" y2="256.0" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="414.0" y1="256.0" x2="404.5" y2="310.0" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="404.5" y1="310.0" x2="377.0" y2="357.6" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="377.0" y1="357.6" x2="335.0" y2="392.8" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="335.0" y1="392.8" x2="283.4" y2="411.6" stroke="#26A69A" stroke-width="1.2" opacity="0.18" stroke-dasharray="3,3"/>
+    <line x1="283.4" y1="411.6" x2="228.6" y2="411.6" stroke="#26A69A" stroke-width="1.2" opacity="0.14" stroke-dasharray="3,3"/>
+    <line x1="228.6" y1="411.6" x2="177.0" y2="392.8" stroke="#26A69A" stroke-width="1.2" opacity="0.12" stroke-dasharray="3,3"/>
+    <line x1="177.0" y1="392.8" x2="135.0" y2="357.6" stroke="#26A69A" stroke-width="1.2" opacity="0.10" stroke-dasharray="3,3"/>
+    <line x1="135.0" y1="357.6" x2="107.5" y2="310.0" stroke="#26A69A" stroke-width="1.2" opacity="0.07" stroke-dasharray="3,3"/>
+    <line x1="107.5" y1="310.0" x2="98.0" y2="256.0" stroke="#26A69A" stroke-width="1.2" opacity="0.04" stroke-dasharray="3,3"/>
+    <line x1="98.0" y1="256.0" x2="107.5" y2="202.0" stroke="#26A69A" stroke-width="1.2" opacity="0.04" stroke-dasharray="3,3"/>
+
+    <use href="#b-full" transform="translate(107.5,202.0) rotate(290.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(135.0,154.4) rotate(310.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(177.0,119.2) rotate(330.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(228.6,100.4) rotate(350.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(283.4,100.4) rotate(370.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(335.0,119.2) rotate(390.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(377.0,154.4) rotate(410.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(404.5,202.0) rotate(430.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(414.0,256.0) rotate(450.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(404.5,310.0) rotate(470.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(377.0,357.6) rotate(490.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(335.0,392.8) rotate(510.0)" opacity="1.0"/>
+    <use href="#b-full" transform="translate(283.4,411.6) rotate(530.0)" opacity="1.0"/>
+    <use href="#b-md" transform="translate(228.6,411.6) rotate(550.0)" opacity="0.65"/>
+    <use href="#b-sm" transform="translate(177.0,392.8) rotate(570.0)" opacity="0.53"/>
+    <use href="#b-sm" transform="translate(135.0,357.6) rotate(590.0)" opacity="0.40"/>
+    <use href="#b-xs" transform="translate(107.5,310.0) rotate(610.0)" opacity="0.28"/>
+    <use href="#b-xxs" transform="translate(98.0,256.0) rotate(630.0)" opacity="0.15"/>
+  </g>
+
+  <g font-family="Inter, 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif">
+    <text x="168" y="104" font-size="58" font-weight="500" font-style="italic" letter-spacing="-1.2" fill="#5F6B72">oh-my-</text>
+    <text x="382" y="104" font-size="64" font-weight="500" letter-spacing="-1.5" fill="#26A69A">Lib</text>
+    <text x="500" y="104" font-size="64" font-weight="750" letter-spacing="-1.5" fill="url(#oml-text-main)">RPA</text>
+    <rect x="170" y="118" width="462" height="2.2" rx="1.1" fill="#D7E6E3"/>
+    <text x="170" y="149" font-size="18" font-weight="500" letter-spacing="2.6" fill="#7A8A90">CHAT-FIRST GW / RPA WORKFLOWS</text>
+  </g>
+</svg>

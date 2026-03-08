@@ -1,7 +1,5 @@
 <div align="center">
-  <img src="docs/assets/brand/oh-my-librpa-mark.svg" alt="oh-my-LibRPA mark" width="128" />
-  <h1>oh-my-LibRPA</h1>
-  <p><strong>Chat-first GW / RPA workflows for ABACUS + LibRPA</strong></p>
+  <img src="docs/assets/brand/oh-my-librpa-wordmark.svg" alt="oh-my-LibRPA wordmark" width="760" />
   <p>
     Describe the task in natural language. Let the agent choose the route,
     patch inputs, run checks, execute stage by stage, and report results back in chat.
