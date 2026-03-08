@@ -95,7 +95,12 @@ The updater reuses `~/.openclaw/workspace/oh-my-librpa/install-state.env` when a
 
 ## Validation
 
-After install, test by chat only:
+After install, read these first if you want a real chat-first workflow instead of isolated toy prompts:
+
+- `docs/guide/chat-guidance.md`
+- `examples/si-k444-gw/README.md`
+
+After that, test by chat only:
 
 - `Help me run GW for Si with a conservative setup first.`
 - `This is a molecular system. Prepare inputs with the molecular route.`

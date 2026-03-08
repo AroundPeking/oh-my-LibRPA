@@ -1,29 +1,52 @@
 # oh-my-LibRPA
 
-`oh-my-LibRPA` is a **chat-first** AI experience layer for `ABACUS + LibRPA` (and can be extended to other DFT stacks).
+Chat-first guidance, workflow rules, and execution helpers for **ABACUS + LibRPA** tasks inside OpenClaw.
 
-Goal: users describe tasks in natural language, and AI applies proven workflows and experience to prepare, validate, troubleshoot, and iterate GW/RPA calculations.
+The goal is simple:
 
-## Install via AI (Recommended)
+- users talk in **natural language**
+- the agent decides whether the task is **GW / RPA / debug**
+- the agent asks only the **missing questions that matter**
+- the workflow runs in a **fresh directory** with durable stage logs
+- output review and plotting are part of the workflow, not an afterthought
 
-Send this to your AI assistant:
+---
 
-```text
-Install and configure oh-my-LibRPA by following:
-https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/docs/guide/installation.md
-```
+## What this repository provides
 
-## One-Command Install (Human)
+- **Guidance for humans**: what to say, what information to provide, and what to expect from the plugin
+- **Guidance for agents**: rules, cards, templates, and shell helpers for stable execution
+- **Execution helpers**: preflight checks, consistency checks, workflow runners, run logging
+- **Examples**: realistic end-to-end cases, not just toy prompts
+
+Repository layout:
+
+- `docs/guide/` — human-facing guides
+- `examples/` — realistic example cases
+- `references/` — living playbooks / terms / conventions
+- `rules/cards/` — structured experience cards that agents can follow
+- `scripts/` — execution and reporting helpers
+- `templates/` — report templates and future workflow templates
+
+---
+
+## Install / Update
+
+Start here:
+
+- Installation guide: `docs/guide/installation.md`
+- Windows + Git Bash guide: `docs/guide/windows-git-bash.md`
+
+Quick install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/install.sh | bash
 ```
 
-Local development install:
+Quick update:
 
 ```bash
-cd ~/code/oh-my-librpa
-bash install.sh
+~/.openclaw/workspace/oh-my-librpa/update.sh
 ```
 
 ## Update
@@ -50,50 +73,120 @@ If the local updater is missing, fetch the latest updater directly:
 curl -fsSL https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/update.sh | bash
 ```
 
-After installation, users can interact only through chat, for example:
+---
 
-- `Help me run GW for GaAs with a conservative setup first.`
-- `This is a molecular system. Prepare inputs using the molecular route.`
-- `How do we fix this error? Give me the minimal repair action.`
+## How to use it in chat
 
-## Current MVP Scope
+If you are a user, the most important document is:
 
-- Chat orchestrator skill: `oh-my-librpa` (single entry point)
-- Core workflow skills: `abacus-librpa-gw`, `abacus-librpa-rpa`, `abacus-librpa-debug`
-- Rule cards (structured experience): scene, symptom, root cause, fix, verify
-- Templates: minimal `INPUT_scf`, `INPUT_nscf`, `librpa.in`
-- Static checker scripts and runners: intake/preflight, route-aware consistency checks, run-safety constraints, stage reporting, and GW/RPA workflow execution
-- Run logging: one Markdown report in the run directory, one archived copy in `~/.openclaw/workspace/librpa/oh-my-librpa/`, plus short stage summaries for users
-- Installer self-test: validate skills, scripts, metadata, and log-writing path right after installation
-- In-place updater: reuse the recorded source/workspace and refresh the install without manual path setup
+- `docs/guide/chat-guidance.md`
 
-## Repository Layout
+That guide explains:
 
-```text
-oh-my-librpa/
-|-- skills/
-|   |-- oh-my-librpa/
-|   |-- abacus-librpa-gw/
-|   |-- abacus-librpa-rpa/
-|   `-- abacus-librpa-debug/
-|-- references/
-|-- rules/cards/
-|-- templates/
-|-- scripts/
-|-- examples/
-|-- registry/
-`-- docs/
-```
+- how to ask for a GW / RPA / debug task in natural language
+- what minimum information the agent should ask back for
+- how stage-by-stage progress should look
+- how to continue from a successful run into plotting / postprocessing
 
-## Design Principles
+If you want one realistic example instead of abstract rules, read:
 
-- Chat-first: users should not memorize custom commands
-- Routed execution: auto-route by `molecule`, `solid`, or `2D`
-- Experience-driven: curated rules over ad-hoc guessing
-- Safety-first: always use new run directories and avoid overwriting source data
+- `examples/si-k444-gw/README.md`
 
-## Safety Constraints
+That example is based on a real periodic Si GW workflow and includes:
 
-- Prefer static checks before any remote execution
-- Every run chain must use a new isolated directory
-- Never overwrite original data directories
+- the initial user request
+- the clarifying questions that were actually needed
+- the failure / repair loop on a real HPC server
+- the final plotting request and paper-style output
+
+---
+
+## Design principles
+
+### 1. Chat first
+
+Users should not need to memorize CLI flags or internal workflow names.
+
+Good:
+
+- “在 `ks_ghj_3` 服务器上做一个 Si 的 `k444` GW 计算，目录用 `~/gw/Si/AI/`。”
+- “继续盯，直到成功。”
+- “根据 `GW_band_spin_*` 画一个论文风格的能带图。”
+
+Bad:
+
+- requiring users to manually remember every stage script
+- requiring users to pre-assemble internal helper commands
+
+### 2. Ask only the missing questions
+
+For periodic GW, the agent should normally clarify only the pieces that are still missing, for example:
+
+- remote server / VPN status
+- fresh run directory policy
+- `KPT` mesh
+- whether `KPT_nscf` already exists
+- executable paths / environment profile if not already known
+
+### 3. Prefer stable defaults, but do not guess hidden infrastructure
+
+Scientific defaults can be opinionated.
+Infrastructure defaults must be verified.
+
+Examples:
+
+- `nfreq = 16` is a good smoke default
+- but `python3` path, MPI launcher, and batch environment **must not** be guessed blindly
+
+### 4. Fresh directory always
+
+Never overwrite an old calculation directory in place.
+Every run, rerun, and repair should happen in a fresh directory.
+
+### 5. Logging is part of the product
+
+Each stage should produce:
+
+- a short user-facing update
+- a durable `run-report.md`
+
+---
+
+## What should improve next
+
+This repository should keep improving in two directions at once:
+
+1. **workflow reliability**
+   - host profiles
+   - batch-node probes
+   - launcher selection
+   - Python environment resolution
+2. **user guidance quality**
+   - clearer chat examples
+   - better README onboarding
+   - first-class plotting/postprocessing guidance
+
+The Si `k=4x4x4` GW case in `examples/si-k444-gw/README.md` is the current best reference for both.
+
+---
+
+## Recommended reading order
+
+For a new human user:
+
+1. `docs/guide/installation.md`
+2. `docs/guide/chat-guidance.md`
+3. `examples/si-k444-gw/README.md`
+
+For an agent / developer improving the workflow:
+
+1. `references/playbook.md`
+2. `rules/cards/*.yml`
+3. `docs/run-logging.md`
+4. `examples/si-k444-gw/README.md`
+
+---
+
+## One-line summary
+
+**oh-my-LibRPA is not just a template pack. It should feel like a chat-native operator for ABACUS + LibRPA workflows.**

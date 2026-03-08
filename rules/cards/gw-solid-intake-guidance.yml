@@ -1,0 +1,20 @@
+- id: gw-solid-intake-guidance-303
+  scene: User asks for a solid-state GW task in natural language
+  symptom: The request is useful but still missing a few execution-critical details
+  root_cause: Periodic GW tasks usually need only a small number of clarifications, but agents often either ask too much or guess hidden infrastructure incorrectly
+  fix:
+    - Confirm the remote target or compute location
+    - Confirm whether VPN / remote connectivity is already ready when relevant
+    - Require a fresh run directory and avoid overwriting an old calculation tree
+    - Ask whether `KPT_nscf` is already prepared by the user
+    - Ask for the SCF `KPT` mesh if it was not explicitly given
+    - Confirm whether basis / ABFS / pseudopotential assets are already in the target directory
+    - If executable paths or runtime environment are not already known from a host profile, ask before submission instead of silently trusting template defaults
+    - Before submission, summarize the resolved run directory, key input files, and main GW parameters back to the user
+  verify:
+    - The user is asked only for missing information, not a full questionnaire
+    - The final pre-submit summary includes server, fresh run directory, `KPT`, `KPT_nscf`, and major assets
+    - No hidden infrastructure assumptions are left implicit at submit time
+  applies_to:
+    mode: gw
+    system_type: solid
