@@ -7,10 +7,12 @@
     - Shift energies to the GW VBM
     - Restrict CBM search to the first few conduction bands near the gap
     - Plot only a compact near-gap manifold for the default paper-style output
+    - Do not hard-code the y-axis by default; choose y-limits automatically from the plotted near-gap bands and keep visible headroom above the CBM
     - Export both PNG and PDF plus a text summary
   verify:
     - Confirm PNG, PDF, and summary files exist
     - Confirm the summary reports the restricted near-gap GW gap
+    - Confirm the figure top is not clipping the near-gap conduction bands and that the summary records the final y-limits used
   applies_to:
     mode: gw
     system_type: solid

@@ -105,6 +105,8 @@ Make it look like a paper figure.
 
 That should be enough for the agent to continue.
 
+The default paper-style plotting behavior should also choose the y-axis automatically from the near-gap manifold, instead of using a fixed upper bound that can clip the CBM region.
+
 ---
 
 ## 6. Example final result

@@ -146,6 +146,7 @@ A good agent should automatically find the needed files and produce:
 - a clean PNG
 - a clean PDF
 - a reusable plotting script
+- a y-axis range chosen automatically from the near-gap bands, with enough headroom above the CBM instead of a hard-coded top limit
 
 ---
 

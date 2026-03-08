@@ -42,8 +42,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--valence-bands', type=int, default=4, help='How many valence bands to plot.')
     parser.add_argument('--conduction-bands', type=int, default=4, help='How many conduction bands to plot.')
     parser.add_argument('--cbm-search-window', type=int, default=6, help='How many low-lying conduction bands to search for the CBM.')
-    parser.add_argument('--ymin', type=float, default=-6.2, help='Lower y limit in eV after shifting to VBM.')
-    parser.add_argument('--ymax', type=float, default=4.2, help='Upper y limit in eV after shifting to VBM.')
+    parser.add_argument('--ymin', type=float, default=None, help='Optional manual lower y limit in eV after shifting to VBM. Default: auto.')
+    parser.add_argument('--ymax', type=float, default=None, help='Optional manual upper y limit in eV after shifting to VBM. Default: auto.')
+    parser.add_argument('--y-padding-lower', type=float, default=0.45, help='Auto y-limit padding below the plotted near-gap manifold.')
+    parser.add_argument('--y-padding-upper', type=float, default=0.65, help='Auto y-limit padding above the plotted near-gap manifold / CBM.')
     return parser.parse_args()
 
 
@@ -108,6 +110,37 @@ def require_file(path: Path) -> None:
         raise FileNotFoundError(f'Missing required file: {path}')
 
 
+def choose_ylim(
+    shifted: np.ndarray,
+    plot_bands: list[int],
+    cbm_shifted: float,
+    user_ymin: float | None,
+    user_ymax: float | None,
+    pad_lower: float,
+    pad_upper: float,
+) -> tuple[float, float]:
+    window = shifted[:, plot_bands]
+    finite_vals = window[np.isfinite(window)]
+    if finite_vals.size == 0:
+        raise ValueError('Failed to determine finite values for y-axis auto scaling.')
+
+    y_lower = float(np.min(finite_vals) - max(0.0, pad_lower))
+    y_upper = float(np.max(finite_vals) + max(0.0, pad_upper))
+
+    if np.isfinite(cbm_shifted):
+        y_upper = max(y_upper, float(cbm_shifted + max(pad_upper, 0.35)))
+
+    if user_ymin is not None:
+        y_lower = float(user_ymin)
+    if user_ymax is not None:
+        y_upper = float(user_ymax)
+
+    if y_upper <= y_lower:
+        raise ValueError(f'Invalid y limits after auto/manual selection: ymin={y_lower}, ymax={y_upper}')
+
+    return y_lower, y_upper
+
+
 def main() -> None:
     args = parse_args()
     run = Path(args.run_dir).expanduser().resolve()
@@ -163,6 +196,15 @@ def main() -> None:
     plot_bands = list(range(b0, b1))
     shifted = ene_gw - vbm
     gap = cbm - vbm
+    y_lower, y_upper = choose_ylim(
+        shifted,
+        plot_bands,
+        gap,
+        args.ymin,
+        args.ymax,
+        args.y_padding_lower,
+        args.y_padding_upper,
+    )
 
     fig, ax = plt.subplots(figsize=(7.0, 5.0))
     for sx in special_x:
@@ -195,7 +237,7 @@ def main() -> None:
         )
 
     ax.set_xlim(x[0], x[-1])
-    ax.set_ylim(args.ymin, args.ymax)
+    ax.set_ylim(y_lower, y_upper)
     ax.set_ylabel(r'$E - E_{\mathrm{VBM}}$ (eV)', fontsize=15)
     ax.set_xticks(special_x)
     ax.set_xticklabels(labels, fontsize=13)
@@ -222,6 +264,7 @@ def main() -> None:
             f'GW gap (restricted near-gap search): {gap:.6f} eV',
             f'CBM candidate: k={cbm_k + 1}, band={cbm_b + 1}, kfrac={kpts_gw[cbm_k].tolist()}',
             f'Plotted bands: {[b + 1 for b in plot_bands]}',
+            f'Y limits used: ymin={y_lower:.6f} eV, ymax={y_upper:.6f} eV',
             f'PNG: {png}',
             f'PDF: {pdf}',
         ]) + '\n'
