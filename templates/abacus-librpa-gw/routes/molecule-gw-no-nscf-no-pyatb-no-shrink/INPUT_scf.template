@@ -4,6 +4,7 @@
 
 calculation scf
 nbands <FILL_ME>
+latname user_defined_lattice
 
 # Route-aware note:
 # - `gamma_only 1` may be beneficial for some molecular cases,
@@ -13,7 +14,7 @@ nbands <FILL_ME>
 out_mat_xc 1
 rpa 1
 exx_pca_threshold 1e-6
-exx_use_ewald 1
+exx_singularity_correction massidda
 rpa_ccp_rmesh_times 6
 exx_ccp_rmesh_times 3
 cs_inv_thr 1e-5

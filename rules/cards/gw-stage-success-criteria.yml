@@ -4,7 +4,7 @@
   root_cause: SCF completion should be judged from both log termination and durable output artifacts
   fix:
     - Check that `OUT.ABACUS/running_scf.log` exists
-    - Check that `running_scf.log` contains both `Finish Time` and `Total Time`
+    - Check that `running_scf.log` contains both `Finish Time` and `Total Time` (allow variable spacing between words)
     - Check that `OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart` exists
   verify:
     - Confirm the SCF log ends normally rather than with an error backtrace
@@ -34,7 +34,7 @@
   root_cause: NSCF completion should be judged from both log termination and band-oriented output artifacts
   fix:
     - Check that `OUT.ABACUS/running_nscf.log` exists
-    - Check that `running_nscf.log` contains both `Finish Time` and `Total Time`
+    - Check that `running_nscf.log` contains both `Finish Time` and `Total Time` (allow variable spacing between words)
     - Check that `OUT.ABACUS/eig.txt` exists
   verify:
     - Confirm the NSCF log ends normally rather than with an error backtrace

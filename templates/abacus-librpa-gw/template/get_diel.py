@@ -48,19 +48,35 @@ def get_param(work_dir : str = './'):
             vector = list(map(float, lines[i].split()))
             lattice_vector.append(vector)
 
-    found = False
+    fermi_energy = None
     with open(f_running, 'r') as file:
         for line in file:
-            if 'EFERMI =' in line:
-                # 提取 "EFERMI =" 后面的数字部分
-                parts = line.split()
+            parts = line.split()
+            if not parts:
+                continue
+
+            if parts[0].upper() == 'E_FERMI':
+                numeric_values = []
+                for part in parts[1:]:
+                    try:
+                        numeric_values.append(float(part))
+                    except ValueError:
+                        continue
+                if numeric_values:
+                    fermi_energy = numeric_values[-1]
+                continue
+
+            if 'EFERMI' in parts:
                 for i, part in enumerate(parts):
-                    if part == 'EFERMI':
-                        fermi_energy = float(parts[i + 2])  # 假设数字在 "EFERMI" 和  "eV" 之间
-                        found = True
+                    if part == 'EFERMI' and i + 2 < len(parts):
+                        try:
+                            fermi_energy = float(parts[i + 2])
+                        except ValueError:
+                            pass
                         break
-            if found:
-                break
+
+    if fermi_energy is None:
+        raise ValueError(f"Failed to find Fermi energy in {f_running}")
 
     occ_band = 0
     with open(f_band, 'r') as file:
@@ -136,4 +152,3 @@ if __name__ == '__main__':
     import output_librpa
     lattice_vector, fermi_energy, occ_band = get_param(abacus_dir)
     output_librpa.output_librpa(lattice_vector, fermi_energy, occ_band, nkx=nkx, nky=nky, nkz=nkz, nspin=nspin, use_soc=use_soc)
-

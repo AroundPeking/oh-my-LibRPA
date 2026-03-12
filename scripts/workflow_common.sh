@@ -67,9 +67,9 @@ verify_scf_stage() {
   local ssh_target="$2"
   local run_dir="$3"
 
-  local body='[[ -f OUT.ABACUS/running_scf.log && -f OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart ]] && grep -q "Finish Time" OUT.ABACUS/running_scf.log && grep -q "Total  Time" OUT.ABACUS/running_scf.log'
+  local body='[[ -s OUT.ABACUS/running_scf.log && -s OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart ]] && grep -Eq "Finish[[:space:]]+Time" OUT.ABACUS/running_scf.log && grep -Eq "Total[[:space:]]+Time" OUT.ABACUS/running_scf.log'
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
-    VERIFY_MESSAGE='`running_scf.log` contains `Finish Time` and `Total Time`, and `ABACUS-CHARGE-DENSITY.restart` exists.'
+    VERIFY_MESSAGE='`running_scf.log` contains `Finish Time` and `Total Time` (allowing merged-branch spacing changes), and `ABACUS-CHARGE-DENSITY.restart` exists.'
     return 0
   fi
 
@@ -97,9 +97,9 @@ verify_nscf_stage() {
   local ssh_target="$2"
   local run_dir="$3"
 
-  local body='[[ -f OUT.ABACUS/running_nscf.log && -f OUT.ABACUS/eig.txt ]] && grep -q "Finish Time" OUT.ABACUS/running_nscf.log && grep -q "Total  Time" OUT.ABACUS/running_nscf.log'
+  local body='[[ -s OUT.ABACUS/running_nscf.log && -s OUT.ABACUS/eig.txt ]] && grep -Eq "Finish[[:space:]]+Time" OUT.ABACUS/running_nscf.log && grep -Eq "Total[[:space:]]+Time" OUT.ABACUS/running_nscf.log'
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
-    VERIFY_MESSAGE='`running_nscf.log` contains `Finish Time` and `Total Time`, and `eig.txt` exists.'
+    VERIFY_MESSAGE='`running_nscf.log` contains `Finish Time` and `Total Time` (allowing merged-branch spacing changes), and `eig.txt` exists.'
     return 0
   fi
 
@@ -112,7 +112,7 @@ verify_preprocess_stage() {
   local ssh_target="$2"
   local run_dir="$3"
 
-  local body='[[ -f band_kpath_info ]] && compgen -G "band_KS_*" >/dev/null && compgen -G "band_vxc*" >/dev/null'
+  local body='[[ -s band_kpath_info ]] && compgen -G "band_KS_*" >/dev/null && compgen -G "band_vxc*" >/dev/null'
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
     VERIFY_MESSAGE='`band_kpath_info`, `band_KS_*`, and `band_vxc*` were generated.'
     return 0
@@ -141,7 +141,7 @@ verify_molecular_gw_prereqs_stage() {
   local ssh_target="$2"
   local run_dir="$3"
 
-  local body='[[ -f vxc_out ]] && compgen -G "coulomb_mat_*.txt" >/dev/null'
+  local body='[[ -s vxc_out ]] && compgen -G "coulomb_mat_*.txt" >/dev/null'
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
     VERIFY_MESSAGE='`vxc_out` exists and at least one `coulomb_mat_*.txt` file is present for the molecular GW LibRPA step.'
     return 0

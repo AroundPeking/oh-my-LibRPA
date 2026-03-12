@@ -23,7 +23,8 @@ Do these steps in order:
    - `references/gw-route.md`
    - `references/rpa-route.md`
    - `references/debug-route.md`
-8. If server execution is chosen, also read `references/server-profiles.md` before submission.
+8. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
+9. If server execution is chosen, also read `references/server-profiles.md` before submission.
 
 If the route is still ambiguous, ask the smallest possible clarification set.
 

@@ -8,15 +8,23 @@ Caveats:
 import pathlib
 import os
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-
-import numpy as np
+from array import array
 
 HA2EV = 27.211386245988
 
 
 def get_kpoints(kpoint_file):
-    kpoints = np.loadtxt(kpoint_file, skiprows=3, usecols=[1, 2, 3])
-    assert (len(kpoints.shape) == 2 and kpoints.shape[1] == 3)
+    kpoints = []
+    with open(kpoint_file, "r") as h:
+        for line in h:
+            parts = line.split()
+            if len(parts) < 5:
+                continue
+            try:
+                kpoints.append((float(parts[1]), float(parts[2]), float(parts[3])))
+            except ValueError:
+                continue
+    assert kpoints
     return kpoints
 
 
@@ -45,17 +53,51 @@ def process_vxc(outdir, nkpts):
         lines_k = lines_all[nspins * nbands * ik:nspins * nbands * (ik + 1)]
         vxc = []
         for l in lines_k:
-            x = l.split()[0].split()
-            vxc.append(float(x[0]))
-
-        vxc = np.array(vxc).reshape(nspins, nbands)
+            vxc.append(float(l.split()[0]))
 
         with open("band_vxc_k_{:05d}.txt".format(ik + 1), 'w') as h:
             for ispin in range(nspins):
                 for ib in range(nbands):
                     print("{:8d} {:7d} {:27.16E}"
-                          .format(ispin + 1, ib + 1, vxc[ispin, ib]), file=h)
+                          .format(ispin + 1, ib + 1, vxc[ispin * nbands + ib]), file=h)
     return nspins
+
+
+def resolve_wfc_file(outdir, ik, isp, nspin, use_soc):
+    if use_soc:
+        candidates = [
+            outdir / "wfs12k{:d}_nao.txt".format(ik + 1),
+            outdir / "wfk{:d}s4_nao.txt".format(ik + 1),
+        ]
+    else:
+        candidates = []
+        if nspin == 1:
+            candidates.extend([
+                outdir / "wfs1k{:d}_nao.txt".format(ik + 1),
+                outdir / "wfs1_nao.txt",
+                outdir / "wfk{:d}_nao.txt".format(ik + 1),
+            ])
+        elif nspin == 2:
+            candidates.extend([
+                outdir / "wfs{:d}k{:d}_nao.txt".format(isp + 1, ik + 1),
+                outdir / "wfs{:d}_nao.txt".format(isp + 1),
+                outdir / "wfk{:d}s{:d}_nao.txt".format(ik + 1, isp + 1),
+            ])
+        else:
+            candidates.extend([
+                outdir / "wfs{:d}k{:d}_nao.txt".format(isp + 1, ik + 1),
+                outdir / "wfk{:d}s{:d}_nao.txt".format(ik + 1, isp + 1),
+            ])
+
+    seen = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError("Cannot find wavefunction file for k-point {} in {}".format(ik + 1, outdir))
 
 
 def process_wfc(outdir, nkpts, nspin, use_soc = False):
@@ -64,10 +106,7 @@ def process_wfc(outdir, nkpts, nspin, use_soc = False):
     for isp in range(nspin):
         for ik in range(nkpts):
             #isk = isp * nkpts + ik
-            if use_soc:
-                fn = outdir / "wfs12k{:d}_nao.txt".format(ik + 1)
-            else:
-                fn = outdir / "wfs{:d}k{:d}_nao.txt".format(isp + 1, ik + 1)
+            fn = resolve_wfc_file(outdir, ik, isp, nspin, use_soc)
             with open(fn, 'r') as h:
                 lines = h.readlines()
             if nbands is None:
@@ -92,9 +131,7 @@ def process_wfc(outdir, nkpts, nspin, use_soc = False):
                 vecs.extend(map(float, " ".join(lines_band[3:]).replace("\n", " ").split()))
 
             # convert to numpy array
-            eigs = np.array(eigs) * 0.5
-            occs = np.array(occs)
-            vecs = np.array(vecs)
+            eigs = [eig * 0.5 for eig in eigs]
             assert (len(eigs) == nbands)
             assert (len(occs) == nbands)
             assert (len(vecs) == nbands * nbasis * 2)
@@ -109,7 +146,7 @@ def process_wfc(outdir, nkpts, nspin, use_soc = False):
                           .format(isp + 1, ib + 1, occs[ib], eigs[ib], eigs[ib] * HA2EV), file=h)
 
             with open("band_KS_eigenvector_k_{:05d}.txt".format(ik + 1), mode + 'b') as h:
-                vecs.tofile(h, sep='')
+                array('d', vecs).tofile(h)
 
     return nbasis, nbands
 

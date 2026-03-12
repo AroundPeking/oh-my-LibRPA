@@ -18,6 +18,7 @@ ecutwfc			130
 smearing_method 	gaussian
 smearing_sigma		1e-4
 basis_type		lcao
+latname                 user_defined_lattice
 ks_solver  genelpa
 dft_functional			pbe
 rpa				1
@@ -31,7 +32,7 @@ exx_pca_threshold		10
 #exx_schwarz_threshold	0	
 #exx_cauchy_threshold	1E-7
 
-exx_use_ewald           1
+exx_singularity_correction     massidda
 exx_ccp_rmesh_times	    3
 rpa_ccp_rmesh_times     6
 exx_real_number         1

@@ -10,6 +10,8 @@ Execution order depends on system type:
 - `molecule`: default to the short route `SCF -> LibRPA` unless the user explicitly needs extra band preparation; skip `pyatb`
 - `solid`: `SCF -> DF (pyatb_librpa_df) -> NSCF -> preprocess_abacus_for_librpa_band.py -> LibRPA`
 
+If the case uses the user's merged ABACUS checkout (`/Users/ghj/code/merge/abacus-develop`) or helper scripts copied from `/Users/ghj/Downloads`, also apply `references/abacus-merge-compat.md`.
+
 ## Required Checks
 
 - Verify `nbands` in both `INPUT_scf` and `INPUT_nscf` is equal to the basis-function count.
@@ -19,8 +21,10 @@ Execution order depends on system type:
 - Verify spin/SOC settings are aligned across files:
   - collinear spin without SOC -> `nspin = 2`, `lspinorb = 0`
   - noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
-- Verify `get_diel.py` uses matching `nspin` and `use_soc`.
-- Verify `preprocess_abacus_for_librpa_band.py` uses matching `use_soc`.
+- Verify template-generated inputs using explicit lattice vectors set `latname = user_defined_lattice`.
+- Verify old `exx_use_ewald` has been replaced by `exx_singularity_correction = massidda`.
+- Verify `get_diel.py` uses matching `nspin` and the updated Fermi-energy parser.
+- Verify `preprocess_abacus_for_librpa_band.py` matches the current wavefunction filename conventions and uses matching `use_soc` when applicable.
 - Verify `librpa.in` uses matching `use_soc = 0/1`.
 - Verify `librpa.in` is generated from the same ABACUS workflow chain.
 - Verify the run is in a fresh directory to avoid stale-output contamination.
@@ -104,7 +108,7 @@ Use the following alignment for spin-sensitive GW workflows:
 - Do not run `pyatb`
 - Set `replace_w_head = f`
 - For the tested smoke path `molecule + GW + no NSCF + no pyatb + no shrink`, materialize the dedicated route with `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
-- Keep `out_mat_xc 1`, `exx_use_ewald 1`, `exx_pca_threshold 1e-6`, `rpa_ccp_rmesh_times 6`, `exx_ccp_rmesh_times 3`, and `cs_inv_thr 1e-5`
+- Keep `out_mat_xc 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, `rpa_ccp_rmesh_times 6`, `exx_ccp_rmesh_times 3`, and `cs_inv_thr 1e-5`
 - Do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` for that short route
 - Copy `OUT.ABACUS/vxc_out.dat` into the working directory as `vxc_out` before LibRPA
 - Stop before LibRPA unless at least one `coulomb_mat_*.txt` file exists
@@ -115,6 +119,7 @@ Use the following alignment for spin-sensitive GW workflows:
 - `KPT_nscf` must be provided by the user
 - Materialize `env.sh` from a host profile before batch submission so `python3_exec`, `abacus_work`, `librpa_work`, and the MPI launcher are explicit
 - If launcher or python behavior is uncertain on compute nodes, materialize and run a batch-node probe before the real job
+- Prefer the updated `get_diel.py` and `preprocess_abacus_for_librpa_band.py` copies that match the merged ABACUS branch; do not fall back to stale helpers that assume only legacy `EFERMI` parsing or one fixed wavefunction filename pattern
 - After SCF, run `pyatb` to generate the `pyatb_librpa_df` directory
 - Then run NSCF
 - Then run `preprocess_abacus_for_librpa_band.py`

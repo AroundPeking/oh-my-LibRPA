@@ -8,7 +8,7 @@
     - Keep `out_mat_xc 1`
     - Do not enable `out_chg` when no NSCF stage is planned
     - Do not enable `out_mat_r` or `out_mat_hs2` when `pyatb` is not part of the route
-    - Set `exx_use_ewald = 1`
+    - Set `exx_singularity_correction = massidda`
     - Set `exx_pca_threshold = 1e-6`
     - Set `rpa_ccp_rmesh_times = 6`
     - Set `exx_ccp_rmesh_times = 3`

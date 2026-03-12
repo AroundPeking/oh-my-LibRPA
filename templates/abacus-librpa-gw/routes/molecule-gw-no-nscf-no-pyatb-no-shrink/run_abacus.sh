@@ -20,7 +20,7 @@ fi
 cp -a OUT.ABACUS/vxc_out.dat ./vxc_out
 
 if ! ls coulomb_mat_*.txt >/dev/null 2>&1; then
-  echo 'Missing coulomb_mat_*.txt after SCF; check exx_use_ewald = 1 and stop before LibRPA.' >&2
+  echo 'Missing coulomb_mat_*.txt after SCF; check exx_singularity_correction = massidda and stop before LibRPA.' >&2
   exit 1
 fi
 

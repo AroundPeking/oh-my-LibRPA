@@ -12,6 +12,8 @@ Choose the workflow by system type:
 
 If the case is missing PP/NAO/ABFS files, pull them from the bundled asset library via `references/pp-nao-abfs-library.md` before generating new inputs.
 
+If the case uses the user's merged ABACUS checkout (`/Users/ghj/code/merge/abacus-develop`) or helper scripts copied from `/Users/ghj/Downloads`, also apply `references/abacus-merge-compat.md`.
+
 ## Task defaults
 
 Set or verify these `librpa.in` defaults unless a stronger empirical rule overrides them:
@@ -36,6 +38,8 @@ Set or verify these `librpa.in` defaults unless a stronger empirical rule overri
 - `libri_g0w0_threshold_C = 1e-5`
 - `libri_g0w0_threshold_G = 1e-5`
 - `libri_g0w0_threshold_Wc = 1e-6`
+
+- for template-generated inputs that use explicit lattice vectors, set `latname = user_defined_lattice`
 
 Before selecting PP / NAO / ABFS assets for a GW case, enforce the matching rule from `references/pp-nao-abfs-library.md`: pseudopotential, atomic basis, and auxiliary basis must correspond to the same intended setup and must not be mixed casually across unrelated PP families.
 
@@ -90,7 +94,7 @@ Required settings and checks:
 - set `replace_w_head = f`
 - for the tested short smoke path, materialize the route with:
   - `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
-- keep `out_mat_xc 1`, `exx_use_ewald 1`, `exx_pca_threshold 1e-6`, `rpa_ccp_rmesh_times 6`, `exx_ccp_rmesh_times 3`, `cs_inv_thr 1e-5`
+- keep `out_mat_xc 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, `rpa_ccp_rmesh_times 6`, `exx_ccp_rmesh_times 3`, `cs_inv_thr 1e-5`
 - do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` on that short route
 - copy `OUT.ABACUS/vxc_out.dat` to `./vxc_out` after SCF
 - stop before LibRPA unless at least one `coulomb_mat_*.txt` file exists
@@ -103,6 +107,7 @@ Required checks and stages:
 
 - ask how many k-points to use in `KPT`; default to `8 8 8`
 - require explicit `KPT_nscf`
+- prefer the updated `get_diel.py` and `preprocess_abacus_for_librpa_band.py` copies that match the merged ABACUS branch; do not fall back to stale helpers that assume only legacy `EFERMI` parsing or one fixed wavefunction filename pattern
 - after SCF, run `pyatb` to generate `pyatb_librpa_df`
 - then run NSCF
 - then run `preprocess_abacus_for_librpa_band.py`

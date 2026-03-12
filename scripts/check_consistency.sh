@@ -152,6 +152,46 @@ fi
 
 echo "INFO: mode=$resolved_mode system_type=$resolved_system_type"
 
+if [[ "$resolved_mode" == "gw" ]]; then
+  for input_file in "$scf" "$nscf"; do
+    [[ -f "$input_file" ]] || continue
+
+    if has_key_value "$input_file" "latname" "user_defined_lattice"; then
+      note_pass "$(basename "$input_file") keeps latname = user_defined_lattice"
+    else
+      note_fail "$(basename "$input_file") requires 'latname user_defined_lattice' for the merged ABACUS branch"
+    fi
+
+    if has_key_value "$input_file" "exx_singularity_correction" "massidda"; then
+      note_pass "$(basename "$input_file") keeps exx_singularity_correction = massidda"
+    else
+      note_fail "$(basename "$input_file") requires 'exx_singularity_correction massidda' for the merged ABACUS branch"
+    fi
+
+    if grep -qiE '^[[:space:]]*exx_use_ewald([[:space:]]|$)' "$input_file"; then
+      note_fail "$(basename "$input_file") still contains deprecated key exx_use_ewald"
+    fi
+  done
+
+  helper_get_diel="$case_dir/get_diel.py"
+  if [[ -f "$helper_get_diel" ]]; then
+    if grep -q "E_FERMI" "$helper_get_diel" && grep -q "EFERMI" "$helper_get_diel"; then
+      note_pass "get_diel.py accepts both E_FERMI and legacy EFERMI"
+    else
+      note_fail "get_diel.py should accept both E_FERMI and legacy EFERMI for the merged ABACUS branch"
+    fi
+  fi
+
+  helper_preprocess="$case_dir/preprocess_abacus_for_librpa_band.py"
+  if [[ -f "$helper_preprocess" ]]; then
+    if grep -q "resolve_wfc_file" "$helper_preprocess" && grep -q "KPT.info" "$helper_preprocess" && grep -q "wfk" "$helper_preprocess"; then
+      note_pass "preprocess_abacus_for_librpa_band.py matches the merged-branch wavefunction output conventions"
+    else
+      note_fail "preprocess_abacus_for_librpa_band.py should resolve the merged-branch wavefunction filename variants"
+    fi
+  fi
+fi
+
 case "$resolved_mode" in
   gw)
     [[ "$task_value" == "g0w0_band" ]] || note_fail "GW route expects 'task = g0w0_band' in librpa.in"
@@ -245,10 +285,10 @@ if [[ "$resolved_mode" == "gw" && "$resolved_system_type" == "molecule" ]]; then
     note_fail "molecular GW route requires 'out_mat_xc 1' in INPUT_scf"
   fi
 
-  if has_key_value "$scf" "exx_use_ewald" "1"; then
-    note_pass "molecular GW route keeps exx_use_ewald = 1"
+  if has_key_value "$scf" "exx_singularity_correction" "massidda"; then
+    note_pass "molecular GW route keeps exx_singularity_correction = massidda"
   else
-    note_fail "molecular GW route requires 'exx_use_ewald 1' in INPUT_scf so Coulomb files are generated"
+    note_fail "molecular GW route requires 'exx_singularity_correction massidda' in INPUT_scf so Coulomb files are generated"
   fi
 
   if grep -qiE '^[[:space:]]*gamma_only[[:space:]]+1([[:space:]]|$)' "$scf"; then
