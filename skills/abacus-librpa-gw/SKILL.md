@@ -10,7 +10,7 @@ Execution order depends on system type:
 - `molecule`: default to the short route `SCF -> LibRPA` unless the user explicitly needs extra band preparation; skip `pyatb`
 - `solid`: `SCF -> DF (pyatb_librpa_df) -> NSCF -> preprocess_abacus_for_librpa_band.py -> LibRPA`
 
-If the case uses the user's merged ABACUS checkout (`/Users/ghj/code/merge/abacus-develop`) or helper scripts copied from `/Users/ghj/Downloads`, also apply `references/abacus-merge-compat.md`.
+If the case uses a locally merged ABACUS checkout or locally patched helper scripts, also apply `references/abacus-merge-compat.md`.
 
 ## Required Checks
 

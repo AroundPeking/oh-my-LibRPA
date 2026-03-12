@@ -32,10 +32,16 @@ Prefer explicit values for:
 - `.bashrc` / conda activation steps when the host depends on them
 - scheduler directives that affect node shape or environment loading
 
-For fisherd, the current house rule is:
+If a site depends on shell init or conda activation, keep the tracked profile generic and prefer one of these patterns:
 
-- source `~/.bashrc`
-- use Python from the `ghj_main` environment
+- use placeholders inside `registry/host-profiles/*.env`
+- or keep the real host profile outside the repository and pass it via `--profile /absolute/path/to/private.env`
+
+A common pattern is:
+
+- source `$HOME/.bashrc`
+- activate the required conda environment
+- point `OH_MY_LIBRPA_PYTHON3_EXEC` at that environment's Python explicitly
 
 ## Submission discipline
 

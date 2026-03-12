@@ -1,11 +1,11 @@
 # ABACUS Merge Compatibility (2026-03-12)
 
-Use this reference when the workflow is based on the user's merged ABACUS checkout:
+Use this reference when the workflow is based on a locally merged ABACUS checkout or locally patched helper scripts:
 
-- ABACUS source tree: `/Users/ghj/code/merge/abacus-develop`
+- merged ABACUS source tree: `<merged-abacus-root>`
 - current local helper-script source of truth:
-  - `/Users/ghj/Downloads/get_diel.py`
-  - `/Users/ghj/Downloads/preprocess_abacus_for_librpa_band.py`
+  - `<path-to-get_diel.py>`
+  - `<path-to-preprocess_abacus_for_librpa_band.py>`
 - repository template copies updated to match that baseline:
   - `templates/abacus-librpa-gw/template/get_diel.py`
   - `templates/abacus-librpa-gw/template/preprocess_abacus_for_librpa_band.py`

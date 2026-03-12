@@ -1,7 +1,5 @@
 # ABACUS GW PP / NAO / ABFS Library
 
-Author: Huanjing Gong
-
 A curated library of tested pseudopotentials (`.upf`), numerical atomic orbitals (`.orb`), and auxiliary basis files (`.abfs`) for **ABACUS + LibRPA GW workflows**.
 
 This library is meant to be used as a **practical workflow reference** rather than a generic file dump. Its value is not only that the files are collected here, but that many of them have already been used in tested GW-oriented combinations.
