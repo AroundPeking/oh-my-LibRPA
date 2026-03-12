@@ -13,7 +13,7 @@ Behavior:
   - Resolves a host profile from `registry/host-profiles/*.env` or an explicit path
   - Writes `env.sh` into the case directory
   - Writes `.oh-my-librpa-host-profile.env` metadata into the case directory
-  - Materializes explicit runtime settings for batch jobs so they do not depend on interactive `~/.bashrc`
+  - Materializes explicit runtime settings for batch jobs, including explicit `.bashrc` sourcing / conda activation when the host profile requires them
 EOF
 }
 
@@ -66,6 +66,9 @@ env_sources_raw="${OH_MY_LIBRPA_ENV_SOURCES:-}"
 module_loads_raw="${OH_MY_LIBRPA_MODULE_LOADS:-}"
 path_prepend="${OH_MY_LIBRPA_PATH_PREPEND:-}"
 ld_library_path_prepend="${OH_MY_LIBRPA_LD_LIBRARY_PATH_PREPEND:-}"
+bashrc_source="${OH_MY_LIBRPA_BASHRC_SOURCE:-}"
+conda_init_source="${OH_MY_LIBRPA_CONDA_INIT_SOURCE:-}"
+conda_env="${OH_MY_LIBRPA_CONDA_ENV:-}"
 default_mpi_ranks="${OH_MY_LIBRPA_DEFAULT_MPI_RANKS:-4}"
 default_pyatb_mpi_ranks="${OH_MY_LIBRPA_DEFAULT_PYATB_MPI_RANKS:-1}"
 default_omp_threads="${OH_MY_LIBRPA_DEFAULT_OMP_THREADS:-1}"
@@ -83,6 +86,8 @@ if [[ "$force" -ne 1 ]]; then
   [[ ! -e "$metadata" ]] || fail ".oh-my-librpa-host-profile.env already exists; rerun with --force to overwrite"
 fi
 
+declare -a env_sources=()
+declare -a module_loads=()
 IFS=';' read -r -a env_sources <<< "$env_sources_raw"
 IFS=';' read -r -a module_loads <<< "$module_loads_raw"
 
@@ -90,12 +95,23 @@ IFS=';' read -r -a module_loads <<< "$module_loads_raw"
   printf '%s\n' '#!/usr/bin/env bash'
   printf '%s\n' 'set -eo pipefail'
   printf '%s\n' 'set +u'
-  for cmd in "${env_sources[@]}"; do
+  if [[ -n "$bashrc_source" ]]; then
+    printf 'source %s >/dev/null 2>&1 || true\n' "$bashrc_source"
+  fi
+  for cmd in "${env_sources[@]-}"; do
     [[ -n "$cmd" ]] || continue
     printf 'source %s >/dev/null 2>&1 || true\n' "$cmd"
   done
+  if [[ -n "$conda_init_source" ]]; then
+    printf 'source %s >/dev/null 2>&1 || true\n' "$conda_init_source"
+  fi
+  if [[ -n "$conda_env" ]]; then
+    printf '%s\n' 'if command -v conda >/dev/null 2>&1; then'
+    printf '  conda activate %q >/dev/null 2>&1 || true\n' "$conda_env"
+    printf '%s\n' 'fi'
+  fi
   printf '%s\n' 'if command -v module >/dev/null 2>&1; then'
-  for mod in "${module_loads[@]}"; do
+  for mod in "${module_loads[@]-}"; do
     [[ -n "$mod" ]] || continue
     printf '  module load %q >/dev/null 2>&1 || true\n' "$mod"
   done
@@ -122,6 +138,9 @@ chmod +x "$env_sh"
 {
   printf 'OH_MY_LIBRPA_SERVER_NAME=%q\n' "$server_name"
   printf 'OH_MY_LIBRPA_PROFILE_SOURCE=%q\n' "$profile_path"
+  printf 'OH_MY_LIBRPA_BASHRC_SOURCE=%q\n' "$bashrc_source"
+  printf 'OH_MY_LIBRPA_CONDA_INIT_SOURCE=%q\n' "$conda_init_source"
+  printf 'OH_MY_LIBRPA_CONDA_ENV=%q\n' "$conda_env"
   printf 'OH_MY_LIBRPA_PYTHON3_EXEC=%q\n' "$python3_exec"
   printf 'OH_MY_LIBRPA_ABACUS_EXEC=%q\n' "$abacus_exec"
   printf 'OH_MY_LIBRPA_LIBRPA_EXEC=%q\n' "$librpa_exec"
@@ -142,4 +161,7 @@ ABACUS_EXEC=$abacus_exec
 LIBRPA_EXEC=$librpa_exec
 MPI_LAUNCHER=$mpi_launcher
 MPI_LAUNCHER_CMD=$mpi_launcher_cmd
+BASHRC_SOURCE=$bashrc_source
+CONDA_INIT_SOURCE=$conda_init_source
+CONDA_ENV=$conda_env
 EOF

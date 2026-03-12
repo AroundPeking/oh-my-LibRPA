@@ -11,7 +11,7 @@ set -eo pipefail
 
 # Baseline template: periodic GW + shrink lane.
 # Prefer sourcing a materialized `env.sh` generated from a host profile.
-# This keeps batch jobs independent from interactive ~/.bashrc behavior.
+# If the host depends on ~/.bashrc or conda activation, make those steps explicit in env.sh.
 
 if [[ -f ./env.sh ]]; then
   # shellcheck disable=SC1091
@@ -64,6 +64,7 @@ libri_mpi_ranks=$libri_mpi_ranks
 omp_threads=$omp_threads
 PATH=$PATH
 LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
+CONDA_DEFAULT_ENV=${CONDA_DEFAULT_ENV:-}
 EOF
 }
 
@@ -91,6 +92,7 @@ echo "Resolved python3_exec: $python3_exec"
 echo "Resolved abacus_work: $abacus_work"
 echo "Resolved librpa_work: $librpa_work"
 echo "Resolved mpirun_exec: $mpirun_exec"
+echo "Resolved CONDA_DEFAULT_ENV: ${CONDA_DEFAULT_ENV:-}"
 echo "mpi_ranks=$mpi_ranks pyatb_mpi_ranks=$pyatb_mpi_ranks libri_mpi_ranks=$libri_mpi_ranks OMP_NUM_THREADS=$OMP_NUM_THREADS"
 echo "This job runs on the following nodes: ${SLURM_JOB_NODELIST:-local}"
 echo "This job has allocated ${SLURM_JOB_CPUS_PER_NODE:-unknown} cpu cores."

@@ -15,7 +15,8 @@ Before batch submission, confirm:
 
 ## Runtime materialization rule
 
-Do not rely on interactive shell defaults.
+Do not rely on implicit login-shell luck.
+If a host expects `~/.bashrc`, conda activation, or site init scripts, materialize those steps explicitly in `env.sh`.
 
 Materialize explicit runtime configuration before submission:
 
@@ -28,7 +29,13 @@ Prefer explicit values for:
 - `abacus_work`
 - `librpa_work`
 - MPI launcher path and flags
+- `.bashrc` / conda activation steps when the host depends on them
 - scheduler directives that affect node shape or environment loading
+
+For fisherd, the current house rule is:
+
+- source `~/.bashrc`
+- use Python from the `ghj_main` environment
 
 ## Submission discipline
 

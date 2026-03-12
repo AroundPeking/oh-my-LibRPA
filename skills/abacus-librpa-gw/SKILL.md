@@ -36,7 +36,7 @@ If the case uses the user's merged ABACUS checkout (`/Users/ghj/code/merge/abacu
   - `STRU`, `geometry.in`, `librpa.in`
   - `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`
   - `.orb`, `.abfs`, `.upf`
-- For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, and launcher paths rather than relying on interactive `~/.bashrc` behavior.
+- For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, launcher paths, and any required `.bashrc` / conda activation steps instead of relying on implicit login-shell luck.
 
 ## Default `librpa.in` Preset for GW
 
