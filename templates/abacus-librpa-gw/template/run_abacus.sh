@@ -9,7 +9,7 @@
 
 set -eo pipefail
 
-# Baseline template: periodic GW + shrink lane.
+# Baseline template: periodic GW + shrink + symmetry lane.
 # Prefer sourcing a materialized `env.sh` generated from a host profile.
 # If the host depends on ~/.bashrc or conda activation, make those steps explicit in env.sh.
 
@@ -103,6 +103,10 @@ cp INPUT_scf INPUT
 require_file OUT.ABACUS/running_scf.log
 require_file OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart
 require_file OUT.ABACUS/vxc_out.dat
+for symfile in irreducible_sector.txt symrot_R.txt symrot_k.txt symrot_abf_k.txt; do
+  require_file "OUT.ABACUS/$symfile"
+  cp -f "OUT.ABACUS/$symfile" .
+done
 cp -a OUT.ABACUS/vxc_out.dat vxc_out
 
 bash ./perform.sh

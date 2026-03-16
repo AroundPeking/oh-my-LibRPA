@@ -1,5 +1,5 @@
 INPUT_PARAMETERS
-# Baseline template: periodic GW + shrink lane.
+# Baseline template: periodic GW + shrink + symmetry lane.
 # Do not reuse this file for the short molecular GW route; materialize `routes/molecule-gw-no-nscf-no-pyatb-no-shrink/` instead.
 #Parameters	(General)
 pseudo_dir		./
@@ -22,7 +22,8 @@ latname                 user_defined_lattice
 ks_solver  genelpa
 dft_functional			pbe
 rpa				1
-symmetry			-1
+# Symmetry-enabled SCF emits the sidecars consumed by LibRPA.
+symmetry			1
 exx_separate_loop		1
 exx_pca_threshold		10
 

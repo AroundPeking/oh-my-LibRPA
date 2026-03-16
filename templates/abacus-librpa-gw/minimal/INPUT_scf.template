@@ -15,6 +15,7 @@ nbands <FILL_ME>
 # - shrink_lu_inv_thr controls inversion-error handling for output sinvS
 # - exx_pca_threshold = 10 means the large-basis path expects external input
 rpa 1
+symmetry 1
 exx_pca_threshold 10
 shrink_abfs_pca_thr 1e-4
 shrink_lu_inv_thr 1e-3

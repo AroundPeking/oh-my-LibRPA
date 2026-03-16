@@ -1,5 +1,7 @@
 # Minimal NSCF template (placeholder)
 # `nbands` must equal the basis-function count, match `INPUT_scf`, and match ABACUS `NBASE`.
+# Keep the NSCF/band step on the full k-grid even when SCF symmetry is enabled.
 
 calculation nscf
 nbands <FILL_ME>
+symmetry -1

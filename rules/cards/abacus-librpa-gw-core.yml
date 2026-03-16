@@ -49,3 +49,23 @@
     - Only tune one shrink-related threshold at a time
   applies_to:
     mode: gw
+
+- id: periodic-gw-symmetry-004
+  scene: periodic ABACUS + LibRPA GW case with symmetry enabled
+  symptom: LibRPA misses symmetry reduction, reads stale sidecars, or disagrees with the intended symmetry-on/off comparison setup
+  root_cause: symmetry was not enabled consistently across SCF, NSCF, LibRPA, and sidecar staging
+  fix:
+    - Set `INPUT_scf` to `rpa 1` and `symmetry 1`
+    - Keep `INPUT_nscf` and any standalone band `INPUT` on `symmetry -1`
+    - Set `use_abacus_exx_symmetry = t` and `use_abacus_gw_symmetry = t` in `librpa.in`
+    - Require `irreducible_sector.txt`, `symrot_R.txt`, and `symrot_k.txt` from the same SCF
+    - When shrink is enabled, also require `symrot_abf_k.txt`
+    - Copy the sidecars from `OUT.ABACUS/` into the LibRPA working directory before preprocess and LibRPA
+    - Keep all non-symmetry parameters identical when comparing symmetry-on and symmetry-off runs
+  verify:
+    - Confirm the four sidecars exist after SCF in the symmetry lane
+    - Confirm the copied sidecars in the working directory are newer than the latest SCF start time
+    - Confirm `INPUT_nscf` still uses the full-k setup with `symmetry -1`
+    - Confirm `librpa.in` enables both EXX and GW symmetry flags
+  applies_to:
+    mode: gw

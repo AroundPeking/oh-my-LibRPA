@@ -36,6 +36,7 @@ Classify provided files into these groups:
 
 - `structure files`: `STRU`, `cif`, `xyz`, `geometry.in`
 - `input bundle`: `INPUT`, `INPUT_scf`, `INPUT_nscf`, `KPT`, `KPT_scf`, `KPT_nscf`, `librpa.in`
+- `symmetry sidecars`: `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, `symrot_abf_k.txt`
 - `workflow scripts`: `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`, `env.sh`, `probe_batch.sh`
 - `basis/pseudopotential assets`: `.orb`, `.abfs`, `.upf`
 - `logs/results`: output files, error logs, `band_out`, generated band data
@@ -45,6 +46,7 @@ Use these intake rules:
 
 - `structure files` -> generate or complete the workflow
 - `input bundle` -> audit and patch; do not rewrite blindly
+- `symmetry sidecars` -> keep them tied to the exact SCF that produced them; if one exists for periodic GW, verify the full required set before LibRPA
 - `.abfs` files -> treat as authoritative candidates for `ABFS_ORBITAL`
 - `logs/results` -> start in Debug mode first
 - `archives` -> unpack and classify before asking more questions
@@ -94,6 +96,7 @@ Always do all of the following:
 - Prefer static consistency checks before remote execution
 - Confirm server and resource choice before expensive or long jobs
 - When the basis count, route, or spin/SOC alignment is ambiguous, stop and explain the ambiguity before proceeding
+- For symmetry-on/off comparisons, keep every non-symmetry input identical and only patch the symmetry knobs plus sidecar staging
 
 ## Output style
 

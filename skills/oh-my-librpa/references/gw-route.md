@@ -114,6 +114,30 @@ Required checks and stages:
 - then run `LibRPA`
 - prefer `run_gw_workflow.sh` when available so stage execution and verification stay in one flow
 
+## Periodic symmetry lane
+
+Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already contains ABACUS symmetry sidecars.
+
+Required settings:
+
+- `INPUT_scf`: keep `rpa 1` and set `symmetry 1`
+- `INPUT_nscf`: keep `symmetry -1`
+- if the case keeps a standalone band `INPUT`, keep that file on `symmetry -1` as well
+- `librpa.in`: set `use_abacus_exx_symmetry = t` and `use_abacus_gw_symmetry = t`
+- if `use_shrink_abfs = t`, require `symrot_abf_k.txt` together with `irreducible_sector.txt`, `symrot_R.txt`, and `symrot_k.txt`
+
+Required stage handling:
+
+- generate the symmetry sidecars from the same SCF that produces the Coulomb and density-matrix inputs
+- after the symmetry-enabled SCF, verify the sidecars exist under `OUT.ABACUS/`
+- copy the sidecars into the LibRPA working directory before `preprocess_abacus_for_librpa_band.py` and `LibRPA`
+- fail fast if any required sidecar is missing
+
+Comparison rule:
+
+- for symmetry-vs-no-symmetry checks, keep `nbands`, k-meshes, shrink settings, thresholds, PP/NAO/ABFS files, helper scripts, and post-processing identical
+- only patch the symmetry-related keys and sidecar staging
+
 ## Shrink strategy
 
 Use shrink by default for the generic periodic GW lane.
@@ -143,6 +167,7 @@ Use these generic checks.
 - `OUT.ABACUS/running_scf.log` exists
 - the log contains both `Finish Time` and `Total Time`
 - `OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart` exists and is non-empty
+- when the periodic symmetry lane is enabled, `OUT.ABACUS/irreducible_sector.txt`, `OUT.ABACUS/symrot_R.txt`, `OUT.ABACUS/symrot_k.txt`, and `OUT.ABACUS/symrot_abf_k.txt` all exist
 
 ### pyatb success
 

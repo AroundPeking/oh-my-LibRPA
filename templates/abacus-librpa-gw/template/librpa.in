@@ -1,4 +1,4 @@
-# Baseline template: periodic GW + shrink lane.
+# Baseline template: periodic GW + shrink + symmetry lane.
 # Do not reuse this file for the short molecular GW route; materialize `routes/molecule-gw-no-nscf-no-pyatb-no-shrink/` instead.
 task = g0w0_band
 nfreq = 16
@@ -9,6 +9,8 @@ parallel_routing = libri
 vq_threshold = 0
 sqrt_coulomb_threshold = 0
 use_shrink_abfs = t
+use_abacus_exx_symmetry = t
+use_abacus_gw_symmetry = t
 use_fullcoul_exx = t
 
 output_gw_sigc_mat_rf = t

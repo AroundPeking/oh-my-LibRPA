@@ -1,5 +1,6 @@
 INPUT_PARAMETERS
 # Baseline template: periodic GW lane with NSCF enabled.
+# Keep the NSCF/band step on the full k-grid even when SCF symmetry is enabled.
 # Do not keep this file in the short molecular GW route.
 #Parameters	(General)
 pseudo_dir		./
