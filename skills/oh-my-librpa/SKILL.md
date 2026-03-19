@@ -75,6 +75,7 @@ Do not trust interactive shell defaults for `python3`, MPI launchers, or executa
 Always do all of the following:
 
 - Create a fresh timestamped run directory
+- When cloning a prior case into a new run directory, copy only source inputs and helper scripts; do not copy generated outputs such as `OUT.ABACUS`, `band_out`, `coulomb_*`, `LibRPA*.out`, `librpa.d`, `time.json`, or old `GW_band_spin_*`
 - Create `run-report.md` in that directory
 - Create an archived Markdown copy under `~/.openclaw/workspace/librpa/oh-my-librpa/`
 - Refuse to overwrite original data directories

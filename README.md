@@ -122,6 +122,7 @@ For Windows + Git Bash agent updates, see:
 ### Safety + reproducibility
 
 - new isolated run directory per run chain
+- when reusing an old case, copy only source inputs and helper scripts into the new run directory; never carry over generated outputs such as `OUT.ABACUS`, `band_out`, `coulomb_*`, `LibRPA*.out`, `librpa.d`, `time.json`, or old GW data
 - static preflight before remote execution
 - Markdown run reports written both in-run and to archive
 - stage-by-stage reporting for SCF / pyatb / NSCF / preprocess / LibRPA

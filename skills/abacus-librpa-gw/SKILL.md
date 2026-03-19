@@ -28,6 +28,7 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
 - Verify `librpa.in` uses matching `use_soc = 0/1`.
 - Verify `librpa.in` is generated from the same ABACUS workflow chain.
 - Verify the run is in a fresh directory to avoid stale-output contamination.
+- If the run directory is created by copying an older case, keep only source inputs and workflow scripts; remove generated outputs such as `OUT.ABACUS`, `band_out`, `coulomb_*`, `LibRPA*.out`, `librpa.d`, `time.json`, and old `GW_band_spin_*` before submission.
 - Prefer a user-curated server-side reference bundle when available.
 - When generating a GW case from templates, materialize the route first with `oh-my-librpa/scripts/materialize_gw_template.sh` and treat `.oh-my-librpa-route.env` as the authoritative route record.
 - Recognize the canonical file bundle from server examples:
