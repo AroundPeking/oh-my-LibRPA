@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa
-description: Chat-first orchestrator for ABACUS + LibRPA workflows. Use when users ask in natural language to prepare, run, audit, or debug GW/RPA tasks, especially when the agent must classify uploaded files, choose local vs server execution, route by system type (molecule, solid, 2D), and keep the interaction operational instead of exposing raw CLI complexity.
+description: Chat-first orchestrator for ABACUS + LibRPA workflows, with a supplemental FHI-aims + LibRPA QSGW/G0W0 branch. Use when users ask in natural language to prepare, run, audit, or debug GW/RPA tasks, especially when the agent must classify uploaded files, choose local vs server execution, route by system type or workflow stack, and keep the interaction operational instead of exposing raw CLI complexity.
 ---
 
 # oh-my-librpa
@@ -14,19 +14,21 @@ Keep the conversation short, operational, and stage-based.
 Do these steps in order:
 
 1. Classify the task as `GW`, `RPA`, or `Debug`.
-2. Classify the system as `molecule`, `solid`, or `2D`.
-3. Ask for files first when the user already has a case bundle.
-4. Ask where execution should happen: local or server.
-5. Create a fresh isolated run directory before any real run.
-6. If the case needs PP/NAO/ABFS assets and the user did not provide a complete bundle, read `references/pp-nao-abfs-library.md` and select files from the bundled asset library.
-7. Route into the matching reference file and follow it strictly:
+2. Classify the workflow stack as `ABACUS` or `FHI-aims + LibRPA`.
+3. If the stack is `ABACUS`, classify the system as `molecule`, `solid`, or `2D`.
+4. Ask for files first when the user already has a case bundle.
+5. Ask where execution should happen: local or server.
+6. Create a fresh isolated run directory before any real run.
+7. If the case needs PP/NAO/ABFS assets and the user did not provide a complete bundle, read `references/pp-nao-abfs-library.md` and select files from the bundled asset library.
+8. Route into the matching reference file and follow it strictly:
    - `references/gw-route.md`
    - `references/rpa-route.md`
    - `references/debug-route.md`
-8. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
-9. If server execution is chosen, also read `references/server-profiles.md` before submission.
-10. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
-11. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
+   - `docs/guide/fhi-aims-librpa-qsgw.md` when the case is based on `FHI-aims + LibRPA`
+9. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
+10. If server execution is chosen, also read `references/server-profiles.md` before submission.
+11. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
+12. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
 
 If the route is still ambiguous, ask the smallest possible clarification set.
 
@@ -38,6 +40,7 @@ Classify provided files into these groups:
 
 - `structure files`: `STRU`, `cif`, `xyz`, `geometry.in`
 - `input bundle`: `INPUT`, `INPUT_scf`, `INPUT_nscf`, `KPT`, `KPT_scf`, `KPT_nscf`, `librpa.in`
+- `fhi-aims bundle`: `control.in`, `geometry.in`, `run_librpa_gw_aims_iophr.sh`, `self_energy/`, `librpa.d/`
 - `symmetry sidecars`: `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, `symrot_abf_k.txt`
 - `workflow scripts`: `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`, `env.sh`, `probe_batch.sh`
 - `basis/pseudopotential assets`: `.orb`, `.abfs`, `.upf`
@@ -48,6 +51,7 @@ Use these intake rules:
 
 - `structure files` -> generate or complete the workflow
 - `input bundle` -> audit and patch; do not rewrite blindly
+- `fhi-aims bundle` -> route to `docs/guide/fhi-aims-librpa-qsgw.md` and mirror the reference case safely
 - `symmetry sidecars` -> keep them tied to the exact SCF that produced them; if one exists for periodic GW, verify the full required set before LibRPA
 - `.abfs` files -> treat as authoritative candidates for `ABFS_ORBITAL`
 - `logs/results` -> start in Debug mode first
@@ -97,6 +101,7 @@ Always do all of the following:
 - User asks for dielectric/response/RPA work -> route to `references/rpa-route.md`
 - User reports failure, weird output, parser/read issues, or mixed inputs -> route to `references/debug-route.md`
 - User provides logs before asking anything else -> route to `references/debug-route.md`
+- User asks about `FHI-aims`, `control.in`, `qsgw_band`, `qsgw_band0`, `modeA`, `modeB`, or mirroring an existing non-ABACUS case -> route to `docs/guide/fhi-aims-librpa-qsgw.md`
 
 ## Safety rules
 

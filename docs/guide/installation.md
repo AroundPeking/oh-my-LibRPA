@@ -105,10 +105,12 @@ After that, test by chat only:
 - `Help me run GW for Si with a conservative setup first.`
 - `This is a molecular system. Prepare inputs with the molecular route.`
 - `How do we fix this error? Give me the minimal repair action based on experience.`
+- `Mirror an existing FHI-aims + LibRPA QSGW case and stage a new k-point sweep first.`
 
 Expected behavior:
 
 - AI routes to GW/RPA/debug workflow automatically
+- AI routes `FHI-aims + LibRPA` QSGW/G0W0 requests to the supplemental workflow when the request is based on existing FHI-aims case files or tasks such as `qsgw_band`
 - AI starts with intake/preflight and tells the user what is missing before execution
 - AI applies curated experience rules and explains why
 - AI enforces run-safety constraints (new directory, no overwrite)

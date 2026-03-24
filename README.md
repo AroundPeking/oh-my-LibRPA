@@ -81,6 +81,7 @@ Example prompts:
 - `Help me run GW for GaAs with a conservative setup first.`
 - `This is a molecular system. Prepare inputs using the molecular route.`
 - `How do we fix this error? Give me the minimal repair action.`
+- `Mirror an existing FHI-aims + LibRPA QSGW case and stage a new k-point sweep first.`
 
 ### Update an existing install
 
@@ -117,6 +118,7 @@ For Windows + Git Bash agent updates, see:
 - **periodic GW** full route
 - **periodic GW symmetry** lane with ABACUS sidecars staged for LibRPA
 - **RPA** split from GW-only preprocessing
+- **FHI-aims + LibRPA QSGW/G0W0** supplement for case mirroring and staged campaigns
 - spin / SOC consistency checks across helper scripts and `librpa.in`
 
 ### Safety + reproducibility
@@ -165,6 +167,7 @@ Useful supporting material:
 | Path | Purpose |
 | --- | --- |
 | `skills/` | Chat-facing skills |
+| `docs/guide/fhi-aims-librpa-qsgw.md` | Supplemental route for `FHI-aims + LibRPA` QSGW/G0W0 cases |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |
@@ -200,6 +203,7 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 
 - chat orchestrator skill: `oh-my-librpa`
 - core workflow skills: `abacus-librpa-gw`, `abacus-librpa-rpa`, `abacus-librpa-debug`
+- supplemental workflow skill: `oh-my-librpa-fhi-aims-qsgw`
 - rule cards for workflow defaults and repair patterns
 - route materialization for molecular GW and generic periodic lanes
 - intake / preflight / consistency helper scripts
@@ -218,7 +222,8 @@ oh-my-librpa/
 |   |-- oh-my-librpa/
 |   |-- abacus-librpa-gw/
 |   |-- abacus-librpa-rpa/
-|   `-- abacus-librpa-debug/
+|   |-- abacus-librpa-debug/
+|   `-- oh-my-librpa-fhi-aims-qsgw/
 |-- references/
 |-- rules/cards/
 |-- templates/
@@ -235,6 +240,7 @@ oh-my-librpa/
 - **Chat-first** — users should not memorize custom workflow commands
 - **Experience-driven** — curated rules are preferred over ad-hoc prompting
 - **Route-aware** — molecule, solid, and 2D cases should not be treated as the same workflow
+- **Extension-friendly** — keep the ABACUS mainline intact while adding supplemental routes for other DFT stacks such as FHI-aims
 - **Safety-first** — fresh run directories, static checks first, no silent overwrite of source data
 - **Report what happened** — every important stage should say what was done, what was observed, and what is next
 
