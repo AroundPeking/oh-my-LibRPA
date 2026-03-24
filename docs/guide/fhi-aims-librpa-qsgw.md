@@ -1,10 +1,24 @@
-# FHI-aims + LibRPA QSGW/G0W0 Supplement
+# FHI-aims + LibRPA QSGW/G0W0 Stack-Layer Guide
 
-This guide adds a supplemental route to `oh-my-LibRPA` for teams that already use `FHI-aims + LibRPA` case directories and want the chat-first layer to reuse that practice safely.
+This guide defines the `FHI-aims -> LibRPA` stack-layer route inside `oh-my-LibRPA`.
+
+It exists to keep two workflow families separated:
+
+- `ABACUS -> LibRPA`
+- `FHI-aims -> LibRPA`
+
+The top-level router `skills/oh-my-librpa/` should decide between those two layers first.
+
+After that:
+
+- `skills/oh-my-librpa-abacus-librpa/` owns ABACUS-style bundles such as `INPUT_scf`, `KPT_nscf`, and `STRU`
+- `skills/oh-my-librpa-fhi-aims-qsgw/` owns FHI-aims-style bundles such as `control.in`, `geometry.in`, and `run_librpa_gw_aims_iophr.sh`
+
+This separation is intentional. It prevents the agent from mixing ABACUS input conventions with FHI-aims case layouts.
 
 ## Scope
 
-Use this supplement when the workflow is based on FHI-aims-generated LibRPA inputs rather than the ABACUS mainline. Typical triggers include:
+Use this route when the workflow is based on FHI-aims-generated LibRPA inputs rather than the ABACUS route. Typical triggers include:
 
 - `control.in`
 - `geometry.in`
@@ -13,6 +27,30 @@ Use this supplement when the workflow is based on FHI-aims-generated LibRPA inpu
 - `qsgw_band0`
 - `modeA` / `modeB`
 - mirroring an older Si, MgO, or similar reference case
+
+If the bundle instead centers on:
+
+- `INPUT`, `INPUT_scf`, `INPUT_nscf`
+- `KPT`, `KPT_scf`, `KPT_nscf`
+- `STRU`
+- `.orb`, `.abfs`, `.upf`
+
+do not use this guide. Route to `skills/oh-my-librpa-abacus-librpa/` instead.
+
+## Routing Contract
+
+Follow this contract strictly:
+
+1. `skills/oh-my-librpa/` only decides which stack layer owns the case.
+2. `skills/oh-my-librpa-fhi-aims-qsgw/` owns all `FHI-aims -> LibRPA` case handling.
+3. `skills/oh-my-librpa-abacus-librpa/` owns all `ABACUS -> LibRPA` case handling.
+4. Do not borrow file expectations across the two layers.
+
+In practice, that means:
+
+- do not reuse `control.in` or `geometry.in` conventions when preparing ABACUS cases
+- do not reuse `INPUT_scf`, `KPT_nscf`, or `STRU` conventions when handling FHI-aims cases
+- if a bundle mixes both families, stop and explain the mismatch before editing anything
 
 ## Core Rules
 
@@ -32,6 +70,15 @@ Use this supplement when the workflow is based on FHI-aims-generated LibRPA inpu
 4. Derive `nfreq` from `frequency_points` in `control.in` when the script uses the common pattern.
 5. Submit production work only through `sbatch` from the case directory.
 6. Do not launch production `mpirun` from a login node.
+
+## Layer Responsibility
+
+Within this layer, the agent should:
+
+- mirror or stage FHI-aims-based case directories safely
+- decide between fresh `FHI-aims -> LibRPA` execution and `LibRPA-only` reuse
+- keep `qsgw_band`, `qsgw_band0`, `qsgw`, `qsgwa`, and `g0w0_band` task choices inside the FHI-aims family
+- stop before submission when the user asks for staging only
 
 ## Typical `librpa.in` Baseline for Band Workflows
 
