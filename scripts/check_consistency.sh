@@ -75,6 +75,12 @@ has_key_value() {
   [[ "$value" == "$expected" ]]
 }
 
+has_active_key() {
+  local file="$1"
+  local key="$2"
+  grep -qiE "^[[:space:]]*${key}([[:space:]=]|$)" "$file"
+}
+
 case_dir=""
 mode="auto"
 system_type="auto"
@@ -159,17 +165,23 @@ if [[ "$resolved_mode" == "gw" ]]; then
     if has_key_value "$input_file" "latname" "user_defined_lattice"; then
       note_pass "$(basename "$input_file") keeps latname = user_defined_lattice"
     else
-      note_fail "$(basename "$input_file") requires 'latname user_defined_lattice' for the merged ABACUS branch"
-    fi
-
-    if has_key_value "$input_file" "exx_singularity_correction" "massidda"; then
-      note_pass "$(basename "$input_file") keeps exx_singularity_correction = massidda"
-    else
-      note_fail "$(basename "$input_file") requires 'exx_singularity_correction massidda' for the merged ABACUS branch"
+      note_warn "$(basename "$input_file") does not set latname = user_defined_lattice; only required when the route explicitly depends on that merged-branch lattice handling"
     fi
 
     if grep -qiE '^[[:space:]]*exx_use_ewald([[:space:]]|$)' "$input_file"; then
       note_fail "$(basename "$input_file") still contains deprecated key exx_use_ewald"
+    fi
+
+    if grep -qiE '^[[:space:]]*cs_inv_thr([[:space:]]|$)' "$input_file"; then
+      note_fail "$(basename "$input_file") still contains deprecated key cs_inv_thr; use exx_cs_inv_thr"
+    fi
+
+    if has_key_value "$input_file" "rpa" "1"; then
+      if has_key_value "$input_file" "exx_singularity_correction" "massidda"; then
+        note_pass "$(basename "$input_file") keeps exx_singularity_correction = massidda for rpa 1"
+      else
+        note_fail "$(basename "$input_file") sets rpa 1 but is missing 'exx_singularity_correction massidda'"
+      fi
     fi
   done
 
@@ -268,6 +280,46 @@ if grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librp
     fi
   else
     note_warn "STRU not found; could not verify ABFS_ORBITAL for shrink route"
+  fi
+elif grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*f([[:space:]]|$)' "$librpa"; then
+  if has_active_key "$scf" "shrink_abfs_pca_thr"; then
+    note_fail "use_shrink_abfs=f but INPUT_scf still contains shrink_abfs_pca_thr"
+  else
+    note_pass "no-shrink lane keeps shrink_abfs_pca_thr out of INPUT_scf"
+  fi
+
+  if has_active_key "$scf" "shrink_lu_inv_thr"; then
+    note_fail "use_shrink_abfs=f but INPUT_scf still contains shrink_lu_inv_thr"
+  else
+    note_pass "no-shrink lane keeps shrink_lu_inv_thr out of INPUT_scf"
+  fi
+
+  if [[ -f "$stru" ]] && grep -qiE '^[[:space:]]*ABFS_ORBITAL([[:space:]]|$)' "$stru"; then
+    note_warn "STRU contains ABFS_ORBITAL while use_shrink_abfs=f; confirm this is intentional and not a mixed shrink/no-shrink lane"
+  fi
+fi
+
+if grep -qiE '^use_pair_embedding_corr[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librpa"; then
+  if has_key_value "$scf" "out_pair_embedding_metric" "1"; then
+    note_pass "pair-correction lane enables out_pair_embedding_metric = 1 in INPUT_scf"
+  else
+    note_fail "use_pair_embedding_corr=t but INPUT_scf is missing 'out_pair_embedding_metric 1'"
+  fi
+
+  scf_pair_cut="$(trim "$(get_value "$scf" "pair_embedding_distance_cut" || true)")"
+  librpa_pair_cut="$(trim "$(get_value "$librpa" "pair_embedding_distance_cut" || true)")"
+  if [[ -z "$scf_pair_cut" || -z "$librpa_pair_cut" ]]; then
+    note_fail "pair-correction lane requires pair_embedding_distance_cut in both INPUT_scf and librpa.in"
+  elif [[ "$scf_pair_cut" != "$librpa_pair_cut" ]]; then
+    note_fail "pair_embedding_distance_cut mismatch: INPUT_scf=$scf_pair_cut librpa.in=$librpa_pair_cut"
+  else
+    note_pass "pair_embedding_distance_cut consistent across ABACUS and LibRPA: $scf_pair_cut"
+  fi
+
+  if has_active_key "$librpa" "pair_embedding_metric_thr"; then
+    note_pass "librpa.in defines pair_embedding_metric_thr"
+  else
+    note_fail "use_pair_embedding_corr=t but librpa.in is missing pair_embedding_metric_thr"
   fi
 fi
 

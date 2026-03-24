@@ -20,8 +20,8 @@ If a host expects `~/.bashrc`, conda activation, or site init scripts, materiali
 
 Materialize explicit runtime configuration before submission:
 
-- use `oh-my-librpa/scripts/materialize_server_profile.sh --case-dir <case_dir> --profile <name-or-path>` to write `env.sh`
-- if launcher / `python3` / PATH behavior is uncertain on compute nodes, use `oh-my-librpa/scripts/materialize_batch_probe.sh --case-dir <case_dir> --profile <name-or-path>` before the real job
+- use `scripts/materialize_server_profile.sh --case-dir <case_dir> --profile <name-or-path>` to write `env.sh`
+- if launcher / `python3` / PATH behavior is uncertain on compute nodes, use `scripts/materialize_batch_probe.sh --case-dir <case_dir> --profile <name-or-path>` before the real job
 
 Prefer explicit values for:
 
@@ -42,6 +42,19 @@ A common pattern is:
 - source `$HOME/.bashrc`
 - activate the required conda environment
 - point `OH_MY_LIBRPA_PYTHON3_EXEC` at that environment's Python explicitly
+
+## DF batch guardrails
+
+- On `df_iopcas_ghj`, do not assume the interactive SSH rule (`source ~/.bashrc`) is safe inside Slurm batch jobs.
+- If a batch job exits before the first workload log line, classify it as a bootstrap failure first; suspect `.bashrc`, conda hooks, or site init scripts before blaming ABACUS or LibRPA.
+- For a new `df` batch workflow, start with a minimal payload:
+  - `set -euxo pipefail`
+  - `pwd`
+  - `ls -1A`
+  - the direct workload command
+- Only add `.bashrc`, `conda`, `setvars.sh`, or MPI launcher wrappers after each one is justified by a successful probe on the compute node.
+- Before sourcing site init scripts, run `ldd` on the target executable. If runtime libraries already resolve, skip extra init.
+- For single-rank ABACUS smoke runs, prefer direct binary execution over `mpirun -np 1`.
 
 ## Submission discipline
 

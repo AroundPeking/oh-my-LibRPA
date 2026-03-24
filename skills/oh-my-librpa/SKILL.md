@@ -25,6 +25,8 @@ Do these steps in order:
    - `references/debug-route.md`
 8. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
 9. If server execution is chosen, also read `references/server-profiles.md` before submission.
+10. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
+11. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
 
 If the route is still ambiguous, ask the smallest possible clarification set.
 
@@ -77,11 +79,17 @@ Always do all of the following:
 - Create a fresh timestamped run directory
 - When cloning a prior case into a new run directory, copy only source inputs and helper scripts; do not copy generated outputs such as `OUT.ABACUS`, `band_out`, `coulomb_*`, `LibRPA*.out`, `librpa.d`, `time.json`, or old `GW_band_spin_*`
 - Create `run-report.md` in that directory
-- Create an archived Markdown copy under `~/.openclaw/workspace/librpa/oh-my-librpa/`
+- Create an archived Markdown copy under `${CODEX_HOME:-$HOME/.codex}/workspace/librpa/oh-my-librpa/`
 - Refuse to overwrite original data directories
 - Prefer smoke-first validation before expensive runs
+- For server smoke runs, start from the smallest batch payload that can print `pwd`, list files, and run one stage; do not add `.bashrc`, `conda`, `setvars.sh`, or `mpirun -np 1` unless a probe proves they are needed
+- On `df_iopcas_ghj`, do not use `source ~/.bashrc` as the default Slurm batch entrypoint. In batch mode it can leave conda-injected paths without the intended oneAPI/module toolchain, or fail immediately with empty `slurm` output. Prefer explicit `module load cmake/3.31.7`, `module load oneapi/2024.2`, and compiler exports in the script itself
+- For ABACUS-side Coulomb validation, allow `SCF`-only runs; do not force `pyatb`, `NSCF`, or `LibRPA` if the user is only checking `coulomb_mat_*` / `coulomb_cut_*`
+- For ABACUS symmetry-on Coulomb validation, do not flatten-compare `symmetry=1` output with `symmetry=-1` output: symmetry-on exports IBZ q only, while symmetry-off exports the full BZ q-grid. Compare symmetry-on `mpi1` vs `mpiN` directly, compare Gamma/no-rotation blocks, or restore the full q-star before comparing to symmetry-off data
 - Apply route-aware static checks before remote submission
+- For reused or cloned case bundles, treat input-key compatibility as mandatory, not optional: run the preflight checker and patch deprecated ABACUS keywords before submitting
 - Report after every mini-stage: `what was done`, `what was observed`, `what is next`
+- Only enable heavy ABACUS Coulomb debug envs such as `ABACUS_DEBUG_CUT_MPI=1` for short targeted traces; they can distort runtime badly, especially on `shrink` + single-MPI control runs
 
 ## Routing rules
 
@@ -95,6 +103,7 @@ Always do all of the following:
 - Always require a new run directory for each run chain
 - Never overwrite original source-data directories
 - Prefer static consistency checks before remote execution
+- Never submit a reused GW case bundle to a newer ABACUS branch without a keyword-compatibility audit
 - Confirm server and resource choice before expensive or long jobs
 - When the basis count, route, or spin/SOC alignment is ambiguous, stop and explain the ambiguity before proceeding
 - For symmetry-on/off comparisons, keep every non-symmetry input identical and only patch the symmetry knobs plus sidecar staging

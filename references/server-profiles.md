@@ -1,41 +1,74 @@
 # Server Profiles
 
-Use host profiles to make remote batch jobs deterministic.
+Read this reference whenever `oh-my-librpa` routes a case to server execution.
 
-## Files
+The goal is to make runtime assumptions explicit before submission.
 
-- Registry entries live under `registry/host-profiles/*.env`
-- Materialized runtime blocks live inside the case directory:
-  - `env.sh`
-  - `.oh-my-librpa-host-profile.env`
-  - optional `probe_batch.sh`
+## Required questions
 
-## Why
+Before batch submission, confirm:
 
-Remote batch jobs must not assume that:
+- which host/profile should be used
+- whether VPN is required and already enabled
+- whether connectivity/login should be tested now
+- whether this is only a smoke run or a longer production run
 
-- `~/.bashrc` is loaded
-- `python == python3`
-- `python3` is in `PATH`
-- `srun` is the correct launcher just because Slurm exists
+## Runtime materialization rule
 
-## Expected profile fields
+Do not rely on implicit login-shell luck.
+If a host expects `~/.bashrc`, conda activation, or site init scripts, materialize those steps explicitly in `env.sh`.
 
-- `OH_MY_LIBRPA_SERVER_NAME`
-- `OH_MY_LIBRPA_PYTHON3_EXEC`
-- `OH_MY_LIBRPA_ABACUS_EXEC`
-- `OH_MY_LIBRPA_LIBRPA_EXEC`
-- `OH_MY_LIBRPA_MPI_LAUNCHER`
-- `OH_MY_LIBRPA_MPI_LAUNCHER_CMD`
-- `OH_MY_LIBRPA_ENV_SOURCES`
-- `OH_MY_LIBRPA_MODULE_LOADS`
-- `OH_MY_LIBRPA_PATH_PREPEND`
-- `OH_MY_LIBRPA_LD_LIBRARY_PATH_PREPEND`
+Materialize explicit runtime configuration before submission:
 
-## Workflow
+- use `scripts/materialize_server_profile.sh --case-dir <case_dir> --profile <name-or-path>` to write `env.sh`
+- if launcher / `python3` / PATH behavior is uncertain on compute nodes, use `scripts/materialize_batch_probe.sh --case-dir <case_dir> --profile <name-or-path>` before the real job
 
-1. Select a profile or ask the user for one.
-2. Run `scripts/materialize_server_profile.sh --case-dir <case_dir> --profile <name-or-path>`.
-3. If batch behavior is uncertain, run `scripts/materialize_batch_probe.sh --case-dir <case_dir> --profile <name-or-path>`.
-4. Source `env.sh` from `run_abacus.sh` and helper scripts.
-5. Record the resolved runtime config in the run directory.
+Prefer explicit values for:
+
+- `python3_exec`
+- `abacus_work`
+- `librpa_work`
+- MPI launcher path and flags
+- `.bashrc` / conda activation steps when the host depends on them
+- scheduler directives that affect node shape or environment loading
+
+If a site depends on shell init or conda activation, keep the tracked profile generic and prefer one of these patterns:
+
+- use placeholders inside `registry/host-profiles/*.env`
+- or keep the real host profile outside the repository and pass it via `--profile /absolute/path/to/private.env`
+
+A common pattern is:
+
+- source `$HOME/.bashrc`
+- activate the required conda environment
+- point `OH_MY_LIBRPA_PYTHON3_EXEC` at that environment's Python explicitly
+
+## DF batch guardrails
+
+- On `df_iopcas_ghj`, do not assume the interactive SSH rule (`source ~/.bashrc`) is safe inside Slurm batch jobs.
+- If a batch job exits before the first workload log line, classify it as a bootstrap failure first; suspect `.bashrc`, conda hooks, or site init scripts before blaming ABACUS or LibRPA.
+- For a new `df` batch workflow, start with a minimal payload:
+  - `set -euxo pipefail`
+  - `pwd`
+  - `ls -1A`
+  - the direct workload command
+- Only add `.bashrc`, `conda`, `setvars.sh`, or MPI launcher wrappers after each one is justified by a successful probe on the compute node.
+- Before sourcing site init scripts, run `ldd` on the target executable. If runtime libraries already resolve, skip extra init.
+- For single-rank ABACUS smoke runs, prefer direct binary execution over `mpirun -np 1`.
+
+## Submission discipline
+
+- always use a fresh isolated run directory
+- never overwrite the user's original data directory
+- test connectivity first if the profile or VPN state is unclear
+- for expensive jobs, confirm server and resource choice before submission
+- if login fails, report the exact failure class: `timeout`, `auth`, `host resolution`, or equivalent
+
+## Minimal status update format
+
+When reporting server-side progress, keep it operational:
+
+- what profile/host was selected
+- what was validated successfully
+- what failed, if anything
+- what the next low-risk action is

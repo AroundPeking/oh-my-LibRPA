@@ -16,8 +16,43 @@ Apply these updates to generated or patched workflow inputs:
 
 - when the case uses explicit lattice vectors, set `latname = user_defined_lattice`
 - replace old `exx_use_ewald 1` with `exx_singularity_correction = massidda`
+- replace old `cs_inv_thr` with `exx_cs_inv_thr`
 
 Do not keep both the old and new EXX keys in the same input.
+
+## Mandatory compatibility audit for reused cases
+
+When a case bundle was cloned from an older ABACUS run, audit `INPUT_scf` and `INPUT_nscf` before any submission.
+
+Block submission if either file still contains:
+
+- `exx_use_ewald`
+- `cs_inv_thr`
+
+For any input file that actively sets `rpa 1`, require:
+
+- `exx_singularity_correction massidda`
+
+This rule is stage-local:
+
+- if `INPUT_scf` has `rpa 1`, require `massidda` there
+- if `INPUT_nscf` comments out `rpa`, do not force `massidda` there just for style
+
+## Pair-correction lane
+
+When `librpa.in` enables `use_pair_embedding_corr = t`, require:
+
+- `INPUT_scf`: `out_pair_embedding_metric 1`
+- `INPUT_scf`: `pair_embedding_distance_cut <value>`
+- `librpa.in`: `pair_embedding_distance_cut = <same value>`
+- `librpa.in`: `pair_embedding_metric_thr = <value>`
+
+For the intended no-shrink comparison lane:
+
+- keep `use_shrink_abfs = f` in `librpa.in`
+- remove `shrink_abfs_pca_thr` and `shrink_lu_inv_thr` from `INPUT_scf`
+- do not add `ABFS_ORBITAL` just to “help” pair correction
+- keep k-mesh, `nbands`, helper scripts, and other GW thresholds aligned with the comparison baseline
 
 ## Helper-script deltas
 

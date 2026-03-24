@@ -14,6 +14,8 @@ If the case is missing PP/NAO/ABFS files, pull them from the bundled asset libra
 
 If the case uses a locally merged ABACUS checkout or locally patched helper scripts, also apply `references/abacus-merge-compat.md`.
 
+Before submitting any reused GW case bundle, run `scripts/intake_preflight.sh` and fix every compatibility failure first. Do not submit first and debug deprecated input keys later.
+
 ## Task defaults
 
 Set or verify these `librpa.in` defaults unless a stronger empirical rule overrides them:
@@ -93,7 +95,7 @@ Required settings and checks:
 - do not run `pyatb`
 - set `replace_w_head = f`
 - for the tested short smoke path, materialize the route with:
-  - `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
+  - `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
 - keep `out_mat_xc 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, `rpa_ccp_rmesh_times 6`, `exx_ccp_rmesh_times 3`, `exx_cs_inv_thr 1e-5`
 - do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` on that short route
 - copy `OUT.ABACUS/vxc_out.dat` to `./vxc_out` after SCF
@@ -157,6 +159,30 @@ Additional rule:
 
 - when shrink is enabled, require `ABFS_ORBITAL` in `STRU`
 - if the user provides `.abfs` files, use those names directly
+
+## No-shrink + pair-correction comparison lane
+
+Use this lane when the user wants a fair comparison against a shrink baseline while testing whether pair correction can recover similar GW quality without shrink.
+
+Required settings:
+
+- keep the same `KPT_scf`, `KPT_nscf`, `nbands`, pseudopotentials, NAOs, and helper scripts as the comparison baseline
+- `librpa.in`: `use_shrink_abfs = f`
+- `INPUT_scf`: do not set `shrink_abfs_pca_thr`
+- `INPUT_scf`: do not set `shrink_lu_inv_thr`
+- do not add `ABFS_ORBITAL` just for this lane
+
+If pair correction is enabled in this lane:
+
+- `INPUT_scf`: `out_pair_embedding_metric 1`
+- `INPUT_scf`: `pair_embedding_distance_cut <value>`
+- `librpa.in`: `use_pair_embedding_corr = t`
+- `librpa.in`: `pair_embedding_distance_cut = <same value>`
+- `librpa.in`: `pair_embedding_metric_thr = <value>`
+
+Failure rule:
+
+- if `use_shrink_abfs = f` but `INPUT_scf` still contains shrink-only keys, treat that as a mixed lane and fix the inputs before submission
 
 ## Stage success criteria
 

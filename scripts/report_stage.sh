@@ -37,7 +37,7 @@ Usage:
 
 Behavior:
   - Creates/updates <run_dir>/run-report.md
-  - Creates/updates an archived copy under ~/.openclaw/workspace/librpa/oh-my-librpa/
+  - Creates/updates an archived copy under ${CODEX_HOME:-$HOME/.codex}/workspace/librpa/oh-my-librpa/
   - Prints a short chat-ready summary to stdout
 EOF
 }
@@ -177,7 +177,7 @@ next_step="-"
 key_outputs="-"
 final_result=""
 final_artifacts=""
-archive_root="${OH_MY_LIBRPA_ARCHIVE_ROOT:-$HOME/.openclaw/workspace/librpa/oh-my-librpa}"
+archive_root="${OH_MY_LIBRPA_ARCHIVE_ROOT:-${CODEX_HOME:-$HOME/.codex}/workspace/librpa/oh-my-librpa}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
