@@ -97,6 +97,7 @@ After installation, users can interact only through chat, for example:
 - `This is a molecular system. Prepare inputs using the molecular route.`
 - `How do we fix this error? Give me the minimal repair action.`
 - `Bootstrap a fresh Ubuntu WSL stack for ABACUS + PYATB + LibRPA, then run a local smoke test.`
+- `Mirror an existing FHI-aims + LibRPA QSGW case and stage a new k-point sweep first.`
 
 Platform-local runtime hints:
 
@@ -108,6 +109,7 @@ Platform-local runtime hints:
 
 - Chat orchestrator skill: `oh-my-librpa` (single entry point)
 - Core workflow skills: `abacus-librpa-gw`, `abacus-librpa-rpa`, `abacus-librpa-debug`
+- Supplemental workflow skill: `oh-my-librpa-fhi-aims-qsgw`
 - Core stack/bootstrap skill: `abacus-pyatb-librpa-stack`
 - Rule cards (structured experience): workflow defaults plus environment/install repair rules
 - Templates: minimal `INPUT_scf`, `INPUT_nscf`, `librpa.in`, and a reusable stack env template
@@ -124,7 +126,8 @@ oh-my-librpa/
 |   |-- abacus-librpa-gw/
 |   |-- abacus-librpa-rpa/
 |   |-- abacus-librpa-debug/
-|   `-- abacus-pyatb-librpa-stack/
+|   |-- abacus-pyatb-librpa-stack/
+|   `-- oh-my-librpa-fhi-aims-qsgw/
 |-- platform/
 |   |-- openclaw/
 |   |-- opencode/
@@ -145,6 +148,7 @@ oh-my-librpa/
 - Experience-driven: curated rules over ad-hoc guessing
 - Safety-first: always use new run directories and avoid overwriting source data
 - Project-local first: keep agent state close to the repository and easy to update
+- Extension-friendly: keep the ABACUS mainline intact while adding supplemental routes for other DFT stacks such as FHI-aims
 
 ## Safety Constraints
 
