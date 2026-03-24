@@ -108,6 +108,8 @@ For Windows + Git Bash agent updates, see:
 ### Chat-first orchestration
 
 - single entry-point skill: `oh-my-librpa`
+- stack-layer skill: `oh-my-librpa-abacus-librpa`
+- stack-layer skill: `oh-my-librpa-fhi-aims-qsgw`
 - file-first intake for structures, inputs, logs, and archives
 - compute-location handshake before expensive work starts
 - route selection by `molecule`, `solid`, or `2D`
@@ -202,8 +204,9 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 ## Current MVP scope
 
 - chat orchestrator skill: `oh-my-librpa`
+- stack-layer routing skill: `oh-my-librpa-abacus-librpa`
+- stack-layer routing skill: `oh-my-librpa-fhi-aims-qsgw`
 - core workflow skills: `abacus-librpa-gw`, `abacus-librpa-rpa`, `abacus-librpa-debug`
-- supplemental workflow skill: `oh-my-librpa-fhi-aims-qsgw`
 - rule cards for workflow defaults and repair patterns
 - route materialization for molecular GW and generic periodic lanes
 - intake / preflight / consistency helper scripts
@@ -220,6 +223,7 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 oh-my-librpa/
 |-- skills/
 |   |-- oh-my-librpa/
+|   |-- oh-my-librpa-abacus-librpa/
 |   |-- abacus-librpa-gw/
 |   |-- abacus-librpa-rpa/
 |   |-- abacus-librpa-debug/

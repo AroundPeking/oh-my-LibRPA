@@ -1,11 +1,13 @@
 ---
 name: oh-my-librpa-fhi-aims-qsgw
-description: Supplemental workflow for FHI-aims + LibRPA QSGW/G0W0 work. Use when users ask to mirror existing FHI-aims + LibRPA cases, prepare staged k-point or basis campaigns, run aims before LibRPA, submit case-local Slurm scripts, or debug QSGW band workflows such as qsgw_band and qsgw_band0.
+description: Stack-layer workflow for FHI-aims -> LibRPA QSGW/G0W0 cases. Use when users ask to mirror existing FHI-aims + LibRPA cases, prepare staged k-point or basis campaigns, run aims before LibRPA, submit case-local Slurm scripts, or debug QSGW band workflows such as qsgw_band and qsgw_band0. Keep this layer separate from ABACUS INPUT/KPT/STRU workflows.
 ---
 
 # oh-my-librpa-fhi-aims-qsgw
 
 Treat existing case directories as the source of truth when the user says `follow`, `mirror`, `same settings`, or `same path as Si/MgO/...`.
+
+Treat this skill as the FHI-aims-side router below the top-level `oh-my-librpa` entrypoint.
 
 ## Core Behavior
 
@@ -19,6 +21,19 @@ Treat existing case directories as the source of truth when the user says `follo
   - `FHI-aims + LibRPA fresh run`
   - `LibRPA-only reuse`
 - Explain major decisions with `why + risk + verification`.
+
+## Intake Markers
+
+Treat these as FHI-aims markers:
+
+- `control.in`
+- `geometry.in`
+- `run_librpa_gw_aims_iophr.sh`
+- `librpa.d/`
+- `self_energy/`
+- task names such as `qsgw_band` and `qsgw_band0`
+
+If the bundle instead centers on `INPUT_scf`, `INPUT_nscf`, `KPT_*`, or `STRU`, stop and hand the task to `skills/oh-my-librpa-abacus-librpa/`.
 
 ## Stage-Only Workflow
 

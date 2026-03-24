@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa
-description: Chat-first orchestrator for ABACUS + LibRPA workflows, with a supplemental FHI-aims + LibRPA QSGW/G0W0 branch. Use when users ask in natural language to prepare, run, audit, or debug GW/RPA tasks, especially when the agent must classify uploaded files, choose local vs server execution, route by system type or workflow stack, and keep the interaction operational instead of exposing raw CLI complexity.
+description: Chat-first orchestrator for LibRPA workflows. Use when users ask in natural language to prepare, run, audit, or debug GW/RPA tasks, especially when the agent must classify uploaded files, choose local vs server execution, and first route cleanly into one of two stack-layer skills: `ABACUS -> LibRPA` or `FHI-aims -> LibRPA`.
 ---
 
 # oh-my-librpa
@@ -20,15 +20,12 @@ Do these steps in order:
 5. Ask where execution should happen: local or server.
 6. Create a fresh isolated run directory before any real run.
 7. If the case needs PP/NAO/ABFS assets and the user did not provide a complete bundle, read `references/pp-nao-abfs-library.md` and select files from the bundled asset library.
-8. Route into the matching reference file and follow it strictly:
-   - `references/gw-route.md`
-   - `references/rpa-route.md`
-   - `references/debug-route.md`
-   - `docs/guide/fhi-aims-librpa-qsgw.md` when the case is based on `FHI-aims + LibRPA`
-9. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
-10. If server execution is chosen, also read `references/server-profiles.md` before submission.
-11. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
-12. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
+8. Route into the matching stack-layer skill and follow it strictly:
+   - `skills/oh-my-librpa-abacus-librpa/`
+   - `skills/oh-my-librpa-fhi-aims-qsgw/`
+9. If server execution is chosen, also read `references/server-profiles.md` before submission.
+10. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
+11. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
 
 If the route is still ambiguous, ask the smallest possible clarification set.
 
@@ -50,8 +47,8 @@ Classify provided files into these groups:
 Use these intake rules:
 
 - `structure files` -> generate or complete the workflow
-- `input bundle` -> audit and patch; do not rewrite blindly
-- `fhi-aims bundle` -> route to `docs/guide/fhi-aims-librpa-qsgw.md` and mirror the reference case safely
+- `input bundle` -> route to `skills/oh-my-librpa-abacus-librpa/`
+- `fhi-aims bundle` -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
 - `symmetry sidecars` -> keep them tied to the exact SCF that produced them; if one exists for periodic GW, verify the full required set before LibRPA
 - `.abfs` files -> treat as authoritative candidates for `ABFS_ORBITAL`
 - `logs/results` -> start in Debug mode first
@@ -97,11 +94,8 @@ Always do all of the following:
 
 ## Routing rules
 
-- User asks to start a GW workflow -> route to `references/gw-route.md`
-- User asks for dielectric/response/RPA work -> route to `references/rpa-route.md`
-- User reports failure, weird output, parser/read issues, or mixed inputs -> route to `references/debug-route.md`
-- User provides logs before asking anything else -> route to `references/debug-route.md`
-- User asks about `FHI-aims`, `control.in`, `qsgw_band`, `qsgw_band0`, `modeA`, `modeB`, or mirroring an existing non-ABACUS case -> route to `docs/guide/fhi-aims-librpa-qsgw.md`
+- User provides ABACUS-style inputs such as `INPUT_scf`, `INPUT_nscf`, `KPT_*`, `STRU`, or ABACUS logs -> route to `skills/oh-my-librpa-abacus-librpa/`
+- User provides `control.in`, `run_librpa_gw_aims_iophr.sh`, `qsgw_band`, `qsgw_band0`, `modeA`, `modeB`, or an existing non-ABACUS case -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
 
 ## Safety rules
 
