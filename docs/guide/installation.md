@@ -109,10 +109,14 @@ After that, test by chat only:
 
 Expected behavior:
 
-- AI routes to GW/RPA/debug workflow automatically
 - AI routes first into one of two stack-layer skills: `ABACUS -> LibRPA` or `FHI-aims -> LibRPA`
+- AI decides stack ownership before deeper `GW` / `RPA` / `Debug` routing
+- Only after `ABACUS -> LibRPA` ownership is established should the workflow continue into `GW`, `RPA`, or `Debug`
+- AI routes to GW/RPA/debug workflow automatically only after `ABACUS -> LibRPA` ownership is established
 - AI then routes ABACUS cases into GW/RPA/debug workflow automatically
-- AI routes `FHI-aims + LibRPA` QSGW/G0W0 requests to the supplemental workflow when the request is based on existing FHI-aims case files or tasks such as `qsgw_band`
+- AI routes `FHI-aims + LibRPA` QSGW/G0W0 requests to the supplemental workflow only when stronger FHI-aims markers are present, such as `control.in`, `run_librpa_gw_aims_iophr.sh`, or explicit `qsgw_band` / `qsgw_band0` / `qsgw` / `qsgwa` intent
+- weak markers such as `geometry.in`, `librpa.d/`, or `self_energy/` do not claim FHI-aims ownership on their own
+- mixed ABACUS/FHI-aims bundles stop for clarification instead of guessing ownership
 - AI starts with intake/preflight and tells the user what is missing before execution
 - AI applies curated experience rules and explains why
 - AI enforces run-safety constraints (new directory, no overwrite)
