@@ -53,11 +53,14 @@ fail_count=0
 
 for path in \
   "$workspace/skills/oh-my-librpa/SKILL.md" \
+  "$workspace/skills/oh-my-librpa-abacus-librpa/SKILL.md" \
+  "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md" \
   "$workspace/skills/abacus-librpa-gw/SKILL.md" \
   "$workspace/skills/abacus-librpa-rpa/SKILL.md" \
   "$workspace/skills/abacus-librpa-debug/SKILL.md" \
   "$installed_root/install.sh" \
   "$installed_root/update.sh" \
+  "$installed_root/docs/guide/fhi-aims-librpa-qsgw.md" \
   "$installed_root/rules/cards/librpa-default-presets.yml" \
   "$installed_root/rules/cards/molecular-gw-short-route.yml" \
   "$installed_root/rules/cards/periodic-gw-plotting.yml" \
@@ -75,6 +78,29 @@ for path in \
     fail "Missing required file: $path"
   fi
 done
+
+if grep -q 'Decide upstream stack ownership first' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && grep -q 'Only after `ABACUS -> LibRPA` ownership is established' "$installed_root/docs/guide/installation.md"; then
+  pass 'stack ownership is routed before deeper GW/RPA/Debug workflow selection'
+else
+  fail 'stack ownership ordering is missing from the top-level router or installation guide'
+fi
+
+if grep -q 'supporting markers only' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && grep -q 'supporting markers only' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md" \
+  && grep -q 'do not claim ownership on their own' "$installed_root/docs/guide/fhi-aims-librpa-qsgw.md"; then
+  pass 'weak FHI-aims markers are documented as non-owning in skills and guide'
+else
+  fail 'weak FHI-aims markers still look like ownership triggers'
+fi
+
+if ! grep -q 'existing non-ABACUS case' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && ! grep -q 'existing non-ABACUS case' "$workspace/skills/oh-my-librpa-abacus-librpa/SKILL.md" \
+  && ! grep -q 'existing non-ABACUS case' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md"; then
+  pass 'vague fallback routing language has been removed from the stack-layer skills'
+else
+  fail 'vague fallback routing language still appears in the stack-layer skills'
+fi
 
 if [[ -f "$installed_root/install-state.env" ]]; then
   pass "Found install state: $installed_root/install-state.env"
