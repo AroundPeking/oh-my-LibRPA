@@ -71,6 +71,24 @@ def read_gw(path: Path):
     return data[:, 1:4], data[:, 4::2], data[:, 5::2]
 
 
+def sort_gw_bands_by_energy(aux: np.ndarray, ene: np.ndarray, sort_band_count: int) -> tuple[np.ndarray, np.ndarray]:
+    if sort_band_count <= 1:
+        return aux, ene
+
+    row_idx = np.arange(ene.shape[0])[:, None]
+    sort_idx = np.argsort(ene[:, :sort_band_count], axis=1)
+
+    ene_sorted = ene.copy()
+    ene_sorted[:, :sort_band_count] = ene[row_idx, sort_idx]
+
+    aux_sorted = aux
+    if aux.shape == ene.shape:
+        aux_sorted = aux.copy()
+        aux_sorted[:, :sort_band_count] = aux[row_idx, sort_idx]
+
+    return aux_sorted, ene_sorted
+
+
 def read_band_kpath_info(path: Path) -> np.ndarray:
     lines = path.read_text().splitlines()
     nk = int(lines[0].split()[-1])
@@ -178,6 +196,11 @@ def main() -> None:
     if nocc <= 0:
         raise ValueError('Failed to determine occupied bands from band_out.')
 
+    # LibRPA GW outputs can arrive with locally scrambled band columns at some k-points.
+    # Re-sort the physically relevant band window before edge detection and plotting.
+    sorted_band_count = min(ene_gw.shape[1], occ.shape[0])
+    _aux_gw, ene_gw = sort_gw_bands_by_energy(_aux_gw, ene_gw, sorted_band_count)
+
     occ2d = np.tile(occ_mask_1d.reshape(1, -1), (ene_gw.shape[0], 1))
     vbm = np.max(np.where(occ2d, ene_gw, -np.inf))
 
@@ -259,6 +282,7 @@ def main() -> None:
     summary.write_text(
         '\n'.join([
             f'Number of occupied bands from band_out: {nocc}',
+            f'GW bands re-sorted by energy per k-point for first {sorted_band_count} bands',
             f'VBM (absolute): {vbm:.6f} eV',
             f'CBM (restricted near-gap search): {cbm:.6f} eV',
             f'GW gap (restricted near-gap search): {gap:.6f} eV',
