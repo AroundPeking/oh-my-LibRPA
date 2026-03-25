@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa
-description: Chat-first orchestrator for ABACUS + LibRPA workflows. Use when users ask in natural language to prepare, run, audit, or debug GW/RPA tasks, especially when the agent must classify uploaded files, choose local vs server execution, route by system type (molecule, solid, 2D), and keep the interaction operational instead of exposing raw CLI complexity.
+description: Chat-first orchestrator for ABACUS + LibRPA and FHI-aims + LibRPA workflows. Use when users ask in natural language to prepare, run, audit, or debug GW/RPA/QSGW tasks, especially when the agent must classify uploaded files, choose local vs server execution, decide upstream stack ownership first, and keep the interaction operational instead of exposing raw CLI complexity.
 ---
 
 # oh-my-librpa
@@ -9,29 +9,39 @@ Treat the user message as an intent, not as a command request.
 
 Keep the conversation short, operational, and stage-based.
 
+## Environment gate (mandatory first step)
+
+- Detect host side before running commands.
+- If the case will execute on a remote cluster, distinguish local orchestration from remote execution explicitly.
+- If the user provides mixed local and remote context, ask which machine owns the source of truth before editing or submitting anything.
+
 ## Act as the front router
 
 Do these steps in order:
 
-1. Classify the task as `GW`, `RPA`, or `Debug`.
-2. Classify the system as `molecule`, `solid`, or `2D`.
-3. Ask for files first when the user already has a case bundle.
-4. Ask where execution should happen: local or server.
-5. Create a fresh isolated run directory before any real run.
-6. If the case needs PP/NAO/ABFS assets and the user did not provide a complete bundle, read `references/pp-nao-abfs-library.md` and select files from the bundled asset library.
-7. Route into the matching reference file and follow it strictly:
+1. Ask for files first when the user already has a case bundle.
+2. Decide upstream stack ownership first:
+   - `ABACUS -> LibRPA` wins when canonical ABACUS inputs are present.
+   - `FHI-aims -> LibRPA` activates only when stronger FHI-aims markers are present.
+   - weak markers such as `geometry.in`, `librpa.d/`, and `self_energy/` never claim FHI-aims ownership on their own.
+3. If the bundle mixes both families or ownership is still unclear, stop and ask which upstream stack owns the source of truth.
+4. Route through the matching stack-layer skill before any deeper workflow routing:
+   - `skills/oh-my-librpa-abacus-librpa/` for `ABACUS -> LibRPA`
+   - `skills/oh-my-librpa-fhi-aims-qsgw/` for `FHI-aims -> LibRPA`
+5. Only after `ABACUS -> LibRPA` ownership is established, classify the task as `GW`, `RPA`, or `Debug`.
+6. For ABACUS-owned cases, classify the system as `molecule`, `solid`, or `2D`.
+7. Ask where execution should happen: local or server.
+8. Create a fresh isolated run directory before any real run.
+9. If the case needs PP/NAO/ABFS assets and the user did not provide a complete bundle, read `references/pp-nao-abfs-library.md` and select files from the bundled asset library.
+10. For ABACUS-owned cases, route into the matching reference file and follow it strictly:
    - `references/gw-route.md`
    - `references/rpa-route.md`
    - `references/debug-route.md`
-8. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
-9. If server execution is chosen, also read `references/server-profiles.md` before submission.
-10. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
-11. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
-12. When the bundle clearly belongs to a specific upstream stack, route through the matching stack-layer skill before continuing:
-   - `skills/oh-my-librpa-abacus-librpa/` for `ABACUS -> LibRPA`
-   - `skills/oh-my-librpa-fhi-aims-qsgw/` for `FHI-aims -> LibRPA`
-13. For `ABACUS -> LibRPA`, let the stack-layer skill hand the case back into the existing `GW`, `RPA`, or `Debug` routes.
-14. For `FHI-aims -> LibRPA`, keep FHI-aims file conventions isolated from ABACUS `INPUT*` / `KPT*` / `STRU` conventions.
+11. If the case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
+12. If server execution is chosen, also read `references/server-profiles.md` before submission.
+13. Before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
+14. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
+15. For `FHI-aims -> LibRPA`, keep FHI-aims file conventions isolated from ABACUS `INPUT*` / `KPT*` / `STRU` conventions and do not reuse ABACUS assumptions.
 
 If the route is still ambiguous, ask the smallest possible clarification set.
 
@@ -43,7 +53,8 @@ Classify provided files into these groups:
 
 - `structure files`: `STRU`, `cif`, `xyz`, `geometry.in`
 - `input bundle`: `INPUT`, `INPUT_scf`, `INPUT_nscf`, `KPT`, `KPT_scf`, `KPT_nscf`, `librpa.in`
-- `fhi-aims bundle`: `control.in`, `geometry.in`, `run_librpa_gw_aims_iophr.sh`, `self_energy/`, `librpa.d/`
+- `fhi-aims strong markers`: `control.in`, `run_librpa_gw_aims_iophr.sh`, explicit task names such as `qsgw_band`, `qsgw_band0`, `qsgw`, `qsgwa`
+- `fhi-aims supporting markers`: `geometry.in`, `self_energy/`, `librpa.d/`
 - `symmetry sidecars`: `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, `symrot_abf_k.txt`
 - `workflow scripts`: `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`, `env.sh`, `probe_batch.sh`
 - `basis/pseudopotential assets`: `.orb`, `.abfs`, `.upf`
@@ -54,8 +65,9 @@ Use these intake rules:
 
 - `structure files` -> generate or complete the workflow
 - `input bundle` -> audit and patch; do not rewrite blindly
-- `input bundle` that is clearly ABACUS-based -> hand off to `skills/oh-my-librpa-abacus-librpa/`
-- `fhi-aims bundle` -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
+- ABACUS canonical inputs such as `INPUT*`, `KPT*`, `STRU`, `.orb`, `.abfs`, `.upf`, `OUT.ABACUS/`, or ABACUS logs -> hand off to `skills/oh-my-librpa-abacus-librpa/`
+- `fhi-aims strong markers` plus explicit FHI-aims user intent -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
+- `fhi-aims supporting markers` alone -> do not claim FHI-aims ownership; ask for stronger ownership markers first
 - `symmetry sidecars` -> keep them tied to the exact SCF that produced them; if one exists for periodic GW, verify the full required set before LibRPA
 - `.abfs` files -> treat as authoritative candidates for `ABFS_ORBITAL`
 - `logs/results` -> start in Debug mode first
@@ -101,13 +113,15 @@ Always do all of the following:
 
 ## Routing rules
 
-- User asks to start a GW workflow -> route to `references/gw-route.md`
-- User asks for dielectric/response/RPA work -> route to `references/rpa-route.md`
-- User reports failure, weird output, parser/read issues, or mixed inputs -> route to `references/debug-route.md`
-- User provides logs before asking anything else -> route to `references/debug-route.md`
-- User provides ABACUS-style inputs such as `INPUT_scf`, `INPUT_nscf`, `KPT_*`, `STRU`, or ABACUS logs -> route to `skills/oh-my-librpa-abacus-librpa/`
-- User provides `control.in`, `run_librpa_gw_aims_iophr.sh`, `qsgw_band`, `qsgw_band0`, `modeA`, `modeB`, or an existing non-ABACUS case -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
-- If a bundle mixes both ABACUS and FHI-aims markers, stop and ask which upstream stack owns the source of truth before editing anything.
+- User provides ABACUS-style inputs such as `INPUT_scf`, `INPUT_nscf`, `KPT_*`, `STRU`, `.orb`, `.abfs`, `.upf`, `OUT.ABACUS/`, or ABACUS logs -> route to `skills/oh-my-librpa-abacus-librpa/`
+- User provides stronger FHI-aims markers such as `control.in`, `run_librpa_gw_aims_iophr.sh`, or explicit `qsgw_band` / `qsgw_band0` / `qsgw` / `qsgwa` intent -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
+- `geometry.in`, `librpa.d/`, and `self_energy/` are supporting markers only and must not route the case into the FHI-aims layer on their own
+- If a bundle mixes both ABACUS and FHI-aims markers, stop and ask which upstream stack owns the source of truth before editing anything
+- After ABACUS ownership is established:
+  - user asks to start a GW workflow -> route to `references/gw-route.md`
+  - user asks for dielectric/response/RPA work -> route to `references/rpa-route.md`
+  - user reports failure, weird output, parser/read issues, or mixed inputs -> route to `references/debug-route.md`
+  - user provides logs before asking anything else -> route to `references/debug-route.md`
 
 ## Safety rules
 
