@@ -12,7 +12,7 @@ The top-level router `skills/oh-my-librpa/` should decide between those two laye
 After that:
 
 - `skills/oh-my-librpa-abacus-librpa/` owns ABACUS-style bundles such as `INPUT_scf`, `KPT_nscf`, and `STRU`
-- `skills/oh-my-librpa-fhi-aims-qsgw/` owns FHI-aims-style bundles such as `control.in`, `geometry.in`, and `run_librpa_gw_aims_iophr.sh`
+- `skills/oh-my-librpa-fhi-aims-qsgw/` owns FHI-aims-style bundles such as `control.in` and `run_librpa_gw_aims_iophr.sh`
 
 This separation is intentional. It prevents the agent from mixing ABACUS input conventions with FHI-aims case layouts.
 
@@ -21,12 +21,13 @@ This separation is intentional. It prevents the agent from mixing ABACUS input c
 Use this route when the workflow is based on FHI-aims-generated LibRPA inputs rather than the ABACUS route. Typical triggers include:
 
 - `control.in`
-- `geometry.in`
 - `run_librpa_gw_aims_iophr.sh`
 - `qsgw_band`
 - `qsgw_band0`
 - `modeA` / `modeB`
 - mirroring an older Si, MgO, or similar reference case
+
+Treat `geometry.in`, `librpa.d/`, and `self_energy/` as supporting markers only. They are not enough on their own to claim FHI-aims ownership, because reused ABACUS-side bundles and plotting helpers may also carry them.
 
 If the bundle instead centers on:
 
@@ -51,6 +52,7 @@ In practice, that means:
 - do not reuse `control.in` or `geometry.in` conventions when preparing ABACUS cases
 - do not reuse `INPUT_scf`, `KPT_nscf`, or `STRU` conventions when handling FHI-aims cases
 - if a bundle mixes both families, stop and explain the mismatch before editing anything
+- if only `geometry.in`, `librpa.d/`, or `self_energy/` is present, do not auto-route here; inspect for stronger ownership markers first
 
 ## Core Rules
 

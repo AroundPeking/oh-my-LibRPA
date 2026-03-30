@@ -53,6 +53,8 @@ fail_count=0
 
 for path in \
   "$workspace/skills/oh-my-librpa/SKILL.md" \
+  "$workspace/skills/oh-my-librpa-abacus-librpa/SKILL.md" \
+  "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md" \
   "$workspace/skills/abacus-librpa-gw/SKILL.md" \
   "$workspace/skills/abacus-librpa-rpa/SKILL.md" \
   "$workspace/skills/abacus-librpa-debug/SKILL.md" \
@@ -63,6 +65,7 @@ for path in \
   "$installed_root/rules/cards/periodic-gw-plotting.yml" \
   "$installed_root/rules/cards/server-profile-runtime.yml" \
   "$installed_root/registry/host-profiles/generic-hpc-example.env" \
+  "$installed_root/docs/guide/fhi-aims-librpa-qsgw.md" \
   "$installed_root/templates/abacus-librpa-gw/minimal/INPUT_scf.template" \
   "$installed_root/templates/abacus-librpa-gw/template/plot_gw_band_paper.py" \
   "$installed_root/templates/abacus-librpa-gw/routes/molecule-gw-no-nscf-no-pyatb-no-shrink/INPUT_scf.template" \
@@ -75,6 +78,19 @@ for path in \
     fail "Missing required file: $path"
   fi
 done
+
+if grep -q 'supporting markers only: `geometry.in`, `librpa.d/`, `self_energy/`' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && ! grep -q 'existing non-ABACUS case' "$workspace/skills/oh-my-librpa/SKILL.md"; then
+  pass 'top-level router keeps weak markers from stealing ABACUS-owned cases'
+else
+  fail 'top-level router still contains ambiguous FHI-aims ownership triggers'
+fi
+
+if grep -q 'Do not use `geometry.in`, `librpa.d/`, or `self_energy/` alone' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md"; then
+  pass 'FHI-aims skill rejects weak ownership markers on their own'
+else
+  fail 'FHI-aims skill still accepts weak ownership markers without stronger evidence'
+fi
 
 if [[ -f "$installed_root/install-state.env" ]]; then
   pass "Found install state: $installed_root/install-state.env"

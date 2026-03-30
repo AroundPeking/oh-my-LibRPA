@@ -112,7 +112,8 @@ Expected behavior:
 - AI routes to GW/RPA/debug workflow automatically
 - AI routes first into one of two stack-layer skills: `ABACUS -> LibRPA` or `FHI-aims -> LibRPA`
 - AI then routes ABACUS cases into GW/RPA/debug workflow automatically
-- AI routes `FHI-aims + LibRPA` QSGW/G0W0 requests to the supplemental workflow when the request is based on existing FHI-aims case files or tasks such as `qsgw_band`
+- AI routes `FHI-aims + LibRPA` QSGW/G0W0 requests to the supplemental workflow only when strong FHI-aims markers are present, such as `control.in`, `run_librpa_gw_aims_iophr.sh`, or explicit tasks such as `qsgw_band`
+- AI does not treat `geometry.in` by itself as an FHI-aims-only marker; ambiguous bundles keep the existing ABACUS-first behavior until stronger ownership evidence appears
 - AI starts with intake/preflight and tells the user what is missing before execution
 - AI applies curated experience rules and explains why
 - AI enforces run-safety constraints (new directory, no overwrite)

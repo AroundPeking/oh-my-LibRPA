@@ -24,14 +24,19 @@ Treat this skill as the FHI-aims-side router below the top-level `oh-my-librpa` 
 
 ## Intake Markers
 
-Treat these as FHI-aims markers:
+Treat these as strong FHI-aims markers:
 
 - `control.in`
-- `geometry.in`
 - `run_librpa_gw_aims_iophr.sh`
+- explicit task names such as `qsgw_band`, `qsgw_band0`, `qsgw`, and `qsgwa`
+
+Treat these only as supporting markers:
+
+- `geometry.in`
 - `librpa.d/`
 - `self_energy/`
-- task names such as `qsgw_band` and `qsgw_band0`
+
+Do not use `geometry.in`, `librpa.d/`, or `self_energy/` alone to claim FHI-aims ownership. They can also appear in mixed, reused, or postprocessed ABACUS-side bundles.
 
 If the bundle instead centers on `INPUT_scf`, `INPUT_nscf`, `KPT_*`, or `STRU`, stop and hand the task to `skills/oh-my-librpa-abacus-librpa/`.
 

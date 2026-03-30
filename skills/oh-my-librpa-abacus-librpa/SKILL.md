@@ -35,12 +35,14 @@ Treat these as ABACUS markers:
 - `STRU`
 - `.orb`, `.abfs`, `.upf`
 - `running_scf.log`, `running_nscf.log`, `band_out`, `OUT.ABACUS/`
+- `geometry.in` when it appears only as a supporting structure or plotting file alongside ABACUS inputs
 
 If these markers are absent and the case instead revolves around `control.in` and `run_librpa_gw_aims_iophr.sh`, stop and hand the task to `skills/oh-my-librpa-fhi-aims-qsgw/`.
 
 ## Hard Separation Rule
 
 - Do not reuse `control.in` or `geometry.in` conventions from FHI-aims when preparing ABACUS cases.
+- Do not treat `geometry.in` by itself as proof that a case belongs to FHI-aims; some ABACUS bundles carry it for interop or plotting.
 - Do not reuse `INPUT_scf`, `KPT_nscf`, or ABACUS helper-script expectations when handling FHI-aims cases.
 - If a bundle mixes both families, stop and explain the mismatch before editing anything.
 
