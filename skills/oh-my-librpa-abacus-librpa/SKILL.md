@@ -51,4 +51,5 @@ If these markers are absent and the case instead revolves around `control.in` an
 - Create a fresh run directory before real execution.
 - Audit copied bundles instead of blindly reusing stale outputs.
 - Run static checks before submission.
+- On any server, confirm that ABACUS and LibRPA were built against the same latest LibRI with the nearest-fix bugfix. If the host has a site-specific LibRI root, record it in the host profile instead of assuming a cross-server default.
 - Keep the conversation operational and report `what was done`, `what was observed`, and `what is next`.

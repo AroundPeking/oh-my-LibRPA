@@ -12,6 +12,7 @@ Before batch submission, confirm:
 - whether VPN is required and already enabled
 - whether connectivity/login should be tested now
 - whether this is only a smoke run or a longer production run
+- whether both ABACUS and LibRPA were built against the same latest LibRI with the nearest-fix bugfix, and whether the host has a site-specific LibRI root that should be recorded
 
 ## Runtime materialization rule
 
@@ -28,6 +29,7 @@ Prefer explicit values for:
 - `python3_exec`
 - `abacus_work`
 - `librpa_work`
+- `libri_root` when the host has a known site-specific LibRI tree
 - MPI launcher path and flags
 - `.bashrc` / conda activation steps when the host depends on them
 - scheduler directives that affect node shape or environment loading
@@ -46,6 +48,7 @@ A common pattern is:
 ## DF batch guardrails
 
 - On `df_iopcas_ghj`, do not assume the interactive SSH rule (`source ~/.bashrc`) is safe inside Slurm batch jobs.
+- On `df_iopcas_ghj`, ask the user which current LibRI root their ABACUS/LibRPA builds use instead of assuming one fixed path.
 - If a batch job exits before the first workload log line, classify it as a bootstrap failure first; suspect `.bashrc`, conda hooks, or site init scripts before blaming ABACUS or LibRPA.
 - For a new `df` batch workflow, start with a minimal payload:
   - `set -euxo pipefail`
@@ -62,6 +65,7 @@ A common pattern is:
 - never overwrite the user's original data directory
 - test connectivity first if the profile or VPN state is unclear
 - for expensive jobs, confirm server and resource choice before submission
+- for any server where the LibRI provenance is unclear, stop and ask before submission; do not assume the df path applies elsewhere
 - if login fails, report the exact failure class: `timeout`, `auth`, `host resolution`, or equivalent
 
 ## Minimal status update format

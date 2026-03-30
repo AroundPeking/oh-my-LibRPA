@@ -20,6 +20,7 @@ fi
 set -u
 
 python3_exec="${python3_exec:-${OH_MY_LIBRPA_PYTHON3_EXEC:-python3}}"
+libri_root="${libri_root:-${OH_MY_LIBRPA_LIBRI_ROOT:-}}"
 abacus_work="${abacus_work:-${OH_MY_LIBRPA_ABACUS_EXEC:-}}"
 librpa_work="${librpa_work:-${OH_MY_LIBRPA_LIBRPA_EXEC:-}}"
 mpirun_exec="${mpirun_exec:-${OH_MY_LIBRPA_MPI_LAUNCHER_CMD:-mpirun}}"
@@ -55,6 +56,7 @@ require_glob() {
 log_runtime_config() {
   cat > resolved-runtime.env <<EOF
 python3_exec=$python3_exec
+libri_root=$libri_root
 abacus_work=$abacus_work
 librpa_work=$librpa_work
 mpirun_exec=$mpirun_exec
@@ -89,6 +91,7 @@ log_runtime_config
 echo "Begin Time: $(date)"
 echo "Working directory is $PWD"
 echo "Resolved python3_exec: $python3_exec"
+echo "Resolved libri_root: ${libri_root:-}"
 echo "Resolved abacus_work: $abacus_work"
 echo "Resolved librpa_work: $librpa_work"
 echo "Resolved mpirun_exec: $mpirun_exec"

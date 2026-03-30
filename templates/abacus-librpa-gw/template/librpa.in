@@ -1,5 +1,6 @@
 # Baseline template: periodic GW + shrink + symmetry lane.
 # Do not reuse this file for the short molecular GW route; materialize `routes/molecule-gw-no-nscf-no-pyatb-no-shrink/` instead.
+# Do not use the symmetry flags below for SOC cases.
 task = g0w0_band
 nfreq = 16
 option_dielect_func = 3
@@ -9,6 +10,7 @@ parallel_routing = libri
 vq_threshold = 0
 sqrt_coulomb_threshold = 0
 use_shrink_abfs = t
+# SOC cases should keep these flags disabled.
 use_abacus_exx_symmetry = t
 use_abacus_gw_symmetry = t
 use_fullcoul_exx = t

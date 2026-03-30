@@ -2,6 +2,7 @@
 # Set task according to user intent:
 #   GW  -> task = g0w0_band
 #   RPA -> task = rpa
+# If SOC is enabled, keep the ABACUS side on `symmetry -1` and leave the symmetry flags below disabled.
 
 task = g0w0_band
 nfreq = 16
@@ -27,5 +28,6 @@ libri_g0w0_threshold_Wc = 1e-6
 
 # Shrink is the default strategy
 use_shrink_abfs = t
+# For SOC cases, set both symmetry flags to `f`.
 use_abacus_exx_symmetry = t
 use_abacus_gw_symmetry = t

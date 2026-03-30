@@ -146,9 +146,11 @@ For Windows + Git Bash agent updates, see:
 ```text
 Molecule GW:      SCF -> LibRPA
 Periodic GW:      SCF -> pyatb -> NSCF -> preprocess -> LibRPA
-Periodic GW sym:  SCF(symmetry=1,rpa=1) -> copy sidecars -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
+Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC) -> copy sidecars -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
 RPA:              SCF -> LibRPA
 ```
+
+For SOC cases, do not use the periodic symmetry lane. Keep the ABACUS side on `symmetry = -1` and do not enable the LibRPA symmetry flags.
 
 The agent should decide the lane from the user's files, intent, and system type — then explain what it is doing and why.
 

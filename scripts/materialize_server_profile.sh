@@ -58,6 +58,7 @@ source "$profile_path"
 
 server_name="${OH_MY_LIBRPA_SERVER_NAME:-$(basename "$profile_path" .env)}"
 python3_exec="${OH_MY_LIBRPA_PYTHON3_EXEC:-}"
+libri_root="${OH_MY_LIBRPA_LIBRI_ROOT:-}"
 abacus_exec="${OH_MY_LIBRPA_ABACUS_EXEC:-}"
 librpa_exec="${OH_MY_LIBRPA_LIBRPA_EXEC:-}"
 mpi_launcher="${OH_MY_LIBRPA_MPI_LAUNCHER:-mpirun}"
@@ -125,6 +126,7 @@ IFS=';' read -r -a module_loads <<< "$module_loads_raw"
   printf '%s\n' 'set -u'
   printf 'export OH_MY_LIBRPA_SERVER_NAME=%q\n' "$server_name"
   printf 'export python3_exec=%q\n' "$python3_exec"
+  printf 'export libri_root=%q\n' "$libri_root"
   printf 'export abacus_work=%q\n' "$abacus_exec"
   printf 'export librpa_work=%q\n' "$librpa_exec"
   printf 'export mpi_launcher=%q\n' "$mpi_launcher"
@@ -142,6 +144,7 @@ chmod +x "$env_sh"
   printf 'OH_MY_LIBRPA_CONDA_INIT_SOURCE=%q\n' "$conda_init_source"
   printf 'OH_MY_LIBRPA_CONDA_ENV=%q\n' "$conda_env"
   printf 'OH_MY_LIBRPA_PYTHON3_EXEC=%q\n' "$python3_exec"
+  printf 'OH_MY_LIBRPA_LIBRI_ROOT=%q\n' "$libri_root"
   printf 'OH_MY_LIBRPA_ABACUS_EXEC=%q\n' "$abacus_exec"
   printf 'OH_MY_LIBRPA_LIBRPA_EXEC=%q\n' "$librpa_exec"
   printf 'OH_MY_LIBRPA_MPI_LAUNCHER=%q\n' "$mpi_launcher"
@@ -157,6 +160,7 @@ PROFILE_SOURCE=$profile_path
 CASE_DIR=$case_dir
 ENV_SH=$env_sh
 PYTHON3_EXEC=$python3_exec
+LIBRI_ROOT=$libri_root
 ABACUS_EXEC=$abacus_exec
 LIBRPA_EXEC=$librpa_exec
 MPI_LAUNCHER=$mpi_launcher

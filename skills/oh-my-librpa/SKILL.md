@@ -35,6 +35,7 @@ Do these steps in order:
 14. For `ABACUS -> LibRPA`, before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.
 15. When route defaults, stage checks, or repair actions are still uncertain, load the most relevant cards under `rules/cards/` instead of inventing new workflow behavior.
 16. Keep FHI-aims file conventions isolated from ABACUS `INPUT*` / `KPT*` / `STRU` conventions.
+17. If the user asks how to obtain, generate, select, validate, or document `ABFS_ORBITAL` / `.abfs` files, load `skills/abacus-librpa-abfs-orbital/`.
 
 If the route is still ambiguous, ask the smallest possible clarification set.
 
@@ -96,6 +97,7 @@ Always do all of the following:
 - Refuse to overwrite original data directories
 - Prefer smoke-first validation before expensive runs
 - For server smoke runs, start from the smallest batch payload that can print `pwd`, list files, and run one stage; do not add `.bashrc`, `conda`, `setvars.sh`, or `mpirun -np 1` unless a probe proves they are needed
+- On any server, remind the user to confirm that both `abacus_work` and `librpa_work` were compiled against the same latest LibRI that includes the nearest-fix bugfix; do not mix one side built against older LibRI
 - On `df_iopcas_ghj`, do not use `source ~/.bashrc` as the default Slurm batch entrypoint. In batch mode it can leave conda-injected paths without the intended oneAPI/module toolchain, or fail immediately with empty `slurm` output. Prefer explicit `module load cmake/3.31.7`, `module load oneapi/2024.2`, and compiler exports in the script itself
 - For ABACUS-side Coulomb validation, allow `SCF`-only runs; do not force `pyatb`, `NSCF`, or `LibRPA` if the user is only checking `coulomb_mat_*` / `coulomb_cut_*`
 - For ABACUS symmetry-on Coulomb validation, do not flatten-compare `symmetry=1` output with `symmetry=-1` output: symmetry-on exports IBZ q only, while symmetry-off exports the full BZ q-grid. Compare symmetry-on `mpi1` vs `mpiN` directly, compare Gamma/no-rotation blocks, or restore the full q-star before comparing to symmetry-off data
@@ -122,6 +124,7 @@ Always do all of the following:
 - Never submit a reused GW case bundle to a newer ABACUS branch without a keyword-compatibility audit
 - Confirm server and resource choice before expensive or long jobs
 - When the basis count, route, or spin/SOC alignment is ambiguous, stop and explain the ambiguity before proceeding
+- When SOC is enabled, do not use the periodic symmetry lane: keep ABACUS on `symmetry -1` and disable the LibRPA symmetry flags
 - For symmetry-on/off comparisons, keep every non-symmetry input identical and only patch the symmetry knobs plus sidecar staging
 
 ## Output style

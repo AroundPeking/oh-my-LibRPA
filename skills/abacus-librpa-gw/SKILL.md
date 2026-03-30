@@ -147,6 +147,7 @@ Interpretation:
 - `shrink_lu_inv_thr` is used to control inversion-error handling for the output `sinvS`; default to `1e-3`.
 - `exx_pca_threshold = 10` means the large-basis path expects external input when shrink is enabled.
 - When shrink is enabled, `ABFS_ORBITAL` in `STRU` must be specified by the user.
+- If the user asks how to obtain or generate those files, load `skills/abacus-librpa-abfs-orbital/`.
 - If the user provides `.abfs` files, use those filenames directly in `ABFS_ORBITAL` entries.
 - Server examples include names such as `Ga_str_4s4p3d2f2g_1e-4.abfs` and `As_str_4s4p3d2f2g_1e-4.abfs`.
 

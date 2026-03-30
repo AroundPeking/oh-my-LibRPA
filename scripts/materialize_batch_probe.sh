@@ -70,11 +70,15 @@ echo "PATH=\$PATH"
 echo "LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:-}"
 echo "CONDA_DEFAULT_ENV=\${CONDA_DEFAULT_ENV:-}"
 echo "python3_exec=\$python3_exec"
+echo "libri_root=\${libri_root:-}"
 echo "abacus_work=\$abacus_work"
 echo "librpa_work=\$librpa_work"
 echo "mpirun_exec=\$mpirun_exec"
 
 [[ -x "\$python3_exec" ]] || { echo '[PROBE] missing python3_exec' >&2; exit 1; }
+if [[ -n "\${libri_root:-}" ]]; then
+  [[ -d "\$libri_root" ]] || { echo '[PROBE] missing libri_root directory' >&2; exit 1; }
+fi
 [[ -x "\$abacus_work" ]] || { echo '[PROBE] missing abacus executable' >&2; exit 1; }
 [[ -x "\$librpa_work" ]] || { echo '[PROBE] missing librpa executable' >&2; exit 1; }
 [[ -x "\$mpirun_exec" ]] || command -v "\$mpirun_exec" >/dev/null 2>&1 || { echo '[PROBE] missing launcher executable' >&2; exit 1; }

@@ -3,6 +3,7 @@
 # `nbands` must equal the basis-function count and match ABACUS `NBASE`.
 # Count from `.orb` channels with degeneracy `s=1`, `p=3`, `d=5`, `f=7`, ...;
 # multiply by radial multiplicity, sum over all atoms, and multiply by 2 if SOC is enabled.
+# If SOC is enabled, do not turn on the periodic symmetry lane; keep `symmetry -1`.
 
 calculation scf
 # Spin/SOC examples:
@@ -15,6 +16,7 @@ nbands <FILL_ME>
 # - shrink_lu_inv_thr controls inversion-error handling for output sinvS
 # - exx_pca_threshold = 10 means the large-basis path expects external input
 rpa 1
+# For SOC cases, replace this with `symmetry -1`.
 symmetry 1
 exx_pca_threshold 10
 shrink_abfs_pca_thr 1e-4

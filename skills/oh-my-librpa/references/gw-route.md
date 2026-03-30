@@ -120,6 +120,8 @@ Required checks and stages:
 
 Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already contains ABACUS symmetry sidecars.
 
+Do not use this lane for SOC cases. When SOC is enabled, keep the ABACUS side on `symmetry = -1` and disable `use_abacus_exx_symmetry` / `use_abacus_gw_symmetry` in `librpa.in`.
+
 Required settings:
 
 - `INPUT_scf`: keep `rpa 1` and set `symmetry 1`

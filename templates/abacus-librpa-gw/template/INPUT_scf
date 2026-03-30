@@ -1,6 +1,7 @@
 INPUT_PARAMETERS
 # Baseline template: periodic GW + shrink + symmetry lane.
 # Do not reuse this file for the short molecular GW route; materialize `routes/molecule-gw-no-nscf-no-pyatb-no-shrink/` instead.
+# Do not use this symmetry-on SCF template for SOC cases; with SOC keep ABACUS on `symmetry -1`.
 #Parameters	(General)
 pseudo_dir		./
 orbital_dir		./
@@ -23,6 +24,7 @@ ks_solver  genelpa
 dft_functional			pbe
 rpa				1
 # Symmetry-enabled SCF emits the sidecars consumed by LibRPA.
+# SOC cases must not use this lane; keep `symmetry -1` instead.
 symmetry			1
 exx_separate_loop		1
 exx_pca_threshold		10
