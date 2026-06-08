@@ -75,6 +75,30 @@ scripts/intake_preflight.sh <case_dir> --compute-location server --ssh-target df
   --expected-ntasks-per-node 1 --node-cores <CPUTot> --node-memory-mb <RealMemory>
 ```
 
+## 60.245 Slurm guardrails
+
+- Keep large ABACUS/LibRPA work under `/work1/ghj/...`; `/public/home/ghj` has a small quota and should only hold source/build trees.
+- Before blaming a rerun failure on memory, verify the exact ABACUS and LibRPA executable mtimes against the patched source files. A stale ABACUS binary can reproduce already-fixed RI/Coulomb map errors.
+- For LibRPA GW Wc-heavy jobs on the Intel MPI + Intel MKL stack, do not set `MKL_NUM_THREADS=1` by default. The Wc stage uses MKL/ScaLAPACK/PBLAS heavily, so a 1-rank-per-node job should normally use `MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK`, `MKL_DYNAMIC=FALSE`, `OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK`, `OMP_PLACES=cores`, and explicit rank binding. If testing thread behavior, enable `MKL_VERBOSE=1` on a short C256/C512 run and confirm `NThr` is not 1.
+- If the user explicitly asks to avoid `srun`, do not rely on Intel MPI's Slurm bootstrap default. Use explicit SSH bootstrap, for example:
+
+```bash
+mpirun -bootstrap ssh -f "$HOSTFILE" -ppn "$RANKS_PER_NODE" -np "$NRANKS" "$EXEC"
+```
+
+- On the current 60.245 Intel MPI 2021.3 environment, an `mpirun -bootstrap ssh` job may fail during `MPI_Init` with `ib_iface.c:674 Assertion gid->global.interface_id != 0`. First run a two-node MPI smoke test; if the default provider fails and TCP succeeds, set:
+
+```bash
+export I_MPI_HYDRA_BOOTSTRAP=ssh
+export I_MPI_HYDRA_BOOTSTRAP_EXEC=ssh
+export I_MPI_JOB_RESPECT_PROCESS_PLACEMENT=0
+export FI_PROVIDER=tcp
+export I_MPI_OFI_PROVIDER=tcp
+export UCX_TLS=tcp,self
+```
+
+- Treat the TCP provider setting as a 60.245 runtime workaround, not as a universal cluster default.
+
 ## Submission discipline
 
 - always use a fresh isolated run directory
