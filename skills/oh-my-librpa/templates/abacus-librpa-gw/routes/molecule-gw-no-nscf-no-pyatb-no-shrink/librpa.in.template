@@ -5,16 +5,25 @@ task = g0w0_band
 nfreq = 16
 option_dielect_func = 3
 replace_w_head = f
+prefix_coul_full = v1_coulomb_full_iq_
+prefix_coul_cut = v1_coulomb_cut_iq_
+prefix_lri_coeff = v1_Cs_data_
+version_coul_reader = 1
+version_lri_reader = 1
 use_abacus_exx_symmetry = f
 use_abacus_gw_symmetry = f
 use_soc = 0
 use_shrink_abfs = f
 use_scalapack_gw_wc = t
+use_cholesky_gw_wc = t
+use_elpa_sqrt_coulomb = t
 use_scalapack_ecrpa = t
 parallel_routing = libri
 vq_threshold = 0
 sqrt_coulomb_threshold = 0
 use_fullcoul_exx = t
+use_kpara_scf_eigvec = t
+libri_chi0_collect_max_bytes = 2147483648
 # This short route does not use NSCF band continuation.
 output_gw_sigc_mat_rf = f
 

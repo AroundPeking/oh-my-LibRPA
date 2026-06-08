@@ -6,6 +6,7 @@ INPUT_PARAMETERS
 pseudo_dir		./
 orbital_dir		./
 out_mat_xc      1
+out_librpa_reader_version 1
 out_chg		1
 out_mat_hs2           1
 out_mat_r             1

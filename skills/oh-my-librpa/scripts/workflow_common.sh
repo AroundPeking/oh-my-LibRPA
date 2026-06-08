@@ -141,13 +141,13 @@ verify_molecular_gw_prereqs_stage() {
   local ssh_target="$2"
   local run_dir="$3"
 
-  local body='[[ -s vxc_out ]] && compgen -G "coulomb_mat_*.txt" >/dev/null'
+  local body='[[ -s vxc_out && -s band_out ]] && compgen -G "v1_coulomb_full_iq_*" >/dev/null && compgen -G "v1_coulomb_cut_iq_*" >/dev/null && compgen -G "v1_Cs_data_*" >/dev/null && compgen -G "KS_eigenvector_*.dat" >/dev/null'
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
-    VERIFY_MESSAGE='`vxc_out` exists and at least one `coulomb_mat_*.txt` file is present for the molecular GW LibRPA step.'
+    VERIFY_MESSAGE='`band_out`, `vxc_out`, `KS_eigenvector_*.dat`, `v1_Cs_data_*`, `v1_coulomb_full_iq_*`, and `v1_coulomb_cut_iq_*` exist for the molecular GW LibRPA reader-v1 step.'
     return 0
   fi
 
-  VERIFY_MESSAGE='Missing molecular GW prerequisites for LibRPA: expected `vxc_out` and at least one `coulomb_mat_*.txt` file in the working directory.'
+  VERIFY_MESSAGE='Missing molecular GW prerequisites for LibRPA reader-v1: expected `band_out`, `vxc_out`, `KS_eigenvector_*.dat`, `v1_Cs_data_*`, `v1_coulomb_full_iq_*`, and `v1_coulomb_cut_iq_*` in the working directory.'
   return 1
 }
 
@@ -169,13 +169,13 @@ verify_librpa_success_stage() {
     return 0
   fi
 
-  body="grep -q 'libRPA finished successfully' '$rank0' && [[ -f band_out && -f vxc_out ]] && compgen -G 'coulomb_mat_*.txt' >/dev/null"
+  body="grep -q 'libRPA finished successfully' '$rank0' && [[ -f band_out && -f vxc_out ]] && compgen -G 'v1_coulomb_full_iq_*' >/dev/null && compgen -G 'v1_coulomb_cut_iq_*' >/dev/null && compgen -G 'v1_Cs_data_*' >/dev/null"
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
-    VERIFY_MESSAGE='LibRPA rank-0 output reports `libRPA finished successfully`, and the molecular GW outputs `band_out`, `vxc_out`, and `coulomb_mat_*.txt` exist.'
+    VERIFY_MESSAGE='LibRPA rank-0 output reports `libRPA finished successfully`, and the molecular GW reader-v1 outputs `band_out`, `vxc_out`, `v1_Cs_data_*`, `v1_coulomb_full_iq_*`, and `v1_coulomb_cut_iq_*` exist.'
     return 0
   fi
 
-  VERIFY_MESSAGE='LibRPA did not reach the final completion markers: expected either periodic GW markers (`GW_band_spin_*` plus `Timer stop:  total.` or `libRPA finished successfully`) or the molecular GW markers `libRPA finished successfully` + `band_out` + `vxc_out` + `coulomb_mat_*.txt`.'
+  VERIFY_MESSAGE='LibRPA did not reach the final completion markers: expected either periodic GW markers (`GW_band_spin_*` plus `Timer stop:  total.` or `libRPA finished successfully`) or the molecular GW reader-v1 markers `libRPA finished successfully` + `band_out` + `vxc_out` + `v1_Cs_data_*` + `v1_coulomb_full_iq_*` + `v1_coulomb_cut_iq_*`.'
   return 1
 }
 

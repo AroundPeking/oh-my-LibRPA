@@ -227,6 +227,20 @@ cp "$case_gw_bad_abfs/KPT_nscf" "$case_gw_good_abfs/KPT_nscf"
 cp "$case_gw_bad_abfs/STRU" "$case_gw_good_abfs/STRU"
 cp "$case_gw_bad_abfs/X.upf" "$case_gw_good_abfs/X.upf"
 cp "$case_gw_bad_abfs/X.orb" "$case_gw_good_abfs/X.orb"
+cat <<'EOF' >> "$case_gw_good_abfs/INPUT_scf"
+out_librpa_reader_version 1
+EOF
+cat <<'EOF' >> "$case_gw_good_abfs/librpa.in"
+prefix_coul_full = v1_coulomb_full_iq_
+prefix_coul_cut = v1_coulomb_cut_iq_
+prefix_lri_coeff = v1_Cs_data_
+version_coul_reader = 1
+version_lri_reader = 1
+use_cholesky_gw_wc = t
+use_elpa_sqrt_coulomb = t
+use_kpara_scf_eigvec = t
+libri_chi0_collect_max_bytes = 2147483648
+EOF
 cat <<'EOF' > "$case_gw_good_abfs/X.abfs"
 Element                     X
 Radius Cutoff(a.u.)         10
@@ -312,6 +326,7 @@ else
 fi
 
 if grep -q 'out_mat_xc[[:space:]]\+1' "$case_gw/INPUT_scf" \
+  && grep -q 'out_librpa_reader_version[[:space:]]\+1' "$case_gw/INPUT_scf" \
   && awk '
     $1 == "exx_ccp_rmesh_times" { exx = $2 }
     $1 == "rpa_ccp_rmesh_times" { rpa = $2 }
@@ -326,6 +341,15 @@ else
 fi
 
 if grep -q '^replace_w_head = f$' "$case_gw/librpa.in" \
+  && grep -q '^prefix_coul_full = v1_coulomb_full_iq_$' "$case_gw/librpa.in" \
+  && grep -q '^prefix_coul_cut = v1_coulomb_cut_iq_$' "$case_gw/librpa.in" \
+  && grep -q '^prefix_lri_coeff = v1_Cs_data_$' "$case_gw/librpa.in" \
+  && grep -q '^version_coul_reader = 1$' "$case_gw/librpa.in" \
+  && grep -q '^version_lri_reader = 1$' "$case_gw/librpa.in" \
+  && grep -q '^use_cholesky_gw_wc = t$' "$case_gw/librpa.in" \
+  && grep -q '^use_elpa_sqrt_coulomb = t$' "$case_gw/librpa.in" \
+  && grep -q '^use_kpara_scf_eigvec = t$' "$case_gw/librpa.in" \
+  && grep -q '^libri_chi0_collect_max_bytes = 2147483648$' "$case_gw/librpa.in" \
   && grep -q '^use_abacus_exx_symmetry = f$' "$case_gw/librpa.in" \
   && grep -q '^use_abacus_gw_symmetry = f$' "$case_gw/librpa.in" \
   && grep -q '^use_shrink_abfs = f$' "$case_gw/librpa.in"; then
@@ -335,7 +359,10 @@ else
 fi
 
 if grep -q 'cp -a OUT.ABACUS/vxc_out.dat ./vxc_out' "$case_gw/run_abacus.sh" \
-  && grep -q 'coulomb_mat_\*\.txt' "$case_gw/run_abacus.sh"; then
+  && grep -q 'v1_coulomb_full_iq_\*' "$case_gw/run_abacus.sh" \
+  && grep -q 'v1_coulomb_cut_iq_\*' "$case_gw/run_abacus.sh" \
+  && grep -q 'v1_Cs_data_\*' "$case_gw/run_abacus.sh" \
+  && grep -q 'KS_eigenvector_\*\.dat' "$case_gw/run_abacus.sh"; then
   pass 'materialized run_abacus.sh contains the direct LibRPA handoff guards'
 else
   fail 'materialized run_abacus.sh is missing the direct LibRPA handoff guards'

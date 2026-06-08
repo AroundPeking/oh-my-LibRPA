@@ -421,6 +421,50 @@ if [[ "$resolved_mode" == "gw" ]]; then
       note_fail "preprocess_abacus_for_librpa_band.py should resolve the merged-branch wavefunction filename variants"
     fi
   fi
+
+  if has_key_value "$scf" "out_librpa_reader_version" "1"; then
+    note_pass "INPUT_scf enables ABACUS LibRPA reader-v1 producer output"
+  else
+    note_fail "GW route requires 'out_librpa_reader_version 1' in INPUT_scf for ABACUS master_ghj reader-v1 outputs"
+  fi
+
+  if has_key_value "$librpa" "version_coul_reader" "1" && has_key_value "$librpa" "version_lri_reader" "1"; then
+    note_pass "librpa.in selects reader-v1 for Coulomb and LRI data"
+  else
+    note_fail "GW route requires version_coul_reader = 1 and version_lri_reader = 1 in librpa.in"
+  fi
+
+  if has_key_value "$librpa" "prefix_coul_full" "v1_coulomb_full_iq_" \
+     && has_key_value "$librpa" "prefix_coul_cut" "v1_coulomb_cut_iq_" \
+     && has_key_value "$librpa" "prefix_lri_coeff" "v1_Cs_data_"; then
+    note_pass "librpa.in uses ABACUS reader-v1 file prefixes"
+  else
+    note_fail "GW route requires prefix_coul_full = v1_coulomb_full_iq_, prefix_coul_cut = v1_coulomb_cut_iq_, and prefix_lri_coeff = v1_Cs_data_"
+  fi
+
+  if has_key_value "$librpa" "use_cholesky_gw_wc" "t"; then
+    note_pass "librpa.in enables use_cholesky_gw_wc = t"
+  else
+    note_fail "GW route requires use_cholesky_gw_wc = t by default"
+  fi
+
+  if has_key_value "$librpa" "use_elpa_sqrt_coulomb" "t"; then
+    note_pass "librpa.in enables use_elpa_sqrt_coulomb = t"
+  else
+    note_fail "GW route requires use_elpa_sqrt_coulomb = t by default"
+  fi
+
+  if has_key_value "$librpa" "use_kpara_scf_eigvec" "t"; then
+    note_pass "librpa.in enables use_kpara_scf_eigvec = t"
+  else
+    note_fail "GW route requires use_kpara_scf_eigvec = t for the ABACUS reader-v1 eigenvector path"
+  fi
+
+  if has_key_value "$librpa" "libri_chi0_collect_max_bytes" "2147483648"; then
+    note_pass "librpa.in sets libri_chi0_collect_max_bytes = 2147483648"
+  else
+    note_fail "GW route requires libri_chi0_collect_max_bytes = 2147483648 by default"
+  fi
 fi
 
 case "$resolved_mode" in

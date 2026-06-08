@@ -119,11 +119,13 @@ Required settings and checks:
 - keep `output_gw_sigc_mat_rf = f`
 - for the tested short smoke path, materialize the route with:
   - `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
-- keep `out_mat_xc 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, `exx_cs_inv_thr 1e-5`
+- keep `out_mat_xc 1`, `out_librpa_reader_version 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, `exx_cs_inv_thr 1e-5`
+- keep LibRPA on reader-v1 defaults: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `version_coul_reader = 1`, `version_lri_reader = 1`
+- keep `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
 - set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times` for molecular GW
 - do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` on that short route
 - copy `OUT.ABACUS/vxc_out.dat` to `./vxc_out` after SCF
-- stop before LibRPA unless at least one `coulomb_mat_*.txt` file exists
+- stop before LibRPA unless `v1_coulomb_full_iq_*`, `v1_coulomb_cut_iq_*`, `v1_Cs_data_*`, and `KS_eigenvector_*.dat` exist
 
 ## Solid branch
 
@@ -261,7 +263,7 @@ Use these generic checks.
 Accept either periodic or molecular success markers:
 
 - periodic: a rank-0 output file (for example `librpa_para_nprocs_*_myid_0.out` or `LibRPA*.out`) reaches `Timer stop:  total.` or `libRPA finished successfully`, and `GW_band_spin_*.dat` exists
-- molecular: output contains `libRPA finished successfully` and required outputs such as `band_out`, `vxc_out`, and `coulomb_mat_*.txt` exist
+- molecular: output contains `libRPA finished successfully` and required reader-v1 outputs such as `band_out`, `vxc_out`, `v1_Cs_data_*`, `v1_coulomb_full_iq_*`, and `v1_coulomb_cut_iq_*` exist
 
 ### LibRPA running
 

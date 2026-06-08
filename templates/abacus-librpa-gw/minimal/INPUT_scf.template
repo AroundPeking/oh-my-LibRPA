@@ -10,12 +10,14 @@ calculation scf
 # - collinear spin, no SOC: nspin 2 ; lspinorb 0
 # - noncollinear with SOC: nspin 4 ; lspinorb 1
 nbands <FILL_ME>
+out_mat_xc 1
 
 # Default shrink settings for GW
 # - shrink_abfs_pca_thr controls the compressed auxiliary-basis size
 # - shrink_lu_inv_thr controls inversion-error handling for output sinvS
 # - exx_pca_threshold = 10 means the large-basis path expects external input
 rpa 1
+out_librpa_reader_version 1
 # For SOC cases, replace this with `symmetry -1`.
 symmetry 1
 exx_pca_threshold 10

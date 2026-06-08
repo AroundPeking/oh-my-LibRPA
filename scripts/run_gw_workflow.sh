@@ -216,8 +216,8 @@ execute_librpa_stage() {
   started_at="$(workflow_now)"
 
   if [[ "$system_type" == "molecule" ]]; then
-    success_outputs='librpa_para_nprocs_*_myid_0.out or LibRPA*.out, band_out, vxc_out, coulomb_mat_*.txt'
-    final_artifacts='band_out, vxc_out, coulomb_mat_*.txt'
+    success_outputs='librpa_para_nprocs_*_myid_0.out or LibRPA*.out, band_out, vxc_out, v1_Cs_data_*, v1_coulomb_full_iq_*, v1_coulomb_cut_iq_*'
+    final_artifacts='band_out, vxc_out, v1_Cs_data_*, v1_coulomb_full_iq_*, v1_coulomb_cut_iq_*'
   fi
 
   if [[ -z "$librpa_cmd" ]]; then
@@ -264,7 +264,7 @@ execute_librpa_stage() {
 
 if [[ "$system_type" == "molecule" ]]; then
   execute_verified_stage scf "$scf_cmd" verify_scf_stage 'OUT.ABACUS/running_scf.log, OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart' 'Check molecular GW handoff files.'
-  execute_verified_stage molecular_prep '' verify_molecular_gw_prereqs_stage 'vxc_out, coulomb_mat_*.txt' 'Run LibRPA.'
+  execute_verified_stage molecular_prep '' verify_molecular_gw_prereqs_stage 'band_out, vxc_out, KS_eigenvector_*.dat, v1_Cs_data_*, v1_coulomb_full_iq_*, v1_coulomb_cut_iq_*' 'Run LibRPA.'
   execute_librpa_stage
   exit 0
 fi

@@ -64,7 +64,7 @@
   fix:
     - Check that a rank-0 LibRPA output file exists, such as `librpa_para_nprocs_*_myid_0.out` or `LibRPA*.out`
     - For the periodic GW route, check that the rank-0 output contains `Timer stop:  total.` or `libRPA finished successfully`, and that at least one `GW_band_spin_*.dat` file exists
-    - For the tested molecular short route, check that the rank-0 output contains `libRPA finished successfully` and that `band_out`, `vxc_out`, and at least one `coulomb_mat_*.txt` file exist
+    - For the tested molecular short route, check that the rank-0 output contains `libRPA finished successfully` and that `band_out`, `vxc_out`, `v1_Cs_data_*`, `v1_coulomb_full_iq_*`, and `v1_coulomb_cut_iq_*` exist
   verify:
     - Confirm the rank-0 output reaches the expected completion marker for the chosen route
     - Confirm the route-specific final artifacts are non-empty

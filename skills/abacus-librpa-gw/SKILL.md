@@ -39,6 +39,10 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
   - `.orb`, `.abfs`, `.upf`
 - For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, launcher paths, and any required `.bashrc` / conda activation steps instead of relying on implicit login-shell luck.
 - For server Slurm submissions, probe the target server and partition for node shape before submission, then verify the batch script against those live facts. For `1 MPI rank/node`, `--cpus-per-task` and `OMP_NUM_THREADS` should use the full discovered per-node core count, and `--mem` should use the full discovered per-node `RealMemory` in MB unless the user explicitly requests a smaller allocation.
+- For the current ABACUS/LibRPA `master_ghj` branches, default to reader-v1 handoff:
+  - ABACUS SCF producer: `out_librpa_reader_version 1`
+  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `version_coul_reader = 1`, and `version_lri_reader = 1`
+  - LibRPA GW defaults: `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
 
 ## Default `librpa.in` Preset for GW
 
@@ -49,12 +53,21 @@ For GW requests, set:
 - `option_dielect_func = 3`
 - `replace_w_head = t`
 - For the tested molecular short route, override with `replace_w_head = f`
+- `prefix_coul_full = v1_coulomb_full_iq_`
+- `prefix_coul_cut = v1_coulomb_cut_iq_`
+- `prefix_lri_coeff = v1_Cs_data_`
+- `version_coul_reader = 1`
+- `version_lri_reader = 1`
 - `use_scalapack_gw_wc = t`
+- `use_cholesky_gw_wc = t`
+- `use_elpa_sqrt_coulomb = t`
 - `use_scalapack_ecrpa = t`
 - `parallel_routing = libri`
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
 - `use_fullcoul_exx = t`
+- `use_kpara_scf_eigvec = t`
+- `libri_chi0_collect_max_bytes = 2147483648`
 - `output_gw_sigc_mat_rf = f`
 - Only set `output_gw_sigc_mat_rf = t` when the user explicitly asks to open NSCF band continuation
 - `libri_chi0_threshold_C = 1e-4`
@@ -113,11 +126,12 @@ Use the following alignment for spin-sensitive GW workflows:
 - Set `use_abacus_exx_symmetry = f` and `use_abacus_gw_symmetry = f` in `librpa.in`; do not require ABACUS symmetry sidecar files such as `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`.
 - Keep `output_gw_sigc_mat_rf = f`
 - For the tested smoke path `molecule + GW + no NSCF + no pyatb + no shrink`, materialize the dedicated route with `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
-- Keep `out_mat_xc 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, and `exx_cs_inv_thr 1e-5`
+- Keep `out_mat_xc 1`, `out_librpa_reader_version 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, and `exx_cs_inv_thr 1e-5`
+- Keep LibRPA reader-v1 prefixes and selectors: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `version_coul_reader = 1`, and `version_lri_reader = 1`
 - Set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times` for molecular GW; using a smaller EXX mesh can leave the Coulomb/EXX matrix coverage inconsistent for LibRPA.
 - Do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` for that short route
 - Copy `OUT.ABACUS/vxc_out.dat` into the working directory as `vxc_out` before LibRPA
-- Stop before LibRPA unless at least one `coulomb_mat_*.txt` file exists
+- Stop before LibRPA unless `v1_coulomb_full_iq_*`, `v1_coulomb_cut_iq_*`, `v1_Cs_data_*`, and `KS_eigenvector_*.dat` exist
 
 ### Solid
 
@@ -199,7 +213,7 @@ Only `LibRPA` needs an explicit status judgment in the normal workflow. `pyatb` 
 
 - a rank-0 LibRPA output file exists, for example `librpa_para_nprocs_*_myid_0.out` or `LibRPA*.out`
 - either the periodic GW outputs include at least one `GW_band_spin_*.dat` file and the rank-0 output contains `Timer stop:  total.` or `libRPA finished successfully`
-- or the molecular GW outputs `band_out`, `vxc_out`, and `coulomb_mat_*.txt` exist and the rank-0 output contains `libRPA finished successfully`
+- or the molecular GW reader-v1 outputs `band_out`, `vxc_out`, `v1_Cs_data_*`, `v1_coulomb_full_iq_*`, and `v1_coulomb_cut_iq_*` exist and the rank-0 output contains `libRPA finished successfully`
 
 ### LibRPA still running
 

@@ -6,6 +6,7 @@
     - Materialize the case with `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
     - Treat the generated `.oh-my-librpa-route.env` and `OH_MY_LIBRPA_REFERENCE_TEMPLATE` as the authoritative route record
     - Keep `out_mat_xc 1`
+    - Set `out_librpa_reader_version 1`
     - Do not enable `out_chg` when no NSCF stage is planned
     - Do not enable `out_mat_r` or `out_mat_hs2` when `pyatb` is not part of the route
     - Set `exx_singularity_correction = massidda`
@@ -14,18 +15,27 @@
     - Set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times`
     - Set `exx_cs_inv_thr = 1e-5`
     - Set `replace_w_head = f`
+    - Set `prefix_coul_full = v1_coulomb_full_iq_`
+    - Set `prefix_coul_cut = v1_coulomb_cut_iq_`
+    - Set `prefix_lri_coeff = v1_Cs_data_`
+    - Set `version_coul_reader = 1`
+    - Set `version_lri_reader = 1`
+    - Set `use_cholesky_gw_wc = t`
+    - Set `use_elpa_sqrt_coulomb = t`
+    - Set `use_kpara_scf_eigvec = t`
+    - Set `libri_chi0_collect_max_bytes = 2147483648`
     - Set `use_abacus_exx_symmetry = f`
     - Set `use_abacus_gw_symmetry = f`
     - Set `use_shrink_abfs = f`
     - Do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`
     - Copy `OUT.ABACUS/vxc_out.dat` into the working directory as `vxc_out` after SCF
-    - Stop early unless at least one `coulomb_mat_*.txt` file exists before LibRPA starts
+    - Stop early unless `v1_coulomb_full_iq_*`, `v1_coulomb_cut_iq_*`, `v1_Cs_data_*`, and `KS_eigenvector_*.dat` exist before LibRPA starts
     - Treat `gamma_only` as route-aware, not a universal hard rule
   verify:
     - Confirm `vxc_out` exists in the working directory before LibRPA
-    - Confirm at least one `coulomb_mat_*.txt` file exists before LibRPA
+    - Confirm `v1_coulomb_full_iq_*`, `v1_coulomb_cut_iq_*`, `v1_Cs_data_*`, and `KS_eigenvector_*.dat` exist before LibRPA
     - Confirm `exx_ccp_rmesh_times` and `rpa_ccp_rmesh_times` match in `INPUT_scf`
-    - Confirm `replace_w_head = f`, `use_abacus_exx_symmetry = f`, and `use_abacus_gw_symmetry = f` are present in `librpa.in`
+    - Confirm `replace_w_head = f`, reader-v1 selectors, `use_abacus_exx_symmetry = f`, and `use_abacus_gw_symmetry = f` are present in `librpa.in`
     - Confirm `band_out`, `vxc_out`, and a rank-0 LibRPA output file (`librpa_para_nprocs_*_myid_0.out` or `LibRPA*.out`) exist after the run
     - Confirm rank-0 output contains `libRPA finished successfully`
   applies_to:

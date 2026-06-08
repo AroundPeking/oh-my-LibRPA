@@ -4,11 +4,15 @@
   root_cause: Inputs assembled from mixed directories or stale outputs remain
   fix:
     - Regenerate librpa inputs from the same ABACUS workflow outputs
+    - On ABACUS `master_ghj`, set `out_librpa_reader_version 1` for GW producer runs
+    - In LibRPA `master_ghj`, set reader-v1 prefixes and selectors: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `version_coul_reader = 1`, and `version_lri_reader = 1`
     - Run in a fresh directory
     - Remove stale output artifacts before rerun
     - Prefer a user-curated server-side reference bundle when available
   verify:
     - Confirm source paths for SCF/DF/NSCF are from one run chain
+    - Confirm `INPUT_scf` contains `out_librpa_reader_version 1`
+    - Confirm `librpa.in` contains reader-v1 prefixes plus `version_coul_reader = 1` and `version_lri_reader = 1`
     - Re-run minimal smoke with nfreq=16
   applies_to:
     abacus: ">=3.x"

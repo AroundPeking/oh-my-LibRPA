@@ -12,6 +12,7 @@ latname user_defined_lattice
 # - Keep it aligned with the exact ABACUS build and output set.
 
 out_mat_xc 1
+out_librpa_reader_version 1
 rpa 1
 exx_pca_threshold 1e-6
 exx_singularity_correction massidda
