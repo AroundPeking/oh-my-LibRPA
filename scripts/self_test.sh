@@ -254,6 +254,12 @@ if "$installed_root/scripts/materialize_gw_template.sh" --case-dir "$case_gw_mis
     fail 'solid GW baseline still enables output_gw_sigc_mat_rf by default'
   fi
 
+  if grep -q '^prefix_lri_coeff_shrink = v1_Cs_data_$' "$case_gw_missing_helper/librpa.in"; then
+    pass 'solid GW baseline keeps reader-v1 LRI prefix on the shrink route'
+  else
+    fail 'solid GW baseline lacks prefix_lri_coeff_shrink = v1_Cs_data_'
+  fi
+
   rm -f "$case_gw_missing_helper/get_diel.py"
   if preflight_output="$("$installed_root/scripts/intake_preflight.sh" "$case_gw_missing_helper" --mode gw --system-type solid 2>&1)"; then
     if grep -q 'runnable badge: blocked' <<<"$preflight_output" \

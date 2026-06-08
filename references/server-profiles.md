@@ -12,7 +12,7 @@ Before batch submission, confirm:
 - whether VPN is required and already enabled
 - whether connectivity/login should be tested now
 - whether this is only a smoke run or a longer production run
-- whether both ABACUS and LibRPA were built against the same latest LibRI with the nearest-fix bugfix, and whether the host has a site-specific LibRI root that should be recorded
+- whether both ABACUS and LibRPA were built against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status`, and whether the host has site-specific dependency roots that should be recorded
 
 ## Runtime materialization rule
 

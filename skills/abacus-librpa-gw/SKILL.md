@@ -39,9 +39,10 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
   - `.orb`, `.abfs`, `.upf`
 - For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, launcher paths, and any required `.bashrc` / conda activation steps instead of relying on implicit login-shell luck.
 - For server Slurm submissions, probe the target server and partition for node shape before submission, then verify the batch script against those live facts. For `1 MPI rank/node`, `--cpus-per-task` and `OMP_NUM_THREADS` should use the full discovered per-node core count, and `--mem` should use the full discovered per-node `RealMemory` in MB unless the user explicitly requests a smaller allocation.
+- Build ABACUS and LibRPA against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status` unless the user explicitly asks for an older dependency snapshot.
 - For the current ABACUS/LibRPA `master_ghj` branches, default to reader-v1 handoff:
   - ABACUS SCF producer: `out_librpa_reader_version 1`
-  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `version_coul_reader = 1`, and `version_lri_reader = 1`
+  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_data_` when `use_shrink_abfs = t`, `version_coul_reader = 1`, and `version_lri_reader = 1`
   - LibRPA GW defaults: `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
 
 ## Default `librpa.in` Preset for GW
@@ -56,6 +57,7 @@ For GW requests, set:
 - `prefix_coul_full = v1_coulomb_full_iq_`
 - `prefix_coul_cut = v1_coulomb_cut_iq_`
 - `prefix_lri_coeff = v1_Cs_data_`
+- `prefix_lri_coeff_shrink = v1_Cs_data_` when `use_shrink_abfs = t`
 - `version_coul_reader = 1`
 - `version_lri_reader = 1`
 - `use_scalapack_gw_wc = t`

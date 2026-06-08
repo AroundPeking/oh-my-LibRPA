@@ -234,6 +234,7 @@ cat <<'EOF' >> "$case_gw_good_abfs/librpa.in"
 prefix_coul_full = v1_coulomb_full_iq_
 prefix_coul_cut = v1_coulomb_cut_iq_
 prefix_lri_coeff = v1_Cs_data_
+prefix_lri_coeff_shrink = v1_Cs_data_
 version_coul_reader = 1
 version_lri_reader = 1
 use_cholesky_gw_wc = t

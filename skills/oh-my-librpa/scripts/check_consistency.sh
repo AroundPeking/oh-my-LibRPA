@@ -442,6 +442,13 @@ if [[ "$resolved_mode" == "gw" ]]; then
     note_fail "GW route requires prefix_coul_full = v1_coulomb_full_iq_, prefix_coul_cut = v1_coulomb_cut_iq_, and prefix_lri_coeff = v1_Cs_data_"
   fi
 
+  if ! grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librpa" \
+     || has_key_value "$librpa" "prefix_lri_coeff_shrink" "v1_Cs_data_"; then
+    note_pass "librpa.in keeps reader-v1 LRI prefix synchronized on the shrink route"
+  else
+    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_data_ with ABACUS reader-v1 outputs"
+  fi
+
   if has_key_value "$librpa" "use_cholesky_gw_wc" "t"; then
     note_pass "librpa.in enables use_cholesky_gw_wc = t"
   else
