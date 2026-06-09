@@ -254,10 +254,12 @@ if "$installed_root/scripts/materialize_gw_template.sh" --case-dir "$case_gw_mis
     fail 'solid GW baseline still enables output_gw_sigc_mat_rf by default'
   fi
 
-  if grep -q '^prefix_lri_coeff_shrink = v1_Cs_data_$' "$case_gw_missing_helper/librpa.in"; then
-    pass 'solid GW baseline keeps reader-v1 LRI prefix on the shrink route'
+  if grep -q '^prefix_lri_coeff_shrink = v1_Cs_shrinked_data_$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^prefix_shrink_sinvS = v1_shrink_sinvS_$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^fn_basis_shrink = basis_out_shrink$' "$case_gw_missing_helper/librpa.in"; then
+    pass 'solid GW baseline keeps reader-v1 shrink prefixes'
   else
-    fail 'solid GW baseline lacks prefix_lri_coeff_shrink = v1_Cs_data_'
+    fail 'solid GW baseline lacks reader-v1 shrink prefixes'
   fi
 
   rm -f "$case_gw_missing_helper/get_diel.py"

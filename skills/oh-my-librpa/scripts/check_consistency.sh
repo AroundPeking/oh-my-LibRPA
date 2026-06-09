@@ -443,10 +443,12 @@ if [[ "$resolved_mode" == "gw" ]]; then
   fi
 
   if ! grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librpa" \
-     || has_key_value "$librpa" "prefix_lri_coeff_shrink" "v1_Cs_data_"; then
-    note_pass "librpa.in keeps reader-v1 LRI prefix synchronized on the shrink route"
+     || { has_key_value "$librpa" "prefix_lri_coeff_shrink" "v1_Cs_shrinked_data_" \
+          && has_key_value "$librpa" "prefix_shrink_sinvS" "v1_shrink_sinvS_" \
+          && has_key_value "$librpa" "fn_basis_shrink" "basis_out_shrink"; }; then
+    note_pass "librpa.in keeps reader-v1 shrink prefixes synchronized"
   else
-    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_data_ with ABACUS reader-v1 outputs"
+    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_shrinked_data_, prefix_shrink_sinvS = v1_shrink_sinvS_, and fn_basis_shrink = basis_out_shrink with ABACUS reader-v1 outputs"
   fi
 
   if has_key_value "$librpa" "use_cholesky_gw_wc" "t"; then
