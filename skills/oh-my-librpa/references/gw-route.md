@@ -115,7 +115,7 @@ Required settings and checks:
 - use official ABACUS input names
 - do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`; the short route is `SCF -> LibRPA`
 - set `replace_w_head = f`
-- set `use_abacus_exx_symmetry = f` and `use_abacus_gw_symmetry = f`; do not require ABACUS symmetry sidecars on this route
+- set `use_input_exx_symmetry = f` and `use_input_gw_symmetry = f`; do not require input symmetry sidecars on this route
 - keep `output_gw_sigc_mat_rf = f`
 - for the tested short smoke path, materialize the route with:
   - `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
@@ -153,16 +153,17 @@ Helper-file rule:
 
 ## Periodic symmetry lane
 
-Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already contains ABACUS symmetry sidecars.
+Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already contains input symmetry sidecars.
 
-Do not use this lane for SOC cases. When SOC is enabled, keep the ABACUS side on `symmetry = -1` and disable `use_abacus_exx_symmetry` / `use_abacus_gw_symmetry` in `librpa.in`.
+Do not use this lane for SOC cases. When SOC is enabled, keep the ABACUS side on `symmetry = -1` and disable `use_input_exx_symmetry` / `use_input_gw_symmetry` in `librpa.in`.
 
 Required settings:
 
 - `INPUT_scf`: keep `rpa 1` and set `symmetry 1`
 - `INPUT_nscf`: keep `symmetry -1`
 - if the case keeps a standalone band `INPUT`, keep that file on `symmetry -1` as well
-- `librpa.in`: set `use_abacus_exx_symmetry = t` and `use_abacus_gw_symmetry = t`
+- `librpa.in`: set `use_input_exx_symmetry = t` and `use_input_gw_symmetry = t`; `use_abacus_*_symmetry` is only a legacy alias retained by LibRPA for old inputs
+- leave `input_symmetry_convention = auto` unless a case needs an explicit convention; for ABACUS sidecars, `input_symmetry_convention = abacus` is also valid
 - if `use_shrink_abfs = t`, require `symrot_abf_k.txt` together with `irreducible_sector.txt`, `symrot_R.txt`, and `symrot_k.txt`
 
 Required stage handling:

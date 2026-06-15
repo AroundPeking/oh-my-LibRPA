@@ -75,6 +75,25 @@ has_key_value() {
   [[ "$value" == "$expected" ]]
 }
 
+has_symmetry_key_value() {
+  local file="$1"
+  local scope="$2"
+  local expected="$3"
+  local input_key="use_input_${scope}_symmetry"
+  local legacy_key="use_abacus_${scope}_symmetry"
+
+  if has_key_value "$file" "$input_key" "$expected"; then
+    return 0
+  fi
+
+  if has_key_value "$file" "$legacy_key" "$expected"; then
+    note_warn "librpa.in uses legacy ${legacy_key}; prefer ${input_key} on current LibRPA master_ghj"
+    return 0
+  fi
+
+  return 1
+}
+
 has_active_key() {
   local file="$1"
   local key="$2"
@@ -428,10 +447,10 @@ if [[ "$resolved_mode" == "gw" && "$resolved_system_type" == "molecule" ]]; then
     note_fail "molecular GW route requires 'replace_w_head = f' in librpa.in"
   fi
 
-  if has_key_value "$librpa" "use_abacus_exx_symmetry" "f" && has_key_value "$librpa" "use_abacus_gw_symmetry" "f"; then
-    note_pass "molecular GW route disables ABACUS symmetry flags in librpa.in"
+  if has_symmetry_key_value "$librpa" "exx" "f" && has_symmetry_key_value "$librpa" "gw" "f"; then
+    note_pass "molecular GW route disables input symmetry flags in librpa.in"
   else
-    note_fail "molecular GW route requires use_abacus_exx_symmetry = f and use_abacus_gw_symmetry = f in librpa.in"
+    note_fail "molecular GW route requires use_input_exx_symmetry = f and use_input_gw_symmetry = f in librpa.in"
   fi
 
   if has_key_value "$librpa" "use_shrink_abfs" "f"; then

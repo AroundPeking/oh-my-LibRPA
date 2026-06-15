@@ -84,14 +84,14 @@
     - `prefix_lri_coeff = v1_Cs_data_`
     - `version_coul_reader = 1`
     - `version_lri_reader = 1`
-    - `use_abacus_exx_symmetry = f`
-    - `use_abacus_gw_symmetry = f`
+    - `use_input_exx_symmetry = f`
+    - `use_input_gw_symmetry = f`
     - `use_soc = 0` unless the chosen spin/SOC route overrides it
     - `use_shrink_abfs = f`
     - Keep the shared GW thresholds and keep `output_gw_sigc_mat_rf = f`
   verify:
     - Confirm the route is molecular GW without NSCF/pyatb
-    - Confirm `replace_w_head = f`, `version_coul_reader = 1`, `version_lri_reader = 1`, `use_abacus_exx_symmetry = f`, `use_abacus_gw_symmetry = f`, `use_shrink_abfs = f`, and `output_gw_sigc_mat_rf = f` are present in `librpa.in`
+    - Confirm `replace_w_head = f`, `version_coul_reader = 1`, `version_lri_reader = 1`, `use_input_exx_symmetry = f`, `use_input_gw_symmetry = f`, `use_shrink_abfs = f`, and `output_gw_sigc_mat_rf = f` are present in `librpa.in`
   applies_to:
     mode: gw
     system_type: molecule

@@ -8,13 +8,13 @@
     - Use official ABACUS input parameter names from the ABACUS input documentation
     - Do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`
     - Set `replace_w_head = f` in `librpa.in`
-    - Set `use_abacus_exx_symmetry = f` and `use_abacus_gw_symmetry = f` in `librpa.in`
+    - Set `use_input_exx_symmetry = f` and `use_input_gw_symmetry = f` in `librpa.in`
     - Materialize the tested short smoke route with `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false` instead of copying the generic template by hand
   verify:
     - Confirm `KPT` is `1 1 1`
     - Confirm `replace_w_head = f` in `librpa.in`
     - Confirm no `pyatb_librpa_df`, NSCF, or preprocess stage is inserted into the workflow
-    - Confirm ABACUS symmetry flags are disabled in `librpa.in`
+    - Confirm input symmetry flags are disabled in `librpa.in`
     - Confirm the selected output set is internally consistent with the chosen `gamma_only` setting
   applies_to:
     mode: gw

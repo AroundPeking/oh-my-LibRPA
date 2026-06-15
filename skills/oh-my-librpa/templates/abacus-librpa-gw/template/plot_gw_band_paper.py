@@ -100,6 +100,15 @@ def sort_gw_band_slice_by_energy(aux: np.ndarray, ene: np.ndarray, start: int, s
     return aux_sorted, ene_sorted
 
 
+def sort_gw_bands_in_window(
+    aux: np.ndarray,
+    ene: np.ndarray,
+    band_lo: int,
+    band_hi: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    return sort_gw_band_slice_by_energy(aux, ene, band_lo, band_hi)
+
+
 def sort_gw_bands_for_plotting(
     aux: np.ndarray,
     ene: np.ndarray,

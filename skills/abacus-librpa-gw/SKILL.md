@@ -127,7 +127,7 @@ Use the following alignment for spin-sensitive GW workflows:
 - Use official ABACUS input names from the ABACUS input reference
 - Do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`; the short molecular GW route is `SCF -> LibRPA`.
 - Set `replace_w_head = f`
-- Set `use_abacus_exx_symmetry = f` and `use_abacus_gw_symmetry = f` in `librpa.in`; do not require ABACUS symmetry sidecar files such as `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`.
+- Set `use_input_exx_symmetry = f` and `use_input_gw_symmetry = f` in `librpa.in`; do not require input symmetry sidecar files such as `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`. `use_abacus_*_symmetry` is only a legacy alias for old inputs.
 - Keep `output_gw_sigc_mat_rf = f`
 - For the tested smoke path `molecule + GW + no NSCF + no pyatb + no shrink`, materialize the dedicated route with `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
 - Keep `out_mat_xc 1`, `out_librpa_reader_version 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, and `exx_cs_inv_thr 1e-5`

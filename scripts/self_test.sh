@@ -637,8 +637,9 @@ if grep -q '^replace_w_head = f$' "$case_gw/librpa.in" \
   && grep -q '^use_elpa_sqrt_coulomb = t$' "$case_gw/librpa.in" \
   && grep -q '^use_kpara_scf_eigvec = t$' "$case_gw/librpa.in" \
   && grep -q '^libri_chi0_collect_max_bytes = 2147483648$' "$case_gw/librpa.in" \
-  && grep -q '^use_abacus_exx_symmetry = f$' "$case_gw/librpa.in" \
-  && grep -q '^use_abacus_gw_symmetry = f$' "$case_gw/librpa.in" \
+  && grep -q '^use_input_exx_symmetry = f$' "$case_gw/librpa.in" \
+  && grep -q '^use_input_gw_symmetry = f$' "$case_gw/librpa.in" \
+  && ! grep -q '^use_abacus_.*_symmetry' "$case_gw/librpa.in" \
   && grep -q '^use_shrink_abfs = f$' "$case_gw/librpa.in"; then
   pass 'materialized librpa.in matches the molecular short-route defaults'
 else
@@ -718,7 +719,13 @@ fi
 
 if command -v python3 >/dev/null 2>&1; then
   plot_script="$installed_root/templates/abacus-librpa-gw/template/plot_gw_band_paper.py"
-  if python3 - <<EOF >/dev/null 2>&1
+  if python3 - <<'EOF' >/dev/null 2>&1
+import importlib
+importlib.import_module('numpy')
+importlib.import_module('matplotlib')
+EOF
+  then
+    if python3 - <<EOF >/dev/null 2>&1
 import importlib.util
 from pathlib import Path
 import numpy as np
@@ -752,10 +759,13 @@ assert np.allclose(aux_sorted[:, 1:4], np.array([
     [21.0, 41.0, 31.0],
 ]))
 EOF
-  then
-    pass 'plot_gw_band_paper.py can reorder only a selected near-Fermi band window without touching outer bands'
+    then
+      pass 'plot_gw_band_paper.py can reorder only a selected near-Fermi band window without touching outer bands'
+    else
+      fail 'plot_gw_band_paper.py failed the near-Fermi-only band reordering regression test'
+    fi
   else
-    fail 'plot_gw_band_paper.py failed the near-Fermi-only band reordering regression test'
+    pass 'numpy/matplotlib not available for plot_gw_band_paper.py near-Fermi-only reordering regression test; skipped'
   fi
 else
   pass 'python3 not available for plot_gw_band_paper.py near-Fermi-only reordering regression test; skipped'

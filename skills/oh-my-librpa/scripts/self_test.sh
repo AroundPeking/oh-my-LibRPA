@@ -353,8 +353,9 @@ if grep -q '^replace_w_head = f$' "$case_gw/librpa.in" \
   && grep -q '^use_elpa_sqrt_coulomb = t$' "$case_gw/librpa.in" \
   && grep -q '^use_kpara_scf_eigvec = t$' "$case_gw/librpa.in" \
   && grep -q '^libri_chi0_collect_max_bytes = 2147483648$' "$case_gw/librpa.in" \
-  && grep -q '^use_abacus_exx_symmetry = f$' "$case_gw/librpa.in" \
-  && grep -q '^use_abacus_gw_symmetry = f$' "$case_gw/librpa.in" \
+  && grep -q '^use_input_exx_symmetry = f$' "$case_gw/librpa.in" \
+  && grep -q '^use_input_gw_symmetry = f$' "$case_gw/librpa.in" \
+  && ! grep -q '^use_abacus_.*_symmetry' "$case_gw/librpa.in" \
   && grep -q '^use_shrink_abfs = f$' "$case_gw/librpa.in"; then
   pass 'materialized librpa.in matches the molecular short-route defaults'
 else

@@ -5,11 +5,11 @@ Use this route for LibRPA regression maintenance, ABACUS+LibRPA test bundles, re
 ## Scope Rules
 
 - Keep each regression case single-purpose. Do not add symmetry knobs to the MnO2 `nspin=2` case; it should remain a spin/shrink/head-wing coverage case.
-- Add symmetry coverage as a separate small periodic GW case with both `use_shrink_abfs = t` and `use_abacus_*_symmetry = t`.
+- Add symmetry coverage as a separate small periodic GW case with both `use_shrink_abfs = t` and `use_input_*_symmetry = t`.
 - Do not modify the regression framework unless the user explicitly asks. Prefer existing XML regex checks plus an external table comparison for band files.
 - Use clean producer ownership. Root `band_out`, `vxc_out`, `stru_out`, `KS_eigenvector_*.dat`, `coulomb_*`, `Cs_*`, `shrink_sinvS_*`, and symmetry sidecars must come from ABACUS. `pyatb_librpa_df/*` is only for head/wing replacement and must not be copied over root files.
 
-## ABACUS Symmetry Bundle Requirements
+## Input Symmetry Bundle Requirements
 
 A symmetry-on ABACUS+LibRPA bundle must include a complete sidecar set generated with the same SCF input:
 
@@ -22,8 +22,8 @@ The LibRPA input must keep these knobs aligned with the bundle:
 
 ```text
 use_shrink_abfs = t
-use_abacus_exx_symmetry = t
-use_abacus_gw_symmetry = t
+use_input_exx_symmetry = t
+use_input_gw_symmetry = t
 ```
 
 For a fast end-to-end case, target `nfreq = 8`, a very small auxiliary basis, and a short band path. The package should contain runtime inputs only, not generated logs, `OUT.ABACUS`, `LibRPA*.out`, `librpa.d`, old `GW_band_spin_*`, or debug dumps.

@@ -21,8 +21,8 @@ vq_threshold = 0
 sqrt_coulomb_threshold = 0
 use_shrink_abfs = t
 # SOC cases should keep these flags disabled.
-use_abacus_exx_symmetry = t
-use_abacus_gw_symmetry = t
+use_input_exx_symmetry = t
+use_input_gw_symmetry = t
 use_fullcoul_exx = t
 use_kpara_scf_eigvec = t
 libri_chi0_collect_max_bytes = 2147483648

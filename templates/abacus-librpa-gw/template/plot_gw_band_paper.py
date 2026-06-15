@@ -71,33 +71,59 @@ def read_gw(path: Path):
     return data[:, 1:4], data[:, 4::2], data[:, 5::2]
 
 
+def occupied_band_count_from_band_out(occ: np.ndarray) -> int:
+    nocc = 0
+    for value in occ:
+        if abs(float(value)) <= 1.0e-12:
+            break
+        nocc += 1
+    return nocc
+
+
+def sort_gw_band_slice_by_energy(aux: np.ndarray, ene: np.ndarray, start: int, stop: int) -> tuple[np.ndarray, np.ndarray]:
+    start = max(0, start)
+    stop = min(ene.shape[1], stop)
+    if stop - start <= 1:
+        return aux, ene
+
+    row_idx = np.arange(ene.shape[0])[:, None]
+    sort_idx = np.argsort(ene[:, start:stop], axis=1)
+
+    ene_sorted = ene.copy()
+    ene_sorted[:, start:stop] = ene[row_idx, start + sort_idx]
+
+    aux_sorted = aux
+    if aux.shape == ene.shape:
+        aux_sorted = aux.copy()
+        aux_sorted[:, start:stop] = aux[row_idx, start + sort_idx]
+
+    return aux_sorted, ene_sorted
+
+
 def sort_gw_bands_in_window(
     aux: np.ndarray,
     ene: np.ndarray,
     band_lo: int,
     band_hi: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    band_lo = max(0, int(band_lo))
-    band_hi = min(ene.shape[1], int(band_hi))
-    if band_hi - band_lo <= 1:
-        return aux, ene
+    return sort_gw_band_slice_by_energy(aux, ene, band_lo, band_hi)
 
-    row_idx = np.arange(ene.shape[0])[:, None]
-    sort_idx = np.argsort(ene[:, band_lo:band_hi], axis=1)
 
-    ene_sorted = ene.copy()
-    ene_sorted[:, band_lo:band_hi] = ene[row_idx, band_lo + sort_idx]
-
-    aux_sorted = aux
-    if aux.shape == ene.shape:
-        aux_sorted = aux.copy()
-        aux_sorted[:, band_lo:band_hi] = aux[row_idx, band_lo + sort_idx]
-
+def sort_gw_bands_for_plotting(
+    aux: np.ndarray,
+    ene: np.ndarray,
+    nocc: int,
+    conduction_sort_count: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    aux_sorted, ene_sorted = sort_gw_band_slice_by_energy(aux, ene, 0, nocc)
+    if conduction_sort_count > 0:
+        aux_sorted, ene_sorted = sort_gw_band_slice_by_energy(
+            aux_sorted,
+            ene_sorted,
+            nocc,
+            nocc + conduction_sort_count,
+        )
     return aux_sorted, ene_sorted
-
-
-def sort_gw_bands_by_energy(aux: np.ndarray, ene: np.ndarray, sort_band_count: int) -> tuple[np.ndarray, np.ndarray]:
-    return sort_gw_bands_in_window(aux, ene, 0, sort_band_count)
 
 
 def read_band_kpath_info(path: Path) -> np.ndarray:
@@ -202,32 +228,35 @@ def main() -> None:
     special_x = x[special_idx]
     labels = labels[:len(special_x)]
 
-    occ_mask_1d = occ > 0.5
-    nocc = int(np.count_nonzero(occ_mask_1d))
+    nocc = occupied_band_count_from_band_out(occ)
     if nocc <= 0:
         raise ValueError('Failed to determine occupied bands from band_out.')
-
-    b0 = max(0, nocc - max(1, args.valence_bands))
-    b1 = min(ene_gw.shape[1], nocc + max(1, args.conduction_bands))
-    plot_bands = list(range(b0, b1))
+    nocc = min(nocc, ene_gw.shape[1])
+    occ_mask_1d = np.zeros(ene_gw.shape[1], dtype=bool)
+    occ_mask_1d[:nocc] = True
 
     # LibRPA GW outputs can arrive with locally scrambled band columns at some k-points.
-    # Re-sort only the near-Fermi manifold that is actually used for edge detection/plotting.
+    # Never sort across the occupation boundary. Sort only the occupied manifold and the
+    # low-lying conduction search window separately for edge detection and plotting.
+    conduction_sort_count = max(1, args.cbm_search_window, args.conduction_bands)
+    _aux_gw, ene_gw = sort_gw_bands_for_plotting(_aux_gw, ene_gw, nocc, conduction_sort_count)
+
+    occ2d = np.tile(occ_mask_1d.reshape(1, -1), (ene_gw.shape[0], 1))
+    vbm = np.max(np.where(occ2d, ene_gw, -np.inf))
+
     cbm_band_lo = nocc
     cbm_band_hi = min(ene_gw.shape[1], nocc + max(1, args.cbm_search_window))
     if cbm_band_lo >= cbm_band_hi:
         raise ValueError('No conduction bands available for the restricted CBM search window.')
-    sort_lo = b0
-    sort_hi = max(b1, cbm_band_hi)
-    _aux_gw, ene_gw = sort_gw_bands_in_window(_aux_gw, ene_gw, sort_lo, sort_hi)
 
-    occ2d = np.tile(occ_mask_1d.reshape(1, -1), (ene_gw.shape[0], 1))
-    vbm = np.max(np.where(occ2d, ene_gw, -np.inf))
     cbm = np.min(ene_gw[:, cbm_band_lo:cbm_band_hi])
     cbm_loc = np.argwhere(np.isclose(ene_gw[:, cbm_band_lo:cbm_band_hi], cbm, atol=1e-8))[0]
     cbm_k = int(cbm_loc[0])
     cbm_b = int(cbm_band_lo + cbm_loc[1])
 
+    b0 = max(0, nocc - max(1, args.valence_bands))
+    b1 = min(ene_gw.shape[1], nocc + max(1, args.conduction_bands))
+    plot_bands = list(range(b0, b1))
     shifted = ene_gw - vbm
     gap = cbm - vbm
     y_lower, y_upper = choose_ylim(
@@ -293,7 +322,11 @@ def main() -> None:
     summary.write_text(
         '\n'.join([
             f'Number of occupied bands from band_out: {nocc}',
-            f'GW bands re-sorted by energy per k-point only in window [{sort_lo + 1}, {sort_hi}]',
+            (
+                'Band reordering policy: sort occupied bands per k-point; '
+                f'sort the first {conduction_sort_count} conduction bands above the occupation boundary separately; '
+                'never globally reorder across the occupation boundary'
+            ),
             f'VBM (absolute): {vbm:.6f} eV',
             f'CBM (restricted near-gap search): {cbm:.6f} eV',
             f'GW gap (restricted near-gap search): {gap:.6f} eV',
