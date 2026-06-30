@@ -124,7 +124,7 @@ For Windows + Git Bash agent updates, see:
 
 - **molecular GW** short route
 - **periodic GW** full route
-- **periodic GW symmetry** lane with ABACUS sidecars staged for LibRPA
+- **periodic GW symmetry** lane with ABACUS symmetry metadata carried by `stru_out`
 - **RPA** split from GW-only preprocessing
 - **FHI-aims + LibRPA QSGW/G0W0** supplement for case mirroring and staged campaigns
 - spin / SOC consistency checks across helper scripts and `librpa.in`
@@ -153,7 +153,7 @@ For Windows + Git Bash agent updates, see:
 ```text
 Molecule GW:      SCF -> LibRPA
 Periodic GW:      SCF -> pyatb -> NSCF -> preprocess -> LibRPA
-Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC) -> copy sidecars -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
+Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC, stru_out metadata) -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
 RPA:              SCF -> LibRPA
 ```
 

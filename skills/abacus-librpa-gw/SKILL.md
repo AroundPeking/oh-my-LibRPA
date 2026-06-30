@@ -155,10 +155,10 @@ Use the following alignment for spin-sensitive GW workflows:
 
 ### Periodic symmetry + head/wing safeguard
 
-- When `replace_w_head = t`, do not generate `pyatb_librpa_df` from IBZ k-points or star weights, even if `symrot_k.txt` exists
+- When `replace_w_head = t`, do not generate `pyatb_librpa_df` from IBZ k-points or star weights from legacy symmetry sidecars
 - For this lane, `pyatb_librpa_df` must stay on the full regular k-grid
 - Current LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list; keep `pyatb_librpa_df` internally consistent and do not rewrite it into an IBZ/star-weighted payload by default
-- Keep root `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` consistent with the symmetry-sidecar view used by LibRPA
+- Keep root `stru_out`, `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` consistent with the same ABACUS run; current LibRPA rebuilds symmetry rotations from `stru_out`
 - Never overwrite those root files with the full-BZ `pyatb_librpa_df/*` copies unless the user explicitly asks for a root-level replacement and understands the symmetry mismatch risk
 
 ## Default Shrink Strategy

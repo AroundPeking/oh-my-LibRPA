@@ -71,7 +71,7 @@ Keep this split explicit:
 
 For the current periodic `head/wing` workflow:
 
-- do not make `get_diel.py` feed IBZ k-points or star weights from `symrot_k.txt` into `output_librpa.py`
+- do not make `get_diel.py` feed IBZ k-points or star weights from legacy symmetry sidecars into `output_librpa.py`
 - keep `pyatb_librpa_df` on the full regular k-grid
 - keep root `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` separate from `pyatb_librpa_df/*`; do not replace the root files with the full-BZ copies
 

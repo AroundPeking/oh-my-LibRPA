@@ -81,9 +81,9 @@ Keep this distinction explicit:
 
 For the current periodic `head/wing` lane:
 
-- do not change `get_diel.py` into an IBZ-only `pyatb_librpa_df` exporter just because `symrot_k.txt` exists
+- do not change `get_diel.py` into an IBZ-only `pyatb_librpa_df` exporter based on legacy symmetry sidecars
 - keep `pyatb_librpa_df` on the full regular k-grid
-- do not overwrite root `band_out`, `k_path_info`, `velocity_matrix`, or `KS_eigenvector_*.dat` with `pyatb_librpa_df/*`; those root files must remain compatible with the symmetry sidecars seen by LibRPA
+- do not overwrite root `stru_out`, `band_out`, `k_path_info`, `velocity_matrix`, or `KS_eigenvector_*.dat` with `pyatb_librpa_df/*`; those root files must remain compatible with the ABACUS run that LibRPA reads
 
 ### `preprocess_abacus_for_librpa_band.py`
 

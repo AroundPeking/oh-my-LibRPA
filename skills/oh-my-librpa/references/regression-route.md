@@ -7,16 +7,11 @@ Use this route for LibRPA regression maintenance, ABACUS+LibRPA test bundles, re
 - Keep each regression case single-purpose. Do not add symmetry knobs to the MnO2 `nspin=2` case; it should remain a spin/shrink/head-wing coverage case.
 - Add symmetry coverage as a separate small periodic GW case with both `use_shrink_abfs = t` and `use_input_*_symmetry = t`.
 - Do not modify the regression framework unless the user explicitly asks. Prefer existing XML regex checks plus an external table comparison for band files.
-- Use clean producer ownership. Root `band_out`, `vxc_out`, `stru_out`, `KS_eigenvector_*.dat`, `coulomb_*`, `Cs_*`, `shrink_sinvS_*`, and symmetry sidecars must come from ABACUS. `pyatb_librpa_df/*` is only for head/wing replacement and must not be copied over root files.
+- Use clean producer ownership. Root `band_out`, `vxc_out`, `stru_out`, `KS_eigenvector_*.dat`, `coulomb_*`, `Cs_*`, and `shrink_sinvS_*` must come from ABACUS. `pyatb_librpa_df/*` is only for head/wing replacement and must not be copied over root files.
 
 ## Input Symmetry Bundle Requirements
 
-A symmetry-on ABACUS+LibRPA bundle must include a complete sidecar set generated with the same SCF input:
-
-- `irreducible_sector.txt`
-- `symrot_R.txt`
-- `symrot_k.txt`
-- `symrot_abf_k.txt` when ABACUS emits it
+A symmetry-on ABACUS+LibRPA bundle must include `stru_out` generated with the same symmetry-enabled SCF input. Current LibRPA reconstructs rotations from the symmetry metadata in `stru_out`; legacy `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, and `symrot_abf_k.txt` are not required bundle inputs.
 
 The LibRPA input must keep these knobs aligned with the bundle:
 
@@ -107,6 +102,6 @@ After any LibRPA or ABACUS+LibRPA feature change, run at least:
 
 - The active `testsuite.xml` regression subset that matches the touched feature.
 - The MnO2 `nspin=2` case when spin, occupations, shrink, head/wing, or ABACUS parser paths are touched.
-- A separate symmetry+shrink ABACUS+LibRPA case when symmetry, shrink, Coulomb/chi0/Wc/Sigma restore, or ABACUS sidecar handling is touched.
+- A separate symmetry+shrink ABACUS+LibRPA case when symmetry, shrink, Coulomb/chi0/Wc/Sigma restore, or `stru_out` input-symmetry handling is touched.
 
 Do not claim a feature is safe until the relevant regression command and any band-table comparison have been reported with pass/fail output.

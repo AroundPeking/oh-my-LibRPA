@@ -56,7 +56,7 @@ Classify provided files into these groups:
 - `input bundle`: `INPUT`, `INPUT_scf`, `INPUT_nscf`, `KPT`, `KPT_scf`, `KPT_nscf`, `librpa.in`
 - `fhi-aims strong markers`: `control.in`, `run_aims.sh`, `run_librpa.sh`, `run_librpa_gw_aims_iophr.sh`, explicit `qsgw_band` / `qsgw_band0` / `qsgw` / `qsgwa` task settings
 - `fhi-aims supporting markers`: `geometry.in`, `self_energy/`, `librpa.d/`
-- `input symmetry sidecars`: `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, `symrot_abf_k.txt`
+- `legacy input symmetry sidecars`: `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, `symrot_abf_k.txt`
 - `workflow scripts`: `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`, `env.sh`, `probe_batch.sh`
 - `basis/pseudopotential assets`: `.orb`, `.abfs`, `.upf`
 - `logs/results`: output files, error logs, `band_out`, generated band data
@@ -70,7 +70,7 @@ Use these intake rules:
 - `fhi-aims strong markers` with explicit periodic-solid `g0w0_band` intent and no conflicting ABACUS markers -> route to `skills/oh-my-librpa-fhi-aims-g0w0-band/`
 - `fhi-aims strong markers` with no conflicting ABACUS markers -> route to `skills/oh-my-librpa-fhi-aims-qsgw/`
 - `fhi-aims supporting markers` alone do not override ABACUS routing; ask only if ownership is still unclear after checking for strong markers
-- `input symmetry sidecars` -> keep them tied to the exact SCF that produced them; if one exists for periodic GW, verify the full required set before LibRPA
+- `legacy input symmetry sidecars` -> treat them as old-format diagnostics only; for current periodic GW symmetry, verify `stru_out` from the same symmetry-enabled SCF before LibRPA
 - `.abfs` files -> treat as authoritative candidates for `ABFS_ORBITAL` only after confirming that their element, radius cutoff, and angular-momentum coverage match the active PP / NAO setup
 - `logs/results` -> start in Debug mode first
 - `archives` -> unpack and classify before asking more questions
@@ -113,6 +113,7 @@ Always do all of the following:
 - For ABACUS + LibRPA GW on the `master_ghj` line, default to ABACUS reader-v1 producer output and LibRPA reader-v1 consumption: set `out_librpa_reader_version 1` in ABACUS SCF inputs, and set `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, and `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`, `version_coul_reader = 1`, `version_lri_reader = 1`, `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648` in `librpa.in`.
 - For current LibRPA `master_ghj`, keep PyATB head/wing output on reader-v1 binary files: write both `pyatb_librpa_df/KS_eigenvector_*.dat` and `pyatb_librpa_df/velocity_matrix` in binary v1. Use the legacy text velocity writer only when targeting an older LibRPA build that predates the binary-v1 velocity reader.
 - For periodic symmetry + head/wing, keep PyATB on the full regular k-grid by default. Current LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list; do not generate an IBZ/star-weighted PyATB payload unless that exact reader path has been validated for the target branch.
+- For periodic input symmetry on current ABACUS + LibRPA, require the `stru_out` produced by the same symmetry-enabled SCF. Do not require or copy legacy `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`; current LibRPA reconstructs rotations from the symmetry metadata in `stru_out`.
 - For ABACUS-side Coulomb validation, allow `SCF`-only runs; do not force `pyatb`, `NSCF`, or `LibRPA` if the user is only checking reader-v1 Coulomb/LRI outputs such as `v1_coulomb_full_iq_*`, `v1_coulomb_cut_iq_*`, and `v1_Cs_data_*`; treat `coulomb_mat_*` / `coulomb_cut_*` as legacy-output checks only
 - For input-symmetry-on Coulomb validation, do not flatten-compare `symmetry=1` output with `symmetry=-1` output: symmetry-on exports IBZ q only, while symmetry-off exports the full BZ q-grid. Compare symmetry-on `mpi1` vs `mpiN` directly, compare Gamma/no-rotation blocks, or restore the full q-star before comparing to symmetry-off data
 - Apply route-aware static checks before remote submission
@@ -144,7 +145,7 @@ Always do all of the following:
 - Confirm server and resource choice before expensive or long jobs
 - When the basis count, route, or spin/SOC alignment is ambiguous, stop and explain the ambiguity before proceeding
 - When SOC is enabled, do not use the periodic symmetry lane: keep ABACUS on `symmetry -1` and disable the LibRPA symmetry flags
-- For symmetry-on/off comparisons, keep every non-symmetry input identical and only patch the `INPUT_*` symmetry settings, LibRPA `use_input_*_symmetry` knobs, and sidecar staging
+- For symmetry-on/off comparisons, keep every non-symmetry input identical and only patch the `INPUT_*` symmetry settings, LibRPA `use_input_*_symmetry` knobs, and the `stru_out`-producing SCF stage
 
 ## Output style
 

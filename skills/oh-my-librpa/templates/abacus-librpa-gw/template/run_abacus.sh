@@ -106,10 +106,7 @@ cp INPUT_scf INPUT
 require_file OUT.ABACUS/running_scf.log
 require_file OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart
 require_file OUT.ABACUS/vxc_out.dat
-for symfile in irreducible_sector.txt symrot_R.txt symrot_k.txt symrot_abf_k.txt; do
-  require_file "OUT.ABACUS/$symfile"
-  cp -f "OUT.ABACUS/$symfile" .
-done
+require_file stru_out
 cp -a OUT.ABACUS/vxc_out.dat vxc_out
 
 bash ./perform.sh

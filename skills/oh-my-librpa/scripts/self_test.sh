@@ -330,6 +330,13 @@ if "$installed_root/scripts/materialize_gw_template.sh" --case-dir "$case_gw_mis
   else
     fail 'solid GW baseline lacks reader-v1 split-basis filenames'
   fi
+
+  if ! grep -Eq 'irreducible_sector|symrot_R|symrot_k|symrot_abf_k' "$case_gw_missing_helper/run_abacus.sh" \
+    && grep -q 'require_file stru_out' "$case_gw_missing_helper/run_abacus.sh"; then
+    pass 'solid GW baseline relies on stru_out instead of legacy symmetry sidecars'
+  else
+    fail 'solid GW baseline still stages legacy symmetry sidecars instead of requiring stru_out'
+  fi
 else
   fail 'materialize_gw_template.sh failed to prepare the solid GW regression case'
 fi

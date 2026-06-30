@@ -148,12 +148,12 @@ Required checks and stages:
 Helper-file rule:
 
 - do not mix the roles of `get_diel.py` and `output_librpa.py`
-- keep the newer parser/fallback improvements in `get_diel.py`, but do not rewrite its `__main__` into an IBZ-only exporter just because `symrot_k.txt` exists
+- keep the newer parser/fallback improvements in `get_diel.py`, but do not rewrite its `__main__` into an IBZ-only exporter based on legacy symmetry sidecars
 - treat `perform.sh`, `get_diel.py`, `output_librpa.py`, and `preprocess_abacus_for_librpa_band.py` as a matched helper quartet; patch them intentionally, not piecemeal
 
 ## Periodic symmetry lane
 
-Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already contains input symmetry sidecars.
+Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already has a symmetry-enabled `stru_out` from ABACUS.
 
 Do not use this lane for SOC cases. When SOC is enabled, keep the ABACUS side on `symmetry = -1` and disable `use_input_exx_symmetry` / `use_input_gw_symmetry` in `librpa.in`.
 
@@ -163,23 +163,22 @@ Required settings:
 - `INPUT_nscf`: keep `symmetry -1`
 - if the case keeps a standalone band `INPUT`, keep that file on `symmetry -1` as well
 - `librpa.in`: set `use_input_exx_symmetry = t` and `use_input_gw_symmetry = t`; `use_abacus_*_symmetry` is only a legacy alias retained by LibRPA for old inputs
-- leave `input_symmetry_convention = auto` unless a case needs an explicit convention; for ABACUS sidecars, `input_symmetry_convention = abacus` is also valid
-- if `use_shrink_abfs = t`, require `symrot_abf_k.txt` together with `irreducible_sector.txt`, `symrot_R.txt`, and `symrot_k.txt`
+- leave `input_symmetry_convention = auto` unless a case needs an explicit convention for old inputs
+- require `stru_out` from the same symmetry-enabled SCF; current LibRPA rebuilds rotations from the symmetry metadata in that file
+- do not require or copy legacy `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`
 
 Required stage handling:
 
-- generate the symmetry sidecars from the same SCF that produces the Coulomb and density-matrix inputs
-- after the symmetry-enabled SCF, verify the sidecars exist under `OUT.ABACUS/`
-- for the current `head/wing` lane, always generate `pyatb_librpa_df` on the full regular k-grid; LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list, so do not feed IBZ k-points or star weights from `symrot_k.txt` into `output_librpa.py` by default
-- keep the root-level `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` aligned with the symmetry-sidecar view seen by LibRPA; do not overwrite those root files with the full-BZ `pyatb_librpa_df/*` copies
+- after the symmetry-enabled SCF, verify `stru_out` exists in the LibRPA working directory
+- for the current `head/wing` lane, always generate `pyatb_librpa_df` on the full regular k-grid; LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list, so do not feed IBZ k-points or star weights from legacy sidecars into `output_librpa.py` by default
+- keep the root-level `stru_out`, `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` aligned with the same ABACUS run; do not overwrite those root files with the full-BZ `pyatb_librpa_df/*` copies
 - if a temporary full-BZ regeneration is needed for `pyatb_librpa_df`, do it in isolation and copy back only the `pyatb_librpa_df/` directory unless the user explicitly requests a root-level replacement
-- copy the sidecars into the LibRPA working directory before `preprocess_abacus_for_librpa_band.py` and `LibRPA`
-- fail fast if any required sidecar is missing
+- fail fast if `stru_out` is missing
 
 Comparison rule:
 
 - for symmetry-vs-no-symmetry checks, keep `nbands`, k-meshes, shrink settings, thresholds, PP/NAO/ABFS files, helper scripts, and post-processing identical
-- only patch the symmetry-related keys and sidecar staging
+- only patch the symmetry-related keys and the `stru_out`-producing SCF stage
 
 ## Shrink strategy
 
@@ -239,7 +238,7 @@ Use these generic checks.
 - `OUT.ABACUS/running_scf.log` exists
 - the log contains both `Finish Time` and `Total Time`
 - `OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart` exists and is non-empty
-- when the periodic symmetry lane is enabled, `OUT.ABACUS/irreducible_sector.txt`, `OUT.ABACUS/symrot_R.txt`, `OUT.ABACUS/symrot_k.txt`, and `OUT.ABACUS/symrot_abf_k.txt` all exist
+- when the periodic symmetry lane is enabled, `stru_out` exists and comes from the same symmetry-enabled SCF
 
 ### pyatb success
 
