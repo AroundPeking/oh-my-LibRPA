@@ -82,13 +82,13 @@ verify_pyatb_stage() {
   local ssh_target="$2"
   local run_dir="$3"
 
-  local body='[[ -d pyatb_librpa_df && -f pyatb_librpa_df/band_out ]] && compgen -G "pyatb_librpa_df/KS_eigenvector_*.dat" >/dev/null'
+  local body='[[ -d pyatb_librpa_df && -s pyatb_librpa_df/band_out && -s pyatb_librpa_df/k_path_info && -s pyatb_librpa_df/velocity_matrix ]] && compgen -G "pyatb_librpa_df/KS_eigenvector_*.dat" >/dev/null'
   if run_target_command "$compute_location" "$ssh_target" "$run_dir" "$body"; then
-    VERIFY_MESSAGE='`pyatb_librpa_df/` exists, `band_out` exists, and `KS_eigenvector_*.dat` files were generated.'
+    VERIFY_MESSAGE='`pyatb_librpa_df/` exists, `band_out`, `k_path_info`, binary-v1 `velocity_matrix`, and `KS_eigenvector_*.dat` files were generated.'
     return 0
   fi
 
-  VERIFY_MESSAGE='pyatb success markers are incomplete: expected `pyatb_librpa_df/band_out` and at least one `KS_eigenvector_*.dat`.'
+  VERIFY_MESSAGE='pyatb success markers are incomplete: expected `pyatb_librpa_df/band_out`, `pyatb_librpa_df/k_path_info`, `pyatb_librpa_df/velocity_matrix`, and at least one `KS_eigenvector_*.dat`.'
   return 1
 }
 

@@ -236,7 +236,9 @@ prefix_coul_cut = v1_coulomb_cut_iq_
 prefix_lri_coeff = v1_Cs_data_
 prefix_lri_coeff_shrink = v1_Cs_shrinked_data_
 prefix_shrink_sinvS = v1_shrink_sinvS_
-fn_basis_shrink = basis_out_shrink
+fn_basis_wfc = basis_wfc_out
+fn_basis_aux = basis_aux_out
+fn_basis_aux_shrink = basis_aux_shrink_out
 version_coul_reader = 1
 version_lri_reader = 1
 use_cholesky_gw_wc = t
@@ -308,6 +310,28 @@ if "$installed_root/scripts/check_slurm_resources.sh" "$case_resource_bad/run_ab
   fail 'check_slurm_resources.sh accepted an underfilled Slurm resource layout'
 else
   pass 'check_slurm_resources.sh blocks underfilled Slurm core/memory requests'
+fi
+
+case_gw_missing_helper="$tmp_dir/gw-missing-helper"
+if "$installed_root/scripts/materialize_gw_template.sh" --case-dir "$case_gw_missing_helper" --system-type solid >/dev/null 2>&1; then
+  if grep -q '^output_gw_sigc_mat_rf = f$' "$case_gw_missing_helper/librpa.in"; then
+    pass 'solid GW baseline keeps output_gw_sigc_mat_rf disabled by default'
+  else
+    fail 'solid GW baseline still enables output_gw_sigc_mat_rf by default'
+  fi
+
+  if grep -q '^prefix_lri_coeff_shrink = v1_Cs_shrinked_data_$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^prefix_shrink_sinvS = v1_shrink_sinvS_$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^fn_basis_wfc = basis_wfc_out$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^fn_basis_aux = basis_aux_out$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^fn_basis_aux_shrink = basis_aux_shrink_out$' "$case_gw_missing_helper/librpa.in" \
+    && ! grep -q '^fn_basis_shrink = basis_out_shrink$' "$case_gw_missing_helper/librpa.in"; then
+    pass 'solid GW baseline keeps reader-v1 split-basis filenames'
+  else
+    fail 'solid GW baseline lacks reader-v1 split-basis filenames'
+  fi
+else
+  fail 'materialize_gw_template.sh failed to prepare the solid GW regression case'
 fi
 
 case_gw="$tmp_dir/gw-molecule-short"

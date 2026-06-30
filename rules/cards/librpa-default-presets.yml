@@ -25,7 +25,7 @@
     - `prefix_lri_coeff = v1_Cs_data_`
     - `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_` when `use_shrink_abfs = t`
     - `prefix_shrink_sinvS = v1_shrink_sinvS_` when `use_shrink_abfs = t`
-    - `fn_basis_shrink = basis_out_shrink` when `use_shrink_abfs = t`
+    - `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, and `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`
     - `version_coul_reader = 1`
     - `version_lri_reader = 1`
     - `use_scalapack_gw_wc = t`

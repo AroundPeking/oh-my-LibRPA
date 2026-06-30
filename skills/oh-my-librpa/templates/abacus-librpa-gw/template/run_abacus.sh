@@ -115,7 +115,14 @@ cp -a OUT.ABACUS/vxc_out.dat vxc_out
 bash ./perform.sh
 require_file band_out
 require_glob 'KS_eigenvector_*.dat'
-require_glob 'coulomb_cut_*'
+require_file basis_wfc_out
+require_file basis_aux_out
+require_file basis_aux_shrink_out
+require_glob 'v1_coulomb_full_iq_*'
+require_glob 'v1_coulomb_cut_iq_*'
+require_glob 'v1_Cs_data_*'
+require_glob 'v1_Cs_shrinked_data_*'
+require_glob 'v1_shrink_sinvS_*'
 
 cp KPT_nscf KPT
 cp INPUT_nscf INPUT

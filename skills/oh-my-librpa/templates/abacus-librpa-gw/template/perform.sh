@@ -42,5 +42,9 @@ if [[ -n "${OH_MY_LIBRPA_LD_PRELOAD:-}" ]]; then
   export LD_PRELOAD="$OH_MY_LIBRPA_LD_PRELOAD"
 fi
 "$mpirun_exec" -np "$pyatb_mpi_ranks" "$python3_exec" get_diel.py
+require_file pyatb_librpa_df/band_out
+require_file pyatb_librpa_df/k_path_info
+require_file pyatb_librpa_df/velocity_matrix
+require_glob 'pyatb_librpa_df/KS_eigenvector_*.dat'
 require_file band_out
 require_glob 'KS_eigenvector_*.dat'

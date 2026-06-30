@@ -11,6 +11,8 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from array import array
 
 HA2EV = 27.211386245988
+OCC_ZERO_TOL = 1e-12
+OCC_INTEGER_TOL = 1e-8
 
 
 def get_kpoints(kpoint_file):
@@ -100,6 +102,47 @@ def resolve_wfc_file(outdir, ik, isp, nspin, use_soc):
     raise FileNotFoundError("Cannot find wavefunction file for k-point {} in {}".format(ik + 1, outdir))
 
 
+def occupation_target(nspin, use_soc):
+    return 1.0 if use_soc or nspin != 1 else 2.0
+
+
+def normalize_band_occupations(occs, nspin, use_soc, source=""):
+    """Convert ABACUS k-weighted wfc occupations to physical occupations.
+
+    ABACUS writes wfs*_nao.txt occupations as internal k-weighted `wg`.
+    LibRPA band inputs expect the physical occupation because the reader applies
+    its own k-point normalization.
+    """
+    positive_occs = [occ for occ in occs if occ > OCC_ZERO_TOL]
+    if not positive_occs:
+        return occs
+
+    max_occ = max(positive_occs)
+    target = occupation_target(nspin, use_soc)
+    if max_occ <= OCC_ZERO_TOL:
+        scale = 1.0
+    elif max_occ < target - OCC_INTEGER_TOL:
+        scale = target / max_occ
+    else:
+        scale = 1.0
+
+    normalized = []
+    for occ in occs:
+        value = 0.0 if abs(occ) <= OCC_ZERO_TOL else occ * scale
+        if value < -OCC_INTEGER_TOL or value > target + OCC_INTEGER_TOL:
+            detail = " in {}".format(source) if source else ""
+            raise ValueError(
+                "Out-of-range band occupation{} after removing ABACUS k-weight: "
+                "{:.16E}; expected values between 0 and {:.1f}."
+                .format(detail, value, target)
+            )
+        nearest = round(value)
+        if abs(value - nearest) <= OCC_INTEGER_TOL:
+            value = float(nearest)
+        normalized.append(value)
+    return normalized
+
+
 def process_wfc(outdir, nkpts, nspin, use_soc = False):
     nbands = None
     nbasis = None
@@ -135,6 +178,7 @@ def process_wfc(outdir, nkpts, nspin, use_soc = False):
             assert (len(eigs) == nbands)
             assert (len(occs) == nbands)
             assert (len(vecs) == nbands * nbasis * 2)
+            occs = normalize_band_occupations(occs, nspin, use_soc, source=str(fn))
 
             mode = 'a'
             if isp == 0:

@@ -256,10 +256,13 @@ if "$installed_root/scripts/materialize_gw_template.sh" --case-dir "$case_gw_mis
 
   if grep -q '^prefix_lri_coeff_shrink = v1_Cs_shrinked_data_$' "$case_gw_missing_helper/librpa.in" \
     && grep -q '^prefix_shrink_sinvS = v1_shrink_sinvS_$' "$case_gw_missing_helper/librpa.in" \
-    && grep -q '^fn_basis_shrink = basis_out_shrink$' "$case_gw_missing_helper/librpa.in"; then
-    pass 'solid GW baseline keeps reader-v1 shrink prefixes'
+    && grep -q '^fn_basis_wfc = basis_wfc_out$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^fn_basis_aux = basis_aux_out$' "$case_gw_missing_helper/librpa.in" \
+    && grep -q '^fn_basis_aux_shrink = basis_aux_shrink_out$' "$case_gw_missing_helper/librpa.in" \
+    && ! grep -q '^fn_basis_shrink = basis_out_shrink$' "$case_gw_missing_helper/librpa.in"; then
+    pass 'solid GW baseline keeps reader-v1 split-basis filenames'
   else
-    fail 'solid GW baseline lacks reader-v1 shrink prefixes'
+    fail 'solid GW baseline lacks reader-v1 split-basis filenames'
   fi
 
   rm -f "$case_gw_missing_helper/get_diel.py"

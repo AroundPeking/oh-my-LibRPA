@@ -20,9 +20,11 @@
   fix:
     - Check that the `pyatb_librpa_df` directory exists
     - Check that `pyatb_librpa_df/band_out` exists
+    - Check that `pyatb_librpa_df/velocity_matrix` exists
     - Check that at least one `pyatb_librpa_df/KS_eigenvector_*.dat` file exists
   verify:
     - Confirm the directory is non-empty
+    - Confirm `velocity_matrix` is non-zero size
     - Confirm representative eigenvector files are non-zero size
   applies_to:
     mode: gw

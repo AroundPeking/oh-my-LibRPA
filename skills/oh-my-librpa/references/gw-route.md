@@ -120,7 +120,7 @@ Required settings and checks:
 - for the tested short smoke path, materialize the route with:
   - `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
 - keep `out_mat_xc 1`, `out_librpa_reader_version 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, `exx_cs_inv_thr 1e-5`
-- keep LibRPA on reader-v1 defaults: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, and `fn_basis_shrink = basis_out_shrink` when `use_shrink_abfs = t`, `version_coul_reader = 1`, `version_lri_reader = 1`
+- keep LibRPA on reader-v1 defaults: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, and `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`, `version_coul_reader = 1`, `version_lri_reader = 1`
 - keep `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
 - set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times` for molecular GW
 - do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` on that short route
@@ -139,7 +139,7 @@ Required checks and stages:
 - treat the periodic GW helper quartet as inseparable: `perform.sh`, `get_diel.py`, `output_librpa.py`, and `preprocess_abacus_for_librpa_band.py`
 - when cloning a prior GW case into a fresh run directory, copy the full helper quartet together or re-materialize it from the template; never copy only a subset
 - only enable `output_gw_sigc_mat_rf = t` when the user explicitly asks to open NSCF band continuation; for a materialized case, pass `--enable-nscf-band-continuation true`
-- after SCF, run `pyatb` to generate `pyatb_librpa_df`
+- after SCF, run `pyatb` to generate `pyatb_librpa_df`; for current LibRPA `master_ghj`, both `KS_eigenvector_*.dat` and `velocity_matrix` are reader-v1 binary files
 - then run NSCF
 - then run `preprocess_abacus_for_librpa_band.py`
 - then run `LibRPA`
@@ -170,7 +170,7 @@ Required stage handling:
 
 - generate the symmetry sidecars from the same SCF that produces the Coulomb and density-matrix inputs
 - after the symmetry-enabled SCF, verify the sidecars exist under `OUT.ABACUS/`
-- for the current `head/wing` lane, always generate `pyatb_librpa_df` on the full regular k-grid; do not feed IBZ k-points or star weights from `symrot_k.txt` into `output_librpa.py`
+- for the current `head/wing` lane, always generate `pyatb_librpa_df` on the full regular k-grid; LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list, so do not feed IBZ k-points or star weights from `symrot_k.txt` into `output_librpa.py` by default
 - keep the root-level `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` aligned with the symmetry-sidecar view seen by LibRPA; do not overwrite those root files with the full-BZ `pyatb_librpa_df/*` copies
 - if a temporary full-BZ regeneration is needed for `pyatb_librpa_df`, do it in isolation and copy back only the `pyatb_librpa_df/` directory unless the user explicitly requests a root-level replacement
 - copy the sidecars into the LibRPA working directory before `preprocess_abacus_for_librpa_band.py` and `LibRPA`
@@ -201,7 +201,7 @@ Additional rule:
 - when shrink is enabled, require `ABFS_ORBITAL` in `STRU`
 - if the user provides `.abfs` files, use those names directly
 - keep ABACUS-side shrink and LibRPA-side shrink strictly synchronized as a host-independent workflow invariant
-- if the case bundle was generated from a shrink SCF or already contains shrink artifacts such as `Cs_shrinked_data_*` or `shrink_sinvS_*`, require `librpa.in: use_shrink_abfs = t`
+- if the case bundle was generated from a shrink SCF or already contains shrink artifacts such as legacy `Cs_shrinked_data_*` / `shrink_sinvS_*` or v1 `v1_Cs_shrinked_data_*` / `v1_shrink_sinvS_*`, require `librpa.in: use_shrink_abfs = t`
 - if the case bundle was generated from a no-shrink SCF, require `librpa.in: use_shrink_abfs = f`
 - never "turn off shrink only in librpa.in" while reusing a shrink-generated ABACUS bundle; treat that as an invalid mixed workflow
 
@@ -228,7 +228,7 @@ If pair correction is enabled in this lane:
 Failure rule:
 
 - if `use_shrink_abfs = f` but `INPUT_scf` still contains shrink-only keys, treat that as a mixed lane and fix the inputs before submission
-- if `use_shrink_abfs = f` but the bundle still contains shrink outputs such as `Cs_shrinked_data_*` or `shrink_sinvS_*`, also treat that as a mixed lane and block submission
+- if `use_shrink_abfs = f` but the bundle still contains shrink outputs such as legacy `Cs_shrinked_data_*` / `shrink_sinvS_*` or v1 `v1_Cs_shrinked_data_*` / `v1_shrink_sinvS_*`, also treat that as a mixed lane and block submission
 
 ## Stage success criteria
 

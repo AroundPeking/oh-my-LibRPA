@@ -464,10 +464,12 @@ if [[ "$resolved_mode" == "gw" ]]; then
   if ! grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librpa" \
      || { has_key_value "$librpa" "prefix_lri_coeff_shrink" "v1_Cs_shrinked_data_" \
           && has_key_value "$librpa" "prefix_shrink_sinvS" "v1_shrink_sinvS_" \
-          && has_key_value "$librpa" "fn_basis_shrink" "basis_out_shrink"; }; then
-    note_pass "librpa.in keeps reader-v1 shrink prefixes synchronized"
+          && has_key_value "$librpa" "fn_basis_wfc" "basis_wfc_out" \
+          && has_key_value "$librpa" "fn_basis_aux" "basis_aux_out" \
+          && has_key_value "$librpa" "fn_basis_aux_shrink" "basis_aux_shrink_out"; }; then
+    note_pass "librpa.in keeps reader-v1 shrink prefixes and split-basis filenames synchronized"
   else
-    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_shrinked_data_, prefix_shrink_sinvS = v1_shrink_sinvS_, and fn_basis_shrink = basis_out_shrink with ABACUS reader-v1 outputs"
+    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_shrinked_data_, prefix_shrink_sinvS = v1_shrink_sinvS_, fn_basis_wfc = basis_wfc_out, fn_basis_aux = basis_aux_out, and fn_basis_aux_shrink = basis_aux_shrink_out with ABACUS reader-v1 outputs"
   fi
 
   if has_key_value "$librpa" "use_cholesky_gw_wc" "t"; then
@@ -582,7 +584,9 @@ if grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librp
 
   if has_active_key "$scf" "shrink_abfs_pca_thr" || has_active_key "$scf" "shrink_lu_inv_thr" \
      || case_has_matching_files "$case_dir" 'shrink_sinvS_*' \
-     || case_has_matching_files "$case_dir" 'Cs_shrinked_data_*'; then
+     || case_has_matching_files "$case_dir" 'Cs_shrinked_data_*' \
+     || case_has_matching_files "$case_dir" 'v1_shrink_sinvS_*' \
+     || case_has_matching_files "$case_dir" 'v1_Cs_shrinked_data_*'; then
     note_pass "ABACUS-side bundle shows shrink markers/artifacts consistent with use_shrink_abfs=t"
   else
     note_fail "use_shrink_abfs=t but the bundle does not show shrink markers/artifacts from ABACUS"
@@ -601,8 +605,10 @@ elif grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*f([[:space:]]|$)' "$lib
   fi
 
   if case_has_matching_files "$case_dir" 'shrink_sinvS_*' \
-     || case_has_matching_files "$case_dir" 'Cs_shrinked_data_*'; then
-    note_fail "use_shrink_abfs=f but the bundle still contains shrink artifacts (shrink_sinvS_* or Cs_shrinked_data_*)"
+     || case_has_matching_files "$case_dir" 'Cs_shrinked_data_*' \
+     || case_has_matching_files "$case_dir" 'v1_shrink_sinvS_*' \
+     || case_has_matching_files "$case_dir" 'v1_Cs_shrinked_data_*'; then
+    note_fail "use_shrink_abfs=f but the bundle still contains shrink artifacts (legacy or v1 shrink_sinvS/Cs_shrinked_data files)"
   else
     note_pass "no-shrink lane does not carry shrink artifacts from ABACUS"
   fi

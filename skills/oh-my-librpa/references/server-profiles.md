@@ -86,7 +86,10 @@ scripts/intake_preflight.sh <case_dir> --compute-location server --ssh-target df
 mpirun -bootstrap ssh -f "$HOSTFILE" -ppn "$RANKS_PER_NODE" -np "$NRANKS" "$EXEC"
 ```
 
-- On the current 60.245 Intel MPI 2021.3 environment, an `mpirun -bootstrap ssh` job may fail during `MPI_Init` with `ib_iface.c:674 Assertion gid->global.interface_id != 0`. First run a two-node MPI smoke test; if the default provider fails and TCP succeeds, set:
+- For LibRPA GW jobs on 60.245/df_dcu, do not add MPI fabric/provider overrides by default. In particular, do not set `I_MPI_FABRICS=shm:ofi`, `I_MPI_OFI_PROVIDER=tcp`, `FI_PROVIDER=tcp`, or `UCX_TLS=tcp,self` in normal LibRPA GW scripts unless a separate MPI smoke test or a prior failed run gives direct evidence that the default provider is broken for that specific job.
+- This is based on the BN `lambda_0p35` GW head/wing diagnosis on 2026-06-16: scripts with the TCP/OFI provider overrides stalled after `* Success: read velocity from pyatb_librpa_df(ABACUS).` in the LibRI `comm_map2_first` path, while the same case using the older, minimal MPI environment passed `n_singular`, `calculate wing`, and entered `Use LibRI for chi0`.
+- If a TCP provider workaround is tested, keep it as a named diagnostic lane in a separate run directory and record the evidence in `run-report.md`. Do not promote it into reusable templates or default Slurm scripts.
+- On the current 60.245 Intel MPI 2021.3 environment, an `mpirun -bootstrap ssh` job may fail during `MPI_Init` with `ib_iface.c:674 Assertion gid->global.interface_id != 0`. First run a two-node MPI smoke test; if the default provider fails and TCP succeeds, set the provider variables only for that diagnostic lane:
 
 ```bash
 export I_MPI_HYDRA_BOOTSTRAP=ssh
@@ -97,7 +100,7 @@ export I_MPI_OFI_PROVIDER=tcp
 export UCX_TLS=tcp,self
 ```
 
-- Treat the TCP provider setting as a 60.245 runtime workaround, not as a universal cluster default.
+- Treat the TCP provider setting as a 60.245 runtime workaround for a proven bootstrap/provider failure, not as a LibRPA GW default.
 
 ## Submission discipline
 

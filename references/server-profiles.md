@@ -74,6 +74,13 @@ scripts/intake_preflight.sh <case_dir> --compute-location server --ssh-target df
   --expected-ntasks-per-node 1 --node-cores <CPUTot> --node-memory-mb <RealMemory>
 ```
 
+## 60.245 Slurm guardrails
+
+- Keep large ABACUS/LibRPA work under `/work1/ghj/...`; `/public/home/ghj` has a small quota and should only hold source/build trees.
+- For LibRPA GW jobs on 60.245/df_dcu, do not add MPI fabric/provider overrides by default. In particular, do not set `I_MPI_FABRICS=shm:ofi`, `I_MPI_OFI_PROVIDER=tcp`, `FI_PROVIDER=tcp`, or `UCX_TLS=tcp,self` in normal LibRPA GW scripts unless a separate MPI smoke test or a prior failed run gives direct evidence that the default provider is broken for that specific job.
+- This is based on the BN `lambda_0p35` GW head/wing diagnosis on 2026-06-16: scripts with the TCP/OFI provider overrides stalled after `* Success: read velocity from pyatb_librpa_df(ABACUS).` in the LibRI `comm_map2_first` path, while the same case using the older, minimal MPI environment passed `n_singular`, `calculate wing`, and entered `Use LibRI for chi0`.
+- If a TCP provider workaround is tested, keep it as a named diagnostic lane in a separate run directory and record the evidence in `run-report.md`. Do not promote it into reusable templates or default Slurm scripts.
+
 ## Submission discipline
 
 - always use a fresh isolated run directory

@@ -42,7 +42,7 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
 - Build ABACUS and LibRPA against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status` unless the user explicitly asks for an older dependency snapshot.
 - For the current ABACUS/LibRPA `master_ghj` branches, default to reader-v1 handoff:
   - ABACUS SCF producer: `out_librpa_reader_version 1`
-  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, and `fn_basis_shrink = basis_out_shrink` when `use_shrink_abfs = t`, `version_coul_reader = 1`, and `version_lri_reader = 1`
+  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, and `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`, `version_coul_reader = 1`, and `version_lri_reader = 1`
   - LibRPA GW defaults: `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
 
 ## Default `librpa.in` Preset for GW
@@ -59,7 +59,9 @@ For GW requests, set:
 - `prefix_lri_coeff = v1_Cs_data_`
 - `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_` when `use_shrink_abfs = t`
 - `prefix_shrink_sinvS = v1_shrink_sinvS_` when `use_shrink_abfs = t`
-- `fn_basis_shrink = basis_out_shrink` when `use_shrink_abfs = t`
+- `fn_basis_wfc = basis_wfc_out` when `use_shrink_abfs = t`
+- `fn_basis_aux = basis_aux_out` when `use_shrink_abfs = t`
+- `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`
 - `version_coul_reader = 1`
 - `version_lri_reader = 1`
 - `use_scalapack_gw_wc = t`
@@ -155,6 +157,7 @@ Use the following alignment for spin-sensitive GW workflows:
 
 - When `replace_w_head = t`, do not generate `pyatb_librpa_df` from IBZ k-points or star weights, even if `symrot_k.txt` exists
 - For this lane, `pyatb_librpa_df` must stay on the full regular k-grid
+- Current LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list; keep `pyatb_librpa_df` internally consistent and do not rewrite it into an IBZ/star-weighted payload by default
 - Keep root `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` consistent with the symmetry-sidecar view used by LibRPA
 - Never overwrite those root files with the full-BZ `pyatb_librpa_df/*` copies unless the user explicitly asks for a root-level replacement and understands the symmetry mismatch risk
 
@@ -199,6 +202,7 @@ Only `LibRPA` needs an explicit status judgment in the normal workflow. `pyatb` 
 
 - `pyatb_librpa_df/` exists
 - `pyatb_librpa_df/band_out` exists
+- `pyatb_librpa_df/velocity_matrix` exists
 - at least one `pyatb_librpa_df/KS_eigenvector_*.dat` file exists
 
 ### NSCF success

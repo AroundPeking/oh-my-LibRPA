@@ -270,7 +270,7 @@ if [[ "$system_type" == "molecule" ]]; then
 fi
 
 execute_verified_stage scf "$scf_cmd" verify_scf_stage 'OUT.ABACUS/running_scf.log, OUT.ABACUS/ABACUS-CHARGE-DENSITY.restart' 'Run pyatb.'
-execute_verified_stage pyatb "$pyatb_cmd" verify_pyatb_stage 'pyatb_librpa_df/band_out, pyatb_librpa_df/KS_eigenvector_*.dat' 'Run NSCF.'
+execute_verified_stage pyatb "$pyatb_cmd" verify_pyatb_stage 'pyatb_librpa_df/band_out, pyatb_librpa_df/k_path_info, pyatb_librpa_df/velocity_matrix, pyatb_librpa_df/KS_eigenvector_*.dat' 'Run NSCF.'
 execute_verified_stage nscf "$nscf_cmd" verify_nscf_stage 'OUT.ABACUS/running_nscf.log, OUT.ABACUS/eig.txt or OUT.ABACUS/eig_occ.txt' 'Run preprocess.'
 execute_verified_stage preprocess "$preprocess_cmd" verify_preprocess_stage 'band_kpath_info, band_KS_*, band_vxc*' 'Run LibRPA.'
 execute_librpa_stage

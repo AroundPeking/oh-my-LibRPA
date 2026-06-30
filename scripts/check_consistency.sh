@@ -245,10 +245,12 @@ if [[ "$resolved_mode" == "gw" ]]; then
   if ! grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librpa" \
      || { has_key_value "$librpa" "prefix_lri_coeff_shrink" "v1_Cs_shrinked_data_" \
           && has_key_value "$librpa" "prefix_shrink_sinvS" "v1_shrink_sinvS_" \
-          && has_key_value "$librpa" "fn_basis_shrink" "basis_out_shrink"; }; then
-    note_pass "librpa.in keeps reader-v1 shrink prefixes synchronized"
+          && has_key_value "$librpa" "fn_basis_wfc" "basis_wfc_out" \
+          && has_key_value "$librpa" "fn_basis_aux" "basis_aux_out" \
+          && has_key_value "$librpa" "fn_basis_aux_shrink" "basis_aux_shrink_out"; }; then
+    note_pass "librpa.in keeps reader-v1 shrink prefixes and split-basis filenames synchronized"
   else
-    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_shrinked_data_, prefix_shrink_sinvS = v1_shrink_sinvS_, and fn_basis_shrink = basis_out_shrink with ABACUS reader-v1 outputs"
+    note_fail "GW shrink route requires prefix_lri_coeff_shrink = v1_Cs_shrinked_data_, prefix_shrink_sinvS = v1_shrink_sinvS_, fn_basis_wfc = basis_wfc_out, fn_basis_aux = basis_aux_out, and fn_basis_aux_shrink = basis_aux_shrink_out with ABACUS reader-v1 outputs"
   fi
 
   if has_key_value "$librpa" "use_cholesky_gw_wc" "t"; then
