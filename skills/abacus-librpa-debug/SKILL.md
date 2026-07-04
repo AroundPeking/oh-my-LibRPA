@@ -5,14 +5,17 @@ description: Diagnose ABACUS + LibRPA RPA/GW failures from logs and inputs. Use 
 
 # ABACUS + LibRPA Debug
 
+Before treating an ABACUS+LibRPA failure as a physics/input issue, apply `skills/abacus-librpa-version-guard/` when execution provenance matters. Old ABACUS/LibRPA binaries can reject or misread current `master_ghj` parameters, so check server executable commits against local `master_ghj` before redesigning inputs.
+
 Locate the failing stage first, then provide targeted fixes. Avoid broad blind modifications.
 
 ## Diagnosis Order
 
 1. Identify failure stage: SCF / DF / NSCF / LibRPA.
-2. Check whether inputs are mixed from different workflow chains.
-3. Check stale-output contamination from previous runs.
-4. Check missing or conflicting threshold parameters.
+2. Check whether the run used current, version-verified ABACUS/LibRPA executables or an explicit branch/reproduction exception.
+3. Check whether inputs are mixed from different workflow chains.
+4. Check stale-output contamination from previous runs.
+5. Check missing or conflicting threshold parameters.
 
 ## Common Issues
 

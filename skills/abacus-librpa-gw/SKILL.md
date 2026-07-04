@@ -5,6 +5,8 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 
 # ABACUS + LibRPA GW
 
+Before any GW compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real ABACUS+LibRPA physics compute must run on a server by default, and ABACUS/LibRPA executable commits must be checked against local `master_ghj` unless this is a recorded feature-branch or old-version reproduction.
+
 Execution order depends on system type:
 
 - `molecule`: default to the short route `SCF -> LibRPA` unless the user explicitly needs extra band preparation; skip `pyatb`
@@ -38,6 +40,7 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
   - `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`
   - `.orb`, `.abfs`, `.upf`
 - For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, launcher paths, and any required `.bashrc` / conda activation steps instead of relying on implicit login-shell luck.
+- For server runs, record ABACUS and LibRPA source SHAs and compare them with local `master_ghj` before submission. Stop on stale or unknown binaries unless the user explicitly confirms a branch/reproduction exception.
 - For server Slurm submissions, probe the target server and partition for node shape before submission, then verify the batch script against those live facts. For `1 MPI rank/node`, `--cpus-per-task` and `OMP_NUM_THREADS` should use the full discovered per-node core count, and `--mem` should use the full discovered per-node `RealMemory` in MB unless the user explicitly requests a smaller allocation.
 - Build ABACUS and LibRPA against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status` unless the user explicitly asks for an older dependency snapshot.
 - For the current ABACUS/LibRPA `master_ghj` branches, default to reader-v1 handoff:

@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa
-description: Chat-first orchestrator for ABACUS + LibRPA workflows. Use when users ask in natural language to prepare, run, audit, debug, or regression-test GW/RPA tasks, especially when the agent must classify files, choose local vs server execution, route by system type, or verify new feature work without exposing raw CLI complexity.
+description: Chat-first orchestrator for ABACUS + LibRPA workflows. Use when users ask in natural language to prepare, run, audit, debug, or regression-test GW/RPA tasks, especially when the agent must classify files, enforce server execution for ABACUS+LibRPA compute, route by system type, or verify new feature work without exposing raw CLI complexity.
 ---
 
 # oh-my-librpa
@@ -8,6 +8,8 @@ description: Chat-first orchestrator for ABACUS + LibRPA workflows. Use when use
 Treat the user message as an intent, not as a command request.
 
 Keep the conversation short, operational, and stage-based.
+
+For any `ABACUS -> LibRPA` compute, audit, debug, restart, or result interpretation, first apply `skills/abacus-librpa-version-guard/`. Do not offer local ABACUS+LibRPA physics compute as a normal option, and do not submit or trust a server run until ABACUS and LibRPA commit versions have been checked against the local `master_ghj` baseline or a named feature-branch exception.
 
 ## Act as the front router
 
@@ -28,7 +30,7 @@ Regression exception: if the user asks to run, update, or design LibRPA regressi
 7. If a bundle mixes both families, stop and ask which upstream stack owns the source of truth before editing anything.
 6. For `ABACUS -> LibRPA`, classify the task as `GW`, `RPA`, or `Debug`.
 7. For `ABACUS -> LibRPA`, classify the system as `molecule`, `solid`, or `2D`.
-8. Ask where execution should happen: local or server.
+8. For `ABACUS -> LibRPA` real compute, use a server. Ask which server/partition to use, not whether to run locally. Local work is only for staging, static checks, parsing, and plotting unless the user explicitly confirms an exception.
 9. Create a fresh isolated run directory before any real run.
 10. If the case needs PP/NAO/ABFS assets and the user did not provide a complete bundle, read `references/pp-nao-abfs-library.md` and select files from the bundled asset library.
 11. If the user explicitly asks to regenerate ABFS, or if the bundled library does not contain the requested PP family / radius / orbital tier, also read `references/abfs-generation.md` and generate a matched auxiliary basis instead of substituting an approximate one.
@@ -81,15 +83,16 @@ If a server-side reference bundle already exists, prefer it over rebuilding from
 
 ## Mandatory compute-location handshake
 
-Before compute, ask:
+Before compute:
 
-1. `Do you want local compute or server compute?`
-2. If server: `Do you need VPN first?`
-3. If server: `Do you want me to run connectivity/login checks now?`
+1. For `ABACUS -> LibRPA`, state that real compute will run on a server.
+2. Ask which server to use if the user has not specified one.
+3. Ask whether VPN is needed.
+4. Ask whether to run connectivity/login checks now.
 
 Then branch:
 
-- Local -> prefer preprocessing and static checks first; confirm once before any full local compute
+- Local -> allow only preprocessing, static checks, parsing, plotting, and tiny non-physics smoke commands unless the user explicitly confirms a local-compute exception
 - Server -> wait for VPN confirmation if needed, then verify login/connectivity, then materialize explicit runtime config before submission
 
 Do not trust interactive shell defaults for `python3`, MPI launchers, or executable paths.
@@ -103,6 +106,7 @@ Always do all of the following:
 - Create `run-report.md` in that directory
 - Create an archived Markdown copy under `${CODEX_HOME:-$HOME/.codex}/workspace/librpa/oh-my-librpa/`
 - Refuse to overwrite original data directories
+- Before any ABACUS+LibRPA queue submission or result interpretation, record the version block required by `skills/abacus-librpa-version-guard/`: server host, executable paths, executable `stat`, server source SHAs, local `master_ghj` SHAs, and the verdict
 - Prefer smoke-first validation before expensive runs
 - For server smoke runs, start from the smallest batch payload that can print `pwd`, list files, and run one stage; do not add `.bashrc`, `conda`, `setvars.sh`, or `mpirun -np 1` unless a probe proves they are needed
 - On any server, require both `abacus_work` and `librpa_work` to be compiled against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status`; do not mix one side built against older dependency headers.

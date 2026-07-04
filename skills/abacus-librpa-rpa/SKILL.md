@@ -5,6 +5,8 @@ description: ABACUS + LibRPA RPA workflow guidance with conservative defaults an
 
 # ABACUS + LibRPA RPA
 
+Before any RPA compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real ABACUS+LibRPA physics compute must run on a server by default, and ABACUS/LibRPA executable commits must be checked against local `master_ghj` unless this is a recorded feature-branch or old-version reproduction.
+
 Primary objective: get stable and reproducible RPA results first, then optimize performance and scale.
 
 ## Execution Order
@@ -47,6 +49,7 @@ For RPA requests, set:
 
 ## Static Checklist
 
+- Verify server execution and ABACUS/LibRPA version provenance before queue submission.
 - Ensure paths come from one consistent SCF source chain.
 - Ensure no GW-only preprocessing step is inserted into the RPA route.
 - Ensure frequency-grid parameters are self-consistent.

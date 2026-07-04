@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa-abacus-librpa
-description: Stack-layer workflow for ABACUS -> LibRPA cases. Use when users provide ABACUS-style inputs such as INPUT/INPUT_scf/INPUT_nscf/KPT/STRU, or ask to run, validate, or debug LibRPA starting from ABACUS outputs. Route inside this layer to the existing GW, RPA, or Debug skills instead of mixing ABACUS conventions with FHI-aims workflows.
+description: Stack-layer workflow for ABACUS to LibRPA cases. Use when users provide ABACUS-style inputs such as INPUT/INPUT_scf/INPUT_nscf/KPT/STRU, or ask to run, validate, or debug LibRPA starting from ABACUS outputs. Route inside this layer to the existing GW, RPA, or Debug skills instead of mixing ABACUS conventions with FHI-aims workflows.
 ---
 
 # oh-my-librpa-abacus-librpa
@@ -16,6 +16,7 @@ Treat this skill as the ABACUS-side router below the top-level `oh-my-librpa` en
 ## Core Behavior
 
 - Confirm the case is ABACUS-based before proceeding.
+- Apply `skills/abacus-librpa-version-guard/` before any compute, audit, debug, restart, or result interpretation. ABACUS+LibRPA physics runs are server-side by default, and the ABACUS/LibRPA executables must be version-checked against local `master_ghj` unless a named feature-branch or old-result reproduction exception is recorded.
 - Classify the task as:
   - `GW`
   - `RPA`
@@ -63,6 +64,7 @@ If ABACUS canonical markers are absent and the case instead has stronger FHI-aim
 
 - Create a fresh run directory before real execution.
 - Audit copied bundles instead of blindly reusing stale outputs.
+- Check server executable provenance and commit SHAs before submission; do not rely on old binaries whose parameter set may predate current `master_ghj`.
 - Run static checks before submission.
 - On any server, confirm that ABACUS and LibRPA were built against the same latest LibRI with the nearest-fix bugfix. If the host has a site-specific LibRI root, record it in the host profile instead of assuming a cross-server default.
 - Keep the conversation operational and report `what was done`, `what was observed`, and `what is next`.
