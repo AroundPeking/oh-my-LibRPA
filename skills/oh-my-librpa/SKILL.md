@@ -38,6 +38,7 @@ Regression exception: if the user asks to run, update, or design LibRPA regressi
    - `references/gw-route.md`
    - `references/rpa-route.md`
    - `references/debug-route.md`
+   - `references/delta-st-route.md` for molecular or solid Delta-Sternheimer response, LibRPA handoff, convergence, or resource sizing
 12. If the ABACUS case uses the user's merged local ABACUS checkout or helper scripts copied from local Downloads, also read `references/abacus-merge-compat.md`.
 13. If server execution is chosen, also read `references/server-profiles.md` before submission.
 14. For `ABACUS -> LibRPA`, before any real submission, run `scripts/intake_preflight.sh <case_dir> --mode <...> --system-type <...> --compute-location <...>` and block on any `FAIL` from the static checks.

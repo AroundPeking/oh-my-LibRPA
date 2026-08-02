@@ -53,6 +53,7 @@ fail_count=0
 
 for path in \
   "$installed_root/SKILL.md" \
+  "$installed_root/references/delta-st-route.md" \
   "$installed_root/rules/cards/librpa-default-presets.yml" \
   "$installed_root/rules/cards/molecular-gw-short-route.yml" \
   "$installed_root/rules/cards/periodic-gw-plotting.yml" \
@@ -70,6 +71,14 @@ for path in \
     fail "Missing required file: $path"
   fi
 done
+
+if grep -q 'references/delta-st-route.md' "$installed_root/SKILL.md" \
+  && grep -q 'effective_workers=1' "$installed_root/references/delta-st-route.md" \
+  && grep -q 'must not be pinned to.*nfreq' "$installed_root/references/delta-st-route.md"; then
+  pass 'Delta-ST route enforces memory warnings and independent global-equation MPI sizing'
+else
+  fail 'Delta-ST route is missing memory-warning or MPI-sizing rules'
+fi
 
 for script in \
   "$installed_root/scripts/check_consistency.sh" \
