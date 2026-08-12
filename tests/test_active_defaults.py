@@ -1,0 +1,78 @@
+import pathlib
+import re
+import unittest
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+ACTIVE_ROOTS = (
+    ROOT / "templates",
+    ROOT / "rules",
+    ROOT / "scripts",
+    ROOT / "skills" / "abacus-librpa-gw",
+    ROOT / "skills" / "oh-my-librpa",
+    ROOT / "skills" / "oh-my-librpa-fhi-aims-g0w0-band",
+    ROOT / "docs" / "guide",
+    ROOT / "examples",
+)
+TEXT_SUFFIXES = frozenset({"", ".md", ".template", ".in", ".sh", ".yml", ".yaml"})
+
+
+def active_files():
+    for root in ACTIVE_ROOTS:
+        for path in root.rglob("*"):
+            if path.is_file() and path.suffix in TEXT_SUFFIXES and "__pycache__" not in path.parts:
+                yield path
+
+
+class ActiveDefaultsTest(unittest.TestCase):
+    def test_active_files_do_not_generate_deprecated_librpa_spellings(self):
+        failures = []
+        deprecated = re.compile(
+            r"task\s*=\s*g0w0_band|(?:use_input|use_abacus)_(?:exx|gw|rpa)_symmetry\s*="
+        )
+        for path in active_files():
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if deprecated.search(line) and "deprecated" not in line.lower():
+                    failures.append(f"{path.relative_to(ROOT)}:{line_number}:{line.strip()}")
+        self.assertEqual(failures, [], "\n".join(failures))
+
+    def test_abacus_librpa_templates_use_current_explicit_contract(self):
+        template_paths = tuple((ROOT / "templates" / "abacus-librpa-gw").rglob("librpa.in*"))
+        template_paths += tuple(
+            (ROOT / "skills" / "oh-my-librpa" / "templates" / "abacus-librpa-gw").rglob(
+                "librpa.in*"
+            )
+        )
+        required = (
+            "task = g0w0",
+            "prefix_coul_full = v1_coulomb_full_iq_",
+            "prefix_coul_cut = v1_coulomb_cut_iq_",
+            "prefix_lri_coeff = v1_Cs_data_",
+            "fn_stru = stru_out",
+            "fn_bz_sampling = bz_sampling_out",
+            "fn_basis_wfc = basis_wfc_out",
+            "fn_basis_aux = basis_aux_out",
+            "version_coul_reader = 1",
+            "version_lri_reader = 1",
+        )
+        failures = []
+        for path in template_paths:
+            text = path.read_text(encoding="utf-8")
+            missing = [item for item in required if item not in text]
+            if missing:
+                failures.append(f"{path.relative_to(ROOT)} missing {missing}")
+        self.assertTrue(template_paths)
+        self.assertEqual(failures, [], "\n".join(failures))
+
+    def test_shell_checker_accepts_current_task_and_keeps_deprecated_alias_detection(self):
+        checker = (ROOT / "scripts" / "check_consistency.sh").read_text(encoding="utf-8")
+        intake = (ROOT / "scripts" / "intake_preflight.sh").read_text(encoding="utf-8")
+        runner = (ROOT / "scripts" / "run_gw_workflow.sh").read_text(encoding="utf-8")
+        self.assertIn('g0w0|g0w0_band) resolved_mode="gw"', checker)
+        self.assertIn('g0w0|g0w0_band) resolved_mode="gw"', intake)
+        self.assertIn('task_name="g0w0"', runner)
+        self.assertIn("deprecated", checker.lower())
+
+
+if __name__ == "__main__":
+    unittest.main()

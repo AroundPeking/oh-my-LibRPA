@@ -36,6 +36,9 @@ for every approved profile and run.
    It does not define LibRPA reader-v1 output parameters. OML's
    `output_librpa.py` adapter writes the handoff files, so the adapter and the
    PyATB calculation are validated as separate components.
+7. LibRPA 0.7.0 passes `input_dir` to `read_headwing_input`, which appends
+   `pyatb_librpa_df/`. The head/wing bundle therefore belongs at
+   `input_dir/pyatb_librpa_df`, including when `input_dir` is not `./`.
 
 ## Reader-v1 Handoff
 

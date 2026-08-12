@@ -1,6 +1,6 @@
 # Periodic-Solid Defaults for FHI-Aims + LibRPA G0W0 Band
 
-Use this reference when staging or preparing a periodic-solid `FHI-aims + LibRPA` `g0w0_band` case.
+Use this reference when staging or preparing a periodic-solid `FHI-aims + LibRPA` single-shot GW case.
 
 ## Geometry
 
@@ -22,7 +22,7 @@ Use this reference when staging or preparing a periodic-solid `FHI-aims + LibRPA
 An auto-generated periodic-solid `control.in` should include:
 
 - a periodic FHI-aims global header
-- a `g0w0_band`-appropriate GW setup
+- a single-shot `g0w0` setup
 - `k_grid`
 - band-path output lines
 - the species blocks from `intermediate_gw`
@@ -41,10 +41,10 @@ When no trusted reference case exists, prefer a compact header that can be audit
 
 ## Minimal `librpa.in` Expectations
 
-For this route, `librpa.in` should remain focused on the `g0w0_band` task. A compact baseline is:
+For this route, `librpa.in` should remain focused on `task = g0w0`. A compact baseline is:
 
 ```text
-task = g0w0_band
+task = g0w0
 option_dielect_func = 3
 replace_w_head = t
 use_scalapack_gw_wc = t

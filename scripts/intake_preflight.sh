@@ -155,7 +155,7 @@ resolved_mode="$mode"
 if [[ "$resolved_mode" == "auto" ]]; then
   task_value="$(detect_task_value "$case_dir/librpa.in" || true)"
   case "$task_value" in
-    g0w0_band) resolved_mode="gw" ;;
+    g0w0|g0w0_band) resolved_mode="gw" ;;
     rpa) resolved_mode="rpa" ;;
     *) resolved_mode="unknown" ;;
   esac

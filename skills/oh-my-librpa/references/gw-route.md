@@ -29,7 +29,7 @@ For reused periodic GW cases on the current `df` ABACUS route, reject these stal
 
 Set or verify these `librpa.in` defaults unless a stronger empirical rule overrides them:
 
-- `task = g0w0_band`
+- `task = g0w0`
 - `nfreq = 16`
 - `use_soc = 0/1` according to the chosen spin/SOC branch
 - `option_dielect_func = 3`
@@ -115,7 +115,7 @@ Required settings and checks:
 - use official ABACUS input names
 - do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`; the short route is `SCF -> LibRPA`
 - set `replace_w_head = f`
-- set `use_input_exx_symmetry = f` and `use_input_gw_symmetry = f`; do not require input symmetry sidecars on this route
+- set `use_symmetry_exx = f` and `use_symmetry_gw = f`; do not require input symmetry sidecars on this route
 - keep `output_gw_sigc_mat_rf = f`
 - for the tested short smoke path, materialize the route with:
   - `scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
@@ -139,7 +139,7 @@ Required checks and stages:
 - treat the periodic GW helper quartet as inseparable: `perform.sh`, `get_diel.py`, `output_librpa.py`, and `preprocess_abacus_for_librpa_band.py`
 - when cloning a prior GW case into a fresh run directory, copy the full helper quartet together or re-materialize it from the template; never copy only a subset
 - only enable `output_gw_sigc_mat_rf = t` when the user explicitly asks to open NSCF band continuation; for a materialized case, pass `--enable-nscf-band-continuation true`
-- after SCF, run `pyatb` to generate `pyatb_librpa_df`; for current LibRPA `master_ghj`, both `KS_eigenvector_*.dat` and `velocity_matrix` are reader-v1 binary files
+- after SCF, run pinned PyATB `enable_head_wing` to generate `pyatb_librpa_df`; for LibRPA `v0.7.0`, both `KS_eigenvector_*.dat` and `velocity_matrix` are reader-v1 binary files
 - then run NSCF
 - then run `preprocess_abacus_for_librpa_band.py`
 - then run `LibRPA`
@@ -155,14 +155,14 @@ Helper-file rule:
 
 Use this lane only for periodic GW when the user explicitly asks to enable symmetry or when the case already has a symmetry-enabled `stru_out` from ABACUS.
 
-Do not use this lane for SOC cases. When SOC is enabled, keep the ABACUS side on `symmetry = -1` and disable `use_input_exx_symmetry` / `use_input_gw_symmetry` in `librpa.in`.
+Do not use this lane for SOC cases. When SOC is enabled, keep the ABACUS side on `symmetry = -1` and disable `use_symmetry_exx` / `use_symmetry_gw` in `librpa.in`.
 
 Required settings:
 
 - `INPUT_scf`: keep `rpa 1` and set `symmetry 1`
 - `INPUT_nscf`: keep `symmetry -1`
 - if the case keeps a standalone band `INPUT`, keep that file on `symmetry -1` as well
-- `librpa.in`: set `use_input_exx_symmetry = t` and `use_input_gw_symmetry = t`; `use_abacus_*_symmetry` is only a legacy alias retained by LibRPA for old inputs
+- `librpa.in`: set `use_symmetry_exx = t` and `use_symmetry_gw = t`; reject old OML symmetry spellings because LibRPA 0.7.0 does not parse them as aliases
 - leave `input_symmetry_convention = auto` unless a case needs an explicit convention for old inputs
 - require `stru_out` from the same symmetry-enabled SCF; current LibRPA rebuilds rotations from the symmetry metadata in that file
 - do not require or copy legacy `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`

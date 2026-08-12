@@ -1,11 +1,11 @@
 ---
 name: oh-my-librpa-fhi-aims-g0w0-band
-description: Use when users ask for periodic-solid FHI-aims + LibRPA g0w0_band workflows, especially when they need separate aims and LibRPA jobs, a control.in skeleton from geometry.in, or alignment to an ABACUS comparison case.
+description: Use when users ask for periodic-solid FHI-aims + LibRPA single-shot G0W0 workflows, including requests that use the deprecated g0w0_band name.
 ---
 
 # oh-my-librpa-fhi-aims-g0w0-band
 
-Treat this skill as the periodic-solid `FHI-aims + LibRPA` lane for `g0w0_band`.
+Treat this as the periodic-solid `FHI-aims + LibRPA` single-shot GW lane. The route name preserves the older user-facing term, but LibRPA 0.7.0 input uses `task = g0w0`.
 
 If the request is about QSGW-family tasks such as `qsgw_band`, `qsgw_band0`, `qsgw`, or `qsgwa`, stop and hand the task to `skills/oh-my-librpa-fhi-aims-qsgw/`.
 
@@ -14,7 +14,7 @@ If the request is about building or repairing the FHI-aims executable itself, st
 ## Scope
 
 - periodic solids only
-- `g0w0_band` only
+- single-shot `g0w0` only
 - `geometry.in`, `control.in`, and `librpa.in` intake
 - stage-only or fresh-run preparation
 - two-stage Slurm submission
@@ -50,9 +50,9 @@ If the request is about building or repairing the FHI-aims executable itself, st
 
 ## Core Workflow
 
-1. Confirm the lane is `FHI-aims + LibRPA`, the task is `g0w0_band`, and the system is a periodic solid.
+1. Confirm the lane is `FHI-aims + LibRPA`, the intent is single-shot GW, and the system is a periodic solid.
 2. If `control.in` is missing, generate a periodic-solid skeleton from `geometry.in` and the active element list.
-3. If `librpa.in` is missing, create a minimal `g0w0_band` baseline and keep `nfreq` consistent with the FHI-aims setup.
+3. If `librpa.in` is missing, create a minimal `task = g0w0` baseline and keep `nfreq` consistent with the FHI-aims setup.
 4. If ABACUS comparison inputs exist, preserve the ABACUS structure, `k_grid`, band path, and band-point counts unless the user explicitly overrides them.
 5. Stage two scripts:
    - `run_aims.sh` for the MPI-heavy aims stage

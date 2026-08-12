@@ -1,6 +1,6 @@
 # FHI-Aims + LibRPA G0W0-Band Guide
 
-This guide defines the periodic-solid `FHI-aims + LibRPA` route for `g0w0_band`.
+This guide defines the periodic-solid `FHI-aims + LibRPA` single-shot GW route. Its filename retains the older `g0w0_band` name for discoverability; LibRPA 0.7.0 input uses `task = g0w0`.
 
 It is intentionally separate from the QSGW route.
 
@@ -9,7 +9,7 @@ It is intentionally separate from the QSGW route.
 Use this route when all of the following are true:
 
 - the workflow is FHI-aims-owned
-- the target task is `g0w0_band`
+- the target is a single-shot `g0w0` calculation
 - the system is a periodic solid
 
 Do not use this route for:
@@ -53,10 +53,10 @@ If `control.in` is missing:
 
 ## `librpa.in` Baseline
 
-This route stays focused on `g0w0_band`. A compact baseline is:
+This route stays focused on `g0w0`. A compact baseline is:
 
 ```text
-task = g0w0_band
+task = g0w0
 option_dielect_func = 3
 replace_w_head = t
 use_scalapack_gw_wc = t
@@ -83,7 +83,7 @@ Comparability wins over inventing a different FHI-aims-only band path.
 This route owns:
 
 - periodic-solid `FHI-aims + LibRPA`
-- `g0w0_band`
+- single-shot `g0w0`
 - stage-only preparation
 - fresh-run preparation
 

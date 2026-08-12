@@ -13,6 +13,9 @@ class ProfileError(ValueError):
 
 
 def default_profile_path() -> Path:
+    packaged = Path(__file__).resolve().parent / "profiles" / PROFILE_NAME
+    if packaged.is_file():
+        return packaged
     return Path(__file__).resolve().parents[1] / "profiles" / PROFILE_NAME
 
 

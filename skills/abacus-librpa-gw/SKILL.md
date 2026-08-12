@@ -5,7 +5,7 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 
 # ABACUS + LibRPA GW
 
-Before any GW compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real ABACUS+LibRPA physics compute must run on a server by default, and ABACUS/LibRPA executable commits must be checked against local `master_ghj` unless this is a recorded feature-branch or old-version reproduction.
+Before any GW compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real physics compute must run on a server by default, using the pinned ABACUS `master_ghj`, LibRPA `v0.7.0`, and PyATB `enable_head_wing` profile unless a recorded reproduction exception applies.
 
 Execution order depends on system type:
 
@@ -40,10 +40,10 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
   - `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`
   - `.orb`, `.abfs`, `.upf`
 - For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, launcher paths, and any required `.bashrc` / conda activation steps instead of relying on implicit login-shell luck.
-- For server runs, record ABACUS and LibRPA source SHAs and compare them with local `master_ghj` before submission. Stop on stale or unknown binaries unless the user explicitly confirms a branch/reproduction exception.
+- For server runs, record ABACUS, LibRPA, and when used PyATB source SHAs, then compare them with the MCP profile before submission. Stop on mismatched or unknown versions unless the user explicitly confirms a reproduction exception.
 - For server Slurm submissions, probe the target server and partition for node shape before submission, then verify the batch script against those live facts. For `1 MPI rank/node`, `--cpus-per-task` and `OMP_NUM_THREADS` should use the full discovered per-node core count, and `--mem` should use the full discovered per-node `RealMemory` in MB unless the user explicitly requests a smaller allocation.
 - Build ABACUS and LibRPA against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status` unless the user explicitly asks for an older dependency snapshot.
-- For the current ABACUS/LibRPA `master_ghj` branches, default to reader-v1 handoff:
+- For pinned ABACUS `master_ghj` plus LibRPA `v0.7.0`, default to reader-v1 handoff:
   - ABACUS SCF producer: `out_librpa_reader_version 1`
   - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, and `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`, `version_coul_reader = 1`, and `version_lri_reader = 1`
   - LibRPA GW defaults: `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
@@ -52,7 +52,7 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
 
 For GW requests, set:
 
-- `task = g0w0_band`
+- `task = g0w0`
 - `nfreq = 16`
 - `option_dielect_func = 3`
 - `replace_w_head = t`
@@ -132,7 +132,7 @@ Use the following alignment for spin-sensitive GW workflows:
 - Use official ABACUS input names from the ABACUS input reference
 - Do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`; the short molecular GW route is `SCF -> LibRPA`.
 - Set `replace_w_head = f`
-- Set `use_input_exx_symmetry = f` and `use_input_gw_symmetry = f` in `librpa.in`; do not require input symmetry sidecar files such as `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`. `use_abacus_*_symmetry` is only a legacy alias for old inputs.
+- Set `use_symmetry_exx = f` and `use_symmetry_gw = f` in `librpa.in`; reject old OML symmetry spellings and do not require sidecar files such as `irreducible_sector.txt`, `symrot_R.txt`, `symrot_k.txt`, or `symrot_abf_k.txt`.
 - Keep `output_gw_sigc_mat_rf = f`
 - For the tested smoke path `molecule + GW + no NSCF + no pyatb + no shrink`, materialize the dedicated route with `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
 - Keep `out_mat_xc 1`, `out_librpa_reader_version 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, and `exx_cs_inv_thr 1e-5`

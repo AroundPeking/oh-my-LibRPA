@@ -5,7 +5,7 @@ description: ABACUS + LibRPA RPA workflow guidance with conservative defaults an
 
 # ABACUS + LibRPA RPA
 
-Before any RPA compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real ABACUS+LibRPA physics compute must run on a server by default, and ABACUS/LibRPA executable commits must be checked against local `master_ghj` unless this is a recorded feature-branch or old-version reproduction.
+Before any RPA compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real physics compute must run on a server by default, using the pinned ABACUS `master_ghj` and LibRPA `v0.7.0` profile unless this is a recorded reproduction.
 
 Primary objective: get stable and reproducible RPA results first, then optimize performance and scale.
 

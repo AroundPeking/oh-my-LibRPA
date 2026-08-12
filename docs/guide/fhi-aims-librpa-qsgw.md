@@ -79,7 +79,7 @@ Within this layer, the agent should:
 
 - mirror or stage FHI-aims-based case directories safely
 - decide between fresh `FHI-aims -> LibRPA` execution and `LibRPA-only` reuse
-- keep `qsgw_band`, `qsgw_band0`, `qsgw`, `qsgwa`, and `g0w0_band` task choices inside the FHI-aims family
+- keep `qsgw_band`, `qsgw_band0`, `qsgw`, `qsgwa`, and single-shot `g0w0` choices inside the FHI-aims family
 - stop before submission when the user asks for staging only
 
 ## Typical `librpa.in` Baseline for Band Workflows
@@ -94,7 +94,7 @@ binary_input = t
 
 ## Common Task Mapping
 
-- `task = g0w0_band`: single-shot band reference
+- `task = g0w0`: single-shot band reference
 - `task = qsgw_band`: mode-B style band update
 - `task = qsgw_band0`: older mode-A style band update
 - `task = qsgw`: self-consistent QSGW loop

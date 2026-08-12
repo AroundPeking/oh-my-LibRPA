@@ -7,7 +7,16 @@ import unittest
 from oml_mcp.profiles import ProfileError, load_profile
 
 
+REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / "abacus-librpa-pyatb-2026-08.json"
+PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / "abacus-librpa-pyatb-2026-08.json"
+
+
 class CompatibilityProfileTest(unittest.TestCase):
+    def test_packaged_profile_matches_repository_audit_copy(self):
+        repository = json.loads(REPOSITORY_PROFILE.read_text(encoding="utf-8"))
+        packaged = json.loads(PACKAGED_PROFILE.read_text(encoding="utf-8"))
+        self.assertEqual(packaged, repository)
+
     def test_pinned_component_revisions_match_the_approved_baseline(self):
         profile = load_profile()
 
@@ -67,6 +76,10 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(
             profile["contract"]["pyatb_adapter"]["velocity_v1"],
             {"marker": -12345680, "kind": 29, "nalpha": 3},
+        )
+        self.assertEqual(
+            profile["contract"]["pyatb_adapter"]["location"],
+            "input_dir/pyatb_librpa_df",
         )
 
     def test_profile_validation_rejects_an_incomplete_component(self):

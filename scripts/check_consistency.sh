@@ -79,19 +79,8 @@ has_symmetry_key_value() {
   local file="$1"
   local scope="$2"
   local expected="$3"
-  local input_key="use_input_${scope}_symmetry"
-  local legacy_key="use_abacus_${scope}_symmetry"
-
-  if has_key_value "$file" "$input_key" "$expected"; then
-    return 0
-  fi
-
-  if has_key_value "$file" "$legacy_key" "$expected"; then
-    note_warn "librpa.in uses legacy ${legacy_key}; prefer ${input_key} on current LibRPA master_ghj"
-    return 0
-  fi
-
-  return 1
+  local key="use_symmetry_${scope}"
+  has_key_value "$file" "$key" "$expected"
 }
 
 has_active_key() {
@@ -157,7 +146,7 @@ task_value="$(lower "$(trim "$(get_value "$librpa" "task" || true)")")"
 resolved_mode="$mode"
 if [[ "$resolved_mode" == "auto" ]]; then
   case "$task_value" in
-    g0w0_band) resolved_mode="gw" ;;
+    g0w0|g0w0_band) resolved_mode="gw" ;;
     rpa) resolved_mode="rpa" ;;
     *) resolved_mode="unknown" ;;
   esac
@@ -280,7 +269,11 @@ fi
 
 case "$resolved_mode" in
   gw)
-    [[ "$task_value" == "g0w0_band" ]] || note_fail "GW route expects 'task = g0w0_band' in librpa.in"
+    case "$task_value" in
+      g0w0) note_pass "librpa.in uses the current task = g0w0 spelling" ;;
+      g0w0_band) note_warn "task = g0w0_band is deprecated in LibRPA 0.7.0; replace it with task = g0w0" ;;
+      *) note_fail "GW route expects 'task = g0w0' in librpa.in" ;;
+    esac
     ;;
   rpa)
     [[ "$task_value" == "rpa" ]] || note_fail "RPA route expects 'task = rpa' in librpa.in"
@@ -289,6 +282,10 @@ case "$resolved_mode" in
     note_warn "Could not infer workflow mode from librpa.in; pass --mode explicitly if needed"
     ;;
 esac
+
+if grep -qiE '^[[:space:]]*(use_input_(exx|gw|rpa)_symmetry|use_abacus_(exx|gw|rpa)_symmetry)[[:space:]]*=' "$librpa"; then
+  note_fail "librpa.in contains obsolete OML symmetry keys; use use_symmetry_exx, use_symmetry_gw, or use_symmetry_rpa"
+fi
 
 needs_periodic_gw_route=0
 if [[ "$resolved_mode" == "gw" && "$resolved_system_type" != "molecule" ]]; then
@@ -452,7 +449,7 @@ if [[ "$resolved_mode" == "gw" && "$resolved_system_type" == "molecule" ]]; then
   if has_symmetry_key_value "$librpa" "exx" "f" && has_symmetry_key_value "$librpa" "gw" "f"; then
     note_pass "molecular GW route disables input symmetry flags in librpa.in"
   else
-    note_fail "molecular GW route requires use_input_exx_symmetry = f and use_input_gw_symmetry = f in librpa.in"
+    note_fail "molecular GW route requires use_symmetry_exx = f and use_symmetry_gw = f in librpa.in"
   fi
 
   if has_key_value "$librpa" "use_shrink_abfs" "f"; then

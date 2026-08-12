@@ -459,7 +459,9 @@ def validate_case(
 
     headwing = _bool_value(librpa, "replace_w_head")
     if headwing:
-        gates.extend(inspect_headwing_directory(case_root / contract["pyatb_adapter"]["directory"]).gates)
+        gates.extend(
+            inspect_headwing_directory(dataset / contract["pyatb_adapter"]["directory"]).gates
+        )
     elif headwing is False:
         gates.append(_skip("pyatb.headwing", "replace_w_head is disabled"))
     else:

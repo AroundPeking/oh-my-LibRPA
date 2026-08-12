@@ -5,7 +5,7 @@ description: Diagnose ABACUS + LibRPA RPA/GW failures from logs and inputs. Use 
 
 # ABACUS + LibRPA Debug
 
-Before treating an ABACUS+LibRPA failure as a physics/input issue, apply `skills/abacus-librpa-version-guard/` when execution provenance matters. Old ABACUS/LibRPA binaries can reject or misread current `master_ghj` parameters, so check server executable commits against local `master_ghj` before redesigning inputs.
+Before treating an ABACUS+LibRPA failure as a physics/input issue, apply `skills/abacus-librpa-version-guard/` when execution provenance matters. Mismatched binaries can reject or misread pinned parameters, so check server source revisions against the MCP profile before redesigning inputs.
 
 Locate the failing stage first, then provide targeted fixes. Avoid broad blind modifications.
 

@@ -176,7 +176,7 @@ cat <<'EOF' > "$case_gw_bad_abfs/INPUT_nscf"
 nbands 16
 EOF
 cat <<'EOF' > "$case_gw_bad_abfs/librpa.in"
-task = g0w0_band
+task = g0w0
 nfreq = 16
 use_shrink_abfs = t
 EOF
@@ -393,8 +393,8 @@ if grep -q '^replace_w_head = f$' "$case_gw/librpa.in" \
   && grep -q '^use_elpa_sqrt_coulomb = t$' "$case_gw/librpa.in" \
   && grep -q '^use_kpara_scf_eigvec = t$' "$case_gw/librpa.in" \
   && grep -q '^libri_chi0_collect_max_bytes = 2147483648$' "$case_gw/librpa.in" \
-  && grep -q '^use_input_exx_symmetry = f$' "$case_gw/librpa.in" \
-  && grep -q '^use_input_gw_symmetry = f$' "$case_gw/librpa.in" \
+  && grep -q '^use_symmetry_exx = f$' "$case_gw/librpa.in" \
+  && grep -q '^use_symmetry_gw = f$' "$case_gw/librpa.in" \
   && ! grep -q '^use_abacus_.*_symmetry' "$case_gw/librpa.in" \
   && grep -q '^use_shrink_abfs = f$' "$case_gw/librpa.in"; then
   pass 'materialized librpa.in matches the molecular short-route defaults'
@@ -482,7 +482,7 @@ Gamma
 1 1 1 0 0 0
 EOF
 cat <<'EOF' > "$case_missing_output/librpa.in"
-task = g0w0_band
+task = g0w0
 nfreq = 16
 tfgrid_type = minimax
 EOF

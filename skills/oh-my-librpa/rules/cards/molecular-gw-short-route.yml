@@ -24,8 +24,8 @@
     - Set `use_elpa_sqrt_coulomb = t`
     - Set `use_kpara_scf_eigvec = t`
     - Set `libri_chi0_collect_max_bytes = 2147483648`
-    - Set `use_input_exx_symmetry = f`
-    - Set `use_input_gw_symmetry = f`
+    - Set `use_symmetry_exx = f`
+    - Set `use_symmetry_gw = f`
     - Set `use_shrink_abfs = f`
     - Do not run `pyatb`, `NSCF`, or `preprocess_abacus_for_librpa_band.py`
     - Copy `OUT.ABACUS/vxc_out.dat` into the working directory as `vxc_out` after SCF
@@ -35,7 +35,7 @@
     - Confirm `vxc_out` exists in the working directory before LibRPA
     - Confirm `v1_coulomb_full_iq_*`, `v1_coulomb_cut_iq_*`, `v1_Cs_data_*`, and `KS_eigenvector_*.dat` exist before LibRPA
     - Confirm `exx_ccp_rmesh_times` and `rpa_ccp_rmesh_times` match in `INPUT_scf`
-    - Confirm `replace_w_head = f`, reader-v1 selectors, `use_input_exx_symmetry = f`, and `use_input_gw_symmetry = f` are present in `librpa.in`
+    - Confirm `replace_w_head = f`, reader-v1 selectors, `use_symmetry_exx = f`, and `use_symmetry_gw = f` are present in `librpa.in`
     - Confirm `band_out`, `vxc_out`, and a rank-0 LibRPA output file (`librpa_para_nprocs_*_myid_0.out` or `LibRPA*.out`) exist after the run
     - Confirm rank-0 output contains `libRPA finished successfully`
   applies_to:

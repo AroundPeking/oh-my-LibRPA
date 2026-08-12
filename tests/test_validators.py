@@ -106,7 +106,7 @@ class WorkflowValidatorTest(unittest.TestCase):
                 (dataset / name).write_text("v1 shrink\n", encoding="utf-8")
 
         if headwing:
-            pyatb = root / "pyatb_librpa_df"
+            pyatb = dataset / "pyatb_librpa_df"
             pyatb.mkdir()
             write_headwing_metadata(pyatb)
             write_eigenvector_v1(pyatb / "KS_eigenvector_0.dat")
@@ -226,7 +226,7 @@ class WorkflowValidatorTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_case(root)
-            (root / "pyatb_librpa_df" / "velocity_matrix").unlink()
+            (root / "dataset" / "pyatb_librpa_df" / "velocity_matrix").unlink()
             report = validate_case(root, task="gw", system_type="solid", use_symmetry=True)
 
         self.assertFalse(report.accepted)
@@ -245,12 +245,12 @@ class WorkflowValidatorTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_case(root)
+            for child in tuple((root / "dataset" / "pyatb_librpa_df").iterdir()):
+                child.unlink()
+            (root / "dataset" / "pyatb_librpa_df").rmdir()
             for child in tuple((root / "dataset").iterdir()):
                 child.unlink()
-            for child in tuple((root / "pyatb_librpa_df").iterdir()):
-                child.unlink()
             (root / "dataset").rmdir()
-            (root / "pyatb_librpa_df").rmdir()
             report = validate_case(
                 root,
                 task="gw",

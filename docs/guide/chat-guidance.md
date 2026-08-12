@@ -96,7 +96,7 @@ Pre-submit summary
 - KPT_nscf: user-provided
 - ABACUS executable: /path/to/abacus
 - LibRPA executable: /path/to/chi0_main.exe
-- task: g0w0_band
+- task: g0w0
 - nfreq: 16
 
 If this looks right, I will submit.

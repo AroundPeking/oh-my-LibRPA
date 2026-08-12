@@ -3,7 +3,7 @@
   symptom: Need to select the top-level LibRPA task mode
   root_cause: GW and RPA requests must branch at the `task` field in `librpa.in`
   fix:
-    - If the user requests GW, set `task = g0w0_band`
+    - If the user requests GW, set `task = g0w0`
     - If the user requests RPA, set `task = rpa`
   verify:
     - Confirm the requested workflow type with the user intent
@@ -56,7 +56,7 @@
   symptom: Need the full GW-band route rather than the shorter RPA route
   root_cause: GW requires dielectric-function preprocessing, but the heavy real-space imaginary-frequency `Sigc` dump should stay opt-in
   fix:
-    - `task = g0w0_band`
+    - `task = g0w0`
     - `option_dielect_func = 3`
     - `replace_w_head = t`
     - Keep `output_gw_sigc_mat_rf = f` by default
@@ -76,7 +76,7 @@
   symptom: Periodic GW defaults leave the short molecular route with the wrong handoff settings
   root_cause: The tested molecular path needs direct SCF -> LibRPA handoff and does not use the periodic W-head treatment or shrink lane by default
   fix:
-    - `task = g0w0_band`
+    - `task = g0w0`
     - `option_dielect_func = 3`
     - `replace_w_head = f`
     - `prefix_coul_full = v1_coulomb_full_iq_`
@@ -84,14 +84,14 @@
     - `prefix_lri_coeff = v1_Cs_data_`
     - `version_coul_reader = 1`
     - `version_lri_reader = 1`
-    - `use_input_exx_symmetry = f`
-    - `use_input_gw_symmetry = f`
+    - `use_symmetry_exx = f`
+    - `use_symmetry_gw = f`
     - `use_soc = 0` unless the chosen spin/SOC route overrides it
     - `use_shrink_abfs = f`
     - Keep the shared GW thresholds and keep `output_gw_sigc_mat_rf = f`
   verify:
     - Confirm the route is molecular GW without NSCF/pyatb
-    - Confirm `replace_w_head = f`, `version_coul_reader = 1`, `version_lri_reader = 1`, `use_input_exx_symmetry = f`, `use_input_gw_symmetry = f`, `use_shrink_abfs = f`, and `output_gw_sigc_mat_rf = f` are present in `librpa.in`
+    - Confirm `replace_w_head = f`, `version_coul_reader = 1`, `version_lri_reader = 1`, `use_symmetry_exx = f`, `use_symmetry_gw = f`, `use_shrink_abfs = f`, and `output_gw_sigc_mat_rf = f` are present in `librpa.in`
   applies_to:
     mode: gw
     system_type: molecule

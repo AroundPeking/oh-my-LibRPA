@@ -17,8 +17,8 @@ The LibRPA input must keep these knobs aligned with the bundle:
 
 ```text
 use_shrink_abfs = t
-use_input_exx_symmetry = t
-use_input_gw_symmetry = t
+use_symmetry_exx = t
+use_symmetry_gw = t
 ```
 
 For a fast end-to-end case, target `nfreq = 8`, a very small auxiliary basis, and a short band path. The package should contain runtime inputs only, not generated logs, `OUT.ABACUS`, `LibRPA*.out`, `librpa.d`, old `GW_band_spin_*`, or debug dumps.

@@ -25,3 +25,6 @@ oh-my-librpa-mcp = "oml_mcp.server:main"
 
 [tool.setuptools.packages.find]
 include = ["oml_mcp*"]
+
+[tool.setuptools.package-data]
+oml_mcp = ["profiles/*.json"]
