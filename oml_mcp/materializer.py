@@ -81,12 +81,17 @@ def _copy_manifest(source: Path, target: Path, manifest: tuple[dict[str, Any], .
 def _materialized_manifest(run_dir: Path) -> tuple[dict[str, Any], ...]:
     items = []
     for path in sorted(run_dir.rglob("*"), key=lambda item: item.relative_to(run_dir).as_posix()):
-        if not path.is_file() or path.relative_to(run_dir).parts[:1] == (".oml",):
+        relative = path.relative_to(run_dir)
+        controlled_metadata = relative in {
+            Path(".oml/env.sh"),
+            Path(".oml/execution.json"),
+        } or relative.parts[:2] == (".oml", "stages")
+        if not path.is_file() or (relative.parts[:1] == (".oml",) and not controlled_metadata):
             continue
         stat = path.stat()
         items.append(
             {
-                "path": path.relative_to(run_dir).as_posix(),
+                "path": relative.as_posix(),
                 "size": stat.st_size,
                 "sha256": sha256_file(path),
             }
@@ -98,6 +103,8 @@ def prepare_run(
     source_path: str | Path,
     plan_digest: str,
     profile: ExecutionProfile,
+    *,
+    execution_receipt: dict[str, Any],
 ) -> dict[str, Any]:
     source = Path(source_path).expanduser().resolve()
     if not source.is_dir() or not _is_under(source, profile.allowed_source_roots):
@@ -164,6 +171,10 @@ def prepare_run(
         plan_data = _plan_receipt(source, plan)
         (oml_dir / "plan.json").write_text(
             json.dumps(plan_data, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        (oml_dir / "execution.json").write_text(
+            json.dumps(execution_receipt, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
         env_path = oml_dir / "env.sh"

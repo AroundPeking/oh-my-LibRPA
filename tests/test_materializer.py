@@ -4,7 +4,7 @@ import unittest
 
 
 from oml_mcp.errors import OMLError
-from oml_mcp.execution_profiles import ExecutionProfile
+from oml_mcp.execution_profiles import ExecutionProfile, execution_profile_receipt
 from oml_mcp.materializer import prepare_run
 from oml_mcp.planner import plan_case
 
@@ -82,7 +82,11 @@ def make_profile(root: pathlib.Path, source_root: pathlib.Path) -> ExecutionProf
         allowed_source_roots=(source_root.resolve(),),
         allowed_run_roots=((root / "runs").resolve(),),
         state_db=(root / "state" / "oml.sqlite3").resolve(),
-        scheduler={"submit_program": "/usr/bin/true", "status_program": "/usr/bin/true"},
+        scheduler={
+            "submit_program": "/usr/bin/true",
+            "status_program": "/usr/bin/true",
+            "history_program": "/usr/bin/true",
+        },
         resources={
             "partition": "debug",
             "nodes": 1,
@@ -100,6 +104,25 @@ def make_profile(root: pathlib.Path, source_root: pathlib.Path) -> ExecutionProf
             "pyatb_mpi_ranks": 1,
             "omp_threads": 8,
         },
+        sources={
+            "git_program": "/usr/bin/git",
+            "abacus": str(root / "sources-repos" / "abacus"),
+            "librpa": str(root / "sources-repos" / "librpa"),
+            "pyatb": str(root / "sources-repos" / "pyatb"),
+        },
+    )
+
+
+def make_execution_receipt(profile: ExecutionProfile) -> dict:
+    return execution_profile_receipt(
+        profile,
+        {
+            "verdict": "match",
+            "components": {
+                name: {"actual_revision": name * 8, "expected_revision": name * 8}
+                for name in ("abacus", "librpa", "pyatb")
+            },
+        },
     )
 
 
@@ -113,7 +136,9 @@ class MaterializerTest(unittest.TestCase):
             profile = make_profile(root, source_root)
             plan = plan_case(source, task="gw", system_type="solid")
 
-            receipt = prepare_run(source, plan.digest, profile)
+            receipt = prepare_run(
+                source, plan.digest, profile, execution_receipt=make_execution_receipt(profile)
+            )
             run_dir = pathlib.Path(receipt["local_run_dir"])
 
             self.assertTrue((run_dir / "STRU").is_file())
@@ -122,6 +147,7 @@ class MaterializerTest(unittest.TestCase):
             self.assertFalse((run_dir / "v1_Cs_data_stale").exists())
             self.assertTrue((run_dir / ".oml" / "plan.json").is_file())
             self.assertTrue((run_dir / ".oml" / "manifest.json").is_file())
+            self.assertTrue((run_dir / ".oml" / "execution.json").is_file())
             self.assertEqual(
                 {path.name for path in (run_dir / ".oml" / "stages").glob("*.slurm")},
                 {"scf.slurm", "pyatb.slurm", "nscf.slurm", "preprocess.slurm", "librpa.slurm"},
@@ -137,6 +163,10 @@ class MaterializerTest(unittest.TestCase):
             self.assertNotIn('"$OML_MPI_LAUNCHER" -np "$OML_PYATB_MPI_RANKS" bash', pyatb)
             self.assertIn("export python3_exec=/usr/bin/python3", env)
             self.assertIn("export pyatb_mpi_ranks=1", env)
+            manifest_text = (run_dir / ".oml" / "manifest.json").read_text(encoding="utf-8")
+            self.assertIn('"path": ".oml/env.sh"', manifest_text)
+            self.assertIn('"path": ".oml/execution.json"', manifest_text)
+            self.assertIn('"path": ".oml/stages/scf.slurm"', manifest_text)
             self.assertEqual((source / "OUT.ABACUS" / "running_scf.log").read_text(), "stale\n")
 
     def test_prepare_run_matches_the_reviewed_symmetry_plan_digest(self):
@@ -160,7 +190,9 @@ class MaterializerTest(unittest.TestCase):
             profile = make_profile(root, source_root)
             plan = plan_case(source, task="gw", system_type="solid", use_symmetry=True)
 
-            receipt = prepare_run(source, plan.digest, profile)
+            receipt = prepare_run(
+                source, plan.digest, profile, execution_receipt=make_execution_receipt(profile)
+            )
 
         self.assertEqual(receipt["plan_digest"], plan.digest)
 
@@ -175,7 +207,9 @@ class MaterializerTest(unittest.TestCase):
             (source / "KPT_scf").write_text("K_POINTS\n0\nGamma\n3 3 3 0 0 0\n", encoding="utf-8")
 
             with self.assertRaisesRegex(OMLError, "STALE_PLAN"):
-                prepare_run(source, plan.digest, profile)
+                prepare_run(
+                    source, plan.digest, profile, execution_receipt=make_execution_receipt(profile)
+                )
 
             self.assertFalse((root / "runs").exists())
 
@@ -189,7 +223,9 @@ class MaterializerTest(unittest.TestCase):
             plan = plan_case(source, task="gw", system_type="solid")
 
             with self.assertRaisesRegex(OMLError, "SOURCE_NOT_ALLOWED"):
-                prepare_run(source, plan.digest, profile)
+                prepare_run(
+                    source, plan.digest, profile, execution_receipt=make_execution_receipt(profile)
+                )
 
             profile = make_profile(root, source_root)
             outside = root / "outside.upf"
@@ -198,7 +234,9 @@ class MaterializerTest(unittest.TestCase):
             (source / "Si.upf").symlink_to(outside)
 
             with self.assertRaisesRegex(OMLError, "SOURCE_UNSAFE"):
-                prepare_run(source, plan.digest, profile)
+                prepare_run(
+                    source, plan.digest, profile, execution_receipt=make_execution_receipt(profile)
+                )
 
 
 if __name__ == "__main__":

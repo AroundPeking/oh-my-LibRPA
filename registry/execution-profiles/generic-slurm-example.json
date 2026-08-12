@@ -12,7 +12,8 @@
   "state_db": "/path/to/oml/state.sqlite3",
   "scheduler": {
     "submit_program": "/usr/bin/sbatch",
-    "status_program": "/usr/bin/squeue"
+    "status_program": "/usr/bin/squeue",
+    "history_program": "/usr/bin/sacct"
   },
   "resources": {
     "partition": "replace-me",
@@ -30,6 +31,12 @@
     "mpi_ranks": 4,
     "pyatb_mpi_ranks": 1,
     "omp_threads": 32
+  },
+  "sources": {
+    "git_program": "/usr/bin/git",
+    "abacus": "/path/to/abacus/source",
+    "librpa": "/path/to/librpa/source",
+    "pyatb": "/path/to/pyatb/source"
   },
   "ssh": {
     "host": "your-approved-ssh-alias",

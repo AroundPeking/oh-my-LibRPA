@@ -1,4 +1,5 @@
 import pathlib
+import sqlite3
 import tempfile
 import unittest
 
@@ -118,6 +119,90 @@ class StateStoreTest(unittest.TestCase):
         self.assertEqual(latest["normalized_state"], "RUNNING")
         self.assertEqual(latest["raw_state"], "R")
         self.assertTrue(latest["observed_at"].endswith("Z"))
+
+    def test_terminal_attempt_status_cannot_regress(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = self.make_store(root)
+            store.register_plan(PLAN)
+            store.create_run(
+                run_id="run-004",
+                plan_id=PLAN["plan_id"],
+                plan_digest=PLAN["digest"],
+                execution_profile_id="test-local",
+                local_run_dir=str(root / "runs" / "run-004"),
+                remote_run_dir=None,
+                manifest_digest="e" * 64,
+            )
+            attempt = store.authorize_submission("run-004", "scf", PLAN["digest"])
+            store.mark_attempt_submitted(attempt["attempt_id"], "16180")
+            store.record_attempt_status(attempt["attempt_id"], "PASSED")
+
+            with self.assertRaisesRegex(OMLError, "STATE_TRANSITION_DENIED"):
+                store.record_attempt_status(attempt["attempt_id"], "RUNNING")
+
+            final = store.get_attempt(attempt["attempt_id"])
+
+        self.assertEqual(final["status"], "PASSED")
+
+    def test_stage_inspection_is_immutable_and_finalizes_attempt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = self.make_store(root)
+            store.register_plan(PLAN)
+            store.create_run(
+                run_id="run-005",
+                plan_id=PLAN["plan_id"],
+                plan_digest=PLAN["digest"],
+                execution_profile_id="test-local",
+                local_run_dir=str(root / "runs" / "run-005"),
+                remote_run_dir=None,
+                manifest_digest="f" * 64,
+            )
+            preflight = {"version_evidence": {"verdict": "match"}, "remote_bundle": {"verdict": "match"}}
+            attempt = store.authorize_submission(
+                "run-005", "scf", PLAN["digest"], preflight=preflight
+            )
+            store.mark_attempt_submitted(attempt["attempt_id"], "16181")
+            report = {"stage": "scf", "accepted": True, "gates": []}
+
+            receipt = store.finalize_inspection(attempt["attempt_id"], report)
+            same = store.finalize_inspection(attempt["attempt_id"], report)
+            with self.assertRaisesRegex(OMLError, "INSPECTION_CONFLICT"):
+                store.finalize_inspection(
+                    attempt["attempt_id"],
+                    {"stage": "scf", "accepted": False, "gates": []},
+                )
+
+        self.assertEqual(receipt["report"], report)
+        self.assertEqual(same["attempt_status"], "PASSED")
+        self.assertEqual(attempt["preflight"], preflight)
+
+    def test_existing_phase_two_database_adds_preflight_column(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "legacy.sqlite3"
+            with sqlite3.connect(path) as connection:
+                connection.execute(
+                    """
+                    CREATE TABLE stage_attempts (
+                        attempt_id TEXT PRIMARY KEY,
+                        run_id TEXT NOT NULL,
+                        stage TEXT NOT NULL,
+                        attempt_number INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        scheduler_id TEXT,
+                        submitted_at TEXT,
+                        updated_at TEXT NOT NULL
+                    )
+                    """
+                )
+            StateStore(path)
+            with sqlite3.connect(path) as connection:
+                columns = {
+                    row[1] for row in connection.execute("PRAGMA table_info(stage_attempts)")
+                }
+
+        self.assertIn("preflight_json", columns)
 
 
 if __name__ == "__main__":

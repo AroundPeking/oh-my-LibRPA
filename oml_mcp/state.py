@@ -14,6 +14,18 @@ from .errors import OMLError
 ACTIVE_ATTEMPT_STATUSES = frozenset({"SUBMITTING", "SUBMITTED", "PENDING", "RUNNING", "UNKNOWN"})
 TERMINAL_ATTEMPT_STATUSES = frozenset({"PASSED", "FAILED", "CANCELLED"})
 ALL_ATTEMPT_STATUSES = ACTIVE_ATTEMPT_STATUSES | TERMINAL_ATTEMPT_STATUSES
+ALLOWED_STATUS_TRANSITIONS = {
+    "SUBMITTING": frozenset({"SUBMITTING", "SUBMITTED", "UNKNOWN", "FAILED"}),
+    "SUBMITTED": frozenset(
+        {"SUBMITTED", "PENDING", "RUNNING", "UNKNOWN", "PASSED", "FAILED", "CANCELLED"}
+    ),
+    "PENDING": frozenset({"PENDING", "RUNNING", "UNKNOWN", "PASSED", "FAILED", "CANCELLED"}),
+    "RUNNING": frozenset({"RUNNING", "UNKNOWN", "PASSED", "FAILED", "CANCELLED"}),
+    "UNKNOWN": frozenset({"UNKNOWN", "PENDING", "RUNNING", "PASSED", "FAILED", "CANCELLED"}),
+    "PASSED": frozenset({"PASSED"}),
+    "FAILED": frozenset({"FAILED"}),
+    "CANCELLED": frozenset({"CANCELLED"}),
+}
 
 
 def utc_now() -> str:
@@ -78,6 +90,7 @@ class StateStore:
                     attempt_number INTEGER NOT NULL,
                     status TEXT NOT NULL,
                     scheduler_id TEXT,
+                    preflight_json TEXT NOT NULL DEFAULT '{}',
                     submitted_at TEXT,
                     updated_at TEXT NOT NULL,
                     UNIQUE(run_id, stage, attempt_number)
@@ -90,8 +103,21 @@ class StateStore:
                     source TEXT NOT NULL,
                     observed_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS stage_inspections (
+                    attempt_id TEXT PRIMARY KEY REFERENCES stage_attempts(attempt_id),
+                    accepted INTEGER NOT NULL,
+                    report_json TEXT NOT NULL,
+                    inspected_at TEXT NOT NULL
+                );
                 """
             )
+            columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(stage_attempts)")
+            }
+            if "preflight_json" not in columns:
+                connection.execute(
+                    "ALTER TABLE stage_attempts ADD COLUMN preflight_json TEXT NOT NULL DEFAULT '{}'"
+                )
             connection.commit()
 
     def register_plan(self, plan: dict[str, Any]) -> dict[str, Any]:
@@ -221,7 +247,14 @@ class StateStore:
             )
         return dict(row)
 
-    def authorize_submission(self, run_id: str, stage: str, plan_digest: str) -> dict[str, Any]:
+    def authorize_submission(
+        self,
+        run_id: str,
+        stage: str,
+        plan_digest: str,
+        *,
+        preflight: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         now = utc_now()
         with self._connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -307,10 +340,10 @@ class StateStore:
             connection.execute(
                 """
                 INSERT INTO stage_attempts (
-                    attempt_id, run_id, stage, attempt_number, status, updated_at
-                ) VALUES (?, ?, ?, ?, 'SUBMITTING', ?)
+                    attempt_id, run_id, stage, attempt_number, status, preflight_json, updated_at
+                ) VALUES (?, ?, ?, ?, 'SUBMITTING', ?, ?)
                 """,
-                (attempt_id, run_id, stage, attempt_number, now),
+                (attempt_id, run_id, stage, attempt_number, _json(preflight or {}), now),
             )
             connection.commit()
         return self.get_attempt(attempt_id)
@@ -327,7 +360,25 @@ class StateStore:
                 evidence=(attempt_id,),
                 recovery="use an attempt ID returned by submit_stage or get_status",
             )
-        return dict(row)
+        data = dict(row)
+        data["preflight"] = _loads(data.pop("preflight_json"))
+        return data
+
+    def passed_attempt(self, run_id: str, stage: str) -> dict[str, Any] | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM stage_attempts
+                WHERE run_id = ? AND stage = ? AND status = 'PASSED'
+                ORDER BY attempt_number DESC LIMIT 1
+                """,
+                (run_id, stage),
+            ).fetchone()
+        if row is None:
+            return None
+        data = dict(row)
+        data["preflight"] = _loads(data.pop("preflight_json"))
+        return data
 
     def mark_attempt_submitted(self, attempt_id: str, scheduler_id: str) -> dict[str, Any]:
         now = utc_now()
@@ -359,6 +410,22 @@ class StateStore:
                 recovery="use a normalized OML attempt status",
             )
         with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT status FROM stage_attempts WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()
+            if row is None:
+                connection.rollback()
+                return self.get_attempt(attempt_id)
+            current = row["status"]
+            if status not in ALLOWED_STATUS_TRANSITIONS[current]:
+                connection.rollback()
+                raise OMLError(
+                    "STATE_TRANSITION_DENIED",
+                    f"attempt status cannot move from {current} to {status}",
+                    evidence=(attempt_id, current, status),
+                    recovery="preserve the terminal receipt and create a new attempt only when policy allows",
+                )
             cursor = connection.execute(
                 "UPDATE stage_attempts SET status = ?, updated_at = ? WHERE attempt_id = ?",
                 (status, utc_now(), attempt_id),
@@ -399,3 +466,79 @@ class StateStore:
                 (attempt_id,),
             ).fetchone()
         return dict(row) if row is not None else None
+
+    def get_inspection(self, attempt_id: str) -> dict[str, Any] | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM stage_inspections WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()
+            attempt = connection.execute(
+                "SELECT status FROM stage_attempts WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "attempt_id": attempt_id,
+            "attempt_status": attempt["status"],
+            "accepted": bool(row["accepted"]),
+            "inspected_at": row["inspected_at"],
+            "report": _loads(row["report_json"]),
+        }
+
+    def finalize_inspection(self, attempt_id: str, report: dict[str, Any]) -> dict[str, Any]:
+        payload = _json(report)
+        accepted = bool(report.get("accepted"))
+        target_status = "PASSED" if accepted else "FAILED"
+        inspected_at = utc_now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            attempt = connection.execute(
+                "SELECT stage, status FROM stage_attempts WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()
+            if attempt is None:
+                connection.rollback()
+                self.get_attempt(attempt_id)
+                raise AssertionError("unreachable")
+            if report.get("stage") != attempt["stage"]:
+                connection.rollback()
+                raise OMLError(
+                    "INSPECTION_CONFLICT",
+                    "inspection stage does not match the attempt receipt",
+                    evidence=(str(report.get("stage")), attempt["stage"]),
+                    recovery="inspect the stage recorded by the immutable attempt",
+                )
+            existing = connection.execute(
+                "SELECT report_json FROM stage_inspections WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()
+            if existing is not None:
+                connection.rollback()
+                if existing["report_json"] != payload:
+                    raise OMLError(
+                        "INSPECTION_CONFLICT",
+                        "an immutable inspection already exists with different evidence",
+                        evidence=(attempt_id,),
+                        recovery="preserve the existing receipt and create a reviewed retry only when allowed",
+                    )
+                receipt = self.get_inspection(attempt_id)
+                assert receipt is not None
+                return receipt
+            if target_status not in ALLOWED_STATUS_TRANSITIONS[attempt["status"]]:
+                connection.rollback()
+                raise OMLError(
+                    "STATE_TRANSITION_DENIED",
+                    f"inspection cannot move attempt from {attempt['status']} to {target_status}",
+                    evidence=(attempt_id,),
+                    recovery="preserve the terminal attempt receipt",
+                )
+            connection.execute(
+                "INSERT INTO stage_inspections (attempt_id, accepted, report_json, inspected_at) VALUES (?, ?, ?, ?)",
+                (attempt_id, int(accepted), payload, inspected_at),
+            )
+            connection.execute(
+                "UPDATE stage_attempts SET status = ?, updated_at = ? WHERE attempt_id = ?",
+                (target_status, inspected_at, attempt_id),
+            )
+            connection.commit()
+        receipt = self.get_inspection(attempt_id)
+        assert receipt is not None
+        return receipt

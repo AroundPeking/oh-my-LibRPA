@@ -8,10 +8,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .errors import OMLError
+from .provenance import digest_json
 
 
 PROFILE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 SLURM_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+SSH_HOST_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@-]{0,254}$")
+REMOTE_PATH_PATTERN = re.compile(r"^/[A-Za-z0-9_./-]+$")
 REQUIRED_RUNTIME_STRINGS = ("python", "mpi_launcher", "abacus", "librpa")
 REQUIRED_RUNTIME_INTS = ("mpi_ranks", "pyatb_mpi_ranks", "omp_threads")
 PLACEHOLDER_FRAGMENTS = ("/path/to/", "your-", "replace-me", "example.invalid")
@@ -28,7 +31,37 @@ class ExecutionProfile:
     scheduler: dict[str, str]
     resources: dict[str, str | int]
     runtime: dict[str, str | int]
+    sources: dict[str, str]
     ssh: dict[str, str] | None = None
+
+
+def execution_profile_payload(profile: ExecutionProfile) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "profile_id": profile.profile_id,
+        "transport": profile.transport,
+        "allowed_source_roots": [str(path) for path in profile.allowed_source_roots],
+        "allowed_run_roots": [str(path) for path in profile.allowed_run_roots],
+        "state_db": str(profile.state_db),
+        "scheduler": dict(profile.scheduler),
+        "resources": dict(profile.resources),
+        "runtime": dict(profile.runtime),
+        "sources": dict(profile.sources),
+        "ssh": dict(profile.ssh) if profile.ssh is not None else None,
+    }
+
+
+def execution_profile_receipt(
+    profile: ExecutionProfile,
+    version_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    payload = execution_profile_payload(profile)
+    return {
+        "schema_version": 1,
+        "execution_profile": payload,
+        "execution_profile_digest": digest_json(payload),
+        "version_evidence": version_evidence,
+    }
 
 
 def default_profile_roots() -> tuple[Path, ...]:
@@ -139,7 +172,7 @@ def load_execution_profile(
     state_db = Path(state_db_raw).expanduser().resolve()
     scheduler = _validate_programs(
         data.get("scheduler"),
-        ("submit_program", "status_program"),
+        ("submit_program", "status_program", "history_program"),
         "scheduler",
         profile_path,
     )
@@ -177,6 +210,13 @@ def load_execution_profile(
             raise _profile_error(f"runtime.{key} must be a positive integer", profile_path)
         runtime[key] = value
 
+    sources = _validate_programs(
+        data.get("sources"),
+        ("git_program", "abacus", "librpa", "pyatb"),
+        "sources",
+        profile_path,
+    )
+
     ssh: dict[str, str] | None = None
     if transport == "ssh":
         ssh_raw = data.get("ssh")
@@ -190,6 +230,19 @@ def load_execution_profile(
             ssh[key] = value
         if not Path(ssh["remote_run_root"]).is_absolute():
             raise _profile_error("ssh.remote_run_root must be absolute", profile_path)
+        if not SSH_HOST_PATTERN.fullmatch(ssh["host"]):
+            raise _profile_error("ssh.host contains unsafe characters", profile_path)
+        remote_parts = Path(ssh["remote_run_root"]).parts
+        if (
+            not REMOTE_PATH_PATTERN.fullmatch(ssh["remote_run_root"])
+            or ".." in remote_parts
+        ):
+            raise _profile_error("ssh.remote_run_root contains unsafe characters", profile_path)
+        for component in ("abacus", "librpa", "pyatb"):
+            if not REMOTE_PATH_PATTERN.fullmatch(sources[component]) or ".." in Path(
+                sources[component]
+            ).parts:
+                raise _profile_error(f"sources.{component} contains unsafe characters", profile_path)
         ssh.update(
             _validate_programs(
                 ssh_raw,
@@ -209,5 +262,6 @@ def load_execution_profile(
         scheduler=scheduler,
         resources=resources,
         runtime=runtime,
+        sources=sources,
         ssh=ssh,
     )
