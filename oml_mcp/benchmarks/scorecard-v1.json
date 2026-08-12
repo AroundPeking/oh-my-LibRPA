@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "scorecard_id": "oml-periodic-gw-v1",
+  "total_points": 100,
+  "pass_threshold": 90,
+  "dimensions": [
+    {"dimension_id": "precompute_validation", "weight": 25},
+    {"dimension_id": "stage_execution_state", "weight": 20},
+    {"dimension_id": "diagnosis", "weight": 20},
+    {"dimension_id": "numerical_scientific_validity", "weight": 25},
+    {"dimension_id": "efficiency_reproducibility", "weight": 10}
+  ],
+  "hard_gates": [
+    "immutable_provenance",
+    "pinned_versions",
+    "stage_lineage",
+    "no_duplicate_active_job",
+    "no_unresolved_stage_failure",
+    "finite_final_output"
+  ],
+  "penalties": {
+    "failed_attempts": 2,
+    "ambiguous_attempts": 5,
+    "maximum_deduction": 20
+  }
+}

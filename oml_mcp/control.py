@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .errors import OMLError
+from .evals import score_run
 from .execution_profiles import (
     ExecutionProfile,
     execution_profile_payload,
@@ -287,3 +288,44 @@ class ControlledExecutionService:
             }
         receipt = self.store.finalize_inspection(attempt_id, report)
         return {"ok": True, **receipt, **report}
+
+    def score_case(self, run_id: str, plan_digest: str) -> dict[str, Any]:
+        provenance_errors = []
+        provenance_ok = True
+        prepared_versions_match = None
+        try:
+            run, plan, run_dir = self._load_receipts(run_id, plan_digest)
+            self._verify_source(plan)
+            self._verify_manifest(run, run_dir)
+            execution = json.loads(
+                (run_dir / ".oml" / "execution.json").read_text(encoding="utf-8")
+            )
+            prepared_versions_match = (
+                execution.get("version_evidence", {}).get("verdict") == "match"
+            )
+        except OMLError as exc:
+            if exc.code in {
+                "MANIFEST_MISMATCH",
+                "PROFILE_MISMATCH",
+                "STALE_PLAN",
+                "RUN_NOT_ALLOWED",
+            }:
+                provenance_ok = False
+                provenance_errors.append(
+                    {
+                        "code": exc.code,
+                        "message": exc.message,
+                        "evidence": list(exc.evidence),
+                        "recovery": exc.recovery,
+                    }
+                )
+            else:
+                raise
+        report = score_run(
+            self.store,
+            run_id,
+            provenance_ok=provenance_ok,
+            prepared_versions_match=prepared_versions_match,
+        )
+        report["provenance_errors"] = provenance_errors
+        return report

@@ -1,0 +1,21 @@
+{
+  "replay_id": "periodic-gw-clean-v1",
+  "evidence": {
+    "dimensions": {
+      "precompute_validation": 1.0,
+      "stage_execution_state": 1.0,
+      "diagnosis": 1.0,
+      "numerical_scientific_validity": 1.0,
+      "efficiency_reproducibility": 1.0
+    },
+    "hard_gates": {
+      "immutable_provenance": true,
+      "pinned_versions": true,
+      "stage_lineage": true,
+      "no_duplicate_active_job": true,
+      "no_unresolved_stage_failure": true,
+      "finite_final_output": true
+    },
+    "penalties": {"failed_attempts": 0, "ambiguous_attempts": 0}
+  }
+}

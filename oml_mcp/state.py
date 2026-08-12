@@ -380,6 +380,23 @@ class StateStore:
         data["preflight"] = _loads(data.pop("preflight_json"))
         return data
 
+    def list_attempts(self, run_id: str) -> list[dict[str, Any]]:
+        self.get_run(run_id)
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM stage_attempts
+                WHERE run_id = ? ORDER BY stage, attempt_number
+                """,
+                (run_id,),
+            ).fetchall()
+        attempts = []
+        for row in rows:
+            data = dict(row)
+            data["preflight"] = _loads(data.pop("preflight_json"))
+            attempts.append(data)
+        return attempts
+
     def mark_attempt_submitted(self, attempt_id: str, scheduler_id: str) -> dict[str, Any]:
         now = utc_now()
         with self._connection() as connection:
