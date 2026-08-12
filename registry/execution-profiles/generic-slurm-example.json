@@ -14,6 +14,14 @@
     "submit_program": "/usr/bin/sbatch",
     "status_program": "/usr/bin/squeue"
   },
+  "resources": {
+    "partition": "replace-me",
+    "nodes": 1,
+    "ntasks_per_node": 4,
+    "cpus_per_task": 32,
+    "memory_mb": 128000,
+    "walltime_minutes": 60
+  },
   "runtime": {
     "python": "/path/to/python3",
     "mpi_launcher": "/path/to/mpirun",

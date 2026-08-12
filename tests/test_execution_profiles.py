@@ -21,6 +21,14 @@ def write_profile(root: pathlib.Path, profile_id: str = "test-local", **updates)
             "submit_program": "/usr/bin/true",
             "status_program": "/usr/bin/true",
         },
+        "resources": {
+            "partition": "debug",
+            "nodes": 1,
+            "ntasks_per_node": 4,
+            "cpus_per_task": 8,
+            "memory_mb": 16000,
+            "walltime_minutes": 30,
+        },
         "runtime": {
             "python": "/usr/bin/python3",
             "mpi_launcher": "/usr/bin/true",
@@ -48,7 +56,27 @@ class ExecutionProfileTest(unittest.TestCase):
         self.assertEqual(profile.profile_id, "test-local")
         self.assertEqual(profile.transport, "local")
         self.assertEqual(profile.runtime["mpi_ranks"], 4)
+        self.assertEqual(profile.resources["partition"], "debug")
         self.assertTrue(profile.allowed_run_roots[0].is_absolute())
+
+    def test_rejects_unsafe_slurm_resource_text(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_profile(
+                root,
+                "unsafe-resource",
+                resources={
+                    "partition": "debug\n#SBATCH --export=ALL",
+                    "nodes": 1,
+                    "ntasks_per_node": 4,
+                    "cpus_per_task": 8,
+                    "memory_mb": 16000,
+                    "walltime_minutes": 30,
+                },
+            )
+
+            with self.assertRaisesRegex(OMLError, "PROFILE_INVALID"):
+                load_execution_profile("unsafe-resource", roots=(root,))
 
     def test_rejects_path_ids_disabled_profiles_and_placeholders(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -11,6 +11,7 @@ from .errors import OMLError
 
 
 PROFILE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+SLURM_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 REQUIRED_RUNTIME_STRINGS = ("python", "mpi_launcher", "abacus", "librpa")
 REQUIRED_RUNTIME_INTS = ("mpi_ranks", "pyatb_mpi_ranks", "omp_threads")
 PLACEHOLDER_FRAGMENTS = ("/path/to/", "your-", "replace-me", "example.invalid")
@@ -25,6 +26,7 @@ class ExecutionProfile:
     allowed_run_roots: tuple[Path, ...]
     state_db: Path
     scheduler: dict[str, str]
+    resources: dict[str, str | int]
     runtime: dict[str, str | int]
     ssh: dict[str, str] | None = None
 
@@ -141,6 +143,24 @@ def load_execution_profile(
         "scheduler",
         profile_path,
     )
+    resources_raw = data.get("resources")
+    if not isinstance(resources_raw, dict):
+        raise _profile_error("resources must be an object", profile_path)
+    partition = resources_raw.get("partition")
+    if not isinstance(partition, str) or not SLURM_NAME_PATTERN.fullmatch(partition):
+        raise _profile_error("resources.partition contains unsafe characters", profile_path)
+    resources: dict[str, str | int] = {"partition": partition}
+    for key in (
+        "nodes",
+        "ntasks_per_node",
+        "cpus_per_task",
+        "memory_mb",
+        "walltime_minutes",
+    ):
+        value = resources_raw.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            raise _profile_error(f"resources.{key} must be a positive integer", profile_path)
+        resources[key] = value
 
     runtime_raw = data.get("runtime")
     if not isinstance(runtime_raw, dict):
@@ -187,6 +207,7 @@ def load_execution_profile(
         allowed_run_roots=allowed_run_roots,
         state_db=state_db,
         scheduler=scheduler,
+        resources=resources,
         runtime=runtime,
         ssh=ssh,
     )
