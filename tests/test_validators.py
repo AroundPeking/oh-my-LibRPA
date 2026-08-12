@@ -62,9 +62,16 @@ class WorkflowValidatorTest(unittest.TestCase):
             f"use_shrink_abfs = {'t' if shrink else 'f'}",
             f"replace_w_head = {'t' if headwing else 'f'}",
             f"use_soc = {1 if soc else 0}",
-            f"use_symmetry_exx = {'t' if use_symmetry else 'f'}",
-            f"use_symmetry_gw = {'t' if use_symmetry else 'f'}",
         ]
+        if task == "rpa":
+            librpa_lines.append(f"use_symmetry_rpa = {'t' if use_symmetry else 'f'}")
+        else:
+            librpa_lines.extend(
+                (
+                    f"use_symmetry_exx = {'t' if use_symmetry else 'f'}",
+                    f"use_symmetry_gw = {'t' if use_symmetry else 'f'}",
+                )
+            )
         if shrink:
             librpa_lines.extend(
                 (
@@ -254,6 +261,20 @@ class WorkflowValidatorTest(unittest.TestCase):
 
         self.assertTrue(report.accepted, report.to_dict())
         self.assertEqual(self.gate(report, "dataset.artifacts").status, "SKIP")
+        self.assertEqual(self.gate(report, "pyatb.headwing").status, "SKIP")
+
+    def test_rpa_case_uses_rpa_symmetry_key_without_pyatb(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root, task="rpa", headwing=False)
+            report = validate_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                use_symmetry=True,
+            )
+
+        self.assertTrue(report.accepted, report.to_dict())
         self.assertEqual(self.gate(report, "pyatb.headwing").status, "SKIP")
 
 

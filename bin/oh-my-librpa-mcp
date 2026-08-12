@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+python_bin="${OH_MY_LIBRPA_MCP_PYTHON:-$root/.venv/bin/python}"
+
+if [[ ! -x "$python_bin" ]]; then
+  printf 'Oh-My-LibRPA MCP environment is missing. Run scripts/install_codex_plugin.sh first.\n' >&2
+  exit 1
+fi
+
+exec "$python_bin" -m oml_mcp.server

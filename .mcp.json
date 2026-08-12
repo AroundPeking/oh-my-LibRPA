@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "oh-my-librpa": {
+      "command": "./bin/oh-my-librpa-mcp",
+      "args": [],
+      "cwd": "."
+    }
+  }
+}

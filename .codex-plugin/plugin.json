@@ -1,0 +1,23 @@
+{
+  "name": "oh-my-librpa",
+  "version": "0.1.0",
+  "description": "Inspect and validate pinned ABACUS, LibRPA, and PyATB GW/RPA workflows.",
+  "author": {
+    "name": "AroundPeking",
+    "email": "gonghuanjing@iphy.ac.cn",
+    "url": "https://github.com/AroundPeking"
+  },
+  "homepage": "https://github.com/AroundPeking/oh-my-LibRPA",
+  "repository": "https://github.com/AroundPeking/oh-my-LibRPA",
+  "license": "Proprietary",
+  "keywords": [
+    "abacus",
+    "librpa",
+    "pyatb",
+    "gw",
+    "rpa",
+    "materials-science"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/"
+}
