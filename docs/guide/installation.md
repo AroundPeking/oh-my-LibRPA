@@ -1,6 +1,86 @@
 # Installation
 
-## For Humans
+## Codex MCP (Recommended)
+
+Clone the repository and create its isolated Python environment:
+
+```bash
+git clone https://github.com/AroundPeking/oh-my-LibRPA.git
+cd oh-my-LibRPA
+bash scripts/install_codex_plugin.sh
+```
+
+Register the read-only MCP server from the repository root:
+
+```bash
+codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
+codex mcp get oh-my-librpa
+```
+
+Start a new Codex task after registration. To replace an existing registration after moving the repository, run:
+
+```bash
+codex mcp remove oh-my-librpa
+codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
+```
+
+The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.json`. Direct MCP registration is the development and local-install path; a marketplace entry is not required.
+
+### MCP tools
+
+All five Phase 1 tools are read-only and return structured gate results:
+
+| Tool | Purpose |
+| --- | --- |
+| `inspect_profile` | Report pinned source revisions and the exact workflow contract |
+| `ingest_case` | Classify case ownership and fingerprint discovered files |
+| `plan_case` | Select the deterministic GW/RPA stage graph |
+| `validate_case` | Check parameters, symmetry, shrink data, datasets, and PyATB handoff |
+| `inspect_reader_v1` | Inspect reader-v1 eigenvector, velocity, or complete head/wing data |
+
+Phase 1 never edits inputs, starts ABACUS/LibRPA, or submits a scheduler job. After its gates pass, the existing skills and scripts provide the execution path. Submission and controlled repair are Phase 2 MCP work.
+
+## Pinned Compatibility Profile
+
+The default profile is `profiles/abacus-librpa-pyatb-2026-08.json`:
+
+| Component | Ref | Audited revision |
+| --- | --- | --- |
+| ABACUS | `AroundPeking/abacus-develop:master_ghj` | `3efad9ed5ca066aee1d1b2214e43f92a2d2a567e` |
+| LibRPA | `Srlive1201/LibRPA:v0.7.0` | `dd169fa11fa920d580d4f39dc11e218a7f17f7b5` |
+| PyATB | `AroundPeking/pyatb:enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
+
+The OML production policy explicitly uses reader-v1:
+
+- ABACUS: `out_librpa_reader_version 1`
+- LibRPA: `version_coul_reader 1` and `version_lri_reader 1`
+- mean-field files: `prefix_eigvecs_scf = KS_eigenvector` and `fn_eigocc_scf = band_out`
+- GW-only files: `prefix_coul_cut = v1_coulomb_cut_iq_` and `fn_vxc_scf = vxc_out`
+- LibRPA GW task: `g0w0`; `g0w0_band` is accepted only as a deprecated compatibility alias
+- symmetry keys: `use_symmetry_exx`, `use_symmetry_gw`, and `use_symmetry_rpa`
+- symmetry metadata: read from `stru_out`; no legacy symmetry sidecars are copied
+- PyATB handoff: `input_dir/pyatb_librpa_df` on the full regular k grid
+
+The ABACUS source default for `out_librpa_reader_version` is still `0`, and the LibRPA reader defaults are still `-1`. These are source facts, not the OML production defaults above.
+
+### Refresh the source audit
+
+Clone or update the three exact refs, then run:
+
+```bash
+.venv/bin/python scripts/audit_upstream_contract.py \
+  --abacus /path/to/abacus-develop \
+  --librpa /path/to/LibRPA \
+  --pyatb /path/to/pyatb
+```
+
+Do not update the profile SHAs or parameter contract unless this audit and the complete test suite pass against the intended source revisions.
+
+## Legacy Skills Installer
+
+The following path remains for OpenClaw-compatible skills and the existing execution scripts.
+
+### For Humans
 
 Copy this prompt to your AI agent:
 
@@ -37,7 +117,7 @@ After installation, users only need natural-language chat (no CLI memorization).
 
 If installation is triggered from inside an active OpenClaw chat, the installer now keeps the conversation alive by deferring the gateway restart and printing the manual restart command.
 
-## For LLM Agents
+### For LLM Agents
 
 Fetch this guide via shell (do not summarize away actionable details):
 
@@ -64,7 +144,7 @@ On Windows / Git Bash, prefer setting the workspace explicitly if OpenClaw works
 OH_MY_LIBRPA_WORKSPACE="$HOME/.openclaw/workspace" bash install.sh
 ```
 
-## What the Installer Does
+### What the Legacy Installer Does
 
 - Detect OpenClaw workspace from `OH_MY_LIBRPA_WORKSPACE`, then `OPENCLAW_WORKSPACE`, then `~/.openclaw/openclaw.json`, and finally fall back to `~/.openclaw/workspace`
 - Install skills into `<workspace>/skills/`
@@ -95,7 +175,21 @@ The updater reuses `~/.openclaw/workspace/oh-my-librpa/install-state.env` when a
 
 ## Validation
 
-After install, read these first:
+Validate the MCP implementation from the repository root:
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+bash scripts/self_test.sh --workspace "$PWD"
+```
+
+Then test from a new Codex task:
+
+- `Inspect the pinned OML profile.`
+- `Ingest this calculation directory and report mixed ownership or missing inputs.`
+- `Validate this periodic GW case at the pre-LibRPA gate.`
+- `Inspect this PyATB head/wing directory as reader-v1.`
+
+For the legacy skills installation, read these first:
 
 - `docs/guide/chat-guidance.md`
 - `examples/si-k444-gw/README.md`

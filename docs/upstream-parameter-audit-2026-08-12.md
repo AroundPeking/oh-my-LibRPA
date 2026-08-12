@@ -45,13 +45,16 @@ for every approved profile and run.
 The canonical LibRPA names are:
 
 - `prefix_coul_full = v1_coulomb_full_iq_`
-- `prefix_coul_cut = v1_coulomb_cut_iq_`
+- `prefix_coul_cut = v1_coulomb_cut_iq_` for GW
+- `prefix_eigvecs_scf = KS_eigenvector`
 - `prefix_lri_coeff = v1_Cs_data_`
 - `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`
 - `prefix_shrink_sinvS = v1_shrink_sinvS_`
 - `fn_basis_wfc = basis_wfc_out`
 - `fn_basis_aux = basis_aux_out`
 - `fn_basis_aux_shrink = basis_aux_shrink_out`
+- `fn_eigocc_scf = band_out`
+- `fn_vxc_scf = vxc_out` for GW
 - `version_coul_reader = 1`
 - `version_lri_reader = 1`
 
@@ -59,6 +62,11 @@ The PyATB adapter eigenvector header is marker `-12345679`, kind `28`. The
 velocity header is marker `-12345680`, kind `29`, with three Cartesian
 components. Both formats use native-endian fixed-width integers and packed
 complex double payloads.
+
+The pre-LibRPA gate requires full Coulomb, main eigenvectors, occupations, and
+LRI coefficients for both RPA and GW. It additionally requires cut Coulomb and
+`vxc_out` for GW. When shrink is enabled, every shrink transform q index must
+belong to and collectively cover the Coulomb IBZ declared by `bz_sampling_out`.
 
 ## Reproduce The Audit
 

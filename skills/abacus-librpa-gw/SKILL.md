@@ -45,7 +45,7 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
 - Build ABACUS and LibRPA against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status` unless the user explicitly asks for an older dependency snapshot.
 - For pinned ABACUS `master_ghj` plus LibRPA `v0.7.0`, default to reader-v1 handoff:
   - ABACUS SCF producer: `out_librpa_reader_version 1`
-  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, and `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`, `version_coul_reader = 1`, and `version_lri_reader = 1`
+  - LibRPA reader: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_eigvecs_scf = KS_eigenvector`, `prefix_lri_coeff = v1_Cs_data_`, `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_`, `prefix_shrink_sinvS = v1_shrink_sinvS_`, `fn_basis_wfc = basis_wfc_out`, `fn_basis_aux = basis_aux_out`, `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`, `fn_eigocc_scf = band_out`, `fn_vxc_scf = vxc_out`, `version_coul_reader = 1`, and `version_lri_reader = 1`
   - LibRPA GW defaults: `use_cholesky_gw_wc = t`, `use_elpa_sqrt_coulomb = t`, `use_kpara_scf_eigvec = t`, and `libri_chi0_collect_max_bytes = 2147483648`
 
 ## Default `librpa.in` Preset for GW
@@ -59,12 +59,15 @@ For GW requests, set:
 - For the tested molecular short route, override with `replace_w_head = f`
 - `prefix_coul_full = v1_coulomb_full_iq_`
 - `prefix_coul_cut = v1_coulomb_cut_iq_`
+- `prefix_eigvecs_scf = KS_eigenvector`
 - `prefix_lri_coeff = v1_Cs_data_`
 - `prefix_lri_coeff_shrink = v1_Cs_shrinked_data_` when `use_shrink_abfs = t`
 - `prefix_shrink_sinvS = v1_shrink_sinvS_` when `use_shrink_abfs = t`
 - `fn_basis_wfc = basis_wfc_out` when `use_shrink_abfs = t`
 - `fn_basis_aux = basis_aux_out` when `use_shrink_abfs = t`
 - `fn_basis_aux_shrink = basis_aux_shrink_out` when `use_shrink_abfs = t`
+- `fn_eigocc_scf = band_out`
+- `fn_vxc_scf = vxc_out`
 - `version_coul_reader = 1`
 - `version_lri_reader = 1`
 - `use_scalapack_gw_wc = t`
@@ -136,7 +139,7 @@ Use the following alignment for spin-sensitive GW workflows:
 - Keep `output_gw_sigc_mat_rf = f`
 - For the tested smoke path `molecule + GW + no NSCF + no pyatb + no shrink`, materialize the dedicated route with `oh-my-librpa/scripts/materialize_gw_template.sh --case-dir <case_dir> --system-type molecule --needs-nscf false --needs-pyatb false --use-shrink-abfs false`
 - Keep `out_mat_xc 1`, `out_librpa_reader_version 1`, `exx_singularity_correction = massidda`, `exx_pca_threshold 1e-6`, and `exx_cs_inv_thr 1e-5`
-- Keep LibRPA reader-v1 prefixes and selectors: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_lri_coeff = v1_Cs_data_`, `version_coul_reader = 1`, and `version_lri_reader = 1`
+- Keep LibRPA reader-v1 prefixes and selectors: `prefix_coul_full = v1_coulomb_full_iq_`, `prefix_coul_cut = v1_coulomb_cut_iq_`, `prefix_eigvecs_scf = KS_eigenvector`, `prefix_lri_coeff = v1_Cs_data_`, `fn_eigocc_scf = band_out`, `fn_vxc_scf = vxc_out`, `version_coul_reader = 1`, and `version_lri_reader = 1`
 - Set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times` for molecular GW; using a smaller EXX mesh can leave the Coulomb/EXX matrix coverage inconsistent for LibRPA.
 - Do not enable `out_chg`, `out_mat_r`, or `out_mat_hs2` for that short route
 - Copy `OUT.ABACUS/vxc_out.dat` into the working directory as `vxc_out` before LibRPA

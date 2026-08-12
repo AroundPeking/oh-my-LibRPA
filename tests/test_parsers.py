@@ -7,10 +7,13 @@ from oml_mcp.models import GateResult, ValidationReport
 from oml_mcp.parsers import (
     ParseError,
     parse_abacus_input,
+    parse_band_out,
     parse_band_out_header,
     parse_bool,
+    parse_bz_sampling,
     parse_k_path_info,
     parse_librpa_input,
+    parse_vxc_out,
 )
 
 
@@ -97,6 +100,93 @@ use_symmetry_gw = t
         self.assertEqual(info["nkpoints"], 2)
         self.assertEqual(info["kpoints"], ((0.0, 0.0, 0.0), (0.5, 0.0, 0.0)))
         self.assertEqual(dims, {"nkpoints": 2, "nspin": 1, "nstates": 3})
+
+    def test_complete_band_out_is_parsed_and_truncation_is_rejected(self):
+        body = """2
+1
+2
+2
+0.25
+1 1
+1 2.0 -0.5 -13.6
+2 0.0 0.2 5.4
+2 1
+1 2.0 -0.4 -10.9
+2 0.0 0.3 8.2
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            valid = self.write(tmpdir, "band_out", body)
+            truncated = self.write(tmpdir, "band_out.bad", "\n".join(body.splitlines()[:-1]))
+
+            parsed = parse_band_out(valid)
+            with self.assertRaisesRegex(ParseError, "token count"):
+                parse_band_out(truncated)
+
+        self.assertEqual(parsed["nbasis"], 2)
+        self.assertEqual(parsed["fermi_energy"], 0.25)
+
+    def test_k_path_info_rejects_duplicate_and_nonfinite_kpoints(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            duplicate = self.write(
+                tmpdir,
+                "k_path_info.duplicate",
+                "2 2 1 2\n0.0 0.0 0.0\n0.0 0.0 0.0\n",
+            )
+            nonfinite = self.write(
+                tmpdir,
+                "k_path_info.nonfinite",
+                "2 2 1 1\nnan 0.0 0.0\n",
+            )
+            extra_column = self.write(
+                tmpdir,
+                "k_path_info.extra",
+                "2 2 1 1\n0.0 0.0 0.0 7\n",
+            )
+            wrapped_duplicate = self.write(
+                tmpdir,
+                "k_path_info.wrapped-duplicate",
+                "2 2 1 2\n0.0 0.0 0.0\n1.0 0.0 0.0\n",
+            )
+
+            with self.assertRaisesRegex(ParseError, "duplicate"):
+                parse_k_path_info(duplicate)
+            with self.assertRaisesRegex(ParseError, "finite"):
+                parse_k_path_info(nonfinite)
+            with self.assertRaisesRegex(ParseError, "invalid k-point"):
+                parse_k_path_info(extra_column)
+            with self.assertRaisesRegex(ParseError, "duplicate periodic"):
+                parse_k_path_info(wrapped_duplicate)
+
+    def test_bz_sampling_is_fully_parsed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            valid = self.write(
+                tmpdir,
+                "bz_sampling_out",
+                "1 1 2\n2 1\n1 0.5 0 0 0 0 0 0 1 1\n2 0.5 0 0 0.5 0 0 0.5 1 1\n",
+            )
+            invalid = self.write(
+                tmpdir,
+                "bz_sampling_out.bad",
+                "1 1 2\n2 1\n1 0.4 0 0 0 0 0 0 1 1\n2 0.4 0 0 0.5 0 0 0.5 1 1\n",
+            )
+
+            parsed = parse_bz_sampling(valid)
+            with self.assertRaisesRegex(ParseError, "weights"):
+                parse_bz_sampling(invalid)
+
+        self.assertEqual(parsed["nk_scf"], 2)
+        self.assertEqual(parsed["nk_ibz"], 1)
+
+    def test_vxc_out_is_fully_parsed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            valid = self.write(tmpdir, "vxc_out", "1\n1\n2\n-0.4 -10.9\n-0.2 -5.4\n")
+            truncated = self.write(tmpdir, "vxc_out.bad", "1\n1\n2\n-0.4 -10.9\n")
+
+            parsed = parse_vxc_out(valid)
+            with self.assertRaisesRegex(ParseError, "token count"):
+                parse_vxc_out(truncated)
+
+        self.assertEqual(parsed["nstates"], 2)
 
     def test_structured_reports_are_json_compatible(self):
         report = ValidationReport(

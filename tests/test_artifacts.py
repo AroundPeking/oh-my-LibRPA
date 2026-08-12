@@ -61,7 +61,14 @@ def write_velocity_v1(
 def write_headwing_metadata(root: pathlib.Path, *, nkpoints: int = 2) -> None:
     rows = "\n".join(f"{index / 2:.1f} 0.0 0.0" for index in range(nkpoints))
     (root / "k_path_info").write_text(f"2 3 1 {nkpoints}\n{rows}\n", encoding="utf-8")
-    (root / "band_out").write_text(f"{nkpoints}\n1\n3\n", encoding="utf-8")
+    blocks = []
+    for ik in range(1, nkpoints + 1):
+        blocks.append(f"{ik} 1")
+        blocks.extend(f"{band} 0.0 0.0 0.0" for band in range(1, 4))
+    (root / "band_out").write_text(
+        f"{nkpoints}\n1\n3\n2\n0.0\n" + "\n".join(blocks) + "\n",
+        encoding="utf-8",
+    )
 
 
 class ReaderV1ArtifactTest(unittest.TestCase):
@@ -75,6 +82,22 @@ class ReaderV1ArtifactTest(unittest.TestCase):
         self.assertEqual(info.format_version, "v1")
         self.assertEqual(info.metadata["k_indices"], (1, 2))
         self.assertEqual(info.metadata["nstates"], 3)
+
+    def test_empty_reader_v1_splits_are_accepted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            eigenvector = root / "KS_eigenvector_empty.dat"
+            velocity = root / "velocity_matrix_empty.dat"
+            write_eigenvector_v1(eigenvector, nkpoints=0)
+            write_velocity_v1(velocity, nkpoints=0)
+
+            eigenvector_info = inspect_eigenvector_v1(eigenvector)
+            velocity_info = inspect_velocity_v1(velocity)
+
+        self.assertTrue(eigenvector_info.accepted)
+        self.assertTrue(velocity_info.accepted)
+        self.assertEqual(eigenvector_info.metadata["k_indices"], ())
+        self.assertEqual(velocity_info.metadata["k_indices"], ())
 
     def test_truncated_eigenvector_payload_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -93,6 +116,20 @@ class ReaderV1ArtifactTest(unittest.TestCase):
 
         self.assertFalse(info.accepted)
         self.assertIn("unique", info.gates[0].message)
+
+    def test_overlapping_eigenvector_payloads_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "KS_eigenvector_0.dat"
+            write_eigenvector_v1(path)
+            data = bytearray(path.read_bytes())
+            first_offset = struct.unpack_from("=q", data, 24 + 4)[0]
+            struct.pack_into("=q", data, 24 + 12 + 4, first_offset)
+            path.write_bytes(data)
+
+            info = inspect_eigenvector_v1(path)
+
+        self.assertFalse(info.accepted)
+        self.assertIn("overlap", info.gates[0].message)
 
     def test_valid_velocity_header_and_payload_are_accepted(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -143,6 +180,53 @@ class ReaderV1ArtifactTest(unittest.TestCase):
         self.assertFalse(report.accepted)
         self.assertTrue(any("dimensions" in gate.message for gate in report.gates))
 
+    def test_truncated_headwing_band_out_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_headwing_metadata(root)
+            band = root / "band_out"
+            band.write_text("\n".join(band.read_text(encoding="utf-8").splitlines()[:-1]))
+            write_eigenvector_v1(root / "KS_eigenvector_0.dat")
+            write_velocity_v1(root / "velocity_matrix")
+
+            report = inspect_headwing_directory(root)
+
+        self.assertFalse(report.accepted)
+        self.assertEqual(report.gates[0].gate_id, "pyatb.metadata")
+
+    def test_headwing_duplicate_kpoint_across_split_files_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_headwing_metadata(root)
+            write_eigenvector_v1(root / "KS_eigenvector_0.dat", nkpoints=1, indices=(1,))
+            write_eigenvector_v1(root / "KS_eigenvector_1.dat", nkpoints=2, indices=(1, 2))
+            write_velocity_v1(root / "velocity_matrix")
+
+            report = inspect_headwing_directory(root)
+
+        self.assertFalse(report.accepted)
+        duplicate_gate = next(
+            gate for gate in report.gates if gate.gate_id == "pyatb.duplicates.eigenvector"
+        )
+        self.assertEqual(duplicate_gate.status, "FAIL")
+
+    def test_headwing_requires_exact_velocity_root_and_ignores_dot_backup(self):
+        with tempfile.TemporaryDirectory() as missing_tmp, tempfile.TemporaryDirectory() as backup_tmp:
+            missing_root = pathlib.Path(missing_tmp)
+            backup_root = pathlib.Path(backup_tmp)
+            for root in (missing_root, backup_root):
+                write_headwing_metadata(root)
+                write_eigenvector_v1(root / "KS_eigenvector_0.dat")
+            write_velocity_v1(missing_root / "velocity_matrix_0")
+            write_velocity_v1(backup_root / "velocity_matrix")
+            (backup_root / "velocity_matrix.backup").write_text("not a v1 split\n", encoding="utf-8")
+
+            missing_report = inspect_headwing_directory(missing_root)
+            backup_report = inspect_headwing_directory(backup_root)
+
+        self.assertFalse(missing_report.accepted)
+        self.assertTrue(backup_report.accepted, backup_report.to_dict())
+
 
 class StruOutArtifactTest(unittest.TestCase):
     BASE = """1 0 0
@@ -173,6 +257,16 @@ class StruOutArtifactTest(unittest.TestCase):
         self.assertEqual(info.metadata["n_symops"], 1)
         self.assertEqual(info.metadata["convention"], "row")
 
+    def test_zero_symmetry_operations_do_not_count_as_symmetry(self):
+        info = self.inspect_text(self.BASE + "0 row\n")
+        self.assertTrue(info.accepted)
+        self.assertFalse(info.metadata["has_symmetry"])
+
+    def test_non_unimodular_symmetry_rotation_is_rejected(self):
+        info = self.inspect_text(self.BASE + "1 row\n2 0 0 0 1 0 0 0 1 0.0 0.0 0.0\n")
+        self.assertFalse(info.accepted)
+        self.assertIn("determinant", info.gates[0].message)
+
     def test_truncated_symmetry_operation_is_rejected(self):
         info = self.inspect_text(self.BASE + "1 row\n1 0 0\n")
         self.assertFalse(info.accepted)
@@ -186,6 +280,15 @@ class StruOutArtifactTest(unittest.TestCase):
         )
         self.assertFalse(non_integer.accepted)
         self.assertFalse(trailing.accepted)
+
+    def test_nonfinite_structure_values_are_rejected(self):
+        lattice = self.inspect_text(self.BASE.replace("1 0 0", "nan 0 0", 1))
+        translation = self.inspect_text(
+            self.BASE + "1 row\n1 0 0 0 1 0 0 0 1 inf 0.0 0.0\n"
+        )
+
+        self.assertFalse(lattice.accepted)
+        self.assertFalse(translation.accepted)
 
 
 if __name__ == "__main__":

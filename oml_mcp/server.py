@@ -74,7 +74,7 @@ def build_server() -> MCPServer:
         system_type: Literal["atom", "molecule", "solid", "2d"],
         use_symmetry: bool = False,
         soc: bool = False,
-        headwing: bool = True,
+        headwing: bool | None = None,
     ) -> dict[str, Any]:
         """Plan a supported ABACUS plus LibRPA route without writing files."""
         return plan_case_data(

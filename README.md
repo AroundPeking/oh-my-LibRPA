@@ -1,8 +1,8 @@
 <div align="center">
   <img src="docs/assets/brand/oh-my-librpa-wordmark.svg" alt="oh-my-LibRPA wordmark" width="760" />
   <p>
-    Describe the task in natural language. Let the agent choose the route,
-    patch inputs, run checks, execute stage by stage, and report results back in chat.
+    Describe the task in natural language. The MCP server inspects the case,
+    selects the route, and applies deterministic gates before any calculation is submitted.
   </p>
 
   <p>
@@ -34,13 +34,13 @@
   <sub>Crystal/material inputs in, curated GW/RPA workflow, band-structure artifact out.</sub>
 </div>
 
-`oh-my-LibRPA` is an **AI experience layer** for `ABACUS + LibRPA`.
+`oh-my-LibRPA` is a Codex plugin and deterministic MCP harness for `ABACUS + LibRPA`.
 
 The idea is simple:
 
 - users should talk in **natural language**, not memorize workflow commands
 - the agent should understand whether the case is **molecule / solid / 2D**
-- the workflow should follow **curated experience**, not ad-hoc guessing
+- version-sensitive decisions should come from **MCP tools and a pinned source contract**, not prompt recall
 - expensive runs should still respect **fresh directories**, **static checks**, and **stage-by-stage validation**
 
 In practice, that means the agent can help with:
@@ -52,42 +52,54 @@ In practice, that means the agent can help with:
 - producing a final scientific artifact such as a **paper-style GW band plot**
 
 > [!TIP]
-> Think of it as a chat-native workflow harness for real ABACUS + LibRPA work — not just a pile of templates.
+> Phase 1 is intentionally read-only. It inspects, plans, and validates; the existing workflow scripts remain the execution layer until submission is moved into MCP in Phase 2.
 
 ---
 
 ## Quick start
 
-### 1. Install via AI
+### 1. Install the MCP environment
 
-Copy this into your AI assistant:
+```bash
+git clone https://github.com/AroundPeking/oh-my-LibRPA.git
+cd oh-my-LibRPA
+bash scripts/install_codex_plugin.sh
+```
+
+### 2. Register the MCP server in Codex
+
+Run this from the repository root so Codex stores the absolute launcher path:
+
+```bash
+codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
+codex mcp get oh-my-librpa
+```
+
+Start a new Codex task after registration. The repository also contains a Codex plugin manifest at `.codex-plugin/plugin.json`; marketplace packaging can use the same MCP definition in `.mcp.json`.
+
+### 3. Start chatting
+
+Example prompts:
+
+- `Inspect this ABACUS + LibRPA GW case and tell me which gates fail.`
+- `Plan a symmetry-enabled periodic GW calculation, but do not submit it.`
+- `Check whether these PyATB head/wing files match reader-v1.`
+- `Explain the minimal repair for this LibRPA input.`
+
+The MCP-first skill calls five read-only tools: `inspect_profile`, `ingest_case`, `plan_case`, `validate_case`, and `inspect_reader_v1`.
+
+### Legacy skills installation
+
+The OpenClaw-compatible skills and execution scripts are still available during the migration:
 
 ```text
 Install and configure oh-my-LibRPA by following:
 https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/docs/guide/installation.md
 ```
 
-### 2. Install manually
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AroundPeking/oh-my-LibRPA/main/install.sh | bash
 ```
-
-For local development:
-
-```bash
-cd ~/code/oh-my-librpa
-bash install.sh
-```
-
-### 3. Start chatting
-
-Example prompts:
-
-- `Help me run GW for GaAs with a conservative setup first.`
-- `This is a molecular system. Prepare inputs using the molecular route.`
-- `How do we fix this error? Give me the minimal repair action.`
-- `Mirror an existing FHI-aims + LibRPA QSGW case and stage a new k-point sweep first.`
 
 ### Update an existing install
 
@@ -113,7 +125,8 @@ For Windows + Git Bash agent updates, see:
 
 ### Chat-first orchestration
 
-- single entry-point skill: `oh-my-librpa`
+- MCP-first entry point with deterministic structured results
+- thin `oh-my-librpa` skill that routes into MCP before detailed references
 - stack-layer skill: `oh-my-librpa-abacus-librpa`
 - stack-layer skill: `oh-my-librpa-fhi-aims-qsgw`
 - file-first intake for structures, inputs, logs, and archives
@@ -131,6 +144,9 @@ For Windows + Git Bash agent updates, see:
 
 ### Safety + reproducibility
 
+- read-only MCP annotations on all Phase 1 tools
+- pinned revisions for ABACUS, LibRPA, and PyATB
+- SHA-256 fingerprints for discovered case files
 - new isolated run directory per run chain
 - when reusing an old case, copy only source inputs and helper scripts into the new run directory; never carry over generated outputs such as `OUT.ABACUS`, `band_out`, `coulomb_*`, `LibRPA*.out`, `librpa.d`, `time.json`, or old GW data
 - static preflight before remote execution
@@ -140,6 +156,7 @@ For Windows + Git Bash agent updates, see:
 
 ### Reusable assets
 
+- machine-readable compatibility profile and upstream source-audit script
 - curated rule cards
 - route-aware templates
 - workflow helpers for preflight, checks, execution, and reporting
@@ -157,7 +174,7 @@ Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC, stru_out metadata) -> pyatb -> NS
 RPA:              SCF -> LibRPA
 ```
 
-For SOC cases, do not use the periodic symmetry lane. Keep the ABACUS side on `symmetry = -1` and do not enable the LibRPA symmetry flags.
+OML explicitly selects reader-v1 even though the inspected ABACUS and LibRPA source defaults are legacy/auto values. It also writes the main mean-field names explicitly: `prefix_eigvecs_scf = KS_eigenvector`, `fn_eigocc_scf = band_out`, and, for GW, `fn_vxc_scf = vxc_out`. Symmetry operations are read from `stru_out`; the old symmetry sidecar files are not required. For SOC cases, do not use the periodic symmetry lane. Keep the ABACUS side on `symmetry = -1` and do not enable the LibRPA symmetry flags.
 
 The agent should decide the lane from the user's files, intent, and system type — then explain what it is doing and why.
 
@@ -212,6 +229,10 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 
 ## Current MVP scope
 
+- read-only MCP tools for profile inspection, intake, route planning, case validation, and reader-v1 inspection
+- pinned compatibility profile: ABACUS `master_ghj`, LibRPA `v0.7.0`, PyATB `enable_head_wing`
+- explicit reader-v1 policy and `stru_out` symmetry validation without legacy sidecars
+- PyATB head/wing validation under `input_dir/pyatb_librpa_df`
 - chat orchestrator skill: `oh-my-librpa`
 - stack-layer routing skill: `oh-my-librpa-abacus-librpa`
 - stack-layer routing skill: `oh-my-librpa-fhi-aims-qsgw`
@@ -230,6 +251,11 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 
 ```text
 oh-my-librpa/
+|-- .codex-plugin/plugin.json
+|-- .mcp.json
+|-- bin/oh-my-librpa-mcp
+|-- oml_mcp/
+|-- profiles/
 |-- skills/
 |   |-- oh-my-librpa/
 |   |-- oh-my-librpa-abacus-librpa/
@@ -241,6 +267,7 @@ oh-my-librpa/
 |-- rules/cards/
 |-- templates/
 |-- scripts/
+|-- tests/
 |-- examples/
 |-- registry/
 `-- docs/
@@ -251,6 +278,8 @@ oh-my-librpa/
 ## Design principles
 
 - **Chat-first** — users should not memorize custom workflow commands
+- **Contract-first** — source-derived parameters and artifacts are represented as structured data
+- **Read-only first** — validation is separated from mutation and remote submission
 - **Experience-driven** — curated rules are preferred over ad-hoc prompting
 - **Route-aware** — molecule, solid, and 2D cases should not be treated as the same workflow
 - **Extension-friendly** — keep the ABACUS mainline intact while adding supplemental routes for other DFT stacks such as FHI-aims

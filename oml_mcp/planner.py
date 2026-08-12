@@ -32,7 +32,7 @@ def plan_case(
     system_type: str,
     use_symmetry: bool = False,
     soc: bool = False,
-    headwing: bool = True,
+    headwing: bool | None = None,
 ) -> CasePlan:
     intake = ingest_case(path)
     if intake.stack == "mixed":
@@ -44,13 +44,21 @@ def plan_case(
     normalized_system = system_type.strip().lower()
     assumptions: list[str] = []
     if normalized_task == "rpa":
+        if headwing is True:
+            assumptions.append("RPA ignores the caller headwing value and does not use PyATB")
         route = "rpa"
         assumptions.append("RPA correlation route does not require PyATB or NSCF band preprocessing")
     elif normalized_task == "gw":
         if normalized_system in {"molecule", "molecular", "atom"}:
+            if use_symmetry:
+                raise PlanError("molecular GW does not support the periodic spatial-symmetry lane")
+            if headwing is True:
+                raise PlanError("molecular GW requires head/wing replacement to be disabled")
             route = "molecular_gw"
             assumptions.append("isolated-system short route without PyATB or band-path NSCF")
         elif normalized_system in {"solid", "periodic", "2d", "two-dimensional"}:
+            if headwing is False:
+                raise PlanError("periodic GW requires PyATB head/wing replacement in this profile")
             if soc and use_symmetry:
                 assumptions.append("SOC disables the current periodic spatial-symmetry lane")
                 use_symmetry = False
@@ -60,8 +68,6 @@ def plan_case(
             else:
                 route = "periodic_gw"
                 assumptions.append("periodic GW uses full-grid PyATB, NSCF, and preprocessing")
-            if not headwing:
-                assumptions.append("head/wing replacement is explicitly disabled by the caller")
         else:
             raise PlanError(f"unsupported GW system_type: {system_type}")
     else:

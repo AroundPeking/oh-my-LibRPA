@@ -44,6 +44,9 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(librpa["source_default"]["version_lri_reader"], -1)
         self.assertEqual(librpa["production"]["version_coul_reader"], 1)
         self.assertEqual(librpa["production"]["version_lri_reader"], 1)
+        self.assertEqual(librpa["production"]["prefix_eigvecs_scf"], "KS_eigenvector")
+        self.assertEqual(librpa["production"]["fn_eigocc_scf"], "band_out")
+        self.assertEqual(librpa["production"]["fn_vxc_scf"], "vxc_out")
 
     def test_librpa_070_uses_canonical_symmetry_keys(self):
         profile = load_profile()

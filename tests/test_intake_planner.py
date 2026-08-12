@@ -74,6 +74,18 @@ class PlannerTest(unittest.TestCase):
         self.assertEqual(plan.route, "molecular_gw")
         self.assertEqual(plan.stages, ("scf", "librpa"))
 
+    def test_route_incompatible_headwing_and_symmetry_requests_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+
+            with self.assertRaisesRegex(PlanError, "head/wing"):
+                plan_case(root, task="gw", system_type="solid", headwing=False)
+            with self.assertRaisesRegex(PlanError, "symmetry"):
+                plan_case(root, task="gw", system_type="molecule", use_symmetry=True)
+            with self.assertRaisesRegex(PlanError, "head/wing"):
+                plan_case(root, task="gw", system_type="molecule", headwing=True)
+
     def test_periodic_gw_and_symmetry_routes(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

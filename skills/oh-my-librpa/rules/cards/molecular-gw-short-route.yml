@@ -17,7 +17,10 @@
     - Set `replace_w_head = f`
     - Set `prefix_coul_full = v1_coulomb_full_iq_`
     - Set `prefix_coul_cut = v1_coulomb_cut_iq_`
+    - Set `prefix_eigvecs_scf = KS_eigenvector`
     - Set `prefix_lri_coeff = v1_Cs_data_`
+    - Set `fn_eigocc_scf = band_out`
+    - Set `fn_vxc_scf = vxc_out`
     - Set `version_coul_reader = 1`
     - Set `version_lri_reader = 1`
     - Set `use_cholesky_gw_wc = t`

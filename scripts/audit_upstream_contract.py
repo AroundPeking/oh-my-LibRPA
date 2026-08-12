@@ -47,7 +47,13 @@ CHECKS = (
     SourceCheck(
         "librpa",
         "driver/driver.cpp",
-        ("version_coul_reader(-1)", "version_lri_reader(-1)"),
+        (
+            'prefix_eigvecs_scf("KS_eigenvector")',
+            'fn_eigocc_scf("band_out")',
+            'fn_vxc_scf("vxc_out")',
+            "version_coul_reader(-1)",
+            "version_lri_reader(-1)",
+        ),
     ),
     SourceCheck(
         "librpa",
@@ -63,6 +69,20 @@ CHECKS = (
         "librpa",
         "driver/read_data.cpp",
         ("READER_VELOCITY_MATRIX_V1_MARKER = -12345680", '"pyatb_librpa_df/"'),
+    ),
+    SourceCheck(
+        "librpa",
+        "src/core/dielecmodel.cpp",
+        (
+            "std::vector<int> map_kpoints_by_coordinates",
+            "return std::abs(diff - std::round(diff))",
+            "std::vector<char> used(source_kpoints.size(), 0)",
+        ),
+    ),
+    SourceCheck(
+        "librpa",
+        "src/core/dielecmodel.h",
+        ("double tolerance = 1.0e-5",),
     ),
     SourceCheck(
         "pyatb",
