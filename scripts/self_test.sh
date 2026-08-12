@@ -79,11 +79,11 @@ for path in \
   fi
 done
 
-if grep -q 'supporting markers only: `geometry.in`, `librpa.d/`, `self_energy/`' "$workspace/skills/oh-my-librpa/SKILL.md" \
-  && ! grep -q 'existing non-ABACUS case' "$workspace/skills/oh-my-librpa/SKILL.md"; then
-  pass 'top-level router keeps weak markers from stealing ABACUS-owned cases'
+if grep -q 'FHI-aims.*existing reviewed routes' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && grep -q 'Do not use `geometry.in`, `librpa.d/`, or `self_energy/` alone' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md"; then
+  pass 'thin MCP router excludes FHI-aims writes and preserves the dedicated ownership gate'
 else
-  fail 'top-level router still contains ambiguous FHI-aims ownership triggers'
+  fail 'thin MCP router or dedicated FHI-aims ownership gate is incomplete'
 fi
 
 if grep -q 'Do not use `geometry.in`, `librpa.d/`, or `self_energy/` alone' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md"; then

@@ -7,13 +7,32 @@ from oml_mcp.stage_inspection import inspect_stage_outputs
 from tests.test_artifacts import write_eigenvector_v1, write_headwing_metadata, write_velocity_v1
 
 
-def command_completed(root: pathlib.Path, stage: str) -> None:
+def command_completed(
+    root: pathlib.Path, stage: str, attempt_id: str | None = None
+) -> None:
     path = root / ".oml" / "stage-results" / f"{stage}.status"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("COMMAND_COMPLETED\n", encoding="utf-8")
+    suffix = f":{attempt_id}" if attempt_id is not None else ""
+    path.write_text(f"COMMAND_COMPLETED{suffix}\n", encoding="utf-8")
 
 
 class StageInspectionTest(unittest.TestCase):
+    def test_expected_attempt_id_rejects_stale_command_receipt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "scf", "attempt-old")
+
+            report = inspect_stage_outputs(
+                root, "scf", expected_attempt_id="attempt-new"
+            )
+
+        command = next(
+            gate
+            for gate in report["gates"]
+            if gate["gate_id"] == "stage.scf.command"
+        )
+        self.assertEqual(command["status"], "FAIL")
+
     def test_scf_requires_abacus_completion_and_reader_outputs(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

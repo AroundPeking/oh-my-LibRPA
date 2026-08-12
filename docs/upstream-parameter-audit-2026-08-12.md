@@ -39,6 +39,9 @@ for every approved profile and run.
 7. LibRPA 0.7.0 passes `input_dir` to `read_headwing_input`, which appends
    `pyatb_librpa_df/`. The head/wing bundle therefore belongs at
    `input_dir/pyatb_librpa_df`, including when `input_dir` is not `./`.
+8. Controlled execution pins the OML helper quartet by SHA-256 in the
+   compatibility profile. This prevents an immutable input digest from being
+   used to execute an unreviewed `perform.sh`, adapter, or preprocessing script.
 
 ## Reader-v1 Handoff
 

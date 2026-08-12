@@ -2,6 +2,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 from mcp.client.session import ClientSession
@@ -17,19 +18,50 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.server = build_server()
 
-    async def test_exact_read_only_tool_surface(self):
+    async def test_exact_tool_surface_and_annotations(self):
         tools = await self.server.list_tools()
         self.assertEqual(
             {tool.name for tool in tools},
-            {"inspect_profile", "ingest_case", "plan_case", "validate_case", "inspect_reader_v1"},
+            {
+                "inspect_profile",
+                "ingest_case",
+                "plan_case",
+                "validate_case",
+                "inspect_reader_v1",
+                "prepare_run",
+                "submit_stage",
+                "get_status",
+                "inspect_stage",
+                "score_case",
+            },
         )
-        forbidden = ("submit", "shell", "ssh", "cleanup", "delete", "command", "run_job")
+        forbidden = ("shell", "ssh", "cleanup", "delete", "command", "run_job")
         self.assertFalse(any(word in tool.name for tool in tools for word in forbidden))
+        by_name = {tool.name: tool for tool in tools}
+        read_only = {
+            "inspect_profile",
+            "ingest_case",
+            "plan_case",
+            "validate_case",
+            "inspect_reader_v1",
+            "get_status",
+            "score_case",
+        }
         for tool in tools:
             annotations = tool.annotations
             self.assertIsNotNone(annotations)
-            self.assertTrue(annotations.read_only_hint)
+            self.assertEqual(annotations.read_only_hint, tool.name in read_only)
             self.assertFalse(annotations.destructive_hint)
+        self.assertFalse(by_name["prepare_run"].annotations.idempotent_hint)
+        self.assertFalse(by_name["submit_stage"].annotations.idempotent_hint)
+        self.assertTrue(by_name["inspect_stage"].annotations.idempotent_hint)
+        self.assertTrue(by_name["get_status"].annotations.open_world_hint)
+
+        stage_schema = by_name["submit_stage"].input_schema
+        self.assertEqual(
+            stage_schema["properties"]["stage"]["enum"],
+            ["scf", "pyatb", "nscf", "preprocess", "librpa"],
+        )
 
     async def call(self, name: str, arguments: dict):
         result = await self.server.call_tool(name, arguments)
@@ -97,9 +129,88 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 5)
+        self.assertEqual(len(listed.tools), 10)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "v0.7.0")
+
+    async def test_controlled_tools_forward_only_typed_receipt_identifiers(self):
+        class FakeService:
+            def prepare_run(self, source_path, plan_digest):
+                return {"operation": "prepare", "source_path": source_path, "plan_digest": plan_digest}
+
+            def submit_stage(self, run_id, stage, plan_digest):
+                return {"operation": "submit", "run_id": run_id, "stage": stage, "plan_digest": plan_digest}
+
+            def get_status(self, run_id, attempt_id):
+                return {"operation": "status", "run_id": run_id, "attempt_id": attempt_id}
+
+            def inspect_stage(self, run_id, attempt_id, plan_digest):
+                return {
+                    "operation": "inspect",
+                    "run_id": run_id,
+                    "attempt_id": attempt_id,
+                    "plan_digest": plan_digest,
+                }
+
+            def score_case(self, run_id, plan_digest):
+                return {"operation": "score", "run_id": run_id, "plan_digest": plan_digest}
+
+        calls = (
+            (
+                "prepare_run",
+                {"source_path": "/approved/source", "plan_digest": "a" * 64, "execution_profile_id": "hpc"},
+                "prepare",
+            ),
+            (
+                "submit_stage",
+                {"run_id": "run-1", "stage": "scf", "plan_digest": "a" * 64, "execution_profile_id": "hpc"},
+                "submit",
+            ),
+            (
+                "get_status",
+                {"run_id": "run-1", "attempt_id": "attempt-1", "execution_profile_id": "hpc"},
+                "status",
+            ),
+            (
+                "inspect_stage",
+                {
+                    "run_id": "run-1",
+                    "attempt_id": "attempt-1",
+                    "plan_digest": "a" * 64,
+                    "execution_profile_id": "hpc",
+                },
+                "inspect",
+            ),
+            (
+                "score_case",
+                {"run_id": "run-1", "plan_digest": "a" * 64, "execution_profile_id": "hpc"},
+                "score",
+            ),
+        )
+        with patch("oml_mcp.server._controlled_service", return_value=FakeService()) as service:
+            for name, arguments, operation in calls:
+                result = await self.call(name, arguments)
+                self.assertEqual(result["operation"], operation)
+
+        self.assertEqual([item.args[0] for item in service.call_args_list], ["hpc"] * 5)
+        self.assertEqual(
+            [item.kwargs.get("initialize_state", True) for item in service.call_args_list],
+            [True, True, False, True, False],
+        )
+
+    async def test_controlled_tool_returns_stable_structured_profile_error(self):
+        result = await self.call(
+            "prepare_run",
+            {
+                "source_path": "/approved/source",
+                "plan_digest": "a" * 64,
+                "execution_profile_id": "not-installed",
+            },
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "PROFILE_NOT_FOUND")
+        self.assertTrue(result["error"]["recovery"])
 
 
 if __name__ == "__main__":

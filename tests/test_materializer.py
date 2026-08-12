@@ -1,6 +1,8 @@
 import pathlib
+import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 from oml_mcp.errors import OMLError
@@ -63,12 +65,16 @@ def make_periodic_source(root: pathlib.Path) -> None:
         ("Si.upf", "pseudo\n"),
         ("Si.orb", "orbital\n"),
         ("Si.abfs", "auxiliary\n"),
-        ("get_diel.py", "print('pyatb')\n"),
-        ("output_librpa.py", "print('adapter')\n"),
-        ("preprocess_abacus_for_librpa_band.py", "print('preprocess')\n"),
-        ("perform.sh", "#!/bin/bash\nset -euo pipefail\npython3 get_diel.py\npython3 output_librpa.py\n"),
     ):
         (root / name).write_text(content, encoding="utf-8")
+    template = pathlib.Path(__file__).resolve().parents[1] / "templates" / "abacus-librpa-gw" / "template"
+    for name in (
+        "get_diel.py",
+        "output_librpa.py",
+        "preprocess_abacus_for_librpa_band.py",
+        "perform.sh",
+    ):
+        shutil.copy2(template / name, root / name)
     (root / "OUT.ABACUS").mkdir()
     (root / "OUT.ABACUS" / "running_scf.log").write_text("stale\n", encoding="utf-8")
     (root / "v1_Cs_data_stale").write_text("stale\n", encoding="utf-8")
@@ -110,6 +116,7 @@ def make_profile(root: pathlib.Path, source_root: pathlib.Path) -> ExecutionProf
             "librpa": str(root / "sources-repos" / "librpa"),
             "pyatb": str(root / "sources-repos" / "pyatb"),
         },
+        environment={"LD_LIBRARY_PATH": "/opt/lib:/usr/lib"},
     )
 
 
@@ -133,6 +140,8 @@ class MaterializerTest(unittest.TestCase):
             source_root = root / "sources"
             source = source_root / "si"
             make_periodic_source(source)
+            (source / "INPUT").write_text("stale working input\n")
+            (source / "KPT").write_text("stale working kpoints\n")
             profile = make_profile(root, source_root)
             plan = plan_case(source, task="gw", system_type="solid")
 
@@ -144,6 +153,8 @@ class MaterializerTest(unittest.TestCase):
             self.assertTrue((run_dir / "STRU").is_file())
             self.assertTrue((run_dir / "Si.upf").is_file())
             self.assertFalse((run_dir / "OUT.ABACUS").exists())
+            self.assertFalse((run_dir / "INPUT").exists())
+            self.assertFalse((run_dir / "KPT").exists())
             self.assertFalse((run_dir / "v1_Cs_data_stale").exists())
             self.assertTrue((run_dir / ".oml" / "plan.json").is_file())
             self.assertTrue((run_dir / ".oml" / "manifest.json").is_file())
@@ -154,6 +165,7 @@ class MaterializerTest(unittest.TestCase):
             )
             scf = (run_dir / ".oml" / "stages" / "scf.slurm").read_text(encoding="utf-8")
             pyatb = (run_dir / ".oml" / "stages" / "pyatb.slurm").read_text(encoding="utf-8")
+            librpa = (run_dir / ".oml" / "stages" / "librpa.slurm").read_text(encoding="utf-8")
             env = (run_dir / ".oml" / "env.sh").read_text(encoding="utf-8")
             self.assertIn("#SBATCH --partition=debug", scf)
             self.assertIn('cp -- "KPT_scf" "KPT"', scf)
@@ -163,9 +175,14 @@ class MaterializerTest(unittest.TestCase):
             self.assertNotIn('"$OML_MPI_LAUNCHER" -np "$OML_PYATB_MPI_RANKS" bash', pyatb)
             self.assertIn("export python3_exec=/usr/bin/python3", env)
             self.assertIn("export pyatb_mpi_ranks=1", env)
+            self.assertIn("export LD_LIBRARY_PATH=/opt/lib:/usr/lib", env)
+            self.assertIn('export OMP_NUM_THREADS="$OML_OMP_THREADS"', scf)
+            self.assertIn("export PYTHONDONTWRITEBYTECODE=1", pyatb)
+            self.assertIn('export OMP_NUM_THREADS="$OML_OMP_THREADS"', librpa)
             manifest_text = (run_dir / ".oml" / "manifest.json").read_text(encoding="utf-8")
             self.assertIn('"path": ".oml/env.sh"', manifest_text)
             self.assertIn('"path": ".oml/execution.json"', manifest_text)
+            self.assertIn('"path": ".oml/plan.json"', manifest_text)
             self.assertIn('"path": ".oml/stages/scf.slurm"', manifest_text)
             self.assertEqual((source / "OUT.ABACUS" / "running_scf.log").read_text(), "stale\n")
 
@@ -193,8 +210,14 @@ class MaterializerTest(unittest.TestCase):
             receipt = prepare_run(
                 source, plan.digest, profile, execution_receipt=make_execution_receipt(profile)
             )
+            from oml_mcp.state import StateStore
+
+            attempt = StateStore(profile.state_db).authorize_submission(
+                receipt["run_id"], "scf", plan.digest
+            )
 
         self.assertEqual(receipt["plan_digest"], plan.digest)
+        self.assertEqual(attempt["stage"], "scf")
 
     def test_stale_plan_is_rejected_before_creating_a_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -212,6 +235,245 @@ class MaterializerTest(unittest.TestCase):
                 )
 
             self.assertFalse((root / "runs").exists())
+
+    def test_unreviewed_helper_code_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            (source / "perform.sh").write_text("#!/bin/bash\necho unreviewed\n", encoding="utf-8")
+            profile = make_profile(root, source_root)
+            plan = plan_case(source, task="gw", system_type="solid")
+
+            with self.assertRaisesRegex(OMLError, "HELPER_MISMATCH"):
+                prepare_run(
+                    source,
+                    plan.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+    def test_external_input_and_abacus_asset_directories_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+            (source / "librpa.in").write_text(
+                (source / "librpa.in").read_text(encoding="utf-8").replace(
+                    "input_dir = .", "input_dir = dataset"
+                ),
+                encoding="utf-8",
+            )
+            external = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "RUN_PATH_UNSAFE"):
+                prepare_run(
+                    source,
+                    external.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+            (source / "librpa.in").write_text(
+                (source / "librpa.in").read_text(encoding="utf-8").replace(
+                    "input_dir = dataset", "input_dir = ."
+                ),
+                encoding="utf-8",
+            )
+            (source / "STRU").write_text(
+                "ATOMIC_SPECIES\nSi 28 ../shared/Si.upf\n", encoding="utf-8"
+            )
+            escaped_stru = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "RUN_PATH_UNSAFE"):
+                prepare_run(
+                    source,
+                    escaped_stru.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+            (source / "INPUT_scf").write_text(
+                (source / "INPUT_scf").read_text(encoding="utf-8")
+                + "pseudo_dir /external/pseudopotentials\n",
+                encoding="utf-8",
+            )
+            escaped = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "RUN_PATH_UNSAFE"):
+                prepare_run(
+                    source,
+                    escaped.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+            (source / "INPUT_scf").write_text(
+                (source / "INPUT_scf").read_text(encoding="utf-8").replace(
+                    "pseudo_dir /external/pseudopotentials\n", ""
+                ),
+                encoding="utf-8",
+            )
+            (source / "STRU").write_text(
+                "ATOMIC_SPECIES\nSi 28 Si.upf\n", encoding="utf-8"
+            )
+            (source / "INPUT_nscf").write_text(
+                (source / "INPUT_nscf").read_text(encoding="utf-8")
+                + "orbital_dir ../shared/orbitals\n",
+                encoding="utf-8",
+            )
+            escaped_nscf = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "RUN_PATH_UNSAFE"):
+                prepare_run(
+                    source,
+                    escaped_nscf.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+    def test_identical_sources_in_different_case_directories_register_separate_plans(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            left = source_root / "left"
+            right = source_root / "right"
+            make_periodic_source(left)
+            shutil.copytree(left, right)
+            profile = make_profile(root, source_root)
+            left_plan = plan_case(left, task="gw", system_type="solid")
+            right_plan = plan_case(right, task="gw", system_type="solid")
+
+            left_run = prepare_run(
+                left,
+                left_plan.digest,
+                profile,
+                execution_receipt=make_execution_receipt(profile),
+            )
+            right_run = prepare_run(
+                right,
+                right_plan.digest,
+                profile,
+                execution_receipt=make_execution_receipt(profile),
+            )
+
+        self.assertEqual(left_plan.digest, right_plan.digest)
+        self.assertNotEqual(left_plan.plan_id, right_plan.plan_id)
+        self.assertNotEqual(left_run["run_id"], right_run["run_id"])
+
+    def test_state_registration_failure_removes_the_unpublished_run_directory(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+            plan = plan_case(source, task="gw", system_type="solid")
+
+            with patch(
+                "oml_mcp.materializer.StateStore.create_run",
+                side_effect=OMLError(
+                    "RUN_CONFLICT",
+                    "injected registration failure",
+                    evidence=(),
+                    recovery="retry",
+                ),
+            ):
+                with self.assertRaisesRegex(OMLError, "RUN_CONFLICT"):
+                    prepare_run(
+                        source,
+                        plan.digest,
+                        profile,
+                        execution_receipt=make_execution_receipt(profile),
+                    )
+
+            run_dirs = tuple((root / "runs").glob("run-*"))
+
+        self.assertEqual(run_dirs, ())
+
+    def test_magnetic_and_strict_2d_routes_are_not_executable(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+
+            magnetic_text = (source / "INPUT_scf").read_text(encoding="utf-8") + "nspin 2\n"
+            (source / "INPUT_scf").write_text(magnetic_text, encoding="utf-8")
+            magnetic = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "ROUTE_NOT_EXECUTABLE"):
+                prepare_run(
+                    source,
+                    magnetic.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+            (source / "INPUT_scf").write_text(
+                magnetic_text.replace("nspin 2\n", ""), encoding="utf-8"
+            )
+            nscf_magnetic_text = (
+                source / "INPUT_nscf"
+            ).read_text(encoding="utf-8") + "nspin 2\n"
+            (source / "INPUT_nscf").write_text(nscf_magnetic_text, encoding="utf-8")
+            nscf_magnetic = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "ROUTE_NOT_EXECUTABLE"):
+                prepare_run(
+                    source,
+                    nscf_magnetic.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+            (source / "INPUT_nscf").write_text(
+                nscf_magnetic_text.replace("nspin 2\n", ""), encoding="utf-8"
+            )
+            nscf_symmetry_text = (
+                source / "INPUT_nscf"
+            ).read_text(encoding="utf-8").replace("symmetry -1", "symmetry 1")
+            (source / "INPUT_nscf").write_text(nscf_symmetry_text, encoding="utf-8")
+            nscf_symmetry = plan_case(source, task="gw", system_type="solid")
+            with self.assertRaisesRegex(OMLError, "ROUTE_NOT_EXECUTABLE"):
+                prepare_run(
+                    source,
+                    nscf_symmetry.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+            (source / "INPUT_nscf").write_text(
+                nscf_symmetry_text.replace("symmetry 1", "symmetry -1"),
+                encoding="utf-8",
+            )
+            strict_2d = plan_case(source, task="gw", system_type="2d")
+            with self.assertRaisesRegex(OMLError, "ROUTE_NOT_EXECUTABLE"):
+                prepare_run(
+                    source,
+                    strict_2d.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+    def test_mixed_source_after_planning_returns_stable_stale_plan_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+            plan = plan_case(source, task="gw", system_type="solid")
+            (source / "control.in").write_text("xc pbe\n", encoding="utf-8")
+            (source / "geometry.in").write_text("atom 0 0 0 Si\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(OMLError, "STALE_PLAN") as raised:
+                prepare_run(
+                    source,
+                    plan.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+        self.assertEqual(raised.exception.code, "STALE_PLAN")
 
     def test_source_outside_allowed_root_and_escaped_symlink_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:

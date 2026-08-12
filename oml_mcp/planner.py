@@ -15,13 +15,7 @@ class PlanError(ValueError):
 ROUTE_STAGES = {
     "molecular_gw": ("scf", "librpa"),
     "periodic_gw": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
-    "periodic_gw_symmetry": (
-        "scf_symmetry",
-        "pyatb_full_grid",
-        "nscf_full_grid",
-        "preprocess",
-        "librpa",
-    ),
+    "periodic_gw_symmetry": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
     "rpa": ("scf", "librpa"),
 }
 
@@ -77,6 +71,7 @@ def plan_case(
     profile = load_profile()
     source_manifest = execution_input_manifest(path)
     source_digest = source_manifest_digest(source_manifest)
+    source_path = str(Path(path).expanduser().resolve())
     options = {
         "task": normalized_task,
         "system_type": normalized_system,
@@ -93,6 +88,7 @@ def plan_case(
         "source_digest": source_digest,
     }
     plan_digest = digest_json(plan_payload)
+    plan_id = f"plan-{digest_json({'digest': plan_digest, 'source_path': source_path})[:16]}"
     gate = GateResult(
         gate_id="plan.route",
         status="PASS",
@@ -101,7 +97,7 @@ def plan_case(
         measurements={"stages": len(ROUTE_STAGES[route])},
     )
     return CasePlan(
-        plan_id=f"plan-{plan_digest[:16]}",
+        plan_id=plan_id,
         digest=plan_digest,
         source_digest=source_digest,
         route=route,

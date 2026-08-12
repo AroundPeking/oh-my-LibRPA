@@ -53,10 +53,19 @@ def execution_input_manifest(source: str | Path) -> tuple[dict[str, Any], ...]:
     if not root.is_dir():
         raise ProvenanceError(f"execution source must be a directory: {root}")
 
+    mutable_work_copies = set()
+    if (root / "INPUT_scf").is_file() or (root / "INPUT_nscf").is_file():
+        mutable_work_copies.add("INPUT")
+    if (root / "KPT_scf").is_file() or (root / "KPT_nscf").is_file():
+        mutable_work_copies.add("KPT")
     items: list[dict[str, Any]] = []
     for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).as_posix()):
         relative = path.relative_to(root)
-        if any(part in SKIP_PARTS for part in relative.parts) or not _is_execution_input(path):
+        if (
+            any(part in SKIP_PARTS for part in relative.parts)
+            or relative.as_posix() in mutable_work_copies
+            or not _is_execution_input(path)
+        ):
             continue
         if not path.is_file():
             continue

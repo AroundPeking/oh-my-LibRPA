@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import fcntl
+import hashlib
 import sqlite3
 import uuid
 from contextlib import contextmanager
@@ -15,7 +17,9 @@ ACTIVE_ATTEMPT_STATUSES = frozenset({"SUBMITTING", "SUBMITTED", "PENDING", "RUNN
 TERMINAL_ATTEMPT_STATUSES = frozenset({"PASSED", "FAILED", "CANCELLED"})
 ALL_ATTEMPT_STATUSES = ACTIVE_ATTEMPT_STATUSES | TERMINAL_ATTEMPT_STATUSES
 ALLOWED_STATUS_TRANSITIONS = {
-    "SUBMITTING": frozenset({"SUBMITTING", "SUBMITTED", "UNKNOWN", "FAILED"}),
+    "SUBMITTING": frozenset(
+        {"SUBMITTING", "SUBMITTED", "PENDING", "RUNNING", "UNKNOWN", "FAILED", "CANCELLED"}
+    ),
     "SUBMITTED": frozenset(
         {"SUBMITTED", "PENDING", "RUNNING", "UNKNOWN", "PASSED", "FAILED", "CANCELLED"}
     ),
@@ -41,10 +45,18 @@ def _loads(value: str) -> Any:
 
 
 class StateStore:
-    def __init__(self, path: str | Path) -> None:
+    def __init__(self, path: str | Path, *, initialize: bool = True) -> None:
         self.path = Path(path).expanduser().resolve()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._initialize()
+        if initialize:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self._initialize()
+        elif not self.path.is_file():
+            raise OMLError(
+                "STATE_NOT_FOUND",
+                "controlled-execution state database does not exist",
+                evidence=(str(self.path),),
+                recovery="prepare a run with this execution profile before reading its status or score",
+            )
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
@@ -119,6 +131,27 @@ class StateStore:
                     "ALTER TABLE stage_attempts ADD COLUMN preflight_json TEXT NOT NULL DEFAULT '{}'"
                 )
             connection.commit()
+
+    @contextmanager
+    def submission_lock(self, run_id: str, stage: str) -> Iterator[None]:
+        identity = hashlib.sha256(f"{run_id}\0{stage}".encode("utf-8")).hexdigest()
+        lock_root = self.path.parent / f".{self.path.name}.locks"
+        lock_root.mkdir(mode=0o700, exist_ok=True)
+        lock_path = lock_root / f"{identity}.lock"
+        with lock_path.open("a", encoding="utf-8") as handle:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise OMLError(
+                    "DUPLICATE_JOB",
+                    "another submit_stage call is already handling this run stage",
+                    evidence=(run_id, stage),
+                    recovery="wait for the active submission call to return before observing or retrying",
+                ) from exc
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def register_plan(self, plan: dict[str, Any]) -> dict[str, Any]:
         required = {
@@ -303,6 +336,30 @@ class StateStore:
                     evidence=(active["attempt_id"], str(active["scheduler_id"] or ""), active["status"]),
                     recovery="reconcile the existing attempt before considering another submission",
                 )
+            equivalent = connection.execute(
+                """
+                SELECT a.attempt_id, a.status, a.scheduler_id, a.run_id
+                FROM stage_attempts AS a
+                JOIN runs AS other ON other.run_id = a.run_id
+                WHERE other.plan_digest = ? AND a.run_id != ? AND a.stage = ?
+                  AND a.status IN ('SUBMITTING','SUBMITTED','PENDING','RUNNING','UNKNOWN')
+                ORDER BY a.updated_at DESC LIMIT 1
+                """,
+                (plan_digest, run_id, stage),
+            ).fetchone()
+            if equivalent is not None:
+                connection.rollback()
+                raise OMLError(
+                    "DUPLICATE_JOB",
+                    "an equivalent plan stage is active in another run",
+                    evidence=(
+                        equivalent["run_id"],
+                        equivalent["attempt_id"],
+                        str(equivalent["scheduler_id"] or ""),
+                        equivalent["status"],
+                    ),
+                    recovery="observe and inspect the existing run instead of submitting a duplicate",
+                )
             passed_same = connection.execute(
                 "SELECT 1 FROM stage_attempts WHERE run_id = ? AND stage = ? AND status = 'PASSED'",
                 (run_id, stage),
@@ -344,6 +401,83 @@ class StateStore:
                 ) VALUES (?, ?, ?, ?, 'SUBMITTING', ?, ?)
                 """,
                 (attempt_id, run_id, stage, attempt_number, _json(preflight or {}), now),
+            )
+            connection.commit()
+        return self.get_attempt(attempt_id)
+
+    def active_attempt(self, run_id: str, stage: str) -> dict[str, Any] | None:
+        self.get_run(run_id)
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM stage_attempts
+                WHERE run_id = ? AND stage = ?
+                  AND status IN ('SUBMITTING','SUBMITTED','PENDING','RUNNING','UNKNOWN')
+                ORDER BY attempt_number DESC LIMIT 1
+                """,
+                (run_id, stage),
+            ).fetchone()
+        if row is None:
+            return None
+        data = dict(row)
+        data["preflight"] = _loads(data.pop("preflight_json"))
+        return data
+
+    def reconcile_submission(
+        self,
+        attempt_id: str,
+        *,
+        scheduler_id: str,
+        normalized_state: str,
+    ) -> dict[str, Any]:
+        status = {
+            "PENDING": "PENDING",
+            "RUNNING": "RUNNING",
+            "FAILED": "FAILED",
+            "CANCELLED": "CANCELLED",
+            "COMPLETED": "SUBMITTED",
+            "UNKNOWN": "UNKNOWN",
+        }.get(normalized_state)
+        if status is None or not scheduler_id.isdigit():
+            raise OMLError(
+                "STATE_INVALID",
+                "reconciled submission has an invalid scheduler identity or state",
+                evidence=(attempt_id, scheduler_id, normalized_state),
+                recovery="preserve the ambiguous attempt and repair scheduler observation",
+            )
+        now = utc_now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT status, scheduler_id FROM stage_attempts WHERE attempt_id = ?",
+                (attempt_id,),
+            ).fetchone()
+            if row is None:
+                connection.rollback()
+                return self.get_attempt(attempt_id)
+            if row["scheduler_id"] not in {None, scheduler_id}:
+                connection.rollback()
+                raise OMLError(
+                    "SUBMISSION_AMBIGUOUS",
+                    "attempt already has a different scheduler ID",
+                    evidence=(attempt_id, row["scheduler_id"], scheduler_id),
+                    recovery="do not retry; inspect both scheduler records",
+                )
+            if status not in ALLOWED_STATUS_TRANSITIONS[row["status"]]:
+                connection.rollback()
+                raise OMLError(
+                    "STATE_TRANSITION_DENIED",
+                    f"attempt status cannot move from {row['status']} to {status}",
+                    evidence=(attempt_id,),
+                    recovery="preserve the existing attempt receipt",
+                )
+            connection.execute(
+                """
+                UPDATE stage_attempts
+                SET scheduler_id = ?, status = ?, submitted_at = COALESCE(submitted_at, ?), updated_at = ?
+                WHERE attempt_id = ?
+                """,
+                (scheduler_id, status, now, now, attempt_id),
             )
             connection.commit()
         return self.get_attempt(attempt_id)

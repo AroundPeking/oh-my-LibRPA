@@ -1,7 +1,7 @@
 {
   "name": "oh-my-librpa",
-  "version": "0.1.0",
-  "description": "Inspect and validate pinned ABACUS, LibRPA, and PyATB GW/RPA workflows.",
+  "version": "0.2.0",
+  "description": "Validate and control pinned ABACUS, LibRPA, and PyATB periodic GW workflows.",
   "author": {
     "name": "AroundPeking",
     "email": "gonghuanjing@iphy.ac.cn",

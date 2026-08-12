@@ -134,7 +134,9 @@ def _finite_text_files(
     return _pass(gate_id, f"{stage} text outputs contain no NaN or Inf", *(str(path) for path in paths))
 
 
-def _command_gate(root: Path, stage: str) -> GateResult:
+def _command_gate(
+    root: Path, stage: str, expected_attempt_id: str | None = None
+) -> GateResult:
     path = root / ".oml" / "stage-results" / f"{stage}.status"
     if not _safe_nonempty(root, path):
         return _fail(
@@ -144,7 +146,12 @@ def _command_gate(root: Path, stage: str) -> GateResult:
             "inspect the scheduler output and rerun only through the controlled stage script",
         )
     status = path.read_text(encoding="utf-8", errors="replace").strip()
-    if status != "COMMAND_COMPLETED":
+    expected = (
+        "COMMAND_COMPLETED"
+        if expected_attempt_id is None
+        else f"COMMAND_COMPLETED:{expected_attempt_id}"
+    )
+    if status != expected:
         return _fail(
             f"stage.{stage}.command",
             "generated stage command did not exit successfully",
@@ -315,11 +322,16 @@ def _librpa_gates(root: Path) -> list[GateResult]:
     return [completion, gw_gate, shape_gate]
 
 
-def inspect_stage_outputs(run_path: str | Path, stage: str) -> dict[str, object]:
+def inspect_stage_outputs(
+    run_path: str | Path,
+    stage: str,
+    *,
+    expected_attempt_id: str | None = None,
+) -> dict[str, object]:
     root = Path(run_path).expanduser().resolve()
     if stage not in CONTROLLED_PERIODIC_STAGES:
         raise ValueError(f"unsupported controlled stage: {stage}")
-    gates = [_command_gate(root, stage)]
+    gates = [_command_gate(root, stage, expected_attempt_id)]
     gates.extend(
         {
             "scf": _scf_gates,

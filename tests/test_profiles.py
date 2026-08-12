@@ -84,6 +84,21 @@ class CompatibilityProfileTest(unittest.TestCase):
             profile["contract"]["pyatb_adapter"]["location"],
             "input_dir/pyatb_librpa_df",
         )
+        self.assertEqual(
+            set(profile["contract"]["workflow_helpers"]),
+            {
+                "perform.sh",
+                "get_diel.py",
+                "output_librpa.py",
+                "preprocess_abacus_for_librpa_band.py",
+            },
+        )
+        self.assertTrue(
+            all(
+                len(digest) == 64
+                for digest in profile["contract"]["workflow_helpers"].values()
+            )
+        )
 
     def test_profile_validation_rejects_an_incomplete_component(self):
         profile = load_profile()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,17 +14,25 @@ from .execution_profiles import (
 )
 from .executor import SlurmExecutor
 from .materializer import prepare_run as materialize_run
-from .planner import plan_case
+from .planner import PlanError, plan_case
 from .provenance import digest_json, sha256_file
 from .state import StateStore
 from .stage_inspection import inspect_stage_outputs
 from .validators import validate_case
 
 
+RUNTIME_CODE_SUFFIXES = frozenset({".py", ".pyc", ".sh", ".slurm", ".so", ".dylib"})
+SUBMISSION_ABSENCE_GRACE_SECONDS = 300
+
+
+def _parse_utc(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 class ControlledExecutionService:
-    def __init__(self, profile: ExecutionProfile) -> None:
+    def __init__(self, profile: ExecutionProfile, *, initialize_state: bool = True) -> None:
         self.profile = profile
-        self.store = StateStore(profile.state_db)
+        self.store = StateStore(profile.state_db, initialize=initialize_state)
         self.executor = SlurmExecutor(profile)
 
     def prepare_run(self, source_path: str | Path, plan_digest: str) -> dict[str, Any]:
@@ -91,14 +100,22 @@ class ControlledExecutionService:
 
     def _verify_source(self, plan: dict[str, Any]) -> None:
         options = plan["options"]
-        current = plan_case(
-            plan["source_path"],
-            task=options["task"],
-            system_type=options["system_type"],
-            use_symmetry=bool(options["use_symmetry"]),
-            soc=bool(options["soc"]),
-            headwing=bool(options["headwing"]),
-        )
+        try:
+            current = plan_case(
+                plan["source_path"],
+                task=options["task"],
+                system_type=options["system_type"],
+                use_symmetry=bool(options["use_symmetry"]),
+                soc=bool(options["soc"]),
+                headwing=bool(options["headwing"]),
+            )
+        except (PlanError, ValueError, OSError) as exc:
+            raise OMLError(
+                "STALE_PLAN",
+                f"approved source can no longer reproduce its plan: {exc}",
+                evidence=(str(plan["source_path"]),),
+                recovery="review the changed source and prepare a fresh immutable plan",
+            ) from exc
         if current.digest != plan["digest"] or current.source_digest != plan["source_digest"]:
             raise OMLError(
                 "STALE_PLAN",
@@ -145,12 +162,144 @@ class ControlledExecutionService:
                 evidence=tuple(failures),
                 recovery="do not submit the modified run; prepare a fresh immutable run",
             )
+        approved = {str(item["path"]) for item in manifest.get("files", [])}
+        unregistered_code = []
+        for path in run_dir.rglob("*"):
+            relative = path.relative_to(run_dir)
+            if relative.parts[:2] == (".oml", "snapshots"):
+                continue
+            if (
+                relative.as_posix() not in approved
+                and path.suffix.lower() in RUNTIME_CODE_SUFFIXES
+                and (path.is_file() or path.is_symlink())
+            ):
+                unregistered_code.append(relative.as_posix())
+        if unregistered_code:
+            raise OMLError(
+                "MANIFEST_MISMATCH",
+                "run contains executable code that is not registered in the immutable manifest",
+                evidence=tuple(sorted(unregistered_code)),
+                recovery="preserve this run for diagnosis and prepare a fresh run from reviewed inputs",
+            )
 
     def submit_stage(self, run_id: str, stage: str, plan_digest: str) -> dict[str, Any]:
+        with self.store.submission_lock(run_id, stage):
+            return self._submit_stage_locked(run_id, stage, plan_digest)
+
+    def _submit_stage_locked(
+        self, run_id: str, stage: str, plan_digest: str
+    ) -> dict[str, Any]:
         run, plan, run_dir = self._load_receipts(run_id, plan_digest)
+        active = self.store.active_attempt(run_id, stage)
+        if active is not None and not active["scheduler_id"]:
+            previous = self.store.latest_observation(active["attempt_id"])
+            reconciliation = self.executor.reconcile_submission(run_id, stage)
+            current = self.store.record_observation(
+                active["attempt_id"],
+                normalized_state=reconciliation["normalized_state"],
+                raw_state=reconciliation["raw_state"],
+                source=reconciliation["source"],
+            )
+            if reconciliation["verdict"] == "found":
+                reconciled = self.store.reconcile_submission(
+                    active["attempt_id"],
+                    scheduler_id=reconciliation["scheduler_id"],
+                    normalized_state=reconciliation["normalized_state"],
+                )
+                raise OMLError(
+                    "DUPLICATE_JOB",
+                    "the previously ambiguous submission exists in the scheduler",
+                    evidence=(
+                        reconciled["attempt_id"],
+                        str(reconciled["scheduler_id"]),
+                        reconciled["status"],
+                    ),
+                    recovery="observe and inspect the reconciled attempt; do not submit it again",
+                )
+            if active["status"] == "SUBMITTING":
+                self.store.record_attempt_status(active["attempt_id"], "UNKNOWN")
+            absence_confirmed = (
+                previous is not None
+                and previous["normalized_state"] == "UNKNOWN"
+                and previous["raw_state"] == "NOT_FOUND"
+                and (
+                    _parse_utc(current["observed_at"])
+                    - _parse_utc(previous["observed_at"])
+                ).total_seconds()
+                >= SUBMISSION_ABSENCE_GRACE_SECONDS
+            )
+            if absence_confirmed:
+                self.store.record_attempt_status(active["attempt_id"], "FAILED")
+                raise OMLError(
+                    "RETRY_REQUIRES_FRESH_RUN",
+                    "two separated scheduler queries found no matching submission; this run remains an immutable failed attempt",
+                    evidence=(
+                        active["attempt_id"],
+                        previous["observed_at"],
+                        current["observed_at"],
+                        run_id,
+                        stage,
+                    ),
+                    recovery="preserve this run and call prepare_run to create a fresh run before retrying",
+                )
+            raise OMLError(
+                "SUBMISSION_UNRESOLVED",
+                "no matching scheduler job is visible yet, so another submission remains blocked",
+                evidence=(
+                    active["attempt_id"],
+                    current["observed_at"],
+                    f"minimum_grace_seconds={SUBMISSION_ABSENCE_GRACE_SECONDS}",
+                ),
+                recovery="wait at least five minutes, then call submit_stage again to collect a second squeue+sacct absence observation",
+            )
+        if active is not None:
+            raise OMLError(
+                "DUPLICATE_JOB",
+                "an equivalent stage attempt is still active or unobservable",
+                evidence=(
+                    active["attempt_id"],
+                    str(active["scheduler_id"] or ""),
+                    active["status"],
+                ),
+                recovery=(
+                    "manually reconcile the interrupted submission before changing state"
+                    if active["status"] == "SUBMITTING"
+                    else "observe and inspect the existing attempt; do not prepare or submit a duplicate"
+                ),
+            )
+        prior_attempts = tuple(
+            attempt
+            for attempt in self.store.list_attempts(run_id)
+            if attempt["stage"] == stage
+        )
+        if prior_attempts:
+            latest = max(prior_attempts, key=lambda item: item["attempt_number"])
+            raise OMLError(
+                "RETRY_REQUIRES_FRESH_RUN",
+                "controlled execution does not reuse a run directory after a terminal stage attempt",
+                evidence=(latest["attempt_id"], latest["status"], run_id, stage),
+                recovery="preserve this run and call prepare_run to create a fresh run before retrying",
+            )
         self._verify_source(plan)
         self._verify_manifest(run, run_dir)
         version_evidence = self.executor.verify_versions()
+        prepared_execution = json.loads(
+            (run_dir / ".oml" / "execution.json").read_text(encoding="utf-8")
+        )
+        prepared_executables = prepared_execution.get("version_evidence", {}).get(
+            "executables"
+        )
+        current_executables = version_evidence.get("executables")
+        if prepared_executables != current_executables:
+            raise OMLError(
+                "BINARY_MISMATCH",
+                "configured ABACUS or LibRPA executable changed after run preparation",
+                evidence=(
+                    json.dumps(prepared_executables, sort_keys=True),
+                    json.dumps(current_executables, sort_keys=True),
+                ),
+                recovery="prepare a fresh run after reviewing the new executable fingerprint",
+            )
         remote_bundle = self.executor.verify_remote_bundle(run_dir, run["remote_run_dir"])
         if stage == "librpa":
             validation_root = run_dir
@@ -196,6 +345,7 @@ class ControlledExecutionService:
             scheduler_id = self.executor.submit(
                 run_dir,
                 stage,
+                attempt_id=attempt["attempt_id"],
                 remote_run_dir=run["remote_run_dir"],
             )
         except OMLError as exc:
@@ -211,6 +361,13 @@ class ControlledExecutionService:
 
     def get_status(self, run_id: str, attempt_id: str) -> dict[str, Any]:
         run = self.store.get_run(run_id)
+        if run["execution_profile_id"] != self.profile.profile_id:
+            raise OMLError(
+                "PROFILE_MISMATCH",
+                "run belongs to a different execution profile",
+                evidence=(run["execution_profile_id"], self.profile.profile_id),
+                recovery="use the profile that prepared this run",
+            )
         attempt = self.store.get_attempt(attempt_id)
         if attempt["run_id"] != run_id:
             raise OMLError(
@@ -223,19 +380,6 @@ class ControlledExecutionService:
             latest = self.store.latest_observation(attempt_id)
             return {"ok": True, "run": run, "attempt": attempt, "scheduler": latest}
         observation = self.executor.status(attempt["scheduler_id"])
-        self.store.record_observation(
-            attempt_id,
-            normalized_state=observation["normalized_state"],
-            raw_state=observation["raw_state"],
-            source=observation["source"],
-        )
-        normalized = observation["normalized_state"]
-        if attempt["status"] not in {"PASSED", "FAILED", "CANCELLED"}:
-            if normalized in {"PENDING", "RUNNING", "UNKNOWN"}:
-                self.store.record_attempt_status(attempt_id, normalized)
-            elif normalized in {"FAILED", "CANCELLED"}:
-                self.store.record_attempt_status(attempt_id, normalized)
-        attempt = self.store.get_attempt(attempt_id)
         return {"ok": True, "run": run, "attempt": attempt, "scheduler": observation}
 
     def inspect_stage(self, run_id: str, attempt_id: str, plan_digest: str) -> dict[str, Any]:
@@ -253,19 +397,41 @@ class ControlledExecutionService:
         existing = self.store.get_inspection(attempt_id)
         if existing is not None:
             return {"ok": True, **existing, **existing["report"]}
-        observation = self.store.latest_observation(attempt_id)
-        if observation is None or observation["normalized_state"] != "COMPLETED":
+        if not attempt["scheduler_id"]:
+            raise OMLError(
+                "STATE_TRANSITION_DENIED",
+                "stage outputs cannot be inspected before a scheduler ID is recorded",
+                evidence=(attempt_id,),
+                recovery="reconcile the submission before inspecting stage artifacts",
+            )
+        observation = self.executor.status(attempt["scheduler_id"])
+        self.store.record_observation(
+            attempt_id,
+            normalized_state=observation["normalized_state"],
+            raw_state=observation["raw_state"],
+            source=observation["source"],
+        )
+        normalized = observation["normalized_state"]
+        if normalized != "COMPLETED":
+            if attempt["status"] not in {"PASSED", "FAILED", "CANCELLED"}:
+                if normalized in {"PENDING", "RUNNING", "UNKNOWN", "FAILED", "CANCELLED"}:
+                    self.store.record_attempt_status(attempt_id, normalized)
             raise OMLError(
                 "STATE_TRANSITION_DENIED",
                 "stage outputs cannot be accepted before scheduler completion is observed",
-                evidence=(attempt_id, str(observation or "no observation")),
+                evidence=(attempt_id, normalized, observation["raw_state"]),
                 recovery="call get_status until the scheduler reports COMPLETED, then inspect artifacts",
             )
+        self.executor.verify_remote_bundle(run_dir, run["remote_run_dir"])
         inspection_root = run_dir
         if self.profile.transport == "ssh":
             inspection_root = run_dir / ".oml" / "snapshots" / attempt_id
             self.executor.snapshot_run(run["remote_run_dir"], inspection_root)
-        report = inspect_stage_outputs(inspection_root, attempt["stage"])
+        report = inspect_stage_outputs(
+            inspection_root,
+            attempt["stage"],
+            expected_attempt_id=attempt_id,
+        )
         if attempt["stage"] == "pyatb":
             cross_report = validate_case(
                 inspection_root,

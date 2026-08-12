@@ -105,7 +105,11 @@ class PlannerTest(unittest.TestCase):
             ("scf", "pyatb", "nscf", "preprocess", "librpa"),
         )
         self.assertEqual(symmetry.route, "periodic_gw_symmetry")
-        self.assertIn("pyatb_full_grid", symmetry.stages)
+        self.assertEqual(
+            symmetry.stages,
+            ("scf", "pyatb", "nscf", "preprocess", "librpa"),
+        )
+        self.assertTrue(symmetry.options["use_symmetry"])
 
     def test_rpa_route_has_no_pyatb_or_nscf(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -164,7 +168,7 @@ class PlannerTest(unittest.TestCase):
             input_changed = plan_case(right, task="gw", system_type="solid")
 
         self.assertEqual(first.digest, second.digest)
-        self.assertEqual(first.plan_id, second.plan_id)
+        self.assertNotEqual(first.plan_id, second.plan_id)
         self.assertEqual(second.digest, output_changed.digest)
         self.assertNotEqual(output_changed.digest, input_changed.digest)
         self.assertEqual(len(first.digest), 64)
@@ -184,6 +188,26 @@ class PlannerTest(unittest.TestCase):
         self.assertNotEqual(normal.digest, symmetry.digest)
         self.assertNotEqual(normal.plan_id, symmetry.plan_id)
         self.assertEqual(normal.source_digest, symmetry.source_digest)
+
+    def test_stage_specific_inputs_exclude_mutable_generic_work_copies(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+            (root / "INPUT_scf").write_text(
+                "INPUT_PARAMETERS\nbasis_type lcao\nrpa 1\nout_librpa_reader_version 1\n",
+                encoding="utf-8",
+            )
+            (root / "KPT_scf").write_text("K_POINTS\n0\nGamma\n2 2 2 0 0 0\n")
+            (root / "INPUT").write_text("stale working copy\n")
+            (root / "KPT").write_text("stale working copy\n")
+
+            plan = plan_case(root, task="gw", system_type="solid")
+
+        paths = {item["path"] for item in plan.source_manifest}
+        self.assertIn("INPUT_scf", paths)
+        self.assertIn("KPT_scf", paths)
+        self.assertNotIn("INPUT", paths)
+        self.assertNotIn("KPT", paths)
 
 
 if __name__ == "__main__":

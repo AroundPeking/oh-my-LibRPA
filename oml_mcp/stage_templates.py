@@ -7,13 +7,26 @@ from typing import Mapping
 CONTROLLED_PERIODIC_STAGES = ("scf", "pyatb", "nscf", "preprocess", "librpa")
 
 
+def stage_job_name(run_id: str, stage: str) -> str:
+    if stage not in CONTROLLED_PERIODIC_STAGES:
+        raise ValueError(f"unsupported controlled stage: {stage}")
+    return f"oml-{run_id}-{stage}"
+
+
 def _walltime(minutes: int) -> str:
     hours, minute = divmod(minutes, 60)
     return f"{hours:02d}:{minute:02d}:00"
 
 
-def render_env(runtime: Mapping[str, str | int], *, run_id: str, plan_digest: str) -> str:
-    values = {
+def render_env(
+    runtime: Mapping[str, str | int],
+    *,
+    environment: Mapping[str, str],
+    run_id: str,
+    plan_digest: str,
+) -> str:
+    values: dict[str, str | int] = {
+        **environment,
         "OML_RUN_ID": run_id,
         "OML_PLAN_DIGEST": plan_digest,
         "OML_PYTHON": runtime["python"],
@@ -45,7 +58,7 @@ test -s "OUT.ABACUS/vxc_out.dat"
 cp -- "OUT.ABACUS/vxc_out.dat" "vxc_out"
 """,
         "pyatb": """
-bash -- "perform.sh" > "pyatb.${SLURM_JOB_ID:-manual}.out" 2>&1
+OML_CONTROLLED_EXECUTION=1 bash -- "perform.sh" > "pyatb.${SLURM_JOB_ID:-manual}.out" 2>&1
 """,
         "nscf": """
 cp -- "KPT_nscf" "KPT"
@@ -73,7 +86,7 @@ def render_stage_script(
 ) -> str:
     if stage not in CONTROLLED_PERIODIC_STAGES:
         raise ValueError(f"unsupported controlled stage: {stage}")
-    job_name = f"oml-{run_id[-8:]}-{stage}"[:64]
+    job_name = stage_job_name(run_id, stage)
     return f"""#!/usr/bin/env bash
 #SBATCH --partition={resources['partition']}
 #SBATCH --nodes={resources['nodes']}
@@ -87,8 +100,11 @@ set -euo pipefail
 run_dir="$(cd "$(dirname "${{BASH_SOURCE[0]}}")/../.." && pwd)"
 cd "$run_dir"
 source ".oml/env.sh"
+export OMP_NUM_THREADS="$OML_OMP_THREADS"
+export PYTHONDONTWRITEBYTECODE=1
+: "${{OML_ATTEMPT_ID:?missing controlled attempt identity}}"
 mkdir -p ".oml/stage-results"
-printf 'RUNNING\n' > ".oml/stage-results/{stage}.status"
-trap 'status=$?; if [[ $status -eq 0 ]]; then printf "COMMAND_COMPLETED\\n"; else printf "COMMAND_FAILED:%s\\n" "$status"; fi > ".oml/stage-results/{stage}.status"' EXIT
+printf 'RUNNING:%s\n' "$OML_ATTEMPT_ID" > ".oml/stage-results/{stage}.status"
+trap 'status=$?; if [[ $status -eq 0 ]]; then printf "COMMAND_COMPLETED:%s\\n" "$OML_ATTEMPT_ID"; else printf "COMMAND_FAILED:%s:%s\\n" "$status" "$OML_ATTEMPT_ID"; fi > ".oml/stage-results/{stage}.status"' EXIT
 
 {_stage_body(stage)}"""

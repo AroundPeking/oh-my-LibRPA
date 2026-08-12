@@ -52,7 +52,7 @@ In practice, that means the agent can help with:
 - producing a final scientific artifact such as a **paper-style GW band plot**
 
 > [!TIP]
-> Phase 1 is intentionally read-only. It inspects, plans, and validates; the existing workflow scripts remain the execution layer until submission is moved into MCP in Phase 2.
+> Controlled execution is default-disabled and currently limited to the approved non-SOC periodic GW route. Inspection remains available for the broader supported workflows.
 
 ---
 
@@ -86,7 +86,9 @@ Example prompts:
 - `Check whether these PyATB head/wing files match reader-v1.`
 - `Explain the minimal repair for this LibRPA input.`
 
-The MCP-first skill calls five read-only tools: `inspect_profile`, `ingest_case`, `plan_case`, `validate_case`, and `inspect_reader_v1`.
+The MCP-first skill uses five inspection tools plus `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, and `score_case`. Execution requires a reviewed profile ID and immutable plan digest; no tool accepts arbitrary command text.
+
+The current write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. RPA, molecules, strict 2D, magnetic/SOC, FHI-aims, regression, and Delta-Sternheimer execution remain on their reviewed routes.
 
 ### Legacy skills installation
 
@@ -144,7 +146,7 @@ For Windows + Git Bash agent updates, see:
 
 ### Safety + reproducibility
 
-- read-only MCP annotations on all Phase 1 tools
+- accurate read/write MCP annotations and default-disabled controlled execution
 - pinned revisions for ABACUS, LibRPA, and PyATB
 - SHA-256 fingerprints for discovered case files
 - new isolated run directory per run chain
@@ -196,6 +198,7 @@ Useful supporting material:
 | --- | --- |
 | `skills/` | Chat-facing skills |
 | `docs/guide/fhi-aims-librpa-qsgw.md` | Supplemental route for `FHI-aims + LibRPA` QSGW/G0W0 cases |
+| `docs/research-siab-first-order-wavefunction-plan.md` | Uniform-grid SH/delta-SH and SIAB first-order-wavefunction research plan |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |
@@ -229,7 +232,10 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 
 ## Current MVP scope
 
-- read-only MCP tools for profile inspection, intake, route planning, case validation, and reader-v1 inspection
+- MCP inspection plus bounded one-stage-at-a-time execution for non-SOC periodic GW
+- immutable plan, execution, manifest, attempt, observation, and stage-inspection receipts
+- versioned 100-point benchmark scorecard with non-compensating hard gates and frozen replays
+- approved helper-script hashes, executable fingerprints, and safe ambiguous-submission reconciliation
 - pinned compatibility profile: ABACUS `master_ghj`, LibRPA `v0.7.0`, PyATB `enable_head_wing`
 - explicit reader-v1 policy and `stru_out` symmetry validation without legacy sidecars
 - PyATB head/wing validation under `input_dir/pyatb_librpa_df`
@@ -279,7 +285,7 @@ oh-my-librpa/
 
 - **Chat-first** — users should not memorize custom workflow commands
 - **Contract-first** — source-derived parameters and artifacts are represented as structured data
-- **Read-only first** — validation is separated from mutation and remote submission
+- **Bounded execution** — validation, scheduler observation, stage acceptance, and scientific validity remain separate
 - **Experience-driven** — curated rules are preferred over ad-hoc prompting
 - **Route-aware** — molecule, solid, and 2D cases should not be treated as the same workflow
 - **Extension-friendly** — keep the ABACUS mainline intact while adding supplemental routes for other DFT stacks such as FHI-aims

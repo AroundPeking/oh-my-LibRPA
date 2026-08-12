@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oh-my-librpa-mcp"
-version = "0.1.0"
-description = "Deterministic read-only checks for ABACUS, LibRPA, and PyATB workflows"
+version = "0.2.0"
+description = "Deterministic validation and controlled execution for ABACUS, LibRPA, and PyATB"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -27,4 +27,4 @@ oh-my-librpa-mcp = "oml_mcp.server:main"
 include = ["oml_mcp*"]
 
 [tool.setuptools.package-data]
-oml_mcp = ["profiles/*.json", "benchmarks/*.json"]
+oml_mcp = ["profiles/*.json", "benchmarks/*.json", "execution_profiles_registry/*.json"]

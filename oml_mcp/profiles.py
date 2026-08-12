@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 
 PROFILE_NAME = "abacus-librpa-pyatb-2026-08.json"
+SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+WORKFLOW_HELPERS = frozenset(
+    {"perform.sh", "get_diel.py", "output_librpa.py", "preprocess_abacus_for_librpa_band.py"}
+)
 
 
 class ProfileError(ValueError):
@@ -53,6 +58,11 @@ def validate_profile(profile: dict[str, Any]) -> None:
     contract = _require_mapping(profile, "contract", "profile")
     for name in ("abacus", "librpa", "pyatb_adapter"):
         _require_mapping(contract, name, "contract")
+    helpers = _require_mapping(contract, "workflow_helpers", "contract")
+    if set(helpers) != WORKFLOW_HELPERS:
+        raise ProfileError("contract.workflow_helpers must list the approved helper quartet")
+    if any(not isinstance(value, str) or not SHA256_PATTERN.fullmatch(value) for value in helpers.values()):
+        raise ProfileError("contract.workflow_helpers values must be SHA-256 digests")
 
 
 def load_profile(path: str | Path | None = None) -> dict[str, Any]:

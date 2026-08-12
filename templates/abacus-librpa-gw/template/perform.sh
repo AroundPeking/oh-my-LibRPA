@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-if [[ -f ./env.sh ]]; then
+if [[ "${OML_CONTROLLED_EXECUTION:-0}" != 1 && -f ./env.sh ]]; then
   # shellcheck disable=SC1091
   source ./env.sh
 fi

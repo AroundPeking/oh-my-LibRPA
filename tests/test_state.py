@@ -72,6 +72,31 @@ class StateStoreTest(unittest.TestCase):
         self.assertEqual(first["status"], "SUBMITTING")
         self.assertEqual(second["stage"], "pyatb")
 
+    def test_equivalent_plan_stage_is_not_active_in_two_runs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = self.make_store(root)
+            store.register_plan(PLAN)
+            for run_id in ("run-left", "run-right"):
+                store.create_run(
+                    run_id=run_id,
+                    plan_id=PLAN["plan_id"],
+                    plan_digest=PLAN["digest"],
+                    execution_profile_id="test-local",
+                    local_run_dir=str(root / "runs" / run_id),
+                    remote_run_dir=None,
+                    manifest_digest="e" * 64,
+                )
+            first = store.authorize_submission("run-left", "scf", PLAN["digest"])
+
+            with self.assertRaisesRegex(OMLError, "DUPLICATE_JOB"):
+                store.authorize_submission("run-right", "scf", PLAN["digest"])
+
+            store.record_attempt_status(first["attempt_id"], "FAILED")
+            retry = store.authorize_submission("run-right", "scf", PLAN["digest"])
+
+        self.assertEqual(retry["run_id"], "run-right")
+
     def test_stale_plan_and_unknown_stage_are_denied(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
@@ -119,6 +144,32 @@ class StateStoreTest(unittest.TestCase):
         self.assertEqual(latest["normalized_state"], "RUNNING")
         self.assertEqual(latest["raw_state"], "R")
         self.assertTrue(latest["observed_at"].endswith("Z"))
+
+    def test_ambiguous_attempt_can_be_reconciled_to_found_or_absent(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = self.make_store(root)
+            store.register_plan(PLAN)
+            store.create_run(
+                run_id="run-reconcile",
+                plan_id=PLAN["plan_id"],
+                plan_digest=PLAN["digest"],
+                execution_profile_id="test-local",
+                local_run_dir=str(root / "runs" / "run-reconcile"),
+                remote_run_dir=None,
+                manifest_digest="e" * 64,
+            )
+            attempt = store.authorize_submission("run-reconcile", "scf", PLAN["digest"])
+            store.record_attempt_status(attempt["attempt_id"], "UNKNOWN")
+
+            active = store.active_attempt("run-reconcile", "scf")
+            found = store.reconcile_submission(
+                attempt["attempt_id"], scheduler_id="31415", normalized_state="RUNNING"
+            )
+
+        self.assertEqual(active["attempt_id"], attempt["attempt_id"])
+        self.assertEqual(found["scheduler_id"], "31415")
+        self.assertEqual(found["status"], "RUNNING")
 
     def test_terminal_attempt_status_cannot_regress(self):
         with tempfile.TemporaryDirectory() as tmpdir:

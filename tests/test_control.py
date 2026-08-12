@@ -55,6 +55,17 @@ class ControlledExecutionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             _, _, plan, service, run = self.prepare(root)
+            run_dir = pathlib.Path(run["local_run_dir"])
+            (run_dir / "sitecustomize.py").write_text(
+                "raise RuntimeError('injected')\n", encoding="utf-8"
+            )
+
+            with self.assertRaisesRegex(OMLError, "MANIFEST_MISMATCH"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
             script = pathlib.Path(run["local_run_dir"]) / ".oml" / "stages" / "scf.slurm"
             script.write_text(script.read_text(encoding="utf-8") + "echo tampered\n", encoding="utf-8")
 
@@ -70,6 +81,18 @@ class ControlledExecutionTest(unittest.TestCase):
             with self.assertRaisesRegex(OMLError, "STALE_PLAN"):
                 service.submit_stage(run["run_id"], "scf", plan.digest)
 
+    def test_source_becoming_mixed_returns_a_stable_stale_plan_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source, _, plan, service, run = self.prepare(root)
+            (source / "control.in").write_text("xc pbe\n", encoding="utf-8")
+            (source / "geometry.in").write_text("atom 0 0 0 Si\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(OMLError, "STALE_PLAN") as raised:
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+
+        self.assertEqual(raised.exception.code, "STALE_PLAN")
+
     def test_submit_timeout_remains_locked_until_reconciled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
@@ -81,8 +104,176 @@ class ControlledExecutionTest(unittest.TestCase):
             ):
                 with self.assertRaisesRegex(OMLError, "SUBMISSION_AMBIGUOUS"):
                     service.submit_stage(run["run_id"], "scf", plan.digest)
+            service.executor.reconcile_submission = lambda *_: (_ for _ in ()).throw(
+                OMLError(
+                    "SCHEDULER_UNOBSERVABLE",
+                    "cannot query scheduler",
+                    evidence=(),
+                    recovery="restore observation",
+                )
+            )
+            with self.assertRaisesRegex(OMLError, "SCHEDULER_UNOBSERVABLE"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+            self.assertEqual(
+                service.store.active_attempt(run["run_id"], "scf")["status"],
+                "UNKNOWN",
+            )
+
+    def test_absent_ambiguous_submission_requires_a_fresh_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            service.executor.submit = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                OMLError(
+                    "SUBMISSION_AMBIGUOUS",
+                    "timeout",
+                    evidence=(),
+                    recovery="reconcile",
+                )
+            )
+            with self.assertRaisesRegex(OMLError, "SUBMISSION_AMBIGUOUS"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+
+            service.executor.reconcile_submission = lambda *_: {
+                "verdict": "absent",
+                "normalized_state": "UNKNOWN",
+                "raw_state": "NOT_FOUND",
+                "source": "squeue+sacct",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+            service.executor.submit = lambda *_args, **_kwargs: "98765"
+            with self.assertRaisesRegex(OMLError, "SUBMISSION_UNRESOLVED"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+            with service.store._connection() as connection:
+                connection.execute(
+                    "UPDATE observations SET observed_at = '2000-01-01T00:00:00Z'"
+                )
+                connection.commit()
+            with self.assertRaisesRegex(OMLError, "RETRY_REQUIRES_FRESH_RUN"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+            attempts = service.store.list_attempts(run["run_id"])
+
+        self.assertEqual([item["status"] for item in attempts], ["FAILED"])
+
+    def test_reconciled_existing_job_is_recorded_and_duplicate_stays_blocked(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            ambiguous = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.record_attempt_status(ambiguous["attempt_id"], "UNKNOWN")
+            service.executor.reconcile_submission = lambda *_: {
+                "verdict": "found",
+                "scheduler_id": "31415",
+                "normalized_state": "RUNNING",
+                "raw_state": "RUNNING",
+                "source": "squeue",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+
             with self.assertRaisesRegex(OMLError, "DUPLICATE_JOB"):
                 service.submit_stage(run["run_id"], "scf", plan.digest)
+            reconciled = service.store.get_attempt(ambiguous["attempt_id"])
+
+        self.assertEqual(reconciled["scheduler_id"], "31415")
+        self.assertEqual(reconciled["status"], "RUNNING")
+
+    def test_interrupted_submitting_attempt_enters_the_bounded_reconciliation_loop(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            interrupted = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.executor.reconcile_submission = lambda *_: {
+                "verdict": "absent",
+                "normalized_state": "UNKNOWN",
+                "raw_state": "NOT_FOUND",
+                "source": "squeue+sacct",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+            service.executor.submit = lambda *_args, **_kwargs: "27182"
+
+            with self.assertRaisesRegex(OMLError, "SUBMISSION_UNRESOLVED") as raised:
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+            first = service.store.get_attempt(interrupted["attempt_id"])
+
+        self.assertEqual(raised.exception.code, "SUBMISSION_UNRESOLVED")
+        self.assertEqual(first["status"], "UNKNOWN")
+
+    def test_two_immediate_absence_queries_do_not_unlock_a_retry(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            attempt = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.record_attempt_status(attempt["attempt_id"], "UNKNOWN")
+            service.executor.reconcile_submission = lambda *_: {
+                "verdict": "absent",
+                "normalized_state": "UNKNOWN",
+                "raw_state": "NOT_FOUND",
+                "source": "squeue+sacct",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+
+            with self.assertRaisesRegex(OMLError, "SUBMISSION_UNRESOLVED"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+            with self.assertRaisesRegex(OMLError, "SUBMISSION_UNRESOLVED"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+
+            persisted = service.store.get_attempt(attempt["attempt_id"])
+
+        self.assertEqual(persisted["status"], "UNKNOWN")
+
+    def test_terminal_stage_attempt_requires_a_fresh_run_before_retry(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            failed = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.record_attempt_status(failed["attempt_id"], "FAILED")
+
+            with self.assertRaisesRegex(OMLError, "RETRY_REQUIRES_FRESH_RUN"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+            attempts = service.store.list_attempts(run["run_id"])
+
+        self.assertEqual(len(attempts), 1)
+
+    def test_concurrent_submit_call_cannot_reconcile_or_replace_live_submission(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.executor.reconcile_submission = lambda *_: (_ for _ in ()).throw(
+                AssertionError("live submission must not be reconciled")
+            )
+
+            with service.store.submission_lock(run["run_id"], "scf"):
+                with self.assertRaisesRegex(OMLError, "DUPLICATE_JOB"):
+                    service.submit_stage(run["run_id"], "scf", plan.digest)
+
+    def test_submitted_attempt_stays_duplicate_instead_of_suggesting_a_fresh_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            attempt = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.mark_attempt_submitted(attempt["attempt_id"], "12345")
+
+            with self.assertRaisesRegex(OMLError, "DUPLICATE_JOB") as raised:
+                service.submit_stage(run["run_id"], "scf", plan.digest)
+
+        self.assertEqual(raised.exception.code, "DUPLICATE_JOB")
+
+    def test_equivalent_stage_cannot_run_concurrently_in_two_fresh_runs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source, _, plan, service, first_run = self.prepare(root)
+            first = service.store.authorize_submission(
+                first_run["run_id"], "scf", plan.digest
+            )
+            service.store.mark_attempt_submitted(first["attempt_id"], "12345")
+            second_run = service.prepare_run(source, plan.digest)
+            service.executor.submit = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("duplicate must be rejected before sbatch")
+            )
+
+            with self.assertRaisesRegex(OMLError, "DUPLICATE_JOB"):
+                service.submit_stage(second_run["run_id"], "scf", plan.digest)
 
     def test_completed_scheduler_job_does_not_pass_stage_without_artifacts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -97,6 +288,24 @@ class ControlledExecutionTest(unittest.TestCase):
 
         self.assertEqual(status["scheduler"]["normalized_state"], "COMPLETED")
         self.assertNotEqual(status["attempt"]["status"], "PASSED")
+
+    def test_get_status_is_read_only_for_persisted_attempt_state(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            with patch("oml_mcp.executor.subprocess.run") as execute:
+                execute.return_value = subprocess.CompletedProcess([], 0, "12345\n", "")
+                attempt = service.submit_stage(run["run_id"], "scf", plan.digest)
+            with patch("oml_mcp.executor.subprocess.run") as observe:
+                observe.return_value = subprocess.CompletedProcess([], 0, "RUNNING\n", "")
+                status = service.get_status(run["run_id"], attempt["attempt_id"])
+
+            persisted = service.store.get_attempt(attempt["attempt_id"])
+            observation = service.store.latest_observation(attempt["attempt_id"])
+
+        self.assertEqual(status["scheduler"]["normalized_state"], "RUNNING")
+        self.assertEqual(persisted["status"], "SUBMITTED")
+        self.assertIsNone(observation)
 
     def test_status_observation_cannot_regress_a_terminal_attempt(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -114,6 +323,28 @@ class ControlledExecutionTest(unittest.TestCase):
         self.assertEqual(status["attempt"]["status"], "PASSED")
         self.assertEqual(status["scheduler"]["normalized_state"], "RUNNING")
 
+    def test_status_rejects_run_owned_by_another_profile(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, profile, plan, service, run = self.prepare(root)
+            attempt = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.mark_attempt_submitted(attempt["attempt_id"], "12345")
+            changed = replace(profile, profile_id="other-profile")
+            other = ControlledExecutionService(changed)
+
+            with self.assertRaisesRegex(OMLError, "PROFILE_MISMATCH"):
+                other.get_status(run["run_id"], attempt["attempt_id"])
+
+    def test_read_only_service_does_not_create_a_missing_state_database(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            profile = make_profile(root, root / "sources")
+
+            with self.assertRaisesRegex(OMLError, "STATE_NOT_FOUND"):
+                ControlledExecutionService(profile, initialize_state=False)
+
+            self.assertFalse(profile.state_db.exists())
+
     def test_inspect_stage_requires_scheduler_completion_then_finalizes_artifacts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
@@ -126,7 +357,7 @@ class ControlledExecutionTest(unittest.TestCase):
                 service.inspect_stage(run["run_id"], attempt["attempt_id"], plan.digest)
 
             run_dir = pathlib.Path(run["local_run_dir"])
-            command_completed(run_dir, "scf")
+            command_completed(run_dir, "scf", attempt["attempt_id"])
             output = run_dir / "OUT.ABACUS"
             output.mkdir()
             (output / "running_scf.log").write_text("Finish Time\nTotal Time\n")
@@ -135,12 +366,81 @@ class ControlledExecutionTest(unittest.TestCase):
             (run_dir / "stru_out").write_text("structure\n")
             with patch("oml_mcp.executor.subprocess.run") as observe:
                 observe.return_value = subprocess.CompletedProcess([], 0, "COMPLETED\n", "")
-                service.get_status(run["run_id"], attempt["attempt_id"])
-
-            inspection = service.inspect_stage(run["run_id"], attempt["attempt_id"], plan.digest)
+                inspection = service.inspect_stage(
+                    run["run_id"], attempt["attempt_id"], plan.digest
+                )
 
         self.assertTrue(inspection["accepted"])
         self.assertEqual(inspection["attempt_status"], "PASSED")
+
+    def test_inspection_rejects_completion_receipt_from_an_older_attempt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            attempt = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.mark_attempt_submitted(attempt["attempt_id"], "12345")
+            run_dir = pathlib.Path(run["local_run_dir"])
+            command_completed(run_dir, "scf", "attempt-from-old-retry")
+            output = run_dir / "OUT.ABACUS"
+            output.mkdir()
+            (output / "running_scf.log").write_text("Finish Time\nTotal Time\n")
+            (output / "ABACUS-CHARGE-DENSITY.restart").write_text("charge\n")
+            (run_dir / "vxc_out").write_text("vxc\n")
+            (run_dir / "stru_out").write_text("structure\n")
+            service.executor.status = lambda *_: {
+                "normalized_state": "COMPLETED",
+                "raw_state": "COMPLETED",
+                "source": "sacct",
+            }
+
+            inspection = service.inspect_stage(
+                run["run_id"], attempt["attempt_id"], plan.digest
+            )
+
+        self.assertFalse(inspection["accepted"])
+        self.assertEqual(inspection["attempt_status"], "FAILED")
+
+    def test_remote_inspection_rechecks_the_immutable_bundle(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            base = make_profile(root, source_root)
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            plan = plan_case(source, task="gw", system_type="solid")
+            service = ControlledExecutionService(profile)
+            service.executor.verify_versions = lambda: {"verdict": "match", "components": {}}
+            service.executor.sync_run = lambda *_: None
+            run = service.prepare_run(source, plan.digest)
+            attempt = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.mark_attempt_submitted(attempt["attempt_id"], "12345")
+            service.executor.status = lambda *_: {
+                "normalized_state": "COMPLETED",
+                "raw_state": "COMPLETED",
+                "source": "sacct",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+            service.executor.verify_remote_bundle = lambda *_: (_ for _ in ()).throw(
+                OMLError(
+                    "REMOTE_MANIFEST_MISMATCH",
+                    "remote changed",
+                    evidence=(),
+                    recovery="prepare fresh run",
+                )
+            )
+
+            with self.assertRaisesRegex(OMLError, "REMOTE_MANIFEST_MISMATCH"):
+                service.inspect_stage(run["run_id"], attempt["attempt_id"], plan.digest)
 
     def test_librpa_submission_requires_full_pre_librpa_validation(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -167,6 +467,37 @@ class ControlledExecutionTest(unittest.TestCase):
 
             with self.assertRaisesRegex(OMLError, "PROFILE_MISMATCH"):
                 changed_service.submit_stage(run["run_id"], "scf", plan.digest)
+
+    def test_changed_executable_fingerprint_blocks_submission(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+            plan = plan_case(source, task="gw", system_type="solid")
+            service = ControlledExecutionService(profile)
+            prepared = {
+                "verdict": "match",
+                "components": {},
+                "executables": {
+                    "abacus": {"sha256": "a" * 64, "size": 100},
+                    "librpa": {"sha256": "b" * 64, "size": 200},
+                },
+            }
+            changed = {
+                **prepared,
+                "executables": {
+                    **prepared["executables"],
+                    "abacus": {"sha256": "c" * 64, "size": 100},
+                },
+            }
+            service.executor.verify_versions = lambda: prepared
+            run = service.prepare_run(source, plan.digest)
+            service.executor.verify_versions = lambda: changed
+
+            with self.assertRaisesRegex(OMLError, "BINARY_MISMATCH"):
+                service.submit_stage(run["run_id"], "scf", plan.digest)
 
     def test_remote_librpa_preflight_uses_passed_preprocess_snapshot(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -251,6 +582,14 @@ class ControlledExecutionTest(unittest.TestCase):
 
             with patch("oml_mcp.control.inspect_stage_outputs", return_value=base_report), patch(
                 "oml_mcp.control.validate_case", return_value=cross_report
+            ), patch.object(
+                service.executor,
+                "status",
+                return_value={
+                    "normalized_state": "COMPLETED",
+                    "raw_state": "COMPLETED",
+                    "source": "sacct",
+                },
             ):
                 inspection = service.inspect_stage(
                     run["run_id"], pyatb["attempt_id"], plan.digest

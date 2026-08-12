@@ -11,6 +11,9 @@ from .artifacts import (
     inspect_headwing_directory,
     inspect_velocity_v1,
 )
+from .control import ControlledExecutionService
+from .errors import OMLError
+from .execution_profiles import load_execution_profile
 from .intake import ingest_case as ingest_case_data
 from .planner import plan_case as plan_case_data
 from .profiles import load_profile
@@ -18,6 +21,7 @@ from .validators import validate_case as validate_case_data
 
 
 ArtifactKind = Literal["eigenvector", "velocity", "headwing"]
+ControlledStage = Literal["scf", "pyatb", "nscf", "preprocess", "librpa"]
 
 
 def _read_only_annotations() -> ToolAnnotations:
@@ -29,16 +33,50 @@ def _read_only_annotations() -> ToolAnnotations:
     )
 
 
+def _write_annotations(*, idempotent: bool) -> ToolAnnotations:
+    return ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=idempotent,
+        openWorldHint=True,
+    )
+
+
+def _external_read_annotations() -> ToolAnnotations:
+    return ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
+
+def _controlled_service(
+    execution_profile_id: str, *, initialize_state: bool = True
+) -> ControlledExecutionService:
+    return ControlledExecutionService(
+        load_execution_profile(execution_profile_id), initialize_state=initialize_state
+    )
+
+
+def _controlled_call(operation: Any) -> dict[str, Any]:
+    try:
+        return operation()
+    except OMLError as exc:
+        return exc.to_dict()
+
+
 def build_server() -> MCPServer:
     server = MCPServer(
         name="oh-my-librpa",
         title="Oh-My-LibRPA",
-        description="Read-only ABACUS, LibRPA, and PyATB workflow inspection",
+        description="Deterministic ABACUS, LibRPA, and PyATB validation and controlled execution",
         instructions=(
-            "Use these tools before preparing or running ABACUS plus LibRPA cases. "
-            "They inspect local files and return deterministic gates; they never modify or submit work."
+            "Inspect and validate before execution. Controlled writes require an administrator-managed "
+            "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
+            "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.1.0",
+        version="0.2.0",
     )
     annotations = _read_only_annotations()
 
@@ -124,6 +162,100 @@ def build_server() -> MCPServer:
         if artifact_kind == "velocity":
             return inspect_velocity_v1(artifact_path).to_dict()
         return inspect_headwing_directory(artifact_path).to_dict()
+
+    @server.tool(
+        name="prepare_run",
+        description=(
+            "Verify pinned source revisions and create a fresh immutable periodic-GW run from a reviewed plan digest."
+        ),
+        annotations=_write_annotations(idempotent=False),
+        structured_output=True,
+    )
+    def prepare_run(
+        source_path: str,
+        plan_digest: str,
+        execution_profile_id: str,
+    ) -> dict[str, Any]:
+        """Materialize one fresh controlled run without accepting command text."""
+        return _controlled_call(
+            lambda: _controlled_service(execution_profile_id).prepare_run(
+                source_path, plan_digest
+            )
+        )
+
+    @server.tool(
+        name="submit_stage",
+        description="Submit exactly one generated stage after provenance, version, order, and duplicate-job gates.",
+        annotations=_write_annotations(idempotent=False),
+        structured_output=True,
+    )
+    def submit_stage(
+        run_id: str,
+        stage: ControlledStage,
+        plan_digest: str,
+        execution_profile_id: str,
+    ) -> dict[str, Any]:
+        """Submit only a fixed stage from the immutable periodic-GW route."""
+        return _controlled_call(
+            lambda: _controlled_service(execution_profile_id).submit_stage(
+                run_id, stage, plan_digest
+            )
+        )
+
+    @server.tool(
+        name="get_status",
+        description="Read and normalize current or historical Slurm state for one registered attempt.",
+        annotations=_external_read_annotations(),
+        structured_output=True,
+    )
+    def get_status(
+        run_id: str,
+        attempt_id: str,
+        execution_profile_id: str,
+    ) -> dict[str, Any]:
+        """Observe a registered attempt without claiming scientific stage success."""
+        return _controlled_call(
+            lambda: _controlled_service(
+                execution_profile_id, initialize_state=False
+            ).get_status(run_id, attempt_id)
+        )
+
+    @server.tool(
+        name="inspect_stage",
+        description="Snapshot and validate fixed stage artifacts, then record an immutable PASS or FAIL receipt.",
+        annotations=_write_annotations(idempotent=True),
+        structured_output=True,
+    )
+    def inspect_stage(
+        run_id: str,
+        attempt_id: str,
+        plan_digest: str,
+        execution_profile_id: str,
+    ) -> dict[str, Any]:
+        """Accept a stage only after scheduler completion and artifact gates."""
+        return _controlled_call(
+            lambda: _controlled_service(execution_profile_id).inspect_stage(
+                run_id, attempt_id, plan_digest
+            )
+        )
+
+    @server.tool(
+        name="score_case",
+        description="Score a registered run against the versioned 100-point scorecard and hard gates.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def score_case(
+        run_id: str,
+        plan_digest: str,
+        execution_profile_id: str,
+    ) -> dict[str, Any]:
+        """Read receipts and report evaluated, failed, and not-evaluated dimensions separately."""
+        return _controlled_call(
+            lambda: _controlled_service(
+                execution_profile_id, initialize_state=False
+            ).score_case(run_id, plan_digest)
+        )
 
     return server
 

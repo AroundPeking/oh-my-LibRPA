@@ -117,6 +117,12 @@
         "symrot_abf_k.txt"
       ]
     },
+    "workflow_helpers": {
+      "perform.sh": "b1c4e2327c996c0b03b4ec4a284f0710ea8b103d2237486a15414ca2af09e891",
+      "get_diel.py": "62c9a3da781b751a8c20b5b185d12c403ef73c6f771c2b76f827fa8d741cae86",
+      "output_librpa.py": "84837f846967d08de8380639dcfe784d853fe08c1645e0c7816d706bf9a11545",
+      "preprocess_abacus_for_librpa_band.py": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
+    },
     "pyatb_adapter": {
       "producer_role": "PyATB computes eigenvectors and velocity matrices; OML writes the LibRPA handoff files.",
       "directory": "pyatb_librpa_df",

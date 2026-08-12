@@ -10,7 +10,7 @@ cd oh-my-LibRPA
 bash scripts/install_codex_plugin.sh
 ```
 
-Register the read-only MCP server from the repository root:
+Register the MCP server from the repository root:
 
 ```bash
 codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
@@ -28,7 +28,7 @@ The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.js
 
 ### MCP tools
 
-All five Phase 1 tools are read-only and return structured gate results:
+OML exposes five inspection tools and five controlled-execution tools:
 
 | Tool | Purpose |
 | --- | --- |
@@ -37,8 +37,15 @@ All five Phase 1 tools are read-only and return structured gate results:
 | `plan_case` | Select the deterministic GW/RPA stage graph |
 | `validate_case` | Check parameters, symmetry, shrink data, datasets, and PyATB handoff |
 | `inspect_reader_v1` | Inspect reader-v1 eigenvector, velocity, or complete head/wing data |
+| `prepare_run` | Verify versions and materialize a fresh immutable periodic-GW run |
+| `submit_stage` | Submit one fixed stage after provenance, order, and duplicate gates |
+| `get_status` | Observe current or historical scheduler state without changing it |
+| `inspect_stage` | Validate completed stage artifacts and record an immutable verdict |
+| `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
-Phase 1 never edits inputs, starts ABACUS/LibRPA, or submits a scheduler job. After its gates pass, the existing skills and scripts provide the execution path. Submission and controlled repair are Phase 2 MCP work.
+The five original tools and `get_status`/`score_case` are read-only. `prepare_run`, `submit_stage`, and `inspect_stage` are consequential but bounded. Controlled execution is disabled until an administrator installs an enabled execution profile. See [`controlled-execution.md`](controlled-execution.md) for the profile schema, fixed sequence, receipts, scorecard, and current exclusions.
+
+`get_status` and `score_case` do not create a missing state database. Preparation is the operation that initializes controlled state.
 
 ## Pinned Compatibility Profile
 
