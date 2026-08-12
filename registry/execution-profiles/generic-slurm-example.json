@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "profile_id": "generic-slurm-example",
+  "enabled": false,
+  "transport": "ssh",
+  "allowed_source_roots": [
+    "/path/to/approved/source/root"
+  ],
+  "allowed_run_roots": [
+    "/path/to/local/staging/root"
+  ],
+  "state_db": "/path/to/oml/state.sqlite3",
+  "scheduler": {
+    "submit_program": "/usr/bin/sbatch",
+    "status_program": "/usr/bin/squeue"
+  },
+  "runtime": {
+    "python": "/path/to/python3",
+    "mpi_launcher": "/path/to/mpirun",
+    "abacus": "/path/to/abacus",
+    "librpa": "/path/to/chi0_main.exe",
+    "mpi_ranks": 4,
+    "pyatb_mpi_ranks": 1,
+    "omp_threads": 32
+  },
+  "ssh": {
+    "host": "your-approved-ssh-alias",
+    "remote_run_root": "/path/to/remote/run/root",
+    "ssh_program": "/usr/bin/ssh",
+    "rsync_program": "/usr/bin/rsync"
+  }
+}

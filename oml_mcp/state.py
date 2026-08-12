@@ -1,0 +1,401 @@
+from __future__ import annotations
+
+import json
+import sqlite3
+import uuid
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Iterator
+
+from .errors import OMLError
+
+
+ACTIVE_ATTEMPT_STATUSES = frozenset({"SUBMITTING", "SUBMITTED", "PENDING", "RUNNING", "UNKNOWN"})
+TERMINAL_ATTEMPT_STATUSES = frozenset({"PASSED", "FAILED", "CANCELLED"})
+ALL_ATTEMPT_STATUSES = ACTIVE_ATTEMPT_STATUSES | TERMINAL_ATTEMPT_STATUSES
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def _loads(value: str) -> Any:
+    return json.loads(value)
+
+
+class StateStore:
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path).expanduser().resolve()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize()
+
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        connection = sqlite3.connect(self.path, timeout=30.0)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    def _initialize(self) -> None:
+        with self._connection() as connection:
+            connection.executescript(
+                """
+                PRAGMA journal_mode = WAL;
+                CREATE TABLE IF NOT EXISTS plans (
+                    plan_id TEXT PRIMARY KEY,
+                    digest TEXT NOT NULL,
+                    source_digest TEXT NOT NULL,
+                    source_path TEXT NOT NULL,
+                    profile_id TEXT NOT NULL,
+                    route TEXT NOT NULL,
+                    stages_json TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS runs (
+                    run_id TEXT PRIMARY KEY,
+                    plan_id TEXT NOT NULL REFERENCES plans(plan_id),
+                    plan_digest TEXT NOT NULL,
+                    execution_profile_id TEXT NOT NULL,
+                    local_run_dir TEXT NOT NULL UNIQUE,
+                    remote_run_dir TEXT,
+                    manifest_digest TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS stage_attempts (
+                    attempt_id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES runs(run_id),
+                    stage TEXT NOT NULL,
+                    attempt_number INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    scheduler_id TEXT,
+                    submitted_at TEXT,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(run_id, stage, attempt_number)
+                );
+                CREATE TABLE IF NOT EXISTS observations (
+                    observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    attempt_id TEXT NOT NULL REFERENCES stage_attempts(attempt_id),
+                    normalized_state TEXT NOT NULL,
+                    raw_state TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    observed_at TEXT NOT NULL
+                );
+                """
+            )
+            connection.commit()
+
+    def register_plan(self, plan: dict[str, Any]) -> dict[str, Any]:
+        required = {
+            "plan_id",
+            "digest",
+            "source_digest",
+            "source_path",
+            "profile_id",
+            "route",
+            "stages",
+        }
+        missing = sorted(required - set(plan))
+        if missing:
+            raise OMLError(
+                "PLAN_INVALID",
+                f"plan is missing required fields: {missing}",
+                evidence=tuple(missing),
+                recovery="recreate the plan with the current OML planner",
+            )
+        payload = dict(plan)
+        now = utc_now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT digest, payload_json FROM plans WHERE plan_id = ?",
+                (plan["plan_id"],),
+            ).fetchone()
+            if existing is not None:
+                if existing["digest"] != plan["digest"] or _loads(existing["payload_json"]) != payload:
+                    connection.rollback()
+                    raise OMLError(
+                        "PLAN_CONFLICT",
+                        "an immutable plan ID already exists with different content",
+                        evidence=(str(plan["plan_id"]),),
+                        recovery="generate a new plan from the changed input snapshot",
+                    )
+                connection.commit()
+                return payload
+            connection.execute(
+                """
+                INSERT INTO plans (
+                    plan_id, digest, source_digest, source_path, profile_id, route,
+                    stages_json, payload_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    plan["plan_id"],
+                    plan["digest"],
+                    plan["source_digest"],
+                    plan["source_path"],
+                    plan["profile_id"],
+                    plan["route"],
+                    _json(plan["stages"]),
+                    _json(payload),
+                    now,
+                ),
+            )
+            connection.commit()
+        return payload
+
+    def get_plan(self, plan_id: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT payload_json FROM plans WHERE plan_id = ?", (plan_id,)
+            ).fetchone()
+        if row is None:
+            raise OMLError(
+                "PLAN_NOT_FOUND",
+                f"plan not found: {plan_id}",
+                evidence=(plan_id,),
+                recovery="create and register a current plan before preparing a run",
+            )
+        return _loads(row["payload_json"])
+
+    def create_run(
+        self,
+        *,
+        run_id: str,
+        plan_id: str,
+        plan_digest: str,
+        execution_profile_id: str,
+        local_run_dir: str,
+        remote_run_dir: str | None,
+        manifest_digest: str,
+    ) -> dict[str, Any]:
+        now = utc_now()
+        with self._connection() as connection:
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO runs (
+                        run_id, plan_id, plan_digest, execution_profile_id, local_run_dir,
+                        remote_run_dir, manifest_digest, status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'RUN_PREPARED', ?)
+                    """,
+                    (
+                        run_id,
+                        plan_id,
+                        plan_digest,
+                        execution_profile_id,
+                        local_run_dir,
+                        remote_run_dir,
+                        manifest_digest,
+                        now,
+                    ),
+                )
+                connection.commit()
+            except sqlite3.IntegrityError as exc:
+                raise OMLError(
+                    "RUN_CONFLICT",
+                    "run ID or run directory is already registered",
+                    evidence=(run_id, local_run_dir),
+                    recovery="use the existing run receipt or prepare a fresh run ID",
+                ) from exc
+        return self.get_run(run_id)
+
+    def get_run(self, run_id: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            row = connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+        if row is None:
+            raise OMLError(
+                "RUN_NOT_FOUND",
+                f"run not found: {run_id}",
+                evidence=(run_id,),
+                recovery="prepare the run before submitting or inspecting it",
+            )
+        return dict(row)
+
+    def authorize_submission(self, run_id: str, stage: str, plan_digest: str) -> dict[str, Any]:
+        now = utc_now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            run = connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            if run is None:
+                connection.rollback()
+                raise OMLError(
+                    "RUN_NOT_FOUND",
+                    f"run not found: {run_id}",
+                    evidence=(run_id,),
+                    recovery="prepare the run before submission",
+                )
+            if run["plan_digest"] != plan_digest:
+                connection.rollback()
+                raise OMLError(
+                    "STALE_PLAN",
+                    "submitted plan digest does not match the prepared run",
+                    evidence=(plan_digest, run["plan_digest"]),
+                    recovery="re-plan and prepare a fresh run from the current source inputs",
+                )
+            plan = connection.execute(
+                "SELECT stages_json FROM plans WHERE plan_id = ?", (run["plan_id"],)
+            ).fetchone()
+            stages = _loads(plan["stages_json"])
+            if stage not in stages:
+                connection.rollback()
+                raise OMLError(
+                    "STATE_TRANSITION_DENIED",
+                    f"stage {stage!r} is not part of this route",
+                    evidence=(run_id, stage),
+                    recovery="submit only a stage listed in the immutable plan",
+                )
+            active = connection.execute(
+                """
+                SELECT attempt_id, status, scheduler_id FROM stage_attempts
+                WHERE run_id = ? AND stage = ? AND status IN ('SUBMITTING','SUBMITTED','PENDING','RUNNING','UNKNOWN')
+                ORDER BY attempt_number DESC LIMIT 1
+                """,
+                (run_id, stage),
+            ).fetchone()
+            if active is not None:
+                connection.rollback()
+                raise OMLError(
+                    "DUPLICATE_JOB",
+                    "an equivalent stage attempt is still active or unobservable",
+                    evidence=(active["attempt_id"], str(active["scheduler_id"] or ""), active["status"]),
+                    recovery="reconcile the existing attempt before considering another submission",
+                )
+            passed_same = connection.execute(
+                "SELECT 1 FROM stage_attempts WHERE run_id = ? AND stage = ? AND status = 'PASSED'",
+                (run_id, stage),
+            ).fetchone()
+            if passed_same is not None:
+                connection.rollback()
+                raise OMLError(
+                    "STATE_TRANSITION_DENIED",
+                    "the requested stage has already passed for this immutable run",
+                    evidence=(run_id, stage),
+                    recovery="submit the next planned stage or create a new run for changed inputs",
+                )
+            stage_index = stages.index(stage)
+            missing = []
+            for prerequisite in stages[:stage_index]:
+                passed = connection.execute(
+                    "SELECT 1 FROM stage_attempts WHERE run_id = ? AND stage = ? AND status = 'PASSED'",
+                    (run_id, prerequisite),
+                ).fetchone()
+                if passed is None:
+                    missing.append(prerequisite)
+            if missing:
+                connection.rollback()
+                raise OMLError(
+                    "STATE_TRANSITION_DENIED",
+                    "one or more prerequisite stages have not passed",
+                    evidence=tuple(missing),
+                    recovery="inspect and pass every preceding stage before submission",
+                )
+            attempt_number = connection.execute(
+                "SELECT COUNT(*) AS count FROM stage_attempts WHERE run_id = ? AND stage = ?",
+                (run_id, stage),
+            ).fetchone()["count"] + 1
+            attempt_id = f"attempt-{uuid.uuid4().hex[:20]}"
+            connection.execute(
+                """
+                INSERT INTO stage_attempts (
+                    attempt_id, run_id, stage, attempt_number, status, updated_at
+                ) VALUES (?, ?, ?, ?, 'SUBMITTING', ?)
+                """,
+                (attempt_id, run_id, stage, attempt_number, now),
+            )
+            connection.commit()
+        return self.get_attempt(attempt_id)
+
+    def get_attempt(self, attempt_id: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM stage_attempts WHERE attempt_id = ?", (attempt_id,)
+            ).fetchone()
+        if row is None:
+            raise OMLError(
+                "ATTEMPT_NOT_FOUND",
+                f"stage attempt not found: {attempt_id}",
+                evidence=(attempt_id,),
+                recovery="use an attempt ID returned by submit_stage or get_status",
+            )
+        return dict(row)
+
+    def mark_attempt_submitted(self, attempt_id: str, scheduler_id: str) -> dict[str, Any]:
+        now = utc_now()
+        with self._connection() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE stage_attempts
+                SET status = 'SUBMITTED', scheduler_id = ?, submitted_at = ?, updated_at = ?
+                WHERE attempt_id = ? AND status = 'SUBMITTING'
+                """,
+                (scheduler_id, now, now, attempt_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise OMLError(
+                "STATE_TRANSITION_DENIED",
+                "attempt is not awaiting a scheduler ID",
+                evidence=(attempt_id,),
+                recovery="inspect the existing attempt before changing its state",
+            )
+        return self.get_attempt(attempt_id)
+
+    def record_attempt_status(self, attempt_id: str, status: str) -> dict[str, Any]:
+        if status not in ALL_ATTEMPT_STATUSES:
+            raise OMLError(
+                "STATE_INVALID",
+                f"invalid attempt status: {status}",
+                evidence=(attempt_id, status),
+                recovery="use a normalized OML attempt status",
+            )
+        with self._connection() as connection:
+            cursor = connection.execute(
+                "UPDATE stage_attempts SET status = ?, updated_at = ? WHERE attempt_id = ?",
+                (status, utc_now(), attempt_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            return self.get_attempt(attempt_id)
+        return self.get_attempt(attempt_id)
+
+    def record_observation(
+        self,
+        attempt_id: str,
+        *,
+        normalized_state: str,
+        raw_state: str,
+        source: str,
+    ) -> dict[str, Any]:
+        observed_at = utc_now()
+        with self._connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO observations (
+                    attempt_id, normalized_state, raw_state, source, observed_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (attempt_id, normalized_state, raw_state, source, observed_at),
+            )
+            connection.commit()
+        return self.latest_observation(attempt_id)
+
+    def latest_observation(self, attempt_id: str) -> dict[str, Any] | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM observations WHERE attempt_id = ?
+                ORDER BY observation_id DESC LIMIT 1
+                """,
+                (attempt_id,),
+            ).fetchone()
+        return dict(row) if row is not None else None
