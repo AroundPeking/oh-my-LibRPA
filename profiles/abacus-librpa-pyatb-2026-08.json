@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "profile_id": "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08",
+  "verified_at": "2026-08-12",
+  "components": {
+    "abacus": {
+      "repository": "https://github.com/AroundPeking/abacus-develop.git",
+      "ref": "master_ghj",
+      "revision": "3efad9ed5ca066aee1d1b2214e43f92a2d2a567e"
+    },
+    "librpa": {
+      "repository": "https://github.com/Srlive1201/LibRPA.git",
+      "ref": "v0.7.0",
+      "revision": "dd169fa11fa920d580d4f39dc11e218a7f17f7b5"
+    },
+    "pyatb": {
+      "repository": "https://github.com/AroundPeking/pyatb.git",
+      "ref": "enable_head_wing",
+      "revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+    }
+  },
+  "contract": {
+    "abacus": {
+      "source_default": {
+        "out_librpa_reader_version": 0
+      },
+      "allowed": {
+        "out_librpa_reader_version": [0, 1]
+      },
+      "production": {
+        "basis_type": "lcao",
+        "rpa": 1,
+        "out_librpa_reader_version": 1
+      },
+      "symmetry": {
+        "enabled": 1,
+        "disabled": -1,
+        "stru_out_convention": "row"
+      },
+      "shrink_enabled_when": "shrink_abfs_pca_thr >= 0"
+    },
+    "librpa": {
+      "source_default": {
+        "version_coul_reader": -1,
+        "version_lri_reader": -1
+      },
+      "production": {
+        "task": "g0w0",
+        "prefix_coul_full": "v1_coulomb_full_iq_",
+        "prefix_coul_cut": "v1_coulomb_cut_iq_",
+        "prefix_lri_coeff": "v1_Cs_data_",
+        "prefix_lri_coeff_shrink": "v1_Cs_shrinked_data_",
+        "prefix_shrink_sinvS": "v1_shrink_sinvS_",
+        "fn_stru": "stru_out",
+        "fn_bz_sampling": "bz_sampling_out",
+        "fn_basis_wfc": "basis_wfc_out",
+        "fn_basis_aux": "basis_aux_out",
+        "fn_basis_aux_shrink": "basis_aux_shrink_out",
+        "version_coul_reader": 1,
+        "version_lri_reader": 1,
+        "parallel_routing": "libri",
+        "use_kpara_scf_eigvec": true,
+        "libri_chi0_collect_max_bytes": 2147483648,
+        "output_gw_sigc_mat_rf": false
+      },
+      "canonical_symmetry_keys": [
+        "use_symmetry_exx",
+        "use_symmetry_gw",
+        "use_symmetry_rpa"
+      ],
+      "unsupported_oml_keys": {
+        "use_input_exx_symmetry": "use_symmetry_exx",
+        "use_input_gw_symmetry": "use_symmetry_gw",
+        "use_input_rpa_symmetry": "use_symmetry_rpa"
+      },
+      "deprecated_values": {
+        "task": {
+          "g0w0_band": "g0w0"
+        }
+      },
+      "reader_versions": [-1, 0, 1]
+    },
+    "artifacts": {
+      "required_base": [
+        "stru_out",
+        "bz_sampling_out",
+        "basis_wfc_out",
+        "basis_aux_out",
+        "band_out"
+      ],
+      "required_shrink": [
+        "basis_aux_shrink_out",
+        "v1_Cs_shrinked_data_",
+        "v1_shrink_sinvS_"
+      ],
+      "v1_prefixes": [
+        "v1_coulomb_full_iq_",
+        "v1_coulomb_cut_iq_",
+        "v1_Cs_data_",
+        "v1_Cs_shrinked_data_",
+        "v1_shrink_sinvS_"
+      ],
+      "legacy_prefixes": [
+        "coulomb_mat",
+        "coulomb_cut",
+        "Cs_data",
+        "Cs_shrinked_data",
+        "shrink_sinvS_"
+      ],
+      "legacy_symmetry_sidecars_not_required": [
+        "irreducible_sector.txt",
+        "symrot_R.txt",
+        "symrot_k.txt",
+        "symrot_abf_k.txt"
+      ]
+    },
+    "pyatb_adapter": {
+      "producer_role": "PyATB computes eigenvectors and velocity matrices; OML writes the LibRPA handoff files.",
+      "directory": "pyatb_librpa_df",
+      "required_text": ["k_path_info", "band_out"],
+      "eigenvector_prefix": "KS_eigenvector_",
+      "velocity_prefix": "velocity_matrix",
+      "eigenvector_v1": {
+        "marker": -12345679,
+        "kind": 28
+      },
+      "velocity_v1": {
+        "marker": -12345680,
+        "kind": 29,
+        "nalpha": 3
+      },
+      "kpoint_policy": "full_regular_grid"
+    }
+  }
+}
