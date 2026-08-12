@@ -5,6 +5,7 @@ from pathlib import Path
 from .intake import ingest_case
 from .models import CasePlan, GateResult
 from .profiles import load_profile
+from .provenance import digest_json, execution_input_manifest, source_manifest_digest
 
 
 class PlanError(ValueError):
@@ -74,6 +75,24 @@ def plan_case(
         raise PlanError(f"unsupported task: {task}")
 
     profile = load_profile()
+    source_manifest = execution_input_manifest(path)
+    source_digest = source_manifest_digest(source_manifest)
+    options = {
+        "task": normalized_task,
+        "system_type": normalized_system,
+        "use_symmetry": use_symmetry,
+        "soc": soc,
+        "headwing": route in {"periodic_gw", "periodic_gw_symmetry"},
+    }
+    plan_payload = {
+        "schema_version": 1,
+        "profile_id": profile["profile_id"],
+        "route": route,
+        "stages": ROUTE_STAGES[route],
+        "options": options,
+        "source_digest": source_digest,
+    }
+    plan_digest = digest_json(plan_payload)
     gate = GateResult(
         gate_id="plan.route",
         status="PASS",
@@ -82,9 +101,14 @@ def plan_case(
         measurements={"stages": len(ROUTE_STAGES[route])},
     )
     return CasePlan(
+        plan_id=f"plan-{plan_digest[:16]}",
+        digest=plan_digest,
+        source_digest=source_digest,
         route=route,
         stages=ROUTE_STAGES[route],
         profile_id=profile["profile_id"],
+        options=options,
+        source_manifest=source_manifest,
         assumptions=tuple(assumptions),
         gates=(gate,),
     )

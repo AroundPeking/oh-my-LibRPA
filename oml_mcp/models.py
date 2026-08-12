@@ -146,9 +146,14 @@ class IntakeReport:
 
 @dataclass(frozen=True)
 class CasePlan:
+    plan_id: str
+    digest: str
+    source_digest: str
     route: str
     stages: tuple[str, ...]
     profile_id: str
+    options: dict[str, Any]
+    source_manifest: tuple[dict[str, Any], ...]
     assumptions: tuple[str, ...]
     gates: tuple[GateResult, ...] = ()
 

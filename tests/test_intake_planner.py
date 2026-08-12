@@ -141,6 +141,50 @@ class PlannerTest(unittest.TestCase):
             with self.assertRaisesRegex(PlanError, "mixed"):
                 plan_case(root, task="gw", system_type="solid")
 
+    def test_plan_digest_is_stable_and_tracks_only_execution_inputs(self):
+        with tempfile.TemporaryDirectory() as left_tmp, tempfile.TemporaryDirectory() as right_tmp:
+            left = pathlib.Path(left_tmp)
+            right = pathlib.Path(right_tmp)
+            for root in (left, right):
+                self.make_abacus_case(root)
+                (root / "KPT_scf").write_text("K_POINTS\n0\nGamma\n2 2 2 0 0 0\n", encoding="utf-8")
+                (root / "Si.upf").write_text("pseudo\n", encoding="utf-8")
+                (root / "Si.orb").write_text("orbital\n", encoding="utf-8")
+                (root / "Si.abfs").write_text("auxiliary\n", encoding="utf-8")
+                (root / "get_diel.py").write_text("print('headwing')\n", encoding="utf-8")
+                (root / "OUT.ABACUS").mkdir()
+                (root / "OUT.ABACUS" / "running_scf.log").write_text("old output\n", encoding="utf-8")
+                (root / "v1_Cs_data_0").write_text("old producer output\n", encoding="utf-8")
+
+            first = plan_case(left, task="gw", system_type="solid")
+            second = plan_case(right, task="gw", system_type="solid")
+            (right / "OUT.ABACUS" / "running_scf.log").write_text("changed output\n", encoding="utf-8")
+            output_changed = plan_case(right, task="gw", system_type="solid")
+            (right / "KPT_scf").write_text("K_POINTS\n0\nGamma\n3 3 3 0 0 0\n", encoding="utf-8")
+            input_changed = plan_case(right, task="gw", system_type="solid")
+
+        self.assertEqual(first.digest, second.digest)
+        self.assertEqual(first.plan_id, second.plan_id)
+        self.assertEqual(second.digest, output_changed.digest)
+        self.assertNotEqual(output_changed.digest, input_changed.digest)
+        self.assertEqual(len(first.digest), 64)
+        manifest_paths = {item["path"] for item in first.source_manifest}
+        self.assertIn("Si.upf", manifest_paths)
+        self.assertIn("get_diel.py", manifest_paths)
+        self.assertNotIn("OUT.ABACUS/running_scf.log", manifest_paths)
+        self.assertNotIn("v1_Cs_data_0", manifest_paths)
+
+    def test_plan_digest_changes_with_route_options(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+            normal = plan_case(root, task="gw", system_type="solid")
+            symmetry = plan_case(root, task="gw", system_type="solid", use_symmetry=True)
+
+        self.assertNotEqual(normal.digest, symmetry.digest)
+        self.assertNotEqual(normal.plan_id, symmetry.plan_id)
+        self.assertEqual(normal.source_digest, symmetry.source_digest)
+
 
 if __name__ == "__main__":
     unittest.main()
