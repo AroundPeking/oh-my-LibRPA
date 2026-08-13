@@ -204,12 +204,38 @@ class ScientificBandTest(unittest.TestCase):
             window,
             screening_kpoints=((0.0, 0.0, 0.0), (0.5, 0.0, 0.5)),
             screening_grid=(2, 2, 2),
+            screening_offset=(0.0, 0.0, 0.0),
         )
 
         self.assertTrue(sampling["vbm_on_screening_grid"])
         self.assertFalse(sampling["cbm_on_screening_grid"])
         self.assertEqual(sampling["off_grid_path_kpoints"], [[0.25, 0.0, 0.25]])
         self.assertEqual(sampling["screening_grid"], [2, 2, 2])
+        self.assertEqual(sampling["screening_kpoint_count"], 8)
+        self.assertEqual(sampling["screening_irreducible_kpoint_count"], 2)
+
+    def test_window_sampling_uses_full_regular_grid_with_symmetry(self):
+        window = {
+            "vbm_state": {"kpoint": [0.0, 0.0, 0.0]},
+            "cbm_state": {"kpoint": [0.25, 0.0, 0.25]},
+            "states": [
+                {"kpoint": [0.0, 0.0, 0.0]},
+                {"kpoint": [0.25, 0.0, 0.25]},
+                {"kpoint": [0.5, 0.0, 0.5]},
+            ],
+        }
+
+        sampling = characterize_window_sampling(
+            window,
+            screening_kpoints=((0.0, 0.0, 0.0),),
+            screening_grid=(4, 4, 4),
+            screening_offset=(0.0, 0.0, 0.0),
+        )
+
+        self.assertTrue(sampling["cbm_on_screening_grid"])
+        self.assertEqual(sampling["off_grid_path_kpoints"], [])
+        self.assertEqual(sampling["screening_kpoint_count"], 64)
+        self.assertEqual(sampling["screening_irreducible_kpoint_count"], 1)
 
 
 if __name__ == "__main__":

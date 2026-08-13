@@ -593,14 +593,17 @@ class ControlledExecutionService:
                     "the current evaluator requires equal VBM and CBM padding",
                 )
             window = select_insulating_window(load_band_bundle(snapshot), padding=below)
+            definition = build_definition_signature(snapshot)
             bz_sampling = parse_bz_sampling(snapshot / "bz_sampling_out")
+            screening = definition["kpoints"]["scf"]
             window["sampling"] = characterize_window_sampling(
                 window,
                 screening_kpoints=tuple(bz_sampling["fractional_kpoints"]),
-                screening_grid=tuple(bz_sampling["grid"]),
+                screening_grid=tuple(screening["grid"]),
+                screening_offset=tuple(screening["offset"]),
             )
             return {
-                "definition": build_definition_signature(snapshot),
+                "definition": definition,
                 "window": window,
                 "diagnostics": inspect_window_diagnostics(
                     window,
@@ -640,7 +643,7 @@ class ControlledExecutionService:
             )
             request = {
                 "schema_version": 1,
-                "evaluator_version": 3,
+                "evaluator_version": 4,
                 "run_id": run_id,
                 "plan_digest": plan_digest,
                 "benchmark_id": benchmark_id,
@@ -714,7 +717,7 @@ class ControlledExecutionService:
 
         report = {
             "schema_version": 1,
-            "evaluator_version": 3,
+            "evaluator_version": 4,
             "report_id": report_id,
             **request,
             "request_digest": request_digest,

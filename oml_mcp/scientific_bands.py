@@ -371,8 +371,21 @@ def characterize_window_sampling(
     *,
     screening_kpoints: tuple[tuple[float, float, float], ...],
     screening_grid: tuple[int, int, int],
+    screening_offset: tuple[float, float, float],
 ) -> dict[str, object]:
-    grid_points = {_normalized_kpoint(point) for point in screening_kpoints}
+    grid_points = {
+        _normalized_kpoint(
+            (
+                (ix + screening_offset[0]) / screening_grid[0],
+                (iy + screening_offset[1]) / screening_grid[1],
+                (iz + screening_offset[2]) / screening_grid[2],
+            )
+        )
+        for ix in range(screening_grid[0])
+        for iy in range(screening_grid[1])
+        for iz in range(screening_grid[2])
+    }
+    irreducible_points = {_normalized_kpoint(point) for point in screening_kpoints}
     path_points = sorted(
         {
             _normalized_kpoint(tuple(state["kpoint"]))  # type: ignore[arg-type,index]
@@ -384,7 +397,9 @@ def characterize_window_sampling(
     off_grid = [list(point) for point in path_points if point not in grid_points]
     return {
         "screening_grid": list(screening_grid),
+        "screening_offset": list(screening_offset),
         "screening_kpoint_count": len(grid_points),
+        "screening_irreducible_kpoint_count": len(irreducible_points),
         "band_path_kpoint_count": len(path_points),
         "vbm_on_screening_grid": vbm_kpoint in grid_points,
         "cbm_on_screening_grid": cbm_kpoint in grid_points,
