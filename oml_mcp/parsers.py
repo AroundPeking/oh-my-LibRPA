@@ -59,6 +59,76 @@ def parse_librpa_input(path: str | Path) -> InputDocument:
     return InputDocument(path=file_path.resolve(), syntax="librpa", entries=tuple(entries))
 
 
+def parse_abacus_kpt(path: str | Path) -> dict[str, Any]:
+    file_path, lines = _read_lines(path)
+    content = [_without_comment(line) for line in lines]
+    content = [line for line in content if line]
+    if len(content) < 3 or content[0].upper() not in {"K_POINTS", "KPOINTS"}:
+        raise ParseError(f"invalid ABACUS KPT header in {file_path}")
+    count = parse_int(content[1], name="KPT point count")
+    if count < 0:
+        raise ParseError(f"KPT point count cannot be negative in {file_path}")
+    mode = content[2].strip().lower()
+    rows = [line.split() for line in content[3:]]
+    if mode in {"gamma", "mp", "monkhorst-pack"}:
+        if count != 0 or len(rows) != 1 or len(rows[0]) != 6:
+            raise ParseError(f"mesh KPT requires count 0 and one six-value row in {file_path}")
+        grid = [parse_int(token, name="KPT grid dimension") for token in rows[0][:3]]
+        offset = [parse_float(token, name="KPT grid offset") for token in rows[0][3:]]
+        if any(value <= 0 for value in grid):
+            raise ParseError(f"KPT grid dimensions must be positive in {file_path}")
+        return {
+            "mode": "mesh",
+            "scheme": "gamma" if mode == "gamma" else "mp",
+            "grid": grid,
+            "offset": offset,
+        }
+    if mode in {"line", "line_cartesian"}:
+        if count <= 0 or len(rows) != count:
+            raise ParseError(
+                f"KPT row count {len(rows)} != declared count {count} in {file_path}"
+            )
+        points: list[list[float]] = []
+        segments: list[int] = []
+        for index, row in enumerate(rows, start=1):
+            if len(row) != 4:
+                raise ParseError(f"invalid line-mode KPT row {index} in {file_path}")
+            point = [parse_float(token, name="KPT coordinate") for token in row[:3]]
+            segment = parse_int(row[3], name="KPT segment count")
+            if segment <= 0:
+                raise ParseError(f"KPT segment count must be positive in {file_path}")
+            points.append(point)
+            segments.append(segment)
+        return {
+            "mode": "path",
+            "coordinate_system": "cartesian" if mode == "line_cartesian" else "direct",
+            "points": points,
+            "segments": segments,
+        }
+    if mode in {"direct", "cartesian"}:
+        if count <= 0 or len(rows) != count:
+            raise ParseError(
+                f"KPT row count {len(rows)} != declared count {count} in {file_path}"
+            )
+        points: list[list[float]] = []
+        weights: list[float] = []
+        for index, row in enumerate(rows, start=1):
+            if len(row) != 4:
+                raise ParseError(f"invalid explicit KPT row {index} in {file_path}")
+            points.append([parse_float(token, name="KPT coordinate") for token in row[:3]])
+            weight = parse_float(row[3], name="KPT weight")
+            if weight < 0:
+                raise ParseError(f"KPT weights cannot be negative in {file_path}")
+            weights.append(weight)
+        return {
+            "mode": "explicit",
+            "coordinate_system": mode,
+            "points": points,
+            "weights": weights,
+        }
+    raise ParseError(f"unsupported KPT mode {content[2]!r} in {file_path}")
+
+
 def parse_bool(value: str | None) -> bool:
     if value is None:
         raise ParseError("missing boolean value")

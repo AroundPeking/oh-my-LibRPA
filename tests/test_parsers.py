@@ -7,6 +7,7 @@ from oml_mcp.models import GateResult, ValidationReport
 from oml_mcp.parsers import (
     ParseError,
     parse_abacus_input,
+    parse_abacus_kpt,
     parse_band_out,
     parse_band_out_header,
     parse_bool,
@@ -22,6 +23,55 @@ class InputParserTest(unittest.TestCase):
         path = pathlib.Path(root) / name
         path.write_text(content, encoding="utf-8")
         return path
+
+    def test_abacus_kpt_parser_supports_mesh_line_and_explicit_modes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mesh = self.write(tmpdir, "KPT_mesh", "K_POINTS\n0\nGamma\n2 3 4 0 0.5 0\n")
+            line = self.write(
+                tmpdir,
+                "KPT_line",
+                "K_POINTS\n2\nLine\n0 0 0 3 # G\n0.5 0 0.5 1 # X\n",
+            )
+            direct = self.write(
+                tmpdir,
+                "KPT_direct",
+                "K_POINTS\n2\nDirect\n0 0 0 0.5\n0.5 0 0.5 0.5\n",
+            )
+
+            mesh_data = parse_abacus_kpt(mesh)
+            line_data = parse_abacus_kpt(line)
+            direct_data = parse_abacus_kpt(direct)
+
+        self.assertEqual(
+            mesh_data,
+            {
+                "mode": "mesh",
+                "scheme": "gamma",
+                "grid": [2, 3, 4],
+                "offset": [0.0, 0.5, 0.0],
+            },
+        )
+        self.assertEqual(line_data["mode"], "path")
+        self.assertEqual(line_data["segments"], [3, 1])
+        self.assertEqual(line_data["points"][1], [0.5, 0.0, 0.5])
+        self.assertEqual(direct_data["mode"], "explicit")
+        self.assertEqual(direct_data["weights"], [0.5, 0.5])
+
+    def test_abacus_kpt_parser_rejects_count_and_mode_errors(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bad_count = self.write(
+                tmpdir,
+                "KPT_bad_count",
+                "K_POINTS\n2\nDirect\n0 0 0 1\n",
+            )
+            bad_mode = self.write(
+                tmpdir, "KPT_bad_mode", "K_POINTS\n0\nUnknown\n1 1 1\n"
+            )
+
+            with self.assertRaisesRegex(ParseError, "row count"):
+                parse_abacus_kpt(bad_count)
+            with self.assertRaisesRegex(ParseError, "unsupported KPT mode"):
+                parse_abacus_kpt(bad_mode)
 
     def test_abacus_parser_keeps_values_lines_and_duplicate_keys(self):
         with tempfile.TemporaryDirectory() as tmpdir:
