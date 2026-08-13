@@ -80,6 +80,27 @@ class ScientificRegistryTest(unittest.TestCase):
         self.assertEqual(loaded["run_ids"], ["run-coarse", "run-fine"])
         self.assertEqual(invalid.exception.code, "CONVERGENCE_BUNDLE_INVALID")
 
+    def test_convergence_bundle_accepts_materialized_run_id_format(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            bundle = {
+                "schema_version": 1,
+                "bundle_id": "bn-live-nfreq-v1",
+                "benchmark_id": "bn-reader-v1-3d-v1",
+                "axis": "nfreq",
+                "run_ids": [
+                    "run-20260813T075654Z-4b7c45dd32",
+                    "run-20260813T075641Z-80efe676aa",
+                ],
+            }
+            (root / "bn-live-nfreq-v1.json").write_text(
+                json.dumps(bundle), encoding="utf-8"
+            )
+
+            loaded = load_convergence_bundle("bn-live-nfreq-v1", roots=(root,))
+
+        self.assertEqual(loaded["run_ids"], bundle["run_ids"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,7 @@ from .scientific_definition import CONVERGENCE_AXES
 
 
 REGISTRY_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+RUN_ID_PATTERN = re.compile(r"^run-[A-Za-z0-9][A-Za-z0-9_-]{0,123}$")
 PACKAGED_BENCHMARK_ROOT = Path(__file__).with_name("scientific_benchmarks")
 
 
@@ -145,7 +146,7 @@ def load_convergence_bundle(
         and isinstance(run_ids, list)
         and len(run_ids) == 2
         and len(set(run_ids)) == 2
-        and all(isinstance(run_id, str) and REGISTRY_ID_PATTERN.fullmatch(run_id) for run_id in run_ids)
+        and all(isinstance(run_id, str) and RUN_ID_PATTERN.fullmatch(run_id) for run_id in run_ids)
     )
     if not valid:
         raise ScientificRegistryError(
