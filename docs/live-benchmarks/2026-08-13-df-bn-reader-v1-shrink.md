@@ -2,11 +2,16 @@
 
 Date: 2026-08-13
 
-This benchmark validates the current OML controlled-execution path on the
-`df_iopcas_ghj` Slurm cluster. It is a workflow and format-compatibility
-benchmark. It is not yet a scientific GW accuracy reference.
+This benchmark validates the current OML controlled three-dimensional GW path
+on `df_iopcas_ghj`. It now covers complete execution, reader-v1 interoperability,
+PyATB state dimensions, scientific diagnostics, and three initial convergence
+axes. It is not an accepted GW reference: the complete convergence result is
+`FAIL`, and the packaged BN policy intentionally has no promoted reference.
 
-## Pinned stack
+Strict 2D was not run. Its planning interface remains visible but execution is
+blocked as `LIBRPA_070_STRICT_2D_INVALID` for the pinned LibRPA revision.
+
+## Pinned stack and definition
 
 | Component | Revision or fingerprint |
 | --- | --- |
@@ -15,117 +20,121 @@ benchmark. It is not yet a scientific GW accuracy reference.
 | PyATB `enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
 | ABACUS executable SHA-256 | `56f445affd67756cea21381b05a45b4de5d9cbe8b0a061cdc80d91e37228fa6e` |
 | LibRPA executable SHA-256 | `7af5e426933283a2aa08b8771692bc770506ce3b6f00ccf8545108cb8e58d3bc` |
+| `get_diel.py` SHA-256 | `fea2d2e62a23aa86bd17b8a447dd58f078679fcf7b6db31b493fe2b13137e714` |
+| `output_librpa.py` SHA-256 | `10986012071d6bb1d235874c5136e79b5b2f137e6b71bbd78a7cecdc9060305a` |
 
 The ABACUS executable uses the exact pinned source with compiler vectorization
 disabled because Intel oneAPI 2024.2 crashed while compiling
 `ctrl_scf_lcao.cpp` at the original optimization settings. No ABACUS source
 file was changed for this build.
 
-## Controlled case
+The fixed route is `SCF -> PyATB -> NSCF -> preprocess -> LibRPA`, using:
 
-- System: 3D cubic BN, nonmagnetic, non-SOC, `2 x 2 x 2` regular k grid.
-- Route: `SCF -> PyATB -> NSCF -> preprocess -> LibRPA`.
-- Format: explicit reader-v1 for Coulomb and LRI coefficient files.
-- Symmetry: ABACUS `symmetry = 1` producer; LibRPA rebuilds rotations from
-  `stru_out`; legacy copied symmetry sidecars are not required.
-- Shrink producer: `exx_pca_threshold = 1e-3`,
-  `shrink_abfs_pca_thr = 1e-1`, `shrink_lu_inv_thr = 1e-3`.
-- Shrink consumer: `use_shrink_abfs = t`, `use_shrink_chi = t`, with explicit
-  `v1_Cs_shrinked_data_`, `v1_shrink_sinvS_`, and
-  `basis_aux_shrink_out` names.
-- EXX Coulomb definition: `use_fullcoul_exx = f`, matching the LibRPA 0.7.0
-  default and official ABACUS GW regressions.
-- Auxiliary dimensions: full `119`, shrink `34`.
+- cubic three-dimensional BN, nonmagnetic and non-SOC;
+- explicit reader-v1 Coulomb and LRI data;
+- ABACUS `symmetry = 1`, with rotations reconstructed by LibRPA from
+  `stru_out`; no legacy symmetry sidecars are copied;
+- `exx_pca_threshold = 1e-3`, `shrink_abfs_pca_thr = 1e-1`, and
+  `shrink_lu_inv_thr = 1e-3`;
+- full auxiliary dimension `119`, shrunk dimension `34`;
+- `use_shrink_abfs = t`, `use_shrink_chi = t`, head/wing enabled, and
+  `use_fullcoul_exx = f`.
 
-The input-stage report contained 14 PASS, 0 WARN, and 0 FAIL gates before the
-dedicated EXX-definition gate was added. The final controlled baseline's
-immutable plan digest was
-`f67cf43e0fa5ffbc2747f65ec52267126486a520f8ef19659126aa81821d1533`.
+## PyATB state-count contract
 
-## Stage evidence
+PyATB diagonalizes the complete AO Hamiltonian, but the adapter must use the
+ABACUS `band_out` state count consistently in PyATB `band_out`, `k_path_info`,
+reader-v1 eigenvectors, and reader-v1 velocity matrices.
 
-Run: `run-20260813T033132Z-9f810b6522`
+An earlier `nbands = 22` attempt,
+`run-20260813T073552Z-3d810bc5d7`, let PyATB write 26 states. SCF, PyATB,
+NSCF, and preprocessing passed, but LibRPA job `3004696` ended `FAILED`,
+`ExitCode 1:0`, after 9 seconds with:
 
-| Stage | Slurm job | Elapsed | OML inspection |
-| --- | ---: | ---: | --- |
-| SCF | `3003134` | 58 s | 3 PASS |
-| PyATB | `3003136` | 17 s | 38 PASS |
-| NSCF | `3003139` | 3 s | 3 PASS |
-| preprocess | `3003140` | 1 s | 3 PASS |
-| LibRPA | `3003141` | 11 s | 4 PASS |
+```text
+k-BLACS eigenvector reader got inconsistent dimensions
+```
 
-All five immutable attempts passed. The final OML score is 55/100 with verdict
-`INCOMPLETE`: provenance, pinned versions, stage lineage, duplicate protection,
-stage completion, and finite output passed; diagnosis and numerical/scientific
-validity remain explicitly not evaluated.
+OML retained the failed terminal snapshot and forced the scheduler gate to
+FAIL. No stage was repeated in that run directory. The corrected adapter reads
+22 from the ABACUS output, truncates every PyATB handoff payload consistently,
+and completed the equivalent LibRPA route as job `3004837`.
 
-Final artifact SHA-256 values:
+## Adapter-v2 execution evidence
+
+All 20 jobs below ended `COMPLETED` with `ExitCode 0:0`. Every run has five
+immutable accepted stage receipts; the final LibRPA inspection has 4 PASS,
+0 WARN, and 0 FAIL gates.
+
+| Run and isolated setting | SCF | PyATB | NSCF | preprocess | LibRPA |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| candidate: `k444`, `nbands=26`, `nfreq=16` (`run-20260813T075641Z-80efe676aa`) | `3004753` | `3004798` | `3004810` | `3004825` | `3004835` |
+| frequency coarse: `k444`, `nbands=26`, `nfreq=12` (`run-20260813T075654Z-4b7c45dd32`) | `3004754` | `3004801` | `3004811` | `3004828` | `3004836` |
+| empty-state coarse: `k444`, `nbands=22`, `nfreq=16` (`run-20260813T075658Z-92006c0096`) | `3004755` | `3004802` | `3004813` | `3004829` | `3004837` |
+| screening coarse: `k333`, `nbands=26`, `nfreq=16` (`run-20260813T075701Z-e9ea71f6bc`) | `3004757` | `3004803` | `3004815` | `3004830` | `3004838` |
+
+The candidate's immutable plan digest is
+`3530018ac7dd6827ce15dccabd0b960d377fc216f0048502d7eb8b7888b111b7`.
+Its final GW gap is `6.06097 eV`; QPE, finite-value, continuation, root, and
+positive-gap diagnostics all pass.
+
+Candidate artifact hashes:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `KS_band_spin_1.dat` | `7d061a0bf7b9d8a7a38a5a9e1e83557aab3a85b7675595009a658a41b6b2b930` |
-| `EXX_band_spin_1.dat` | `0abae042770d3a13813917ad2261f45b7ea12e0aca687c7932464f6058834bf9` |
-| `GW_band_spin_1.dat` | `5e899992b12078b120cf870324e956daa77a81ad5b8d093fa42f4b267f02ef0f` |
+| `KS_band_spin_1.dat` | `c7a54f6d5901440ef617157f52ee9563899d06151131082d6377a36c712420d2` |
+| `EXX_band_spin_1.dat` | `201f1ff081023b0a382614ae78ebb6fbf27c08dc547cf46e857c2fabfc9ef8de` |
+| `GW_band_spin_1.dat` | `a1d33f87d7fec065b7519a6701c79712702b046bceaf3ac94a995034b1c3d605` |
+| `band_out` | `ce0bc5169f36e0d20fd7331e871fc633913d33d8dc07e22b9a4b33ebf9306d46` |
 | `stru_out` | `e9b77fb9f6b28a45585f26ff607ce33111edb8d8102477f6367a3513eeb130eb` |
 
-## Consumer isolation check
+## Scientific convergence result
 
-The pinned LibRPA executable was also run against the official frozen dataset
-for `g0w0_band_abacus_BN_headwing_sym_kpara_shrink_v1_libri`. Slurm job
-`3003038` completed successfully. Both `EXX_band_spin_1.dat` and
-`GW_band_spin_1.dat` matched the LibRPA 0.7.0 references element by element;
-the maximum absolute difference was `0.0 eV`.
+OML compares every `VBM-3` through `CBM+3` state at all three band-path
+k points. An axis passes only when both the maximum GW-state change and the
+fundamental-gap change are no larger than `0.05 eV`.
 
-This confirms the fixed LibRPA reader-v1/shrink consumer path. It does not prove
-that a freshly produced ABACUS dataset must match an older frozen dataset,
-because producer revisions and calculation definitions can differ.
+| Axis | Coarse -> fine | Coarse gap | Fine gap | Max GW-state change | Gap change | Result |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `nfreq` | `12 -> 16` | `5.99677 eV` | `6.06097 eV` | `0.34178 eV` | `0.06420 eV` | FAIL |
+| empty states | `nbands 22 -> 26` | `2.17812 eV` | `6.06097 eV` | `7.65755 eV` | `3.88285 eV` | FAIL |
+| screening k grid | `3x3x3 -> 4x4x4` | `-5.57335 eV` | `6.06097 eV` | not accepted | not accepted | FAIL |
 
-An earlier complete workflow run (`run-20260813T025321Z-9c7c0755b3`) explicitly
-set `use_fullcoul_exx = t`, while LibRPA 0.7.0 defaults to `false` and all seven
-official ABACUS GW regression inputs leave it disabled. With the current
-producer data and only `use_fullcoul_exx` changed to `f`, 66 of 78 EXX entries
-and 65 of 78 GW entries agreed with the frozen reference within `1e-4 eV`; the
-remaining 12 or 13 entries reflect producer-data differences. OML templates now use
-`use_fullcoul_exx = f`. Full-Coulomb EXX is an explicit physical-definition
-override, not a general default.
+The `k333` result fails before a numerical delta is accepted because its GW gap
+is nonpositive. Two of the three band-path points are also outside that regular
+screening grid. Earlier `k222` diagnostics gave `-139.25042 eV` with symmetry
+and head/wing, `-132.67662 eV` with head/wing disabled, and the same
+`-132.67662 eV` with both symmetry and head/wing disabled. A `k444` run with
+both disabled recovered `6.01506 eV`. This rules out symmetry as the main cause
+and does not support treating head/wing as the sole cause; the strong screening
+grid and band-path dependence must be resolved by a dedicated convergence
+campaign.
 
-The final controlled baseline differs from the frozen reference by at most
-`0.443 eV` over the first four GW states at each of the three band-path k
-points. This is recorded as an unresolved producer/reference difference, not a
-scientific acceptance result.
+The final candidate report is
+`science-f0e8a334a03635db0637`: all execution hard gates pass, but all three
+required convergence axes fail. `score_case` therefore reports `75/100` and
+verdict `FAIL`. The result is operationally complete but not scientifically
+accepted. No reference will be promoted from it.
 
-## Harness efficiency evidence
+## Independent consumer check
 
-The first full SCF snapshot took `73.8 s`. Reusing the previous immutable
-snapshot with checksum-verified hard links reduced subsequent PyATB, NSCF,
-preprocess, and LibRPA inspection times to `2.3 s`, `3.0 s`, `2.2 s`, and
-`2.9 s`. Only about `214 kB` of unique data was added by the final LibRPA
-snapshot. Read-only version and executable fingerprint checks also retry up to
-three transient observation timeouts; Slurm submission commands are never
-automatically retried.
+The same pinned LibRPA executable was run against the official frozen
+`g0w0_band_abacus_BN_headwing_sym_kpara_shrink_v1_libri` dataset. Job
+`3003038` completed, and both EXX and GW band tables matched the LibRPA 0.7.0
+references with maximum absolute difference `0.0 eV`. This isolates the fixed
+reader-v1/shrink consumer path; it does not make a newly produced dataset a
+scientific reference.
 
-## Negative evidence retained
+## Retained evidence and next gates
 
-The no-shrink `exx_pca_threshold = 1e-3` run reached LibRPA but stopped because
-the option-3 head/wing path found one singular auxiliary-basis direction:
-`n_singular = 1`, `n_nonsingular = 118`, `n_abf = 119`. Disabling the ELPA
-square-root backend did not change that result. Directly changing
-`exx_pca_threshold` to `1e-1` made the route finish, but it is not treated as a
-replacement for the explicit full-plus-shrink protocol.
+All source bundles, runs, terminal logs, snapshots, scientific reports, and
+negative diagnostics were retained. OML did not clean or overwrite any result.
+The earlier no-shrink head/wing failure with one singular auxiliary direction
+(`n_singular = 1`, `n_nonsingular = 118`, `n_abf = 119`) also remains retained.
 
-## Remaining scientific gates
-
-OML 0.3 now defines the low-energy window as `VBM-3` through `CBM+3`, a
-definition-matched regression threshold of `0.001 eV`, and independent
-`nfreq`, empty-state, and screening-k-grid convergence thresholds of `0.05 eV`
-for both GW states and the fundamental gap. The packaged BN policy deliberately
-contains no accepted reference yet, so this historical run remains
-`NOT_EVALUATED` rather than being promoted automatically.
-
-Before this case can become a PASS scientific benchmark, the three convergence
-axes must pass and a candidate reference must be reviewed and promoted in a
-repository commit. NAO/ABFS completeness, analytic-continuation alternatives,
-and shrink thresholds remain later independent campaigns. Large
-corrections in high unoccupied states are present in the upstream program
-regression itself, so a universal absolute-energy cutoff would create false
-failures. Numerical gates must be state-window and benchmark specific.
+The next three-dimensional campaign must extend `nfreq` beyond 16, increase
+empty states substantially beyond 26, and test finer screening grids while
+keeping the band path and every non-axis definition fixed. Only after all three
+axes pass can a candidate reference be reviewed and promoted in a repository
+commit. NAO/ABFS completeness, analytic continuation, shrink thresholds, and
+strict 2D remain separate gates.

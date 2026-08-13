@@ -37,7 +37,7 @@ At preparation and before every submission, OML checks the pinned source SHAs an
 2. Review the immutable plan digest and call `prepare_run(source_path, plan_digest, execution_profile_id)`.
 3. Call `submit_stage` for exactly one stage. It transactionally rejects stale plans, wrong order, passed stages, and equivalent active or unobservable jobs.
 4. Call read-only `get_status`. It observes `squeue` and falls back to `sacct`; it does not mark scientific success or change SQLite state.
-5. When the scheduler reports completion, call `inspect_stage`. It records the observation, creates a bounded remote snapshot where needed, applies fixed artifact gates, and writes an immutable PASS/FAIL receipt.
+5. At a terminal scheduler state (`COMPLETED`, `FAILED`, or `CANCELLED`), call `inspect_stage`. It records the observation, creates a bounded remote snapshot where needed, applies fixed artifact gates, and writes an immutable PASS/FAIL receipt. Failed or cancelled scheduler states are always forced to FAIL even if partial artifacts look complete.
 6. Repeat in order. Before `librpa`, OML runs the complete `pre_librpa` cross-dataset validation.
 7. After the final accepted LibRPA snapshot, call `finalize_case` with registered benchmark and optional convergence-bundle IDs. It records a scientific report bound to the final attempt and immutable manifest.
 8. Call `score_case` at any point to inspect hard gates, scientific status, component scores, retries, and remaining work.
@@ -65,6 +65,8 @@ Each new run contains:
 When `INPUT_scf`/`INPUT_nscf` or `KPT_scf`/`KPT_nscf` exist, stale generic `INPUT` and `KPT` work copies are excluded from the source manifest. Producer outputs and old run data are never copied into a fresh run.
 
 The fixed executor requires explicit `input_dir = .`, because ABACUS, PyATB, preprocessing, and LibRPA all produce or consume the same run root. Controlled `pseudo_dir` and `orbital_dir` values must stay inside that immutable run bundle. PP, NAO, and ABFS paths referenced by `STRU` must be regular in-bundle files; absolute paths, parent traversal, links, and missing assets are rejected.
+
+PyATB may diagonalize the complete AO Hamiltonian internally, but the OML adapter reads the requested state count from ABACUS `band_out` and writes exactly that count to PyATB `band_out`, `k_path_info`, reader-v1 eigenvectors, and reader-v1 velocity matrices. LibRPA 0.7.0 requires these dimensions to equal the main ABACUS mean-field `nbands`; a larger PyATB state space is not a supported superset.
 
 ## Scorecard
 

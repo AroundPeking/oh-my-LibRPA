@@ -42,6 +42,14 @@ for every approved profile and run.
 8. Controlled execution pins the OML helper quartet by SHA-256 in the
    compatibility profile. This prevents an immutable input digest from being
    used to execute an unreviewed `perform.sh`, adapter, or preprocessing script.
+9. The PyATB calculation may solve the complete AO eigensystem, but LibRPA
+   0.7.0 does not accept it as a superset of a smaller ABACUS `band_out`.
+   `get_diel.py` therefore reads `nbands` from the ABACUS output and
+   `output_librpa.py` uses that same state count in PyATB `band_out`,
+   `k_path_info`, reader-v1 eigenvector headers/payloads, and reader-v1
+   velocity headers/payloads. A live `nbands = 22` run with 26 PyATB states
+   failed in LibRPA with `k-BLACS eigenvector reader got inconsistent
+   dimensions`; the aligned adapter completed the same route.
 
 ## Reader-v1 Handoff
 

@@ -58,6 +58,11 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "0.05 eV",
             "VBM-3",
             "CBM+3",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED",
+            "PyATB",
+            "nbands",
         ):
             self.assertIn(text, guide)
 

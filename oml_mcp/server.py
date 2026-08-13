@@ -234,7 +234,7 @@ def build_server() -> MCPServer:
         plan_digest: str,
         execution_profile_id: str,
     ) -> dict[str, Any]:
-        """Accept a stage only after scheduler completion and artifact gates."""
+        """Snapshot a terminal stage and accept only successful scheduler and artifact gates."""
         return _controlled_call(
             lambda: _controlled_service(execution_profile_id).inspect_stage(
                 run_id, attempt_id, plan_digest
