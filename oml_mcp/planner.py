@@ -16,6 +16,7 @@ ROUTE_STAGES = {
     "molecular_gw": ("scf", "librpa"),
     "periodic_gw": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
     "periodic_gw_symmetry": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
+    "strict_2d_gw_deferred": (),
     "rpa": ("scf", "librpa"),
 }
 
@@ -51,7 +52,14 @@ def plan_case(
                 raise PlanError("molecular GW requires head/wing replacement to be disabled")
             route = "molecular_gw"
             assumptions.append("isolated-system short route without PyATB or band-path NSCF")
-        elif normalized_system in {"solid", "periodic", "2d", "two-dimensional"}:
+        elif normalized_system in {"2d", "two-dimensional"}:
+            if headwing is False:
+                raise PlanError("strict 2D GW requires head/wing replacement")
+            route = "strict_2d_gw_deferred"
+            assumptions.append(
+                "strict 2D remains blocked until a corrected LibRPA profile and 2D gates are installed"
+            )
+        elif normalized_system in {"solid", "periodic"}:
             if headwing is False:
                 raise PlanError("periodic GW requires PyATB head/wing replacement in this profile")
             if soc and use_symmetry:
@@ -79,6 +87,9 @@ def plan_case(
         "soc": soc,
         "headwing": route in {"periodic_gw", "periodic_gw_symmetry"},
     }
+    if route == "strict_2d_gw_deferred":
+        options["headwing"] = True
+        options["capability"] = profile["capabilities"]["strict_2d_gw"]
     plan_payload = {
         "schema_version": 1,
         "profile_id": profile["profile_id"],
@@ -89,13 +100,27 @@ def plan_case(
     }
     plan_digest = digest_json(plan_payload)
     plan_id = f"plan-{digest_json({'digest': plan_digest, 'source_path': source_path})[:16]}"
-    gate = GateResult(
-        gate_id="plan.route",
-        status="PASS",
-        message=f"selected deterministic route {route}",
-        evidence=(str(Path(path).expanduser().resolve()),),
-        measurements={"stages": len(ROUTE_STAGES[route])},
-    )
+    if route == "strict_2d_gw_deferred":
+        capability = profile["capabilities"]["strict_2d_gw"]
+        gate = GateResult(
+            gate_id="plan.route",
+            status="WARN",
+            message="strict 2D GW is discoverable but blocked for the pinned LibRPA profile",
+            evidence=(
+                capability["reason_code"],
+                capability["component_revision"],
+            ),
+            repair="pin a corrected LibRPA revision and implement the declared strict-2D gates",
+            measurements={"stages": 0},
+        )
+    else:
+        gate = GateResult(
+            gate_id="plan.route",
+            status="PASS",
+            message=f"selected deterministic route {route}",
+            evidence=(str(Path(path).expanduser().resolve()),),
+            measurements={"stages": len(ROUTE_STAGES[route])},
+        )
     return CasePlan(
         plan_id=plan_id,
         digest=plan_digest,

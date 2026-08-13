@@ -508,6 +508,24 @@ class WorkflowValidatorTest(unittest.TestCase):
 
         self.assertEqual(self.gate(report, "route.policy").status, "FAIL")
 
+    def test_strict_2d_validation_reports_the_pinned_version_block(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root, use_symmetry=True, headwing=True)
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="2d",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        gate = self.gate(report, "route.strict_2d_capability")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertIn("LIBRPA_070_STRICT_2D_INVALID", gate.evidence)
+        self.assertIn("dd169fa11fa920d580d4f39dc11e218a7f17f7b5", gate.evidence)
+
     def test_symmetry_route_requires_positive_row_convention_operations(self):
         with tempfile.TemporaryDirectory() as zero_tmp, tempfile.TemporaryDirectory() as col_tmp:
             zero = pathlib.Path(zero_tmp)

@@ -299,8 +299,24 @@ def _headwing_policy_gate(librpa: InputDocument, task: str, system_type: str) ->
     )
 
 
-def _route_policy_gate(task: str, system_type: str, use_symmetry: bool) -> GateResult:
+def _route_policy_gate(
+    task: str,
+    system_type: str,
+    use_symmetry: bool,
+    profile: dict[str, Any],
+) -> GateResult:
     normalized_system = system_type.strip().lower()
+    if task == "gw" and normalized_system in {"2d", "two-dimensional"}:
+        blocked = profile["capabilities"]["strict_2d_gw"]
+        return _fail(
+            "route.strict_2d_capability",
+            "strict 2D GW is blocked for the pinned LibRPA profile",
+            (
+                blocked["reason_code"],
+                blocked["component_revision"],
+            ),
+            "pin a corrected LibRPA revision and add every declared strict-2D gate",
+        )
     molecular = normalized_system in {"atom", "molecule", "molecular"}
     if task == "gw" and molecular and use_symmetry:
         return _fail(
@@ -629,7 +645,7 @@ def validate_case(
         _unsupported_key_gate(librpa, contract["librpa"]["unsupported_oml_keys"]),
         _task_gate(librpa, normalized_task),
         _fullcoul_exx_gate(librpa),
-        _route_policy_gate(normalized_task, system_type, use_symmetry),
+        _route_policy_gate(normalized_task, system_type, use_symmetry, profile),
         _headwing_policy_gate(librpa, normalized_task, system_type),
         _value_gate(
             librpa,

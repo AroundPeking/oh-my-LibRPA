@@ -65,6 +65,20 @@ class CompatibilityProfileTest(unittest.TestCase):
             "use_symmetry_gw",
         )
 
+    def test_librpa_070_blocks_strict_2d_until_a_corrected_profile_is_pinned(self):
+        profile = load_profile()
+
+        self.assertEqual(profile["capabilities"]["periodic_3d_gw"]["status"], "ENABLED")
+        blocked = profile["capabilities"]["strict_2d_gw"]
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked["reason_code"], "LIBRPA_070_STRICT_2D_INVALID")
+        self.assertEqual(blocked["component"], "librpa")
+        self.assertEqual(
+            blocked["component_revision"],
+            profile["components"]["librpa"]["revision"],
+        )
+        self.assertGreaterEqual(len(blocked["enablement_requires"]), 4)
+
     def test_deprecated_task_and_binary_markers_are_recorded(self):
         profile = load_profile()
 
@@ -109,6 +123,17 @@ class CompatibilityProfileTest(unittest.TestCase):
             path.write_text(json.dumps(profile), encoding="utf-8")
 
             with self.assertRaisesRegex(ProfileError, "pyatb.*revision"):
+                load_profile(path)
+
+    def test_profile_validation_rejects_a_2d_block_for_another_librpa_revision(self):
+        profile = load_profile()
+        profile["capabilities"]["strict_2d_gw"]["component_revision"] = "0" * 40
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "bad-profile.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+
+            with self.assertRaisesRegex(ProfileError, "strict_2d_gw.*revision"):
                 load_profile(path)
 
 

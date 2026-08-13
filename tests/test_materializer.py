@@ -446,13 +446,19 @@ class MaterializerTest(unittest.TestCase):
                 encoding="utf-8",
             )
             strict_2d = plan_case(source, task="gw", system_type="2d")
-            with self.assertRaisesRegex(OMLError, "ROUTE_NOT_EXECUTABLE"):
+            before = tuple(profile.allowed_run_roots[0].glob("run-*"))
+            with self.assertRaises(OMLError) as raised:
                 prepare_run(
                     source,
                     strict_2d.digest,
                     profile,
                     execution_receipt=make_execution_receipt(profile),
                 )
+            after = tuple(profile.allowed_run_roots[0].glob("run-*"))
+
+        self.assertEqual(raised.exception.code, "CAPABILITY_BLOCKED")
+        self.assertIn("LIBRPA_070_STRICT_2D_INVALID", raised.exception.evidence)
+        self.assertEqual(before, after)
 
     def test_mixed_source_after_planning_returns_stable_stale_plan_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:

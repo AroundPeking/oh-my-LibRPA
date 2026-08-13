@@ -19,6 +19,23 @@
       "revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
     }
   },
+  "capabilities": {
+    "periodic_3d_gw": {
+      "status": "ENABLED"
+    },
+    "strict_2d_gw": {
+      "status": "BLOCKED",
+      "reason_code": "LIBRPA_070_STRICT_2D_INVALID",
+      "component": "librpa",
+      "component_revision": "dd169fa11fa920d580d4f39dc11e218a7f17f7b5",
+      "enablement_requires": [
+        "replacement pinned LibRPA revision with the strict-2D defect fixed",
+        "definition-matched strict-2D regression fixtures",
+        "finite-q and Gamma head/wing acceptance tests",
+        "vacuum, in-plane k-grid, and final GW convergence gates"
+      ]
+    }
+  },
   "contract": {
     "abacus": {
       "source_default": {

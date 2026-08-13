@@ -55,6 +55,33 @@ def validate_profile(profile: dict[str, Any]) -> None:
             if not isinstance(entry.get(key), str) or not entry[key]:
                 raise ProfileError(f"{name}.{key} must be a non-empty string")
 
+    capabilities = _require_mapping(profile, "capabilities", "profile")
+    periodic_3d = _require_mapping(capabilities, "periodic_3d_gw", "capabilities")
+    if periodic_3d.get("status") != "ENABLED":
+        raise ProfileError("capabilities.periodic_3d_gw.status must be ENABLED")
+    strict_2d = _require_mapping(capabilities, "strict_2d_gw", "capabilities")
+    if strict_2d.get("status") != "BLOCKED":
+        raise ProfileError("capabilities.strict_2d_gw.status must be BLOCKED")
+    if strict_2d.get("reason_code") != "LIBRPA_070_STRICT_2D_INVALID":
+        raise ProfileError(
+            "capabilities.strict_2d_gw.reason_code must be LIBRPA_070_STRICT_2D_INVALID"
+        )
+    if strict_2d.get("component") != "librpa":
+        raise ProfileError("capabilities.strict_2d_gw.component must be librpa")
+    if strict_2d.get("component_revision") != components["librpa"]["revision"]:
+        raise ProfileError(
+            "capabilities.strict_2d_gw component revision must match the pinned LibRPA revision"
+        )
+    requirements = strict_2d.get("enablement_requires")
+    if (
+        not isinstance(requirements, list)
+        or len(requirements) < 4
+        or any(not isinstance(item, str) or not item for item in requirements)
+    ):
+        raise ProfileError(
+            "capabilities.strict_2d_gw.enablement_requires must list at least four requirements"
+        )
+
     contract = _require_mapping(profile, "contract", "profile")
     for name in ("abacus", "librpa", "pyatb_adapter"):
         _require_mapping(contract, name, "contract")

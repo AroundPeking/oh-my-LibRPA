@@ -278,6 +278,18 @@ def prepare_run(
             evidence=(str(source),),
             recovery="replace escaped links with regular immutable source files",
         ) from exc
+    if plan.route == "strict_2d_gw_deferred":
+        capability = plan.options["capability"]
+        raise OMLError(
+            "CAPABILITY_BLOCKED",
+            "strict 2D GW is blocked for the pinned LibRPA 0.7.0 profile",
+            evidence=(
+                plan.profile_id,
+                capability["reason_code"],
+                capability["component_revision"],
+            ),
+            recovery="pin a corrected LibRPA profile and add the required strict-2D gates before execution",
+        )
     if plan.route not in {"periodic_gw", "periodic_gw_symmetry"} or plan.options["soc"]:
         raise OMLError(
             "ROUTE_NOT_EXECUTABLE",

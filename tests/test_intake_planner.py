@@ -111,6 +111,21 @@ class PlannerTest(unittest.TestCase):
         )
         self.assertTrue(symmetry.options["use_symmetry"])
 
+    def test_strict_2d_route_is_discoverable_but_has_no_executable_stages(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+            plan = plan_case(root, task="gw", system_type="2d")
+
+        self.assertEqual(plan.route, "strict_2d_gw_deferred")
+        self.assertEqual(plan.stages, ())
+        self.assertTrue(plan.accepted)
+        self.assertEqual(plan.gates[0].status, "WARN")
+        self.assertEqual(
+            plan.options["capability"]["reason_code"],
+            "LIBRPA_070_STRICT_2D_INVALID",
+        )
+
     def test_rpa_route_has_no_pyatb_or_nscf(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
