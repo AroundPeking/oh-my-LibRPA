@@ -99,6 +99,10 @@ class CompatibilityProfileTest(unittest.TestCase):
             "input_dir/pyatb_librpa_df",
         )
         self.assertEqual(
+            profile["contract"]["pyatb_adapter"]["state_coverage"],
+            "pyatb_nstates_equal_abacus_nbands",
+        )
+        self.assertEqual(
             set(profile["contract"]["workflow_helpers"]),
             {
                 "perform.sh",

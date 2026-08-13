@@ -33,37 +33,40 @@ def _write_indexed_complex_v1(path, header_fmt, header_values, k_num, block_iter
             os.remove(tmp_path)
 
 
-def _iter_ks_eigenvector_blocks(eigenvectors, k_num, nspin, basis_num, use_soc, ik_offset=0):
+def _iter_ks_eigenvector_blocks(
+    eigenvectors, k_num, nspin, basis_num, nstates, use_soc, ik_offset=0
+):
     if use_soc:
         if basis_num % 2 != 0:
             raise ValueError("SOC eigenvector basis size must be even")
         nspinor = 2
         n_basis_ao = basis_num // nspinor
         for ik in range(k_num):
-            block = np.empty((1, nspinor, basis_num, n_basis_ao), dtype=np.complex128)
+            block = np.empty((1, nspinor, nstates, n_basis_ao), dtype=np.complex128)
             for isoc in range(nspinor):
                 block[0, isoc, :, :] = np.asarray(
-                    eigenvectors[0][ik, isoc::nspinor, :], dtype=np.complex128
+                    eigenvectors[0][ik, isoc::nspinor, :nstates], dtype=np.complex128
                 ).T
             yield ik_offset + ik + 1, block
     else:
         for ik in range(k_num):
-            block = np.empty((nspin, 1, basis_num, basis_num), dtype=np.complex128)
+            block = np.empty((nspin, 1, nstates, basis_num), dtype=np.complex128)
             for ispin in range(nspin):
                 block[ispin, 0, :, :] = np.asarray(
-                    eigenvectors[ispin][ik, :, :], dtype=np.complex128
+                    eigenvectors[ispin][ik, :, :nstates], dtype=np.complex128
                 ).T
             yield ik_offset + ik + 1, block
 
 
 def _write_ks_eigenvectors_v1(path, eigenvectors, k_num, nspin, basis_num, use_soc=False,
-                              ik_offset=0):
+                              ik_offset=0, nstates=None):
+    nstates = basis_num if nstates is None else nstates
     header_values = (
         KS_EIGENVECTOR_V1_MARKER,
         KS_EIGENVECTOR_V1_KIND,
         k_num,
         nspin,
-        basis_num,
+        nstates,
         basis_num,
     )
     _write_indexed_complex_v1(
@@ -71,27 +74,34 @@ def _write_ks_eigenvectors_v1(path, eigenvectors, k_num, nspin, basis_num, use_s
         "=6i",
         header_values,
         k_num,
-        _iter_ks_eigenvector_blocks(eigenvectors, k_num, nspin, basis_num, use_soc, ik_offset),
+        _iter_ks_eigenvector_blocks(
+            eigenvectors, k_num, nspin, basis_num, nstates, use_soc, ik_offset
+        ),
     )
 
 
-def _iter_velocity_matrix_blocks(velocity_matrix, k_num, nspin, basis_num, ik_offset=0):
+def _iter_velocity_matrix_blocks(
+    velocity_matrix, k_num, nspin, nstates, ik_offset=0
+):
     for ik in range(k_num):
-        block = np.empty((nspin, 3, basis_num, basis_num), dtype=np.complex128)
+        block = np.empty((nspin, 3, nstates, nstates), dtype=np.complex128)
         for ispin in range(nspin):
             block[ispin, :, :, :] = np.asarray(
-                velocity_matrix[ispin][ik, :, :, :], dtype=np.complex128
+                velocity_matrix[ispin][ik, :, :nstates, :nstates], dtype=np.complex128
             )
         yield ik_offset + ik + 1, block
 
 
-def _write_velocity_matrix_v1(path, velocity_matrix, k_num, nspin, basis_num, ik_offset=0):
+def _write_velocity_matrix_v1(
+    path, velocity_matrix, k_num, nspin, basis_num, ik_offset=0, nstates=None
+):
+    nstates = basis_num if nstates is None else nstates
     header_values = (
         VELOCITY_MATRIX_V1_MARKER,
         VELOCITY_MATRIX_V1_KIND,
         k_num,
         nspin,
-        basis_num,
+        nstates,
         basis_num,
         3,
     )
@@ -100,7 +110,7 @@ def _write_velocity_matrix_v1(path, velocity_matrix, k_num, nspin, basis_num, ik
         "=7i",
         header_values,
         k_num,
-        _iter_velocity_matrix_blocks(velocity_matrix, k_num, nspin, basis_num, ik_offset),
+        _iter_velocity_matrix_blocks(velocity_matrix, k_num, nspin, nstates, ik_offset),
     )
 
 
@@ -157,7 +167,8 @@ def _merge_rank_payloads(payloads, nspin):
 
 def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
                   nkx: int = 20, nky: int = 20, nkz: int = 20, nspin: int = 1,
-                  matrix_route: str = "OUT.ABACUS", use_soc: bool = False):
+                  matrix_route: str = "OUT.ABACUS", use_soc: bool = False,
+                  nstates: int = None):
     import pyatb
     from pyatb import COMM, RANK, SIZE
     from pyatb.kpt.kpoint_generator import mp_generator, kpoints_in_different_process
@@ -206,6 +217,11 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
 
     COMM.Barrier()
     basis_num = m_tb.basis_num
+    nstates = basis_num if nstates is None else int(nstates)
+    if nstates <= 0 or nstates > basis_num:
+        raise ValueError(
+            "ABACUS band count must be positive and cannot exceed the PyATB AO basis size"
+        )
     output_nspin = 1 if use_soc else nspin
     local_kpoints = []
     local_eigenvalues, local_eigenvectors, local_velocity = _empty_spin_payload(
@@ -280,6 +296,7 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
             basis_num,
             use_soc=use_soc,
             ik_offset=ik_offset,
+            nstates=nstates,
         )
 
     payload = {
@@ -299,7 +316,7 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
     k_num = k_direct_coor.shape[0]
 
     with open("pyatb_librpa_df/k_path_info", "w") as f:
-        f.write("%8d%8d%8d%8d" % (basis_num, basis_num, output_nspin, k_num))
+        f.write("%8d%8d%8d%8d" % (basis_num, nstates, output_nspin, k_num))
         f.write("\n")
         for ik in range(k_num):
             f.write(
@@ -313,7 +330,7 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
         f.write("\n")
         f.write(str(output_nspin))
         f.write("\n")
-        f.write(str(basis_num))
+        f.write(str(nstates))
         f.write("\n")
         f.write(str(basis_num))
         f.write("\n")
@@ -323,7 +340,7 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
             for ispin in range(output_nspin):
                 f.write("%3d%3d" % (ik + 1, ispin + 1))
                 f.write("\n")
-                for iband in range(basis_num):
+                for iband in range(nstates):
                     if iband < occ_band:
                         occ = 1.0 if (use_soc or output_nspin == 2) else 2.0
                     else:
@@ -338,4 +355,5 @@ def output_librpa(lattice_vector: np.array, fermi_energy: float, occ_band: int,
         k_num,
         output_nspin,
         basis_num,
+        nstates=nstates,
     )

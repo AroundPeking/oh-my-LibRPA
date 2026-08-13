@@ -620,6 +620,35 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(self.gate(grid_report, "pyatb.alignment").status, "FAIL")
         self.assertEqual(self.gate(dims_report, "pyatb.alignment").status, "FAIL")
 
+    def test_pyatb_states_must_equal_abacus_band_out(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            pyatb = root / "dataset" / "pyatb_librpa_df"
+            write_headwing_metadata(pyatb, nkpoints=1)
+            (pyatb / "k_path_info").write_text(
+                "2 4 1 1\n0.0 0.0 0.0\n", encoding="utf-8"
+            )
+            write_eigenvector_v1(
+                pyatb / "KS_eigenvector_0.dat", nkpoints=1, nstates=4, nbasis=2
+            )
+            write_velocity_v1(
+                pyatb / "velocity_matrix", nkpoints=1, nbands=4, naos=2
+            )
+            blocks = ["1 1", *(f"{band} 0.0 0.0 0.0" for band in range(1, 5))]
+            (pyatb / "band_out").write_text(
+                "1\n1\n4\n2\n0.0\n" + "\n".join(blocks) + "\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True
+            )
+
+        gate = self.gate(report, "pyatb.alignment")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertIn("PyATB nstates=4 != band_out 3", gate.evidence)
+
     def test_pyatb_coordinates_use_librpa_periodic_unique_mapping(self):
         with tempfile.TemporaryDirectory() as valid_tmp, tempfile.TemporaryDirectory() as invalid_tmp:
             valid_root = pathlib.Path(valid_tmp)

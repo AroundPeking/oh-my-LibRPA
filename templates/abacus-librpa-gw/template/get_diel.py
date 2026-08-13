@@ -78,9 +78,17 @@ def get_param(work_dir : str = './'):
     if fermi_energy is None:
         raise ValueError(f"Failed to find Fermi energy in {f_running}")
 
-    occ_band = 0
     with open(f_band, 'r') as file:
-        for line in file:
+        band_lines = file.readlines()
+    if len(band_lines) < 3:
+        raise ValueError(f"Failed to read band count from {f_band}")
+    try:
+        nstates = int(band_lines[2].split()[0])
+    except (IndexError, ValueError) as exc:
+        raise ValueError(f"Failed to read band count from {f_band}") from exc
+
+    occ_band = 0
+    for line in band_lines[5:]:
             parts = line.split()
             if len(parts) > 2:
                 try:
@@ -93,7 +101,7 @@ def get_param(work_dir : str = './'):
                     continue  # 跳过无法转换为浮点数的行
 
 
-    return lattice_vector, fermi_energy, occ_band
+    return lattice_vector, fermi_energy, occ_band, nstates
 
 def dat2out():
     import numpy as np
@@ -150,5 +158,15 @@ if __name__ == '__main__':
     nkx, nky, nkz = read_KPT(kpt_file_dir)
     #print(nkx, nky, nkz)
     import output_librpa
-    lattice_vector, fermi_energy, occ_band = get_param(abacus_dir)
-    output_librpa.output_librpa(lattice_vector, fermi_energy, occ_band, nkx=nkx, nky=nky, nkz=nkz, nspin=nspin, use_soc=use_soc)
+    lattice_vector, fermi_energy, occ_band, nstates = get_param(abacus_dir)
+    output_librpa.output_librpa(
+        lattice_vector,
+        fermi_energy,
+        occ_band,
+        nkx=nkx,
+        nky=nky,
+        nkz=nkz,
+        nspin=nspin,
+        use_soc=use_soc,
+        nstates=nstates,
+    )

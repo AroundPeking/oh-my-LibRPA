@@ -136,8 +136,8 @@
     },
     "workflow_helpers": {
       "perform.sh": "b1c4e2327c996c0b03b4ec4a284f0710ea8b103d2237486a15414ca2af09e891",
-      "get_diel.py": "62c9a3da781b751a8c20b5b185d12c403ef73c6f771c2b76f827fa8d741cae86",
-      "output_librpa.py": "84837f846967d08de8380639dcfe784d853fe08c1645e0c7816d706bf9a11545",
+      "get_diel.py": "fea2d2e62a23aa86bd17b8a447dd58f078679fcf7b6db31b493fe2b13137e714",
+      "output_librpa.py": "10986012071d6bb1d235874c5136e79b5b2f137e6b71bbd78a7cecdc9060305a",
       "preprocess_abacus_for_librpa_band.py": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
     },
     "pyatb_adapter": {
@@ -156,6 +156,7 @@
         "kind": 29,
         "nalpha": 3
       },
+      "state_coverage": "pyatb_nstates_equal_abacus_nbands",
       "kpoint_policy": "full_regular_grid"
     }
   }

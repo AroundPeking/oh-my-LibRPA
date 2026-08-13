@@ -21,6 +21,12 @@ CONVERGENCE_AXES = {
     "empty_states": frozenset({"abacus.nbands"}),
     "screening_kgrid": frozenset({"kpoints.scf.grid"}),
 }
+WORKFLOW_HELPERS = (
+    "perform.sh",
+    "get_diel.py",
+    "output_librpa.py",
+    "preprocess_abacus_for_librpa_band.py",
+)
 
 
 class ScientificDefinitionError(ValueError):
@@ -179,6 +185,9 @@ def build_definition_signature(run_root: str | Path) -> dict[str, object]:
         },
         "structure": {"stru_sha256": _manifest_digest(manifest, "STRU")},
         "assets": _asset_groups(manifest),
+        "workflow_helpers": {
+            name: _manifest_digest(manifest, name) for name in WORKFLOW_HELPERS
+        },
         "abacus": {
             "basis_type": scf.value("basis_type", ""),
             "nspin": nspin,

@@ -84,6 +84,10 @@ def write_run(root: pathlib.Path, *, nfreq: int = 6, nbands: int = 8, grid=(2, 2
         ("Si.upf", "pseudo-v1\n"),
         ("Si.orb", "orbital-v1\n"),
         ("Si.abfs", "aux-v1\n"),
+        ("perform.sh", "#!/bin/sh\n"),
+        ("get_diel.py", "# adapter-v1\n"),
+        ("output_librpa.py", "# writer-v1\n"),
+        ("preprocess_abacus_for_librpa_band.py", "# preprocess-v1\n"),
     ):
         (root / name).write_text(content, encoding="utf-8")
     manifest = []
@@ -222,6 +226,35 @@ class ScientificDefinitionTest(unittest.TestCase):
         self.assertEqual(
             [item["field"] for item in differences],
             ["software.revisions.librpa"],
+        )
+
+    def test_workflow_helper_hashes_are_part_of_the_definition(self):
+        with tempfile.TemporaryDirectory() as left_tmp, tempfile.TemporaryDirectory() as right_tmp:
+            left_root = pathlib.Path(left_tmp)
+            right_root = pathlib.Path(right_tmp)
+            write_run(left_root)
+            write_run(right_root)
+            helper = right_root / "output_librpa.py"
+            helper.write_text("# writer-v2\n", encoding="utf-8")
+            plan_path = right_root / ".oml" / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            item = next(
+                entry
+                for entry in plan["source_manifest"]
+                if entry["path"] == "output_librpa.py"
+            )
+            item["sha256"] = sha256_file(helper)
+            item["size"] = helper.stat().st_size
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+            differences = compare_definitions(
+                build_definition_signature(left_root),
+                build_definition_signature(right_root),
+            )
+
+        self.assertEqual(
+            [item["field"] for item in differences],
+            ["workflow_helpers.output_librpa.py"],
         )
 
 
