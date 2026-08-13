@@ -182,7 +182,9 @@ def _scf_gates(root: Path) -> list[GateResult]:
             root,
             "scf",
             "OUT.ABACUS/running_scf.log",
-            required_markers=(("SCF converged", re.compile(r"(?m)^#SCF IS CONVERGED#$")),),
+            required_markers=(
+                ("SCF converged", re.compile(r"(?m)^\s*#SCF IS CONVERGED#\s*$")),
+            ),
         ),
         _required_files(
             root,
