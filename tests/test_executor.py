@@ -339,12 +339,13 @@ class SlurmExecutorTest(unittest.TestCase):
                 [
                     "/usr/bin/rsync",
                     "-a",
+                    "--compress",
                     "--",
                     "approved-hpc:/work/approved/oml/run-1/",
                     f"{snapshot.parent}/.{snapshot.name}.fetching/",
                 ],
             )
-            self.assertEqual(run.call_args.kwargs["timeout"], 600)
+            self.assertEqual(run.call_args.kwargs["timeout"], 1800)
             executor.snapshot_run("/work/approved/oml/run-1", snapshot)
             self.assertEqual(run.call_count, 1)
 
@@ -399,7 +400,7 @@ class SlurmExecutorTest(unittest.TestCase):
 
             with patch(
                 "oml_mcp.executor.subprocess.run",
-                side_effect=subprocess.TimeoutExpired([], 600),
+                side_effect=subprocess.TimeoutExpired([], 1800),
             ):
                 with self.assertRaisesRegex(OMLError, "SCHEDULER_UNOBSERVABLE"):
                     executor.snapshot_run("/work/approved/oml/run-1", snapshot)

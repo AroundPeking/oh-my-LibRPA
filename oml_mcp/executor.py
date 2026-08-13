@@ -179,7 +179,7 @@ class SlurmExecutor:
             )
         temporary.mkdir(parents=True, mode=0o700)
         try:
-            arguments = [self.profile.ssh["rsync_program"], "-a"]
+            arguments = [self.profile.ssh["rsync_program"], "-a", "--compress"]
             if link_dest is not None:
                 resolved_link_dest = link_dest.resolve()
                 if not resolved_link_dest.is_dir() or resolved_link_dest.parent != snapshot_dir.parent.resolve():
@@ -199,7 +199,7 @@ class SlurmExecutor:
             )
             result = self._run(
                 arguments,
-                timeout_seconds=600,
+                timeout_seconds=1800,
             )
         except OMLError:
             shutil.rmtree(temporary)
