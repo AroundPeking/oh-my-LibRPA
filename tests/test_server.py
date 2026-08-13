@@ -32,6 +32,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "submit_stage",
                 "get_status",
                 "inspect_stage",
+                "finalize_case",
                 "score_case",
             },
         )
@@ -55,7 +56,21 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(by_name["prepare_run"].annotations.idempotent_hint)
         self.assertFalse(by_name["submit_stage"].annotations.idempotent_hint)
         self.assertTrue(by_name["inspect_stage"].annotations.idempotent_hint)
+        self.assertTrue(by_name["finalize_case"].annotations.idempotent_hint)
+        self.assertFalse(by_name["finalize_case"].annotations.read_only_hint)
         self.assertTrue(by_name["get_status"].annotations.open_world_hint)
+
+        finalize_schema = by_name["finalize_case"].input_schema
+        self.assertEqual(
+            set(finalize_schema["properties"]),
+            {
+                "run_id",
+                "plan_digest",
+                "benchmark_id",
+                "execution_profile_id",
+                "convergence_bundle_id",
+            },
+        )
 
         stage_schema = by_name["submit_stage"].input_schema
         self.assertEqual(
@@ -129,7 +144,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 10)
+        self.assertEqual(len(listed.tools), 11)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "v0.7.0")
 
@@ -154,6 +169,17 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
 
             def score_case(self, run_id, plan_digest):
                 return {"operation": "score", "run_id": run_id, "plan_digest": plan_digest}
+
+            def finalize_case(
+                self, run_id, plan_digest, benchmark_id, convergence_bundle_id=None
+            ):
+                return {
+                    "operation": "finalize",
+                    "run_id": run_id,
+                    "plan_digest": plan_digest,
+                    "benchmark_id": benchmark_id,
+                    "convergence_bundle_id": convergence_bundle_id,
+                }
 
         calls = (
             (
@@ -182,6 +208,17 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "inspect",
             ),
             (
+                "finalize_case",
+                {
+                    "run_id": "run-1",
+                    "plan_digest": "a" * 64,
+                    "benchmark_id": "bn-reader-v1-3d-v1",
+                    "execution_profile_id": "hpc",
+                    "convergence_bundle_id": "bn-nfreq-v1",
+                },
+                "finalize",
+            ),
+            (
                 "score_case",
                 {"run_id": "run-1", "plan_digest": "a" * 64, "execution_profile_id": "hpc"},
                 "score",
@@ -192,10 +229,10 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 result = await self.call(name, arguments)
                 self.assertEqual(result["operation"], operation)
 
-        self.assertEqual([item.args[0] for item in service.call_args_list], ["hpc"] * 5)
+        self.assertEqual([item.args[0] for item in service.call_args_list], ["hpc"] * 6)
         self.assertEqual(
             [item.kwargs.get("initialize_state", True) for item in service.call_args_list],
-            [True, True, False, True, False],
+            [True, True, False, True, True, False],
         )
 
     async def test_controlled_tool_returns_stable_structured_profile_error(self):

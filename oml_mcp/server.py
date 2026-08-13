@@ -76,7 +76,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.2.0",
+        version="0.3.0",
     )
     annotations = _read_only_annotations()
 
@@ -236,6 +236,29 @@ def build_server() -> MCPServer:
         return _controlled_call(
             lambda: _controlled_service(execution_profile_id).inspect_stage(
                 run_id, attempt_id, plan_digest
+            )
+        )
+
+    @server.tool(
+        name="finalize_case",
+        description="Evaluate one passed 3D GW run against registered regression and convergence policy.",
+        annotations=_write_annotations(idempotent=True),
+        structured_output=True,
+    )
+    def finalize_case(
+        run_id: str,
+        plan_digest: str,
+        benchmark_id: str,
+        execution_profile_id: str,
+        convergence_bundle_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Persist a lineage-bound scientific verdict from registered evidence."""
+        return _controlled_call(
+            lambda: _controlled_service(execution_profile_id).finalize_case(
+                run_id,
+                plan_digest,
+                benchmark_id,
+                convergence_bundle_id,
             )
         )
 

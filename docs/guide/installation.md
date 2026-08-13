@@ -28,7 +28,7 @@ The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.js
 
 ### MCP tools
 
-OML exposes five inspection tools and five controlled-execution tools:
+OML exposes five inspection tools, five execution-control tools, and one scientific-finalization tool:
 
 | Tool | Purpose |
 | --- | --- |
@@ -41,9 +41,10 @@ OML exposes five inspection tools and five controlled-execution tools:
 | `submit_stage` | Submit one fixed stage after provenance, order, and duplicate gates |
 | `get_status` | Observe current or historical scheduler state without changing it |
 | `inspect_stage` | Validate completed stage artifacts and record an immutable verdict |
+| `finalize_case` | Evaluate a passed 3D GW snapshot against registered scientific policy |
 | `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
-The five original tools and `get_status`/`score_case` are read-only. `prepare_run`, `submit_stage`, and `inspect_stage` are consequential but bounded. Controlled execution is disabled until an administrator installs an enabled execution profile. See [`controlled-execution.md`](controlled-execution.md) for the profile schema, fixed sequence, receipts, scorecard, and current exclusions.
+The five original tools and `get_status`/`score_case` are read-only. `prepare_run`, `submit_stage`, `inspect_stage`, and idempotent `finalize_case` are consequential but bounded. Controlled execution is disabled until an administrator installs an enabled execution profile. See [`controlled-execution.md`](controlled-execution.md) for the profile schema, fixed sequence, receipts, scorecard, and current exclusions.
 
 `get_status` and `score_case` do not create a missing state database. Preparation is the operation that initializes controlled state.
 

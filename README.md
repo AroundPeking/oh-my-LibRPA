@@ -86,7 +86,7 @@ Example prompts:
 - `Check whether these PyATB head/wing files match reader-v1.`
 - `Explain the minimal repair for this LibRPA input.`
 
-The MCP-first skill uses five inspection tools plus `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, and `score_case`. Execution requires a reviewed profile ID and immutable plan digest; no tool accepts arbitrary command text.
+The MCP-first skill uses five inspection tools plus `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, and `score_case`. Execution requires a reviewed profile ID and immutable plan digest; no tool accepts arbitrary command text.
 
 The current write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. RPA, molecules, strict 2D, magnetic/SOC, FHI-aims, regression, and Delta-Sternheimer execution remain on their reviewed routes.
 

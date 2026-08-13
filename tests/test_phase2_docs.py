@@ -22,6 +22,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "submit_stage",
             "get_status",
             "inspect_stage",
+            "finalize_case",
             "score_case",
         ):
             self.assertIn(f"`{tool}`", text)
@@ -42,6 +43,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "submit_stage",
             "inspect_stage",
             "score_case",
+            "finalize_case",
             "NOT_EVALUATED",
             "non-SOC periodic GW",
             "sidecars",
@@ -51,6 +53,11 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "UNKNOWN",
             "squeue",
             "sacct",
+            "LIBRPA_070_STRICT_2D_INVALID",
+            "0.001 eV",
+            "0.05 eV",
+            "VBM-3",
+            "CBM+3",
         ):
             self.assertIn(text, guide)
 
@@ -59,9 +66,9 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         pyproject = (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.2.0")
-        self.assertIn('version = "0.2.0"', pyproject)
-        self.assertIn('__version__ = "0.2.0"', package)
+        self.assertEqual(plugin["version"], "0.3.0")
+        self.assertIn('version = "0.3.0"', pyproject)
+        self.assertIn('__version__ = "0.3.0"', package)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (

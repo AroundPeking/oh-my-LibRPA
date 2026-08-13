@@ -115,10 +115,17 @@ replacement for the explicit full-plus-shrink protocol.
 
 ## Remaining scientific gates
 
-Before this case can become a PASS scientific benchmark, OML needs an accepted
-low-energy state window and definition-matched reference values, followed by
-convergence checks for at least k mesh, number of bands, frequency grid,
-analytic continuation, NAO/ABFS completeness, and shrink thresholds. Large
+OML 0.3 now defines the low-energy window as `VBM-3` through `CBM+3`, a
+definition-matched regression threshold of `0.001 eV`, and independent
+`nfreq`, empty-state, and screening-k-grid convergence thresholds of `0.05 eV`
+for both GW states and the fundamental gap. The packaged BN policy deliberately
+contains no accepted reference yet, so this historical run remains
+`NOT_EVALUATED` rather than being promoted automatically.
+
+Before this case can become a PASS scientific benchmark, the three convergence
+axes must pass and a candidate reference must be reviewed and promoted in a
+repository commit. NAO/ABFS completeness, analytic-continuation alternatives,
+and shrink thresholds remain later independent campaigns. Large
 corrections in high unoccupied states are present in the upstream program
 regression itself, so a universal absolute-energy cutoff would create false
 failures. Numerical gates must be state-window and benchmark specific.
