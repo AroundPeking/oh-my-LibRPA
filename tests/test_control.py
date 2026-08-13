@@ -529,6 +529,57 @@ class ControlledExecutionTest(unittest.TestCase):
             with self.assertRaisesRegex(OMLError, "REMOTE_MANIFEST_MISMATCH"):
                 service.inspect_stage(run["run_id"], attempt["attempt_id"], plan.digest)
 
+    def test_remote_terminal_failure_is_snapshotted_as_a_failed_inspection(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            base = make_profile(root, source_root)
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            plan = plan_case(source, task="gw", system_type="solid")
+            service = ControlledExecutionService(profile)
+            service.executor.verify_versions = lambda: {"verdict": "match", "components": {}}
+            service.executor.sync_run = lambda *_: None
+            service.executor.verify_remote_bundle = lambda *_: {"verdict": "match"}
+            run = service.prepare_run(source, plan.digest)
+            attempt = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.mark_attempt_submitted(attempt["attempt_id"], "12345")
+            service.executor.status = lambda *_: {
+                "normalized_state": "FAILED",
+                "raw_state": "FAILED",
+                "source": "sacct",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+
+            def snapshot(_remote, target, *, link_dest=None):
+                target.mkdir(parents=True)
+                (target / "scf.12345.err").write_text("producer failed\n", encoding="utf-8")
+
+            service.executor.snapshot_run = snapshot
+            inspection = service.inspect_stage(
+                run["run_id"], attempt["attempt_id"], plan.digest
+            )
+
+        scheduler = next(
+            gate
+            for gate in inspection["gates"]
+            if gate["gate_id"] == "stage.scf.scheduler"
+        )
+        self.assertFalse(inspection["accepted"])
+        self.assertEqual(inspection["attempt_status"], "FAILED")
+        self.assertEqual(scheduler["status"], "FAIL")
+        self.assertIn("FAILED", scheduler["evidence"])
+
     def test_remote_inspection_links_only_the_previous_passed_stage_snapshot(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

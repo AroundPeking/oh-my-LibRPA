@@ -442,15 +442,16 @@ class ControlledExecutionService:
             source=observation["source"],
         )
         normalized = observation["normalized_state"]
-        if normalized != "COMPLETED":
+        terminal_failure = normalized in {"FAILED", "CANCELLED"}
+        if normalized != "COMPLETED" and not terminal_failure:
             if attempt["status"] not in {"PASSED", "FAILED", "CANCELLED"}:
-                if normalized in {"PENDING", "RUNNING", "UNKNOWN", "FAILED", "CANCELLED"}:
+                if normalized in {"PENDING", "RUNNING", "UNKNOWN"}:
                     self.store.record_attempt_status(attempt_id, normalized)
             raise OMLError(
                 "STATE_TRANSITION_DENIED",
-                "stage outputs cannot be accepted before scheduler completion is observed",
+                "stage outputs cannot be inspected before a terminal scheduler state is observed",
                 evidence=(attempt_id, normalized, observation["raw_state"]),
-                recovery="call get_status until the scheduler reports COMPLETED, then inspect artifacts",
+                recovery="call get_status until the scheduler reaches COMPLETED, FAILED, or CANCELLED",
             )
         self.executor.verify_remote_bundle(run_dir, run["remote_run_dir"])
         inspection_root = run_dir
@@ -474,6 +475,29 @@ class ControlledExecutionService:
             attempt["stage"],
             expected_attempt_id=attempt_id,
         )
+        if terminal_failure:
+            scheduler_gate = {
+                "gate_id": f"stage.{attempt['stage']}.scheduler",
+                "status": "FAIL",
+                "message": "scheduler terminated the stage before successful completion",
+                "evidence": [
+                    str(observation["raw_state"]),
+                    str(attempt["scheduler_id"]),
+                    str(inspection_root),
+                ],
+                "repair": "inspect the immutable scheduler and workload logs before preparing a fresh run",
+                "measurements": None,
+            }
+            gates = [scheduler_gate, *report["gates"]]
+            report = {
+                **report,
+                "accepted": False,
+                "counts": {
+                    status: sum(gate["status"] == status for gate in gates)
+                    for status in ("PASS", "WARN", "FAIL", "SKIP")
+                },
+                "gates": gates,
+            }
         if attempt["stage"] == "pyatb":
             cross_report = validate_case(
                 inspection_root,
