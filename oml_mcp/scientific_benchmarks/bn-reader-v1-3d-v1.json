@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "bn-reader-v1-3d-v1",
+  "description": "Bulk h-BN reader-v1 three-dimensional GW acceptance policy",
+  "system_type": "solid",
+  "state_window": {
+    "below_vbm": 3,
+    "above_cbm": 3
+  },
+  "regression_tolerance_ev": 0.001,
+  "convergence_tolerance_ev": 0.05,
+  "required_axes": [
+    "nfreq",
+    "empty_states",
+    "screening_kgrid"
+  ],
+  "reference_status": "NOT_AVAILABLE",
+  "reference": null
+}
