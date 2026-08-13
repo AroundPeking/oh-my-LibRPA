@@ -81,6 +81,8 @@ class ScorecardTest(unittest.TestCase):
     def test_frozen_replays_have_expected_verdicts(self):
         expected = {
             "periodic-gw-clean-v1.json": ("PASS", 100.0),
+            "periodic-gw-convergence-incomplete-v1.json": ("INCOMPLETE", 55.0),
+            "periodic-gw-convergence-pass-v1.json": ("PASS", 100.0),
             "periodic-gw-finite-unvalidated-v1.json": ("INCOMPLETE", 55.0),
             "periodic-gw-incomplete-v1.json": ("INCOMPLETE", 55.0),
             "periodic-gw-nonfinite-v1.json": ("FAIL", 0.0),

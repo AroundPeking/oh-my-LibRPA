@@ -3,7 +3,12 @@ import unittest
 
 
 from oml_mcp.provenance import digest_json
-from oml_mcp.scientific_evaluation import evaluate_regression
+from oml_mcp.scientific_evaluation import (
+    ScientificEvaluationError,
+    aggregate_convergence,
+    evaluate_convergence_axis,
+    evaluate_regression,
+)
 
 
 def definition(*, nfreq: int = 6) -> dict:
@@ -120,6 +125,104 @@ class ScientificRegressionTest(unittest.TestCase):
         self.assertEqual(state_report["reason_code"], "STATE_SET_MISMATCH")
         self.assertEqual(qpe_report["status"], "FAIL")
         self.assertEqual(qpe_report["reason_code"], "QPE_DIAGNOSTIC_FAILURE")
+
+
+class ScientificConvergenceTest(unittest.TestCase):
+    def convergence_pair(self, *, delta: float = 0.05) -> tuple[dict, dict]:
+        coarse = scientific_result(nfreq=6)
+        fine = scientific_result(nfreq=12)
+        fine["window"]["states"][2]["gw_ev"] += delta
+        fine["window"]["fundamental_gw_gap_ev"] -= delta
+        return coarse, fine
+
+    def test_exact_50_mev_boundary_passes_for_states_and_gap(self):
+        coarse, fine = self.convergence_pair()
+
+        report = evaluate_convergence_axis(
+            coarse,
+            fine,
+            axis="nfreq",
+            tolerance_ev=0.05,
+        )
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["max_abs_gw_change_ev"], 0.05)
+        self.assertEqual(report["gap_change_ev"], 0.05)
+        self.assertEqual(report["axis"], "nfreq")
+
+    def test_just_over_50_mev_fails(self):
+        coarse, fine = self.convergence_pair(delta=0.050001)
+
+        report = evaluate_convergence_axis(
+            coarse,
+            fine,
+            axis="nfreq",
+            tolerance_ev=0.05,
+        )
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["reason_code"], "CONVERGENCE_TOLERANCE_EXCEEDED")
+
+    def test_pair_may_change_only_the_declared_axis(self):
+        coarse, fine = self.convergence_pair()
+        fine["definition"]["profile_id"] = "other-profile"
+
+        with self.assertRaises(ScientificEvaluationError) as raised:
+            evaluate_convergence_axis(
+                coarse,
+                fine,
+                axis="nfreq",
+                tolerance_ev=0.05,
+            )
+
+        self.assertEqual(raised.exception.code, "MULTIPLE_DEFINITION_CHANGES")
+
+    def test_state_set_and_qpe_failures_cannot_pass(self):
+        coarse, fine = self.convergence_pair()
+        missing = copy.deepcopy(fine)
+        missing["window"]["states"].pop()
+        qpe = copy.deepcopy(fine)
+        qpe["diagnostics"] = {
+            "accepted": False,
+            "failure_count": 1,
+            "failures": [{"path": "LibRPA.out", "line": 4, "excerpt": "QPE failed"}],
+        }
+
+        state_report = evaluate_convergence_axis(
+            coarse, missing, axis="nfreq", tolerance_ev=0.05
+        )
+        qpe_report = evaluate_convergence_axis(
+            coarse, qpe, axis="nfreq", tolerance_ev=0.05
+        )
+
+        self.assertEqual(state_report["reason_code"], "STATE_SET_MISMATCH")
+        self.assertEqual(qpe_report["reason_code"], "QPE_DIAGNOSTIC_FAILURE")
+
+    def test_all_required_axes_must_be_present_and_pass(self):
+        passing = {
+            axis: {"axis": axis, "status": "PASS", "reason_code": "WITHIN_TOLERANCE"}
+            for axis in ("nfreq", "empty_states", "screening_kgrid")
+        }
+
+        complete = aggregate_convergence(
+            passing,
+            required_axes=("nfreq", "empty_states", "screening_kgrid"),
+        )
+        incomplete = aggregate_convergence(
+            {"nfreq": passing["nfreq"]},
+            required_axes=("nfreq", "empty_states", "screening_kgrid"),
+        )
+        failed_reports = copy.deepcopy(passing)
+        failed_reports["empty_states"]["status"] = "FAIL"
+        failed = aggregate_convergence(
+            failed_reports,
+            required_axes=("nfreq", "empty_states", "screening_kgrid"),
+        )
+
+        self.assertEqual(complete["status"], "PASS")
+        self.assertEqual(incomplete["status"], "NOT_EVALUATED")
+        self.assertEqual(incomplete["missing_axes"], ["empty_states", "screening_kgrid"])
+        self.assertEqual(failed["status"], "FAIL")
 
 
 if __name__ == "__main__":
