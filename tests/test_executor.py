@@ -277,6 +277,41 @@ class SlurmExecutorTest(unittest.TestCase):
             ],
         )
 
+    def test_scheduler_history_handles_slurm_invalid_job_id_response(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            profile = make_profile(root, root / "sources")
+            executor = SlurmExecutor(profile)
+
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.side_effect = (
+                    subprocess.CompletedProcess(
+                        [], 1, "", "slurm_load_jobs error: Invalid job id specified\n"
+                    ),
+                    subprocess.CompletedProcess([], 0, "COMPLETED|\n", ""),
+                )
+                observation = executor.status("31415")
+
+        self.assertEqual(observation["normalized_state"], "COMPLETED")
+        self.assertEqual(observation["source"], "sacct")
+        self.assertEqual(run.call_count, 2)
+
+    def test_scheduler_does_not_hide_other_squeue_errors_with_history(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            profile = make_profile(root, root / "sources")
+            executor = SlurmExecutor(profile)
+
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.return_value = subprocess.CompletedProcess(
+                    [], 1, "", "Access/permission denied\n"
+                )
+                observation = executor.status("31415")
+
+        self.assertEqual(observation["normalized_state"], "UNKNOWN")
+        self.assertEqual(observation["source"], "squeue")
+        self.assertEqual(run.call_count, 1)
+
     def test_remote_snapshot_is_new_and_never_overwrites_the_run_bundle(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

@@ -45,6 +45,10 @@ SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 ATTEMPT_ID_PATTERN = re.compile(r"^attempt-[0-9a-f]{20}$")
 RUNTIME_CODE_SUFFIXES = (".py", ".pyc", ".sh", ".slurm", ".so", ".dylib")
 READ_ONLY_RETRY_ATTEMPTS = 3
+SQUEUE_MISSING_JOB_PATTERN = re.compile(
+    r"(?:invalid\s+job\s+id|slurm_load_jobs\s+error:\s*invalid\s+job\s+id)",
+    re.IGNORECASE,
+)
 
 
 def _utc_now() -> str:
@@ -552,6 +556,8 @@ class SlurmExecutor:
                 "observed_at": _utc_now(),
             }
         if result.returncode != 0:
+            if SQUEUE_MISSING_JOB_PATTERN.search(result.stderr):
+                return self._history_status(scheduler_id)
             return {
                 "normalized_state": "UNKNOWN",
                 "raw_state": result.stderr.strip(),
