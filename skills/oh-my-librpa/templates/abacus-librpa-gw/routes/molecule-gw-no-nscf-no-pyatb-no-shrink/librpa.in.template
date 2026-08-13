@@ -28,7 +28,7 @@ use_scalapack_ecrpa = t
 parallel_routing = libri
 vq_threshold = 0
 sqrt_coulomb_threshold = 0
-use_fullcoul_exx = t
+use_fullcoul_exx = f
 use_kpara_scf_eigvec = t
 libri_chi0_collect_max_bytes = 2147483648
 # This short route does not use NSCF band continuation.

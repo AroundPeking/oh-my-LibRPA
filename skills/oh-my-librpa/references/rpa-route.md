@@ -35,7 +35,9 @@ Set or verify:
 - `use_soc = 0/1` according to the INPUT spin/SOC state
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
-- `use_fullcoul_exx = t`
+- `use_fullcoul_exx = f`
+
+Full-Coulomb EXX is a separate physical-definition choice and must not be enabled as an implicit RPA default.
 - `libri_chi0_threshold_C = 1e-4`
 - `libri_chi0_threshold_G = 1e-5`
 - `libri_exx_threshold_V = 1e-1`

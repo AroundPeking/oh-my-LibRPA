@@ -138,6 +138,30 @@ def _task_gate(librpa: InputDocument, task: str) -> GateResult:
     return _pass("librpa.task", f"LibRPA task is {expected}", str(librpa.path))
 
 
+def _fullcoul_exx_gate(librpa: InputDocument) -> GateResult:
+    raw = librpa.value("use_fullcoul_exx")
+    enabled = _bool_value(librpa, "use_fullcoul_exx")
+    if raw is not None and enabled is None:
+        return _fail(
+            "librpa.fullcoul_exx",
+            "use_fullcoul_exx is not a valid LibRPA boolean switch",
+            (str(librpa.path), f"use_fullcoul_exx={raw}"),
+            "set use_fullcoul_exx = f, or set t only for an explicit definition-matched full-Coulomb EXX calculation",
+        )
+    if enabled:
+        return _warn(
+            "librpa.fullcoul_exx",
+            "full-Coulomb EXX changes the physical definition from the LibRPA 0.7.0 ABACUS regression baseline",
+            (str(librpa.path), "use_fullcoul_exx=t"),
+            "use use_fullcoul_exx = f unless full-Coulomb EXX was explicitly requested, then require a definition-matched benchmark",
+        )
+    return _pass(
+        "librpa.fullcoul_exx",
+        "EXX uses the LibRPA 0.7.0 ABACUS regression Coulomb definition",
+        str(librpa.path),
+    )
+
+
 def _unsupported_key_gate(librpa: InputDocument, unsupported: dict[str, str]) -> GateResult:
     found = [(key, unsupported[key]) for key in unsupported if key in librpa.keys]
     if found:
@@ -604,6 +628,7 @@ def validate_case(
         ),
         _unsupported_key_gate(librpa, contract["librpa"]["unsupported_oml_keys"]),
         _task_gate(librpa, normalized_task),
+        _fullcoul_exx_gate(librpa),
         _route_policy_gate(normalized_task, system_type, use_symmetry),
         _headwing_policy_gate(librpa, normalized_task, system_type),
         _value_gate(

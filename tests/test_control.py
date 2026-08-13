@@ -101,9 +101,10 @@ class ControlledExecutionTest(unittest.TestCase):
             with patch(
                 "oml_mcp.executor.subprocess.run",
                 side_effect=subprocess.TimeoutExpired([], 20),
-            ):
+            ) as submit:
                 with self.assertRaisesRegex(OMLError, "SUBMISSION_AMBIGUOUS"):
                     service.submit_stage(run["run_id"], "scf", plan.digest)
+                self.assertEqual(submit.call_count, 1)
             service.executor.reconcile_submission = lambda *_: (_ for _ in ()).throw(
                 OMLError(
                     "SCHEDULER_UNOBSERVABLE",
@@ -445,6 +446,64 @@ class ControlledExecutionTest(unittest.TestCase):
 
             with self.assertRaisesRegex(OMLError, "REMOTE_MANIFEST_MISMATCH"):
                 service.inspect_stage(run["run_id"], attempt["attempt_id"], plan.digest)
+
+    def test_remote_inspection_links_only_the_previous_passed_stage_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            base = make_profile(root, source_root)
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            plan = plan_case(source, task="gw", system_type="solid")
+            service = ControlledExecutionService(profile)
+            service.executor.verify_versions = lambda: {"verdict": "match", "components": {}}
+            service.executor.sync_run = lambda *_: None
+            service.executor.verify_remote_bundle = lambda *_: {"verdict": "match"}
+            run = service.prepare_run(source, plan.digest)
+            scf = service.store.authorize_submission(run["run_id"], "scf", plan.digest)
+            service.store.mark_attempt_submitted(scf["attempt_id"], "300")
+            service.store.record_attempt_status(scf["attempt_id"], "PASSED")
+            snapshots = pathlib.Path(run["local_run_dir"]) / ".oml" / "snapshots"
+            previous = snapshots / scf["attempt_id"]
+            previous.mkdir(parents=True)
+            pyatb = service.store.authorize_submission(run["run_id"], "pyatb", plan.digest)
+            service.store.mark_attempt_submitted(pyatb["attempt_id"], "301")
+            service.executor.status = lambda *_: {
+                "normalized_state": "COMPLETED",
+                "raw_state": "COMPLETED",
+                "source": "sacct",
+                "observed_at": "2026-08-13T00:00:00Z",
+            }
+            base_report = {
+                "schema_version": 1,
+                "stage": "pyatb",
+                "accepted": True,
+                "counts": {"PASS": 1, "WARN": 0, "FAIL": 0, "SKIP": 0},
+                "gates": [],
+            }
+
+            with patch.object(service.executor, "snapshot_run") as snapshot, patch(
+                "oml_mcp.control.inspect_stage_outputs", return_value=base_report
+            ), patch(
+                "oml_mcp.control.validate_case", return_value=ValidationReport("test", ())
+            ):
+                service.inspect_stage(run["run_id"], pyatb["attempt_id"], plan.digest)
+
+            target = snapshots / pyatb["attempt_id"]
+
+        snapshot.assert_called_once_with(
+            run["remote_run_dir"], target, link_dest=previous
+        )
 
     def test_librpa_submission_requires_full_pre_librpa_validation(self):
         with tempfile.TemporaryDirectory() as tmpdir:

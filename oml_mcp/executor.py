@@ -44,6 +44,7 @@ print(json.dumps({"sha256": digest.hexdigest(), "size": os.path.getsize(path)}, 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 ATTEMPT_ID_PATTERN = re.compile(r"^attempt-[0-9a-f]{20}$")
 RUNTIME_CODE_SUFFIXES = (".py", ".pyc", ".sh", ".slurm", ".so", ".dylib")
+READ_ONLY_RETRY_ATTEMPTS = 3
 
 
 def _utc_now() -> str:
@@ -101,6 +102,15 @@ class SlurmExecutor:
                 recovery="repair the administrator-managed execution profile",
             ) from exc
 
+    def _run_read_only(self, arguments: list[str]) -> subprocess.CompletedProcess[str]:
+        for attempt in range(READ_ONLY_RETRY_ATTEMPTS):
+            try:
+                return self._run(arguments)
+            except OMLError as exc:
+                if exc.code != "SCHEDULER_UNOBSERVABLE" or attempt + 1 == READ_ONLY_RETRY_ATTEMPTS:
+                    raise
+        raise AssertionError("unreachable")
+
     def sync_run(self, local_run_dir: Path, remote_run_dir: str | None) -> None:
         if self.profile.transport == "local":
             return
@@ -139,7 +149,13 @@ class SlurmExecutor:
                 recovery="inspect rsync/SSH access; do not submit until the existing run is reconciled",
             )
 
-    def snapshot_run(self, remote_run_dir: str | None, snapshot_dir: Path) -> None:
+    def snapshot_run(
+        self,
+        remote_run_dir: str | None,
+        snapshot_dir: Path,
+        *,
+        link_dest: Path | None = None,
+    ) -> None:
         if self.profile.transport != "ssh" or self.profile.ssh is None or remote_run_dir is None:
             raise OMLError(
                 "PROFILE_INVALID",
@@ -159,14 +175,26 @@ class SlurmExecutor:
             )
         temporary.mkdir(parents=True, mode=0o700)
         try:
-            result = self._run(
-                [
-                    self.profile.ssh["rsync_program"],
-                    "-a",
+            arguments = [self.profile.ssh["rsync_program"], "-a"]
+            if link_dest is not None:
+                resolved_link_dest = link_dest.resolve()
+                if not resolved_link_dest.is_dir() or resolved_link_dest.parent != snapshot_dir.parent.resolve():
+                    raise OMLError(
+                        "SNAPSHOT_CONFLICT",
+                        "snapshot link source must be an existing sibling snapshot",
+                        evidence=(str(resolved_link_dest), str(snapshot_dir.parent.resolve())),
+                        recovery="use only the previous immutable stage snapshot as a link source",
+                    )
+                arguments.extend(("--checksum", f"--link-dest={resolved_link_dest}"))
+            arguments.extend(
+                (
                     "--",
                     f"{self.profile.ssh['host']}:{remote_run_dir}/",
                     f"{temporary}/",
-                ],
+                )
+            )
+            result = self._run(
+                arguments,
                 timeout_seconds=600,
             )
         except OMLError:
@@ -199,7 +227,7 @@ class SlurmExecutor:
             if self.profile.transport == "ssh":
                 assert self.profile.ssh is not None
                 arguments = [self.profile.ssh["ssh_program"], self.profile.ssh["host"], *arguments]
-            result = self._run(arguments)
+            result = self._run_read_only(arguments)
             actual = result.stdout.strip().splitlines()[0] if result.returncode == 0 and result.stdout.strip() else ""
             expected = pinned[name]["revision"]
             components[name] = {
@@ -236,7 +264,7 @@ class SlurmExecutor:
                 self.profile.ssh["host"],
                 remote_command,
             ]
-        result = self._run(arguments)
+        result = self._run_read_only(arguments)
         try:
             payload = json.loads(result.stdout.strip()) if result.returncode == 0 else None
         except json.JSONDecodeError:

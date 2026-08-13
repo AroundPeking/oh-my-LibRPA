@@ -374,6 +374,51 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertTrue(report.accepted)
         self.assertIn("g0w0", gate.repair)
 
+    def test_full_coulomb_exx_requires_an_explicit_definition_warning(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            path = root / "librpa.in"
+            path.write_text(
+                path.read_text(encoding="utf-8") + "use_fullcoul_exx = t\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        gate = self.gate(report, "librpa.fullcoul_exx")
+        self.assertEqual(gate.status, "WARN")
+        self.assertTrue(report.accepted)
+        self.assertIn("definition-matched", gate.repair)
+
+    def test_invalid_full_coulomb_exx_switch_fails_validation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            path = root / "librpa.in"
+            path.write_text(
+                path.read_text(encoding="utf-8") + "use_fullcoul_exx = maybe\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        gate = self.gate(report, "librpa.fullcoul_exx")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertFalse(report.accepted)
+
     def test_explicit_reader_v1_contract_is_required(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

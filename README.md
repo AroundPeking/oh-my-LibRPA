@@ -199,6 +199,7 @@ Useful supporting material:
 | `skills/` | Chat-facing skills |
 | `docs/guide/fhi-aims-librpa-qsgw.md` | Supplemental route for `FHI-aims + LibRPA` QSGW/G0W0 cases |
 | `docs/research-siab-first-order-wavefunction-plan.md` | Uniform-grid SH/delta-SH and SIAB first-order-wavefunction research plan |
+| `docs/live-benchmarks/2026-08-13-df-bn-reader-v1-shrink.md` | Live DF reader-v1, symmetry, shrink, and frozen-consumer evidence |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |

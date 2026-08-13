@@ -57,6 +57,7 @@ class ActiveDefaultsTest(unittest.TestCase):
             "fn_vxc_scf = vxc_out",
             "version_coul_reader = 1",
             "version_lri_reader = 1",
+            "use_fullcoul_exx = f",
         )
         failures = []
         for path in template_paths:
@@ -65,6 +66,15 @@ class ActiveDefaultsTest(unittest.TestCase):
             if missing:
                 failures.append(f"{path.relative_to(ROOT)} missing {missing}")
         self.assertTrue(template_paths)
+        self.assertEqual(failures, [], "\n".join(failures))
+
+    def test_active_defaults_do_not_enable_full_coulomb_exx_implicitly(self):
+        failures = []
+        enabled = re.compile(r"use_fullcoul_exx\s*=\s*t\b", re.IGNORECASE)
+        for path in active_files():
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if enabled.search(line) and "explicit" not in line.lower():
+                    failures.append(f"{path.relative_to(ROOT)}:{line_number}:{line.strip()}")
         self.assertEqual(failures, [], "\n".join(failures))
 
     def test_shell_checker_accepts_current_task_and_keeps_deprecated_alias_detection(self):

@@ -426,7 +426,19 @@ class ControlledExecutionService:
         inspection_root = run_dir
         if self.profile.transport == "ssh":
             inspection_root = run_dir / ".oml" / "snapshots" / attempt_id
-            self.executor.snapshot_run(run["remote_run_dir"], inspection_root)
+            link_dest = None
+            stage_index = list(plan["stages"]).index(attempt["stage"])
+            for prior_stage in reversed(list(plan["stages"])[:stage_index]):
+                prior_attempt = self.store.passed_attempt(run_id, prior_stage)
+                if prior_attempt is None:
+                    continue
+                candidate = inspection_root.parent / prior_attempt["attempt_id"]
+                if candidate.is_dir():
+                    link_dest = candidate
+                    break
+            self.executor.snapshot_run(
+                run["remote_run_dir"], inspection_root, link_dest=link_dest
+            )
         report = inspect_stage_outputs(
             inspection_root,
             attempt["stage"],

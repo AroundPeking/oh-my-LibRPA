@@ -198,11 +198,38 @@ class SlurmExecutorTest(unittest.TestCase):
             with patch(
                 "oml_mcp.executor.subprocess.run",
                 side_effect=subprocess.TimeoutExpired([], 20),
-            ):
+            ) as run:
                 with self.assertRaisesRegex(OMLError, "SCHEDULER_UNOBSERVABLE") as raised:
                     executor.verify_versions()
 
+                self.assertEqual(run.call_count, 3)
+
         self.assertNotEqual(raised.exception.code, "SUBMISSION_AMBIGUOUS")
+
+    def test_version_observation_retries_one_transient_timeout(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            profile = make_profile(root, root / "sources")
+            executor = SlurmExecutor(profile)
+            pinned = load_profile()["components"]
+
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.side_effect = (
+                    subprocess.TimeoutExpired([], 20),
+                    subprocess.CompletedProcess([], 0, pinned["abacus"]["revision"] + "\n", ""),
+                    subprocess.CompletedProcess([], 0, pinned["librpa"]["revision"] + "\n", ""),
+                    subprocess.CompletedProcess([], 0, pinned["pyatb"]["revision"] + "\n", ""),
+                    subprocess.CompletedProcess(
+                        [], 0, '{"sha256":"' + "a" * 64 + '","size":100}\n', ""
+                    ),
+                    subprocess.CompletedProcess(
+                        [], 0, '{"sha256":"' + "b" * 64 + '","size":200}\n', ""
+                    ),
+                )
+                evidence = executor.verify_versions()
+
+        self.assertEqual(evidence["verdict"], "match")
+        self.assertEqual(run.call_count, 6)
 
     def test_scheduler_states_are_normalized_without_claiming_stage_success(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -285,6 +312,38 @@ class SlurmExecutorTest(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["timeout"], 600)
             executor.snapshot_run("/work/approved/oml/run-1", snapshot)
             self.assertEqual(run.call_count, 1)
+
+    def test_remote_snapshot_reuses_the_previous_immutable_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            base = make_profile(root, root / "sources")
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            executor = SlurmExecutor(profile)
+            snapshots = root / "runs" / "run-1" / ".oml" / "snapshots"
+            previous = snapshots / "attempt-0"
+            previous.mkdir(parents=True)
+            snapshot = snapshots / "attempt-1"
+
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.return_value = subprocess.CompletedProcess([], 0, "", "")
+                executor.snapshot_run(
+                    "/work/approved/oml/run-1",
+                    snapshot,
+                    link_dest=previous,
+                )
+
+            command = run.call_args.args[0]
+
+        self.assertIn(f"--link-dest={previous.resolve()}", command)
 
     def test_remote_snapshot_timeout_removes_only_incomplete_fetch(self):
         with tempfile.TemporaryDirectory() as tmpdir:

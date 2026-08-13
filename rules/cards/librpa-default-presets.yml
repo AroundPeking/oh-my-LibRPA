@@ -38,7 +38,8 @@
     - `parallel_routing = libri`
     - `vq_threshold = 0`
     - `sqrt_coulomb_threshold = 0`
-    - `use_fullcoul_exx = t`
+    - `use_fullcoul_exx = f`
+    - Use `use_fullcoul_exx = t` only for an explicit full-Coulomb EXX definition with a definition-matched benchmark
     - `use_kpara_scf_eigvec = t`
     - `libri_chi0_collect_max_bytes = 2147483648`
     - `libri_chi0_threshold_C = 1e-4`
