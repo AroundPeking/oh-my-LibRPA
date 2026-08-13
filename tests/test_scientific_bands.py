@@ -7,6 +7,7 @@ import unittest
 from oml_mcp.scientific_bands import (
     ScientificBandError,
     inspect_qpe_diagnostics,
+    inspect_window_diagnostics,
     load_band_bundle,
     parse_band_table,
     select_insulating_window,
@@ -167,6 +168,25 @@ class ScientificBandTest(unittest.TestCase):
         self.assertEqual(report["failures"][0]["line"], 2)
         self.assertIn("QPE failed", report["failures"][0]["excerpt"])
         self.assertIn("Pade", report["failures"][1]["excerpt"])
+
+    def test_solver_failure_and_nonpositive_insulator_gap_are_diagnostic_failures(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "LibRPA.out").write_text(
+                "Warning! QPE solver failed for spin 1, kpoint 2, state 5\n",
+                encoding="utf-8",
+            )
+            combined = inspect_window_diagnostics(
+                {"fundamental_gw_gap_ev": -0.25, "vbm_band": 4, "cbm_band": 5},
+                inspect_qpe_diagnostics(root),
+                require_positive_gw_gap=True,
+            )
+
+        self.assertFalse(combined["accepted"])
+        self.assertEqual(
+            {item["reason_code"] for item in combined["failures"]},
+            {"QPE_SOLVER_FAILURE", "NONPOSITIVE_GW_GAP"},
+        )
 
 
 if __name__ == "__main__":

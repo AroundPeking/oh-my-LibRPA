@@ -21,6 +21,7 @@ from .provenance import digest_json, sha256_file
 from .scientific_bands import (
     ScientificBandError,
     inspect_qpe_diagnostics,
+    inspect_window_diagnostics,
     load_band_bundle,
     select_insulating_window,
 )
@@ -341,6 +342,7 @@ class ControlledExecutionService:
                 system_type=str(plan["options"]["system_type"]),
                 use_symmetry=bool(plan["options"]["use_symmetry"]),
                 soc=False,
+                headwing=bool(plan["options"]["headwing"]),
                 stage="pre_librpa",
             )
             if not report.accepted:
@@ -477,6 +479,7 @@ class ControlledExecutionService:
                 system_type=str(plan["options"]["system_type"]),
                 use_symmetry=bool(plan["options"]["use_symmetry"]),
                 soc=False,
+                headwing=bool(plan["options"]["headwing"]),
                 stage="pre_librpa",
             ).to_dict()
             gates = [*report["gates"], *cross_report["gates"]]
@@ -587,10 +590,15 @@ class ControlledExecutionService:
                     "WINDOW_INVALID",
                     "the current evaluator requires equal VBM and CBM padding",
                 )
+            window = select_insulating_window(load_band_bundle(snapshot), padding=below)
             return {
                 "definition": build_definition_signature(snapshot),
-                "window": select_insulating_window(load_band_bundle(snapshot), padding=below),
-                "diagnostics": inspect_qpe_diagnostics(snapshot),
+                "window": window,
+                "diagnostics": inspect_window_diagnostics(
+                    window,
+                    inspect_qpe_diagnostics(snapshot),
+                    require_positive_gw_gap=bool(policy["require_positive_gw_gap"]),
+                ),
             }
         except (ScientificBandError, ScientificDefinitionError) as exc:
             raise OMLError(
@@ -624,6 +632,7 @@ class ControlledExecutionService:
             )
             request = {
                 "schema_version": 1,
+                "evaluator_version": 2,
                 "run_id": run_id,
                 "plan_digest": plan_digest,
                 "benchmark_id": benchmark_id,
@@ -697,6 +706,7 @@ class ControlledExecutionService:
 
         report = {
             "schema_version": 1,
+            "evaluator_version": 2,
             "report_id": report_id,
             **request,
             "request_digest": request_digest,

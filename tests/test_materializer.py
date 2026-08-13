@@ -219,6 +219,45 @@ class MaterializerTest(unittest.TestCase):
         self.assertEqual(receipt["plan_digest"], plan.digest)
         self.assertEqual(attempt["stage"], "scf")
 
+    def test_prepare_run_omits_pyatb_for_explicit_no_headwing_route(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            source.joinpath("librpa.in").write_text(
+                source.joinpath("librpa.in")
+                .read_text(encoding="utf-8")
+                .replace("replace_w_head = t", "replace_w_head = f"),
+                encoding="utf-8",
+            )
+            profile = make_profile(root, source_root)
+            plan = plan_case(
+                source,
+                task="gw",
+                system_type="solid",
+                headwing=False,
+            )
+
+            receipt = prepare_run(
+                source,
+                plan.digest,
+                profile,
+                execution_receipt=make_execution_receipt(profile),
+            )
+            stage_names = {
+                path.name
+                for path in pathlib.Path(receipt["local_run_dir"])
+                .joinpath(".oml", "stages")
+                .glob("*.slurm")
+            }
+
+        self.assertEqual(
+            stage_names,
+            {"scf.slurm", "nscf.slurm", "preprocess.slurm", "librpa.slurm"},
+        )
+        self.assertEqual(receipt["stages"], ["scf", "nscf", "preprocess", "librpa"])
+
     def test_stale_plan_is_rejected_before_creating_a_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

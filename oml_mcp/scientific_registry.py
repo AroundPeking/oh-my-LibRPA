@@ -98,6 +98,7 @@ def _validate_benchmark(value: dict[str, Any], benchmark_id: str) -> dict[str, A
         and len(required_axes) == len(set(required_axes))
         and all(axis in CONVERGENCE_AXES for axis in required_axes)
         and reference_status in {"AVAILABLE", "NOT_AVAILABLE"}
+        and isinstance(value.get("require_positive_gw_gap"), bool)
         and (
             (reference_status == "NOT_AVAILABLE" and value.get("reference") is None)
             or (reference_status == "AVAILABLE" and isinstance(value.get("reference"), dict))

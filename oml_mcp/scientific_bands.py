@@ -15,7 +15,7 @@ TABLE_NAMES = {
 }
 SPIN_PATTERN = re.compile(r"_spin_(\d+)\.dat$")
 DIAGNOSTIC_PATTERNS = (
-    re.compile(r"QPE\s+failed", re.IGNORECASE),
+    re.compile(r"QPE(?:\s+solver)?\s+failed", re.IGNORECASE),
     re.compile(r"invalid\s+(?:Pad[eé]|analytic[- ]continuation)", re.IGNORECASE),
     re.compile(r"unstable[- ]root", re.IGNORECASE),
     re.compile(r"\bnan\b", re.IGNORECASE),
@@ -324,11 +324,43 @@ def inspect_qpe_diagnostics(root: str | Path) -> dict[str, object]:
         ):
             if any(pattern.search(line) for pattern in DIAGNOSTIC_PATTERNS):
                 failures.append(
-                    {"path": str(path), "line": line_number, "excerpt": line.strip()[:500]}
+                    {
+                        "reason_code": "QPE_SOLVER_FAILURE",
+                        "path": str(path),
+                        "line": line_number,
+                        "excerpt": line.strip()[:500],
+                    }
                 )
     return {
         "accepted": not failures,
         "log_count": len(logs),
         "failure_count": len(failures),
         "failures": failures,
+    }
+
+
+def inspect_window_diagnostics(
+    window: dict[str, object],
+    log_diagnostics: dict[str, object],
+    *,
+    require_positive_gw_gap: bool,
+) -> dict[str, object]:
+    failures = [dict(item) for item in log_diagnostics.get("failures", [])]  # type: ignore[arg-type]
+    gap = float(window["fundamental_gw_gap_ev"])
+    if require_positive_gw_gap and gap <= 0.0:
+        failures.append(
+            {
+                "reason_code": "NONPOSITIVE_GW_GAP",
+                "message": "insulating occupation pattern has a nonpositive fundamental GW gap",
+                "gap_ev": gap,
+                "vbm_band": int(window["vbm_band"]),
+                "cbm_band": int(window["cbm_band"]),
+            }
+        )
+    return {
+        **log_diagnostics,
+        "accepted": not failures,
+        "failure_count": len(failures),
+        "failures": failures,
+        "require_positive_gw_gap": require_positive_gw_gap,
     }

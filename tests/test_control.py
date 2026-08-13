@@ -105,6 +105,7 @@ class ControlledExecutionTest(unittest.TestCase):
         self.assertEqual(finalized["scientific_status"], "NOT_EVALUATED")
         self.assertEqual(finalized["regression"]["reason_code"], "REFERENCE_NOT_AVAILABLE")
         self.assertEqual(finalized["final_attempt_id"], final_attempt["attempt_id"])
+        self.assertEqual(finalized["evaluator_version"], 2)
         self.assertTrue(report_file_exists)
         dimensions = {item["dimension_id"]: item for item in score["dimensions"]}
         self.assertEqual(dimensions["numerical_scientific_validity"]["status"], "NOT_EVALUATED")

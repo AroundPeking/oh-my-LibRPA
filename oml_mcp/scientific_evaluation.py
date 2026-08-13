@@ -35,6 +35,13 @@ def _failed_diagnostics(result: dict[str, Any]) -> bool:
     return diagnostics.get("accepted") is False or int(diagnostics.get("failure_count", 0)) > 0
 
 
+def _diagnostic_reason(result: dict[str, Any]) -> str:
+    failures = result.get("diagnostics", {}).get("failures", [])
+    if failures and isinstance(failures[0], dict) and failures[0].get("reason_code"):
+        return str(failures[0]["reason_code"])
+    return "QPE_DIAGNOSTIC_FAILURE"
+
+
 def _identity(key: tuple[Any, ...]) -> dict[str, Any]:
     return {"spin": key[0], "kpoint": list(key[1:4]), "band": key[4]}
 
@@ -45,6 +52,13 @@ def evaluate_regression(
     *,
     tolerance_ev: float,
 ) -> dict[str, Any]:
+    if _failed_diagnostics(candidate):
+        return {
+            "status": "FAIL",
+            "reason_code": _diagnostic_reason(candidate),
+            "tolerance_ev": tolerance_ev,
+            "candidate_diagnostics": candidate.get("diagnostics"),
+        }
     if reference is None:
         return {
             "status": "NOT_EVALUATED",
@@ -59,10 +73,10 @@ def evaluate_regression(
             "tolerance_ev": tolerance_ev,
             "definition_differences": differences,
         }
-    if _failed_diagnostics(candidate) or _failed_diagnostics(reference):
+    if _failed_diagnostics(reference):
         return {
             "status": "FAIL",
-            "reason_code": "QPE_DIAGNOSTIC_FAILURE",
+            "reason_code": _diagnostic_reason(reference),
             "tolerance_ev": tolerance_ev,
             "candidate_diagnostics": candidate.get("diagnostics"),
             "reference_diagnostics": reference.get("diagnostics"),

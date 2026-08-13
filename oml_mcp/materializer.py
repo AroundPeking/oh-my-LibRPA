@@ -28,6 +28,14 @@ def _is_under(path: Path, roots: tuple[Path, ...]) -> bool:
 
 
 def _match_periodic_plan(source: Path, plan_digest: str):
+    requests = (
+        ("solid", False, True),
+        ("solid", True, True),
+        ("solid", False, False),
+        ("solid", True, False),
+        ("2d", False, True),
+        ("2d", True, True),
+    )
     candidates = tuple(
         plan_case(
             source,
@@ -35,10 +43,9 @@ def _match_periodic_plan(source: Path, plan_digest: str):
             system_type=system_type,
             use_symmetry=use_symmetry,
             soc=False,
-            headwing=True,
+            headwing=headwing,
         )
-        for system_type in ("solid", "2d")
-        for use_symmetry in (False, True)
+        for system_type, use_symmetry, headwing in requests
     )
     matches = tuple(plan for plan in candidates if plan.digest == plan_digest)
     if len(matches) != 1:
@@ -290,7 +297,13 @@ def prepare_run(
             ),
             recovery="pin a corrected LibRPA profile and add the required strict-2D gates before execution",
         )
-    if plan.route not in {"periodic_gw", "periodic_gw_symmetry"} or plan.options["soc"]:
+    executable_routes = {
+        "periodic_gw",
+        "periodic_gw_symmetry",
+        "periodic_gw_no_headwing",
+        "periodic_gw_symmetry_no_headwing",
+    }
+    if plan.route not in executable_routes or plan.options["soc"]:
         raise OMLError(
             "ROUTE_NOT_EXECUTABLE",
             "Phase 2 controlled execution supports only non-SOC periodic GW routes",
@@ -305,6 +318,7 @@ def prepare_run(
         system_type=str(plan.options["system_type"]),
         use_symmetry=bool(plan.options["use_symmetry"]),
         soc=False,
+        headwing=bool(plan.options["headwing"]),
         stage="input",
     )
     if not report.accepted:
@@ -356,7 +370,7 @@ def prepare_run(
             encoding="utf-8",
         )
         os.chmod(env_path, 0o600)
-        for stage in CONTROLLED_PERIODIC_STAGES:
+        for stage in plan.stages:
             script = stage_dir / f"{stage}.slurm"
             script.write_text(
                 render_stage_script(stage, run_id=run_id, resources=profile.resources),
@@ -413,6 +427,6 @@ def prepare_run(
         "execution_profile_id": profile.profile_id,
         "local_run_dir": str(final_dir),
         "remote_run_dir": remote_run_dir,
-        "stages": list(CONTROLLED_PERIODIC_STAGES),
+        "stages": list(plan.stages),
         "state": "RUN_PREPARED",
     }

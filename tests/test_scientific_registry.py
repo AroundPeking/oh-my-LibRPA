@@ -25,6 +25,7 @@ class ScientificRegistryTest(unittest.TestCase):
         )
         self.assertIsNone(policy["reference"])
         self.assertEqual(policy["reference_status"], "NOT_AVAILABLE")
+        self.assertTrue(policy["require_positive_gw_gap"])
 
     def test_registry_rejects_paths_and_unknown_identifiers(self):
         for identifier in ("../bn", "/tmp/bn", "nested/bn", "BN with spaces"):

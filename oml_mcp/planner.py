@@ -16,6 +16,8 @@ ROUTE_STAGES = {
     "molecular_gw": ("scf", "librpa"),
     "periodic_gw": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
     "periodic_gw_symmetry": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
+    "periodic_gw_no_headwing": ("scf", "nscf", "preprocess", "librpa"),
+    "periodic_gw_symmetry_no_headwing": ("scf", "nscf", "preprocess", "librpa"),
     "strict_2d_gw_deferred": (),
     "rpa": ("scf", "librpa"),
 }
@@ -60,12 +62,16 @@ def plan_case(
                 "strict 2D remains blocked until a corrected LibRPA profile and 2D gates are installed"
             )
         elif normalized_system in {"solid", "periodic"}:
-            if headwing is False:
-                raise PlanError("periodic GW requires PyATB head/wing replacement in this profile")
             if soc and use_symmetry:
                 assumptions.append("SOC disables the current periodic spatial-symmetry lane")
                 use_symmetry = False
-            if use_symmetry:
+            if headwing is False and use_symmetry:
+                route = "periodic_gw_symmetry_no_headwing"
+                assumptions.append("explicit diagnostic route disables PyATB head/wing replacement")
+            elif headwing is False:
+                route = "periodic_gw_no_headwing"
+                assumptions.append("explicit diagnostic route disables PyATB head/wing replacement")
+            elif use_symmetry:
                 route = "periodic_gw_symmetry"
                 assumptions.append("PyATB head/wing data stays on the full regular k-grid")
             else:

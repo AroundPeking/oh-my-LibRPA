@@ -79,8 +79,6 @@ class PlannerTest(unittest.TestCase):
             root = pathlib.Path(tmpdir)
             self.make_abacus_case(root)
 
-            with self.assertRaisesRegex(PlanError, "head/wing"):
-                plan_case(root, task="gw", system_type="solid", headwing=False)
             with self.assertRaisesRegex(PlanError, "symmetry"):
                 plan_case(root, task="gw", system_type="molecule", use_symmetry=True)
             with self.assertRaisesRegex(PlanError, "head/wing"):
@@ -110,6 +108,30 @@ class PlannerTest(unittest.TestCase):
             ("scf", "pyatb", "nscf", "preprocess", "librpa"),
         )
         self.assertTrue(symmetry.options["use_symmetry"])
+
+    def test_periodic_gw_can_disable_headwing_without_scheduling_pyatb(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+            normal = plan_case(
+                root,
+                task="gw",
+                system_type="solid",
+                headwing=False,
+            )
+            symmetry = plan_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                headwing=False,
+            )
+
+        self.assertEqual(normal.route, "periodic_gw_no_headwing")
+        self.assertEqual(normal.stages, ("scf", "nscf", "preprocess", "librpa"))
+        self.assertFalse(normal.options["headwing"])
+        self.assertEqual(symmetry.route, "periodic_gw_symmetry_no_headwing")
+        self.assertNotIn("pyatb", symmetry.stages)
 
     def test_strict_2d_route_is_discoverable_but_has_no_executable_stages(self):
         with tempfile.TemporaryDirectory() as tmpdir:

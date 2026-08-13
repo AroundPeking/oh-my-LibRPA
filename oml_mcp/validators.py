@@ -271,15 +271,17 @@ def _shrink_alignment_gate(abacus: InputDocument, librpa: InputDocument) -> tupl
     )
 
 
-def _headwing_policy_gate(librpa: InputDocument, task: str, system_type: str) -> GateResult:
+def _headwing_policy_gate(
+    librpa: InputDocument,
+    task: str,
+    system_type: str,
+    requested: bool | None,
+) -> GateResult:
     actual = _bool_value(librpa, "replace_w_head")
     normalized_system = system_type.strip().lower()
-    expected = task == "gw" and normalized_system in {
-        "solid",
-        "periodic",
-        "2d",
-        "two-dimensional",
-    }
+    periodic_3d = task == "gw" and normalized_system in {"solid", "periodic"}
+    strict_2d = task == "gw" and normalized_system in {"2d", "two-dimensional"}
+    expected = (True if requested is None else requested) if periodic_3d else strict_2d
     if actual is None or actual != expected:
         return _fail(
             "pyatb.policy",
@@ -585,6 +587,7 @@ def validate_case(
     system_type: str,
     use_symmetry: bool = False,
     soc: bool = False,
+    headwing: bool | None = None,
     stage: str = "pre_librpa",
 ) -> ValidationReport:
     profile = load_profile()
@@ -646,7 +649,7 @@ def validate_case(
         _task_gate(librpa, normalized_task),
         _fullcoul_exx_gate(librpa),
         _route_policy_gate(normalized_task, system_type, use_symmetry, profile),
-        _headwing_policy_gate(librpa, normalized_task, system_type),
+        _headwing_policy_gate(librpa, normalized_task, system_type, headwing),
         _value_gate(
             librpa,
             "librpa.reader_v1",

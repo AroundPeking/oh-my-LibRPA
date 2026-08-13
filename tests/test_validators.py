@@ -494,6 +494,23 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(self.gate(periodic_report, "pyatb.policy").status, "FAIL")
         self.assertEqual(self.gate(molecular_report, "pyatb.policy").status, "FAIL")
 
+    def test_periodic_headwing_off_is_valid_when_explicitly_requested(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root, use_symmetry=True, headwing=False)
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                headwing=False,
+                stage="input",
+            )
+
+        self.assertTrue(report.accepted, report.to_dict())
+        self.assertEqual(self.gate(report, "pyatb.policy").status, "PASS")
+
     def test_molecular_route_rejects_spatial_symmetry_even_if_inputs_match_request(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

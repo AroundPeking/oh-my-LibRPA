@@ -128,6 +128,21 @@ class ScientificRegressionTest(unittest.TestCase):
         self.assertEqual(qpe_report["status"], "FAIL")
         self.assertEqual(qpe_report["reason_code"], "QPE_DIAGNOSTIC_FAILURE")
 
+    def test_explicit_candidate_failure_precedes_missing_reference(self):
+        candidate = scientific_result()
+        candidate["diagnostics"] = {
+            "accepted": False,
+            "failure_count": 1,
+            "failures": [
+                {"reason_code": "NONPOSITIVE_GW_GAP", "gap_ev": -1.0}
+            ],
+        }
+
+        report = evaluate_regression(candidate, None, tolerance_ev=0.001)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["reason_code"], "NONPOSITIVE_GW_GAP")
+
 
 class ScientificConvergenceTest(unittest.TestCase):
     def convergence_pair(self, *, delta: float = 0.05) -> tuple[dict, dict]:

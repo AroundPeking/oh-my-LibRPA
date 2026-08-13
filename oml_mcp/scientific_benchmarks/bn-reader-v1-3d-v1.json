@@ -9,6 +9,7 @@
   },
   "regression_tolerance_ev": 0.001,
   "convergence_tolerance_ev": 0.05,
+  "require_positive_gw_gap": true,
   "required_axes": [
     "nfreq",
     "empty_states",

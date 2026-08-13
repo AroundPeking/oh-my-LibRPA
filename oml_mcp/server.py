@@ -136,6 +136,7 @@ def build_server() -> MCPServer:
         system_type: Literal["atom", "molecule", "solid", "2d"],
         use_symmetry: bool = False,
         soc: bool = False,
+        headwing: bool | None = None,
         stage: Literal["input", "pre_librpa"] = "pre_librpa",
     ) -> dict[str, Any]:
         """Validate an ABACUS plus LibRPA case and return every gate."""
@@ -145,6 +146,7 @@ def build_server() -> MCPServer:
             system_type=system_type,
             use_symmetry=use_symmetry,
             soc=soc,
+            headwing=headwing,
             stage=stage,
         ).to_dict()
 
