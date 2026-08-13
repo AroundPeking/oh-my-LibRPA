@@ -364,3 +364,29 @@ def inspect_window_diagnostics(
         "failures": failures,
         "require_positive_gw_gap": require_positive_gw_gap,
     }
+
+
+def characterize_window_sampling(
+    window: dict[str, object],
+    *,
+    screening_kpoints: tuple[tuple[float, float, float], ...],
+    screening_grid: tuple[int, int, int],
+) -> dict[str, object]:
+    grid_points = {_normalized_kpoint(point) for point in screening_kpoints}
+    path_points = sorted(
+        {
+            _normalized_kpoint(tuple(state["kpoint"]))  # type: ignore[arg-type,index]
+            for state in window["states"]  # type: ignore[union-attr]
+        }
+    )
+    vbm_kpoint = _normalized_kpoint(tuple(window["vbm_state"]["kpoint"]))  # type: ignore[arg-type,index]
+    cbm_kpoint = _normalized_kpoint(tuple(window["cbm_state"]["kpoint"]))  # type: ignore[arg-type,index]
+    off_grid = [list(point) for point in path_points if point not in grid_points]
+    return {
+        "screening_grid": list(screening_grid),
+        "screening_kpoint_count": len(grid_points),
+        "band_path_kpoint_count": len(path_points),
+        "vbm_on_screening_grid": vbm_kpoint in grid_points,
+        "cbm_on_screening_grid": cbm_kpoint in grid_points,
+        "off_grid_path_kpoints": off_grid,
+    }

@@ -6,6 +6,7 @@ import unittest
 
 from oml_mcp.scientific_bands import (
     ScientificBandError,
+    characterize_window_sampling,
     inspect_qpe_diagnostics,
     inspect_window_diagnostics,
     load_band_bundle,
@@ -187,6 +188,28 @@ class ScientificBandTest(unittest.TestCase):
             {item["reason_code"] for item in combined["failures"]},
             {"QPE_SOLVER_FAILURE", "NONPOSITIVE_GW_GAP"},
         )
+
+    def test_window_sampling_identifies_off_grid_band_path_edge(self):
+        window = {
+            "vbm_state": {"kpoint": [0.0, 0.0, 0.0]},
+            "cbm_state": {"kpoint": [0.25, 0.0, 0.25]},
+            "states": [
+                {"kpoint": [0.0, 0.0, 0.0]},
+                {"kpoint": [0.25, 0.0, 0.25]},
+                {"kpoint": [0.5, 0.0, 0.5]},
+            ],
+        }
+
+        sampling = characterize_window_sampling(
+            window,
+            screening_kpoints=((0.0, 0.0, 0.0), (0.5, 0.0, 0.5)),
+            screening_grid=(2, 2, 2),
+        )
+
+        self.assertTrue(sampling["vbm_on_screening_grid"])
+        self.assertFalse(sampling["cbm_on_screening_grid"])
+        self.assertEqual(sampling["off_grid_path_kpoints"], [[0.25, 0.0, 0.25]])
+        self.assertEqual(sampling["screening_grid"], [2, 2, 2])
 
 
 if __name__ == "__main__":

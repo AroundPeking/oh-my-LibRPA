@@ -20,6 +20,7 @@ from .planner import PlanError, plan_case
 from .provenance import digest_json, sha256_file
 from .scientific_bands import (
     ScientificBandError,
+    characterize_window_sampling,
     inspect_qpe_diagnostics,
     inspect_window_diagnostics,
     load_band_bundle,
@@ -40,6 +41,7 @@ from .scientific_registry import (
 from .state import StateStore
 from .stage_inspection import inspect_stage_outputs
 from .validators import validate_case
+from .parsers import ParseError, parse_bz_sampling
 
 
 RUNTIME_CODE_SUFFIXES = frozenset({".py", ".pyc", ".sh", ".slurm", ".so", ".dylib"})
@@ -591,6 +593,12 @@ class ControlledExecutionService:
                     "the current evaluator requires equal VBM and CBM padding",
                 )
             window = select_insulating_window(load_band_bundle(snapshot), padding=below)
+            bz_sampling = parse_bz_sampling(snapshot / "bz_sampling_out")
+            window["sampling"] = characterize_window_sampling(
+                window,
+                screening_kpoints=tuple(bz_sampling["fractional_kpoints"]),
+                screening_grid=tuple(bz_sampling["grid"]),
+            )
             return {
                 "definition": build_definition_signature(snapshot),
                 "window": window,
@@ -600,7 +608,7 @@ class ControlledExecutionService:
                     require_positive_gw_gap=bool(policy["require_positive_gw_gap"]),
                 ),
             }
-        except (ScientificBandError, ScientificDefinitionError) as exc:
+        except (ParseError, ScientificBandError, ScientificDefinitionError) as exc:
             raise OMLError(
                 "SCIENTIFIC_EVIDENCE_INVALID",
                 str(exc),
@@ -632,7 +640,7 @@ class ControlledExecutionService:
             )
             request = {
                 "schema_version": 1,
-                "evaluator_version": 2,
+                "evaluator_version": 3,
                 "run_id": run_id,
                 "plan_digest": plan_digest,
                 "benchmark_id": benchmark_id,
@@ -706,7 +714,7 @@ class ControlledExecutionService:
 
         report = {
             "schema_version": 1,
-            "evaluator_version": 2,
+            "evaluator_version": 3,
             "report_id": report_id,
             **request,
             "request_digest": request_digest,
