@@ -14,7 +14,7 @@ Use OML MCP first.
 
 Never bypass MCP controlled execution with direct shell, SSH, Slurm, cleanup, overwrite, or automatic retry operations. Do not submit stale plans, changed manifests, unknown binaries, duplicate attempts, or a stage whose prerequisites have not passed.
 
-Keep RPA, molecular/atomic GW, magnetic/SOC, FHI-aims, and Delta-Sternheimer on reviewed routes. Strict 2D is blocked as `LIBRPA_070_STRICT_2D_INVALID` pending corrected LibRPA and dedicated gates.
+Keep RPA, molecular/atomic GW, magnetic/SOC, FHI-aims, and Delta-Sternheimer on existing reviewed routes. Strict 2D is blocked as `LIBRPA_070_STRICT_2D_INVALID` pending corrected LibRPA and dedicated gates.
 
 Symmetry metadata comes from `stru_out`; legacy symmetry sidecars are neither copied nor required.
 

@@ -40,7 +40,7 @@ OML exposes five inspection tools, five execution-control tools, and one scienti
 | `prepare_run` | Verify versions and materialize a fresh immutable periodic-GW run |
 | `submit_stage` | Submit one fixed stage after provenance, order, and duplicate gates |
 | `get_status` | Observe current or historical scheduler state without changing it |
-| `inspect_stage` | Validate completed stage artifacts and record an immutable verdict |
+| `inspect_stage` | Snapshot a terminal scheduler state and record an immutable stage verdict |
 | `finalize_case` | Evaluate a passed 3D GW snapshot against registered scientific policy |
 | `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
@@ -68,6 +68,7 @@ The OML production policy explicitly uses reader-v1:
 - symmetry keys: `use_symmetry_exx`, `use_symmetry_gw`, and `use_symmetry_rpa`
 - symmetry metadata: read from `stru_out`; no legacy symmetry sidecars are copied
 - PyATB handoff: `input_dir/pyatb_librpa_df` on the full regular k grid
+- PyATB state count: exactly the ABACUS `band_out` `nbands` in all text and reader-v1 handoff files
 
 The ABACUS source default for `out_librpa_reader_version` is still `0`, and the LibRPA reader defaults are still `-1`. These are source facts, not the OML production defaults above.
 
