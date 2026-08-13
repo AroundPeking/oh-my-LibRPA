@@ -260,11 +260,16 @@ def _preprocess_gates(root: Path) -> list[GateResult]:
 
 
 def _librpa_gates(root: Path) -> list[GateResult]:
-    rank0 = tuple(sorted(root.glob("librpa_para_nprocs_*_myid_0.out")))
-    if not rank0:
-        rank0 = tuple(sorted(root.glob("LibRPA*.out")))
-    safe_rank0 = tuple(path for path in rank0 if _safe_nonempty(root, path))
-    if not safe_rank0:
+    logs = tuple(
+        dict.fromkeys(
+            (
+                *sorted(root.glob("librpa_para_nprocs_*_myid_0.out")),
+                *sorted(root.glob("LibRPA*.out")),
+            )
+        )
+    )
+    safe_logs = tuple(path for path in logs if _safe_nonempty(root, path))
+    if not safe_logs:
         completion = _fail(
             "stage.librpa.completion",
             "LibRPA rank-0 output is missing, empty, linked, or escaped",
@@ -272,15 +277,38 @@ def _librpa_gates(root: Path) -> list[GateResult]:
             "inspect the scheduler workload output and rerun LibRPA after repairing the cause",
         )
     else:
-        log = safe_rank0[0]
-        text = log.read_text(encoding="utf-8", errors="replace")
-        if "Timer stop:  total." in text or "libRPA finished successfully" in text:
-            completion = _pass("stage.librpa.completion", "LibRPA reached a recognized final marker", str(log))
+        texts = {
+            path: path.read_text(encoding="utf-8", errors="replace")
+            for path in safe_logs
+        }
+        failures = tuple(
+            str(path)
+            for path, text in texts.items()
+            if "Error on MPI" in text or "Error: libRPA failed" in text
+        )
+        successful = tuple(
+            str(path)
+            for path, text in texts.items()
+            if "Timer stop:  total." in text or "libRPA finished successfully" in text
+        )
+        if failures:
+            completion = _fail(
+                "stage.librpa.completion",
+                "LibRPA output contains an explicit failure marker",
+                failures,
+                "inspect every LibRPA workload log and repair the first failure before retrying",
+            )
+        elif successful:
+            completion = _pass(
+                "stage.librpa.completion",
+                "LibRPA reached a recognized final marker without conflicting failures",
+                *successful,
+            )
         else:
             completion = _fail(
                 "stage.librpa.completion",
                 "LibRPA did not reach a recognized final marker",
-                (str(log),),
+                tuple(str(path) for path in safe_logs),
                 "inspect the rank-0 output and repair the first failure before retrying",
             )
     gw_paths = tuple(sorted(root.glob("GW_band_spin_*.dat")))

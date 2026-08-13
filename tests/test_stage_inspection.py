@@ -138,6 +138,32 @@ class StageInspectionTest(unittest.TestCase):
         self.assertFalse(rejected["accepted"])
         self.assertTrue(any(gate["gate_id"] == "stage.librpa.gw_data" for gate in rejected["gates"]))
 
+    def test_librpa_completion_checks_main_and_rank_logs_for_conflicts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "librpa")
+            rank0 = root / "librpa_para_nprocs_1_myid_0.out"
+            rank0.write_text("timing table\n", encoding="utf-8")
+            main = root / "LibRPA.123.out"
+            main.write_text("libRPA finished successfully\n", encoding="utf-8")
+            (root / "band_kpath_info").write_text("2 2 1 1\n0 0 0\n")
+            (root / "GW_band_spin_1.dat").write_text(
+                "1 0 0 0 0.0 5.0 0.0 6.0\n", encoding="utf-8"
+            )
+
+            accepted = inspect_stage_outputs(root, "librpa")
+            rank0.write_text("Error on MPI rank 0: failed\n", encoding="utf-8")
+            rejected = inspect_stage_outputs(root, "librpa")
+
+        self.assertTrue(accepted["accepted"])
+        self.assertFalse(rejected["accepted"])
+        completion = next(
+            gate
+            for gate in rejected["gates"]
+            if gate["gate_id"] == "stage.librpa.completion"
+        )
+        self.assertEqual(completion["status"], "FAIL")
+
     def test_librpa_gw_band_rows_must_match_band_kpath(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
