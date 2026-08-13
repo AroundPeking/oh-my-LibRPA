@@ -282,8 +282,36 @@ class SlurmExecutorTest(unittest.TestCase):
                     f"{snapshot.parent}/.{snapshot.name}.fetching/",
                 ],
             )
+            self.assertEqual(run.call_args.kwargs["timeout"], 600)
             executor.snapshot_run("/work/approved/oml/run-1", snapshot)
             self.assertEqual(run.call_count, 1)
+
+    def test_remote_snapshot_timeout_removes_only_incomplete_fetch(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            base = make_profile(root, root / "sources")
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            executor = SlurmExecutor(profile)
+            snapshot = root / "runs" / "run-1" / ".oml" / "snapshots" / "attempt-1"
+
+            with patch(
+                "oml_mcp.executor.subprocess.run",
+                side_effect=subprocess.TimeoutExpired([], 600),
+            ):
+                with self.assertRaisesRegex(OMLError, "SCHEDULER_UNOBSERVABLE"):
+                    executor.snapshot_run("/work/approved/oml/run-1", snapshot)
+
+            self.assertFalse(snapshot.exists())
+            self.assertFalse(snapshot.parent.joinpath(".attempt-1.fetching").exists())
 
     def test_pinned_source_revisions_are_verified_before_execution(self):
         with tempfile.TemporaryDirectory() as tmpdir:

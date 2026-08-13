@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import json
 import shlex
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -64,6 +65,7 @@ class SlurmExecutor:
         *,
         cwd: Path | None = None,
         timeout_code: str = "SCHEDULER_UNOBSERVABLE",
+        timeout_seconds: int | None = None,
     ) -> subprocess.CompletedProcess[str]:
         try:
             return subprocess.run(
@@ -72,7 +74,7 @@ class SlurmExecutor:
                 check=False,
                 capture_output=True,
                 text=True,
-                timeout=self.timeout_seconds,
+                timeout=self.timeout_seconds if timeout_seconds is None else timeout_seconds,
                 shell=False,
             )
         except subprocess.TimeoutExpired as exc:
@@ -155,15 +157,20 @@ class SlurmExecutor:
                 recovery="reconcile the interrupted fetch before retrying inspection",
             )
         temporary.mkdir(parents=True, mode=0o700)
-        result = self._run(
-            [
-                self.profile.ssh["rsync_program"],
-                "-a",
-                "--",
-                f"{self.profile.ssh['host']}:{remote_run_dir}/",
-                f"{temporary}/",
-            ]
-        )
+        try:
+            result = self._run(
+                [
+                    self.profile.ssh["rsync_program"],
+                    "-a",
+                    "--",
+                    f"{self.profile.ssh['host']}:{remote_run_dir}/",
+                    f"{temporary}/",
+                ],
+                timeout_seconds=600,
+            )
+        except OMLError:
+            shutil.rmtree(temporary)
+            raise
         if result.returncode != 0:
             try:
                 temporary.rmdir()
