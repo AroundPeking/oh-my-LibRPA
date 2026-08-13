@@ -432,7 +432,8 @@ class SlurmExecutorTest(unittest.TestCase):
                         [],
                         0,
                         "cannot delete non-empty directory: OUT.ABACUS\n"
-                        "cannot delete non-empty directory: .oml/stage-results\n",
+                        "cannot delete non-empty directory: .oml/stage-results\n"
+                        "*deleting librpa.d\n",
                         "",
                     ),
                 )

@@ -43,6 +43,7 @@ print(json.dumps({"sha256": digest.hexdigest(), "size": os.path.getsize(path)}, 
 """
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 ATTEMPT_ID_PATTERN = re.compile(r"^attempt-[0-9a-f]{20}$")
+RUNTIME_CODE_SUFFIXES = (".py", ".pyc", ".sh", ".slurm", ".so", ".dylib")
 
 
 def _utc_now() -> str:
@@ -305,7 +306,7 @@ class SlurmExecutor:
         runtime_changes = "\n".join(
             line
             for line in runtime_surface.stdout.splitlines()
-            if not line.startswith("cannot delete non-empty directory: ")
+            if line.strip().lower().endswith(tuple(RUNTIME_CODE_SUFFIXES))
         ).strip()
         if runtime_surface.returncode != 0 or runtime_changes:
             raise OMLError(
