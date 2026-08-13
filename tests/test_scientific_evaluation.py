@@ -71,6 +71,8 @@ class ScientificRegressionTest(unittest.TestCase):
         self.assertEqual(report["status"], "PASS")
         self.assertAlmostEqual(report["quantities"]["gw"]["max_abs_error_ev"], 0.001)
         self.assertEqual(report["quantities"]["gw"]["worst_state"]["band"], 4)
+        self.assertEqual(report["quantities"]["gw"]["candidate_ev"], -1.499)
+        self.assertEqual(report["quantities"]["gw"]["reference_ev"], -1.5)
         self.assertEqual(report["state_count"], 4)
 
     def test_just_over_1_mev_fails(self):

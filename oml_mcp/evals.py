@@ -203,6 +203,7 @@ def score_run(
     scientific_status = None
     scientific_report_id = None
     scientific_value = None
+    diagnosis_value = None
     if scientific is not None and final_attempt is not None:
         scientific_report = scientific["report"]
         lineage_matches = (
@@ -215,6 +216,11 @@ def score_run(
         if lineage_matches:
             scientific_status = scientific_report["scientific_status"]
             scientific_report_id = scientific["report_id"]
+            diagnostics = scientific_report.get("diagnostics", {})
+            if diagnostics.get("accepted") is True:
+                diagnosis_value = 1.0
+            elif diagnostics.get("accepted") is False:
+                diagnosis_value = 0.0
             if scientific_status == "PASS":
                 scientific_value = 1.0
             elif scientific_status == "FAIL":
@@ -223,7 +229,7 @@ def score_run(
         "dimensions": {
             "precompute_validation": 1.0 if provenance_ok else 0.0,
             "stage_execution_state": len(passed_stages) / len(stages),
-            "diagnosis": None,
+            "diagnosis": diagnosis_value,
             "numerical_scientific_validity": scientific_value,
             "efficiency_reproducibility": (
                 1.0 if attempts and all(item["scheduler_id"] for item in attempts) else 0.5

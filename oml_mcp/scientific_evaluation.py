@@ -100,6 +100,8 @@ def evaluate_regression(
             "max_abs_error_ev": worst_error,
             "rms_error_ev": rms_error,
             "worst_state": _identity(worst_key),
+            "candidate_ev": float(candidate_states[worst_key][f"{quantity}_ev"]),
+            "reference_ev": float(reference_states[worst_key][f"{quantity}_ev"]),
         }
 
     return {

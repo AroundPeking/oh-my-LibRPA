@@ -241,6 +241,7 @@ class ScorecardTest(unittest.TestCase):
                 "manifest_digest": "f" * 64,
                 "profile_id": "test-local",
                 "scientific_status": "PASS",
+                "diagnostics": {"accepted": True, "failure_count": 0, "failures": []},
             }
             store.record_scientific_report(scientific)
 
@@ -253,6 +254,7 @@ class ScorecardTest(unittest.TestCase):
 
         dimensions = {item["dimension_id"]: item for item in report["dimensions"]}
         self.assertEqual(dimensions["numerical_scientific_validity"]["value"], 1.0)
+        self.assertEqual(dimensions["diagnosis"]["value"], 1.0)
         self.assertEqual(report["progress"]["scientific_report_id"], "science-scored-pass")
         self.assertEqual(report["progress"]["scientific_status"], "PASS")
 
