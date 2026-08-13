@@ -75,7 +75,13 @@ def _required_glob(
     )
 
 
-def _completion_log(root: Path, stage: str, relative: str) -> GateResult:
+def _completion_log(
+    root: Path,
+    stage: str,
+    relative: str,
+    *,
+    required_markers: Iterable[tuple[str, re.Pattern[str]]] = (),
+) -> GateResult:
     path = root / relative
     repair = f"rerun the {stage} stage and inspect its producer log"
     if not _safe_nonempty(root, path):
@@ -94,7 +100,12 @@ def _completion_log(root: Path, stage: str, relative: str) -> GateResult:
             (str(path),),
             repair,
         )
-    missing = tuple(marker for marker in ("Finish Time", "Total Time") if marker not in text)
+    markers = (
+        ("Finish Time", re.compile(r"(?m)^\s*Finish\s+Time(?:\s*:|\s*$)")),
+        ("Total Time", re.compile(r"(?m)^\s*Total\s+Time(?:\s*:|\s*$)")),
+        *tuple(required_markers),
+    )
+    missing = tuple(label for label, pattern in markers if pattern.search(text) is None)
     if missing:
         return _fail(
             f"stage.{stage}.completion",
@@ -102,7 +113,11 @@ def _completion_log(root: Path, stage: str, relative: str) -> GateResult:
             (str(path), *missing),
             repair,
         )
-    return _pass(f"stage.{stage}.completion", f"{stage} reached both ABACUS completion markers", str(path))
+    return _pass(
+        f"stage.{stage}.completion",
+        f"{stage} reached every required ABACUS completion marker",
+        str(path),
+    )
 
 
 def _finite_text_files(
@@ -163,7 +178,12 @@ def _command_gate(
 
 def _scf_gates(root: Path) -> list[GateResult]:
     return [
-        _completion_log(root, "scf", "OUT.ABACUS/running_scf.log"),
+        _completion_log(
+            root,
+            "scf",
+            "OUT.ABACUS/running_scf.log",
+            required_markers=(("SCF converged", re.compile(r"(?m)^#SCF IS CONVERGED#$")),),
+        ),
         _required_files(
             root,
             "stage.scf.artifacts",

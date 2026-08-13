@@ -360,7 +360,9 @@ class ControlledExecutionTest(unittest.TestCase):
             command_completed(run_dir, "scf", attempt["attempt_id"])
             output = run_dir / "OUT.ABACUS"
             output.mkdir()
-            (output / "running_scf.log").write_text("Finish Time\nTotal Time\n")
+            (output / "running_scf.log").write_text(
+                "#SCF IS CONVERGED#\nFinish Time\nTotal  Time\n"
+            )
             (output / "ABACUS-CHARGE-DENSITY.restart").write_text("charge\n")
             (run_dir / "vxc_out").write_text("vxc\n")
             (run_dir / "stru_out").write_text("structure\n")
@@ -383,7 +385,9 @@ class ControlledExecutionTest(unittest.TestCase):
             command_completed(run_dir, "scf", "attempt-from-old-retry")
             output = run_dir / "OUT.ABACUS"
             output.mkdir()
-            (output / "running_scf.log").write_text("Finish Time\nTotal Time\n")
+            (output / "running_scf.log").write_text(
+                "#SCF IS CONVERGED#\nFinish Time\nTotal  Time\n"
+            )
             (output / "ABACUS-CHARGE-DENSITY.restart").write_text("charge\n")
             (run_dir / "vxc_out").write_text("vxc\n")
             (run_dir / "stru_out").write_text("structure\n")

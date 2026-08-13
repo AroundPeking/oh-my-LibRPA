@@ -40,7 +40,7 @@ class StageInspectionTest(unittest.TestCase):
             output = root / "OUT.ABACUS"
             output.mkdir()
             (output / "running_scf.log").write_text(
-                "Finish Time\nTotal Time\n", encoding="utf-8"
+                "#SCF IS CONVERGED#\nFinish Time\nTotal  Time\n", encoding="utf-8"
             )
             (output / "ABACUS-CHARGE-DENSITY.restart").write_text("charge\n")
             (root / "vxc_out").write_text("vxc\n")
@@ -53,6 +53,29 @@ class StageInspectionTest(unittest.TestCase):
         self.assertTrue(accepted["accepted"])
         self.assertFalse(rejected["accepted"])
         self.assertTrue(any(gate["gate_id"] == "stage.scf.artifacts" for gate in rejected["gates"]))
+
+    def test_scf_rejects_a_finished_but_unconverged_log(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "scf")
+            output = root / "OUT.ABACUS"
+            output.mkdir()
+            (output / "running_scf.log").write_text(
+                "Finish Time\nTotal  Time\n", encoding="utf-8"
+            )
+            (output / "ABACUS-CHARGE-DENSITY.restart").write_text("charge\n")
+            (root / "vxc_out").write_text("vxc\n")
+            (root / "stru_out").write_text("structure\n")
+
+            report = inspect_stage_outputs(root, "scf")
+
+        self.assertFalse(report["accepted"])
+        completion = next(
+            gate
+            for gate in report["gates"]
+            if gate["gate_id"] == "stage.scf.completion"
+        )
+        self.assertEqual(completion["status"], "FAIL")
 
     def test_pyatb_uses_reader_v1_dimension_and_coverage_checks(self):
         with tempfile.TemporaryDirectory() as tmpdir:
