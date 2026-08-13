@@ -206,6 +206,56 @@ class ScorecardTest(unittest.TestCase):
         self.assertEqual(report["penalties"]["failed_attempts"], 1)
         self.assertEqual(report["deduction"], 2.0)
 
+    def test_matching_scientific_report_controls_numerical_score(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = StateStore(root / "state.sqlite3")
+            store.register_plan(PLAN)
+            store.create_run(
+                run_id="run-scored-science",
+                plan_id=PLAN["plan_id"],
+                plan_digest=PLAN["digest"],
+                execution_profile_id="test-local",
+                local_run_dir=str(root / "run-scored-science"),
+                remote_run_dir=None,
+                manifest_digest="f" * 64,
+            )
+            final_attempt = None
+            for stage in PLAN["stages"]:
+                attempt = store.authorize_submission(
+                    "run-scored-science", stage, PLAN["digest"]
+                )
+                store.mark_attempt_submitted(attempt["attempt_id"], str(400 + len(stage)))
+                store.record_attempt_status(attempt["attempt_id"], "PASSED")
+                final_attempt = attempt
+            assert final_attempt is not None
+            scientific = {
+                "schema_version": 1,
+                "report_id": "science-scored-pass",
+                "run_id": "run-scored-science",
+                "plan_digest": PLAN["digest"],
+                "benchmark_id": "bn-reader-v1-3d-v1",
+                "convergence_bundle_id": "bn-all-v1",
+                "request_digest": "3" * 64,
+                "final_attempt_id": final_attempt["attempt_id"],
+                "manifest_digest": "f" * 64,
+                "profile_id": "test-local",
+                "scientific_status": "PASS",
+            }
+            store.record_scientific_report(scientific)
+
+            report = score_run(
+                store,
+                "run-scored-science",
+                provenance_ok=True,
+                prepared_versions_match=True,
+            )
+
+        dimensions = {item["dimension_id"]: item for item in report["dimensions"]}
+        self.assertEqual(dimensions["numerical_scientific_validity"]["value"], 1.0)
+        self.assertEqual(report["progress"]["scientific_report_id"], "science-scored-pass")
+        self.assertEqual(report["progress"]["scientific_status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()

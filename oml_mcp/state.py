@@ -121,6 +121,20 @@ class StateStore:
                     report_json TEXT NOT NULL,
                     inspected_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS scientific_reports (
+                    report_id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES runs(run_id),
+                    plan_digest TEXT NOT NULL,
+                    benchmark_id TEXT NOT NULL,
+                    convergence_bundle_id TEXT,
+                    request_digest TEXT NOT NULL,
+                    final_attempt_id TEXT NOT NULL REFERENCES stage_attempts(attempt_id),
+                    manifest_digest TEXT NOT NULL,
+                    profile_id TEXT NOT NULL,
+                    scientific_status TEXT NOT NULL,
+                    report_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 """
             )
             columns = {
@@ -691,5 +705,152 @@ class StateStore:
             )
             connection.commit()
         receipt = self.get_inspection(attempt_id)
+        assert receipt is not None
+        return receipt
+
+    def get_scientific_report(self, report_id: str) -> dict[str, Any] | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM scientific_reports WHERE report_id = ?", (report_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        value = dict(row)
+        value["report"] = _loads(value.pop("report_json"))
+        return value
+
+    def latest_scientific_report(self, run_id: str) -> dict[str, Any] | None:
+        self.get_run(run_id)
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM scientific_reports
+                WHERE run_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1
+                """,
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        value = dict(row)
+        value["report"] = _loads(value.pop("report_json"))
+        return value
+
+    def list_scientific_reports(self, run_id: str) -> list[dict[str, Any]]:
+        self.get_run(run_id)
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM scientific_reports
+                WHERE run_id = ? ORDER BY created_at, rowid
+                """,
+                (run_id,),
+            ).fetchall()
+        reports = []
+        for row in rows:
+            value = dict(row)
+            value["report"] = _loads(value.pop("report_json"))
+            reports.append(value)
+        return reports
+
+    def record_scientific_report(self, report: dict[str, Any]) -> dict[str, Any]:
+        required = {
+            "report_id",
+            "run_id",
+            "plan_digest",
+            "benchmark_id",
+            "convergence_bundle_id",
+            "request_digest",
+            "final_attempt_id",
+            "manifest_digest",
+            "profile_id",
+            "scientific_status",
+        }
+        missing = sorted(required - set(report))
+        if missing:
+            raise OMLError(
+                "SCIENTIFIC_REPORT_CONFLICT",
+                "scientific report is missing immutable identity fields",
+                evidence=tuple(missing),
+                recovery="recreate the report through finalize_case",
+            )
+        payload = _json(report)
+        now = utc_now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT report_json FROM scientific_reports WHERE report_id = ?",
+                (report["report_id"],),
+            ).fetchone()
+            if existing is not None:
+                connection.rollback()
+                if existing["report_json"] != payload:
+                    raise OMLError(
+                        "SCIENTIFIC_REPORT_CONFLICT",
+                        "an immutable scientific report already exists with different evidence",
+                        evidence=(str(report["report_id"]),),
+                        recovery="preserve the existing report and finalize a new immutable request identity",
+                    )
+                receipt = self.get_scientific_report(str(report["report_id"]))
+                assert receipt is not None
+                return receipt
+            run = connection.execute(
+                "SELECT * FROM runs WHERE run_id = ?", (report["run_id"],)
+            ).fetchone()
+            attempt = connection.execute(
+                "SELECT * FROM stage_attempts WHERE attempt_id = ?",
+                (report["final_attempt_id"],),
+            ).fetchone()
+            plan = (
+                connection.execute(
+                    "SELECT stages_json FROM plans WHERE plan_id = ?", (run["plan_id"],)
+                ).fetchone()
+                if run is not None
+                else None
+            )
+            identity_matches = (
+                run is not None
+                and attempt is not None
+                and plan is not None
+                and report["plan_digest"] == run["plan_digest"]
+                and report["manifest_digest"] == run["manifest_digest"]
+                and report["profile_id"] == run["execution_profile_id"]
+                and attempt["run_id"] == report["run_id"]
+                and attempt["stage"] == _loads(plan["stages_json"])[-1]
+                and attempt["status"] == "PASSED"
+                and report["scientific_status"] in {"PASS", "FAIL", "NOT_EVALUATED", "INCOMPLETE"}
+            )
+            if not identity_matches:
+                connection.rollback()
+                raise OMLError(
+                    "SCIENTIFIC_REPORT_CONFLICT",
+                    "scientific report does not match the immutable run and final attempt",
+                    evidence=(str(report["run_id"]), str(report["final_attempt_id"])),
+                    recovery="finalize only a passed final stage through finalize_case",
+                )
+            connection.execute(
+                """
+                INSERT INTO scientific_reports (
+                    report_id, run_id, plan_digest, benchmark_id, convergence_bundle_id,
+                    request_digest, final_attempt_id, manifest_digest, profile_id,
+                    scientific_status, report_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    report["report_id"],
+                    report["run_id"],
+                    report["plan_digest"],
+                    report["benchmark_id"],
+                    report["convergence_bundle_id"],
+                    report["request_digest"],
+                    report["final_attempt_id"],
+                    report["manifest_digest"],
+                    report["profile_id"],
+                    report["scientific_status"],
+                    payload,
+                    now,
+                ),
+            )
+            connection.commit()
+        receipt = self.get_scientific_report(str(report["report_id"]))
         assert receipt is not None
         return receipt

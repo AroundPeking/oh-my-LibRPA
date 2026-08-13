@@ -15,6 +15,22 @@ from tests.test_materializer import make_periodic_source, make_profile
 from tests.test_stage_inspection import command_completed
 
 
+def synthetic_scientific_result() -> dict:
+    return {
+        "definition": {"schema_version": 1, "digest": "d" * 64, "profile_id": "test-local"},
+        "window": {
+            "vbm_band": 1,
+            "cbm_band": 2,
+            "band_start": 1,
+            "band_stop": 2,
+            "state_count": 2,
+            "states": [],
+            "fundamental_gw_gap_ev": 2.0,
+        },
+        "diagnostics": {"accepted": True, "failure_count": 0, "failures": []},
+    }
+
+
 class ControlledExecutionTest(unittest.TestCase):
     def prepare(self, root: pathlib.Path):
         source_root = root / "sources"
@@ -41,6 +57,71 @@ class ControlledExecutionTest(unittest.TestCase):
         self.assertEqual(attempt["scheduler_id"], "12345")
         self.assertEqual(attempt["status"], "SUBMITTED")
         self.assertEqual(status["attempt"]["scheduler_id"], "12345")
+
+    def make_passed_run(self, root: pathlib.Path):
+        _, _, plan, service, run = self.prepare(root)
+        final_attempt = None
+        for stage in plan.stages:
+            attempt = service.store.authorize_submission(run["run_id"], stage, plan.digest)
+            service.store.mark_attempt_submitted(attempt["attempt_id"], str(500 + len(stage)))
+            if stage == "librpa":
+                service.store.finalize_inspection(
+                    attempt["attempt_id"],
+                    {"schema_version": 1, "stage": stage, "accepted": True, "gates": []},
+                )
+            else:
+                service.store.record_attempt_status(attempt["attempt_id"], "PASSED")
+            final_attempt = attempt
+        assert final_attempt is not None
+        run_dir = pathlib.Path(run["local_run_dir"])
+        snapshot = run_dir / ".oml" / "snapshots" / final_attempt["attempt_id"]
+        snapshot.mkdir(parents=True)
+        return plan, service, run, final_attempt, snapshot
+
+    def test_finalize_case_persists_not_evaluated_report_and_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            plan, service, run, final_attempt, _ = self.make_passed_run(root)
+            with patch.object(
+                service, "_load_scientific_result", return_value=synthetic_scientific_result()
+            ):
+                finalized = service.finalize_case(
+                    run["run_id"], plan.digest, "bn-reader-v1-3d-v1"
+                )
+                same = service.finalize_case(
+                    run["run_id"], plan.digest, "bn-reader-v1-3d-v1"
+                )
+                score = service.score_case(run["run_id"], plan.digest)
+
+            report_path = (
+                pathlib.Path(run["local_run_dir"])
+                / ".oml"
+                / "science"
+                / f"{finalized['report_id']}.json"
+            )
+            report_file_exists = report_path.is_file()
+
+        self.assertEqual(finalized, same)
+        self.assertEqual(finalized["scientific_status"], "NOT_EVALUATED")
+        self.assertEqual(finalized["regression"]["reason_code"], "REFERENCE_NOT_AVAILABLE")
+        self.assertEqual(finalized["final_attempt_id"], final_attempt["attempt_id"])
+        self.assertTrue(report_file_exists)
+        dimensions = {item["dimension_id"]: item for item in score["dimensions"]}
+        self.assertEqual(dimensions["numerical_scientific_validity"]["status"], "NOT_EVALUATED")
+
+    def test_finalize_case_requires_every_stage_and_untampered_manifest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            with self.assertRaisesRegex(OMLError, "SCIENTIFIC_LINEAGE_INCOMPLETE"):
+                service.finalize_case(run["run_id"], plan.digest, "bn-reader-v1-3d-v1")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            plan, service, run, _, _ = self.make_passed_run(root)
+            pathlib.Path(run["local_run_dir"], "STRU").write_text("tampered\n")
+            with self.assertRaisesRegex(OMLError, "MANIFEST_MISMATCH"):
+                service.finalize_case(run["run_id"], plan.digest, "bn-reader-v1-3d-v1")
 
     def test_tampered_input_or_stage_script_blocks_submission(self):
         with tempfile.TemporaryDirectory() as tmpdir:

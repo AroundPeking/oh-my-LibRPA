@@ -192,17 +192,39 @@ def score_run(
         pinned_versions = prepared_versions_match
     librpa_attempts = [item for item in attempts if item["stage"] == "librpa"]
     finite_final: bool | None = None
+    final_attempt = None
     if librpa_attempts:
         latest = librpa_attempts[-1]
+        final_attempt = latest
         inspection = store.get_inspection(latest["attempt_id"])
         if inspection is not None:
             finite_final = bool(inspection["accepted"])
+    scientific = store.latest_scientific_report(run_id)
+    scientific_status = None
+    scientific_report_id = None
+    scientific_value = None
+    if scientific is not None and final_attempt is not None:
+        scientific_report = scientific["report"]
+        lineage_matches = (
+            scientific["plan_digest"] == run["plan_digest"]
+            and scientific["manifest_digest"] == run["manifest_digest"]
+            and scientific["profile_id"] == run["execution_profile_id"]
+            and scientific["final_attempt_id"] == final_attempt["attempt_id"]
+            and final_attempt["status"] == "PASSED"
+        )
+        if lineage_matches:
+            scientific_status = scientific_report["scientific_status"]
+            scientific_report_id = scientific["report_id"]
+            if scientific_status == "PASS":
+                scientific_value = 1.0
+            elif scientific_status == "FAIL":
+                scientific_value = 0.0
     evidence = {
         "dimensions": {
             "precompute_validation": 1.0 if provenance_ok else 0.0,
             "stage_execution_state": len(passed_stages) / len(stages),
             "diagnosis": None,
-            "numerical_scientific_validity": None,
+            "numerical_scientific_validity": scientific_value,
             "efficiency_reproducibility": (
                 1.0 if attempts and all(item["scheduler_id"] for item in attempts) else 0.5
             ),
@@ -226,5 +248,7 @@ def score_run(
         "planned_stages": stages,
         "passed_stages": passed_stages,
         "attempt_count": len(attempts),
+        "scientific_report_id": scientific_report_id,
+        "scientific_status": scientific_status,
     }
     return report

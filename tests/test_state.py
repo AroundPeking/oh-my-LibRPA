@@ -229,6 +229,87 @@ class StateStoreTest(unittest.TestCase):
         self.assertEqual(same["attempt_status"], "PASSED")
         self.assertEqual(attempt["preflight"], preflight)
 
+    def test_scientific_report_is_idempotent_immutable_and_attempt_bound(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = self.make_store(root)
+            store.register_plan(PLAN)
+            store.create_run(
+                run_id="run-science",
+                plan_id=PLAN["plan_id"],
+                plan_digest=PLAN["digest"],
+                execution_profile_id="test-local",
+                local_run_dir=str(root / "runs" / "run-science"),
+                remote_run_dir=None,
+                manifest_digest="f" * 64,
+            )
+            final_attempt = None
+            for stage in PLAN["stages"]:
+                attempt = store.authorize_submission("run-science", stage, PLAN["digest"])
+                store.mark_attempt_submitted(attempt["attempt_id"], str(200 + len(stage)))
+                store.record_attempt_status(attempt["attempt_id"], "PASSED")
+                final_attempt = attempt
+            assert final_attempt is not None
+            report = {
+                "schema_version": 1,
+                "report_id": "science-0123456789abcdef",
+                "run_id": "run-science",
+                "plan_digest": PLAN["digest"],
+                "benchmark_id": "bn-reader-v1-3d-v1",
+                "convergence_bundle_id": None,
+                "request_digest": "1" * 64,
+                "final_attempt_id": final_attempt["attempt_id"],
+                "manifest_digest": "f" * 64,
+                "profile_id": "test-local",
+                "scientific_status": "NOT_EVALUATED",
+            }
+
+            receipt = store.record_scientific_report(report)
+            same = store.record_scientific_report(report)
+            latest = store.latest_scientific_report("run-science")
+            with self.assertRaisesRegex(OMLError, "SCIENTIFIC_REPORT_CONFLICT"):
+                store.record_scientific_report({**report, "scientific_status": "PASS"})
+
+        self.assertEqual(receipt, same)
+        self.assertEqual(latest["report"], report)
+        self.assertEqual(latest["final_attempt_id"], final_attempt["attempt_id"])
+
+    def test_scientific_report_rejects_nonfinal_or_foreign_attempt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            store = self.make_store(root)
+            store.register_plan(PLAN)
+            store.create_run(
+                run_id="run-science-invalid",
+                plan_id=PLAN["plan_id"],
+                plan_digest=PLAN["digest"],
+                execution_profile_id="test-local",
+                local_run_dir=str(root / "runs" / "run-science-invalid"),
+                remote_run_dir=None,
+                manifest_digest="f" * 64,
+            )
+            scf = store.authorize_submission(
+                "run-science-invalid", "scf", PLAN["digest"]
+            )
+            store.mark_attempt_submitted(scf["attempt_id"], "300")
+            store.record_attempt_status(scf["attempt_id"], "PASSED")
+            report = {
+                "schema_version": 1,
+                "report_id": "science-invalid-attempt",
+                "run_id": "run-science-invalid",
+                "plan_digest": PLAN["digest"],
+                "benchmark_id": "bn-reader-v1-3d-v1",
+                "convergence_bundle_id": None,
+                "request_digest": "2" * 64,
+                "final_attempt_id": scf["attempt_id"],
+                "manifest_digest": "f" * 64,
+                "profile_id": "test-local",
+                "scientific_status": "NOT_EVALUATED",
+            }
+
+            with self.assertRaisesRegex(OMLError, "SCIENTIFIC_REPORT_CONFLICT"):
+                store.record_scientific_report(report)
+
     def test_existing_phase_two_database_adds_preflight_column(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = pathlib.Path(tmpdir) / "legacy.sqlite3"

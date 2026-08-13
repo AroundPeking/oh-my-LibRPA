@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -16,6 +18,24 @@ from .executor import SlurmExecutor
 from .materializer import prepare_run as materialize_run
 from .planner import PlanError, plan_case
 from .provenance import digest_json, sha256_file
+from .scientific_bands import (
+    ScientificBandError,
+    inspect_qpe_diagnostics,
+    load_band_bundle,
+    select_insulating_window,
+)
+from .scientific_definition import ScientificDefinitionError, build_definition_signature
+from .scientific_evaluation import (
+    ScientificEvaluationError,
+    aggregate_convergence,
+    evaluate_convergence_axis,
+    evaluate_regression,
+)
+from .scientific_registry import (
+    ScientificRegistryError,
+    load_benchmark,
+    load_convergence_bundle,
+)
 from .state import StateStore
 from .stage_inspection import inspect_stage_outputs
 from .validators import validate_case
@@ -396,6 +416,12 @@ class ControlledExecutionService:
             )
         existing = self.store.get_inspection(attempt_id)
         if existing is not None:
+            if (
+                existing["accepted"]
+                and self.profile.transport == "local"
+                and attempt["stage"] == plan["stages"][-1]
+            ):
+                self._snapshot_local_run(run_dir, attempt_id)
             return {"ok": True, **existing, **existing["report"]}
         if not attempt["scheduler_id"]:
             raise OMLError(
@@ -465,7 +491,249 @@ class ControlledExecutionService:
                 "gates": gates,
             }
         receipt = self.store.finalize_inspection(attempt_id, report)
+        if (
+            receipt["accepted"]
+            and self.profile.transport == "local"
+            and attempt["stage"] == plan["stages"][-1]
+        ):
+            self._snapshot_local_run(run_dir, attempt_id)
         return {"ok": True, **receipt, **report}
+
+    @staticmethod
+    def _snapshot_local_run(run_dir: Path, attempt_id: str) -> Path:
+        snapshots = run_dir / ".oml" / "snapshots"
+        target = snapshots / attempt_id
+        if target.is_dir():
+            return target
+        temporary = snapshots / f".{attempt_id}.copying"
+        if temporary.exists():
+            raise OMLError(
+                "SNAPSHOT_CONFLICT",
+                "an incomplete local inspection snapshot already exists",
+                evidence=(str(temporary),),
+                recovery="reconcile the interrupted snapshot before finalizing scientific evidence",
+            )
+
+        def ignore(directory: str, names: list[str]) -> set[str]:
+            path = Path(directory)
+            if path == run_dir / ".oml":
+                return {"snapshots"} & set(names)
+            return set()
+
+        snapshots.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copytree(run_dir, temporary, ignore=ignore, symlinks=True)
+            temporary.rename(target)
+        except Exception:
+            shutil.rmtree(temporary, ignore_errors=True)
+            raise
+        return target
+
+    def _accepted_final_snapshot(
+        self, run_id: str, plan_digest: str
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], Path]:
+        run, plan, run_dir = self._load_receipts(run_id, plan_digest)
+        self._verify_source(plan)
+        self._verify_manifest(run, run_dir)
+        attempts = self.store.list_attempts(run_id)
+        latest_by_stage = {
+            stage: max(
+                (item for item in attempts if item["stage"] == stage),
+                key=lambda item: item["attempt_number"],
+                default=None,
+            )
+            for stage in plan["stages"]
+        }
+        incomplete = [
+            stage
+            for stage, attempt in latest_by_stage.items()
+            if attempt is None or attempt["status"] != "PASSED"
+        ]
+        if incomplete:
+            raise OMLError(
+                "SCIENTIFIC_LINEAGE_INCOMPLETE",
+                "every planned stage must have a passed final attempt before scientific finalization",
+                evidence=tuple(incomplete),
+                recovery="finish and inspect each planned stage before calling finalize_case",
+            )
+        final_attempt = latest_by_stage[plan["stages"][-1]]
+        assert final_attempt is not None
+        inspection = self.store.get_inspection(final_attempt["attempt_id"])
+        if inspection is None or not inspection["accepted"]:
+            raise OMLError(
+                "SCIENTIFIC_LINEAGE_INCOMPLETE",
+                "the final LibRPA attempt lacks an accepted immutable inspection",
+                evidence=(final_attempt["attempt_id"],),
+                recovery="inspect the completed LibRPA stage before scientific finalization",
+            )
+        snapshot = run_dir / ".oml" / "snapshots" / final_attempt["attempt_id"]
+        if not snapshot.is_dir():
+            raise OMLError(
+                "SCIENTIFIC_SNAPSHOT_MISSING",
+                "the accepted final attempt has no immutable output snapshot",
+                evidence=(str(snapshot),),
+                recovery="restore the accepted snapshot; do not evaluate the mutable run directory",
+            )
+        return run, plan, final_attempt, snapshot
+
+    def _load_scientific_result(
+        self, snapshot: Path, policy: dict[str, Any]
+    ) -> dict[str, Any]:
+        try:
+            below = int(policy["state_window"]["below_vbm"])
+            above = int(policy["state_window"]["above_cbm"])
+            if below != above:
+                raise ScientificBandError(
+                    "WINDOW_INVALID",
+                    "the current evaluator requires equal VBM and CBM padding",
+                )
+            return {
+                "definition": build_definition_signature(snapshot),
+                "window": select_insulating_window(load_band_bundle(snapshot), padding=below),
+                "diagnostics": inspect_qpe_diagnostics(snapshot),
+            }
+        except (ScientificBandError, ScientificDefinitionError) as exc:
+            raise OMLError(
+                "SCIENTIFIC_EVIDENCE_INVALID",
+                str(exc),
+                evidence=(str(snapshot),),
+                recovery="inspect the accepted LibRPA outputs and physical-definition receipts",
+            ) from exc
+
+    @staticmethod
+    def _scientific_status(
+        regression: dict[str, Any], convergence: dict[str, Any]
+    ) -> str:
+        if regression["status"] == "FAIL" or convergence["status"] == "FAIL":
+            return "FAIL"
+        if regression["status"] == "PASS" and convergence["status"] == "PASS":
+            return "PASS"
+        return "NOT_EVALUATED"
+
+    def finalize_case(
+        self,
+        run_id: str,
+        plan_digest: str,
+        benchmark_id: str,
+        convergence_bundle_id: str | None = None,
+    ) -> dict[str, Any]:
+        try:
+            policy = load_benchmark(benchmark_id)
+            run, plan, final_attempt, snapshot = self._accepted_final_snapshot(
+                run_id, plan_digest
+            )
+            request = {
+                "schema_version": 1,
+                "run_id": run_id,
+                "plan_digest": plan_digest,
+                "benchmark_id": benchmark_id,
+                "convergence_bundle_id": convergence_bundle_id,
+            }
+            request_digest = digest_json(request)
+            report_id = f"science-{request_digest[:20]}"
+            existing = self.store.get_scientific_report(report_id)
+            if existing is not None:
+                if (
+                    existing["run_id"] != run_id
+                    or existing["final_attempt_id"] != final_attempt["attempt_id"]
+                    or existing["manifest_digest"] != run["manifest_digest"]
+                ):
+                    raise OMLError(
+                        "SCIENTIFIC_REPORT_CONFLICT",
+                        "stored scientific report no longer matches the accepted final lineage",
+                        evidence=(report_id, final_attempt["attempt_id"]),
+                        recovery="preserve the existing evidence and prepare a fresh immutable run",
+                    )
+                self._write_scientific_report_file(run, existing["report"])
+                return existing["report"]
+            candidate = self._load_scientific_result(snapshot, policy)
+            regression = evaluate_regression(
+                candidate,
+                policy["reference"],
+                tolerance_ev=float(policy["regression_tolerance_ev"]),
+            )
+            axis_reports: dict[str, dict[str, Any]] = {}
+            for previous in self.store.list_scientific_reports(run_id):
+                if (
+                    previous["benchmark_id"] == benchmark_id
+                    and previous["final_attempt_id"] == final_attempt["attempt_id"]
+                ):
+                    previous_axes = previous["report"].get("convergence", {}).get("axes", {})
+                    if isinstance(previous_axes, dict):
+                        axis_reports.update(previous_axes)
+            if convergence_bundle_id is not None:
+                bundle = load_convergence_bundle(convergence_bundle_id)
+                if bundle["benchmark_id"] != benchmark_id or bundle["run_ids"][-1] != run_id:
+                    raise OMLError(
+                        "CONVERGENCE_BUNDLE_INVALID",
+                        "convergence bundle must target this benchmark and final candidate run",
+                        evidence=(convergence_bundle_id, run_id, benchmark_id),
+                        recovery="use a registered bundle whose final run is the case being finalized",
+                    )
+                pair = []
+                for comparison_run_id in bundle["run_ids"]:
+                    comparison_run = self.store.get_run(comparison_run_id)
+                    _, _, _, comparison_snapshot = self._accepted_final_snapshot(
+                        comparison_run_id, comparison_run["plan_digest"]
+                    )
+                    pair.append(self._load_scientific_result(comparison_snapshot, policy))
+                axis_reports[bundle["axis"]] = evaluate_convergence_axis(
+                    pair[0],
+                    pair[1],
+                    axis=bundle["axis"],
+                    tolerance_ev=float(policy["convergence_tolerance_ev"]),
+                )
+            convergence = aggregate_convergence(
+                axis_reports,
+                required_axes=tuple(policy["required_axes"]),
+            )
+        except (ScientificRegistryError, ScientificEvaluationError) as exc:
+            raise OMLError(
+                getattr(exc, "code", "SCIENTIFIC_EVIDENCE_INVALID"),
+                str(exc),
+                evidence=(run_id, benchmark_id),
+                recovery="repair the registered benchmark evidence before finalizing again",
+            ) from exc
+
+        report = {
+            "schema_version": 1,
+            "report_id": report_id,
+            **request,
+            "request_digest": request_digest,
+            "final_attempt_id": final_attempt["attempt_id"],
+            "manifest_digest": run["manifest_digest"],
+            "profile_id": run["execution_profile_id"],
+            "scientific_status": self._scientific_status(regression, convergence),
+            "definition": candidate["definition"],
+            "window": candidate["window"],
+            "diagnostics": candidate["diagnostics"],
+            "regression": regression,
+            "convergence": convergence,
+        }
+        self._write_scientific_report_file(run, report)
+        receipt = self.store.record_scientific_report(report)
+        return receipt["report"]
+
+    @staticmethod
+    def _write_scientific_report_file(
+        run: dict[str, Any], report: dict[str, Any]
+    ) -> None:
+        science_root = Path(run["local_run_dir"]) / ".oml" / "science"
+        science_root.mkdir(parents=True, exist_ok=True)
+        report_path = science_root / f"{report['report_id']}.json"
+        serialized = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+        if report_path.exists():
+            if report_path.read_text(encoding="utf-8") != serialized:
+                raise OMLError(
+                    "SCIENTIFIC_REPORT_CONFLICT",
+                    "scientific report file already exists with different evidence",
+                    evidence=(str(report_path),),
+                    recovery="preserve both run outputs and investigate the conflicting finalization",
+                )
+        else:
+            temporary = report_path.with_name(f".{report_path.name}.writing")
+            temporary.write_text(serialized, encoding="utf-8")
+            os.replace(temporary, report_path)
 
     def score_case(self, run_id: str, plan_digest: str) -> dict[str, Any]:
         provenance_errors = []
