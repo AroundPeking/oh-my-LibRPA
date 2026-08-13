@@ -295,7 +295,11 @@ class SlurmExecutor:
                 f"{self.profile.ssh['host']}:{remote_run_dir}/",
             ]
         )
-        runtime_changes = runtime_surface.stdout.strip()
+        runtime_changes = "\n".join(
+            line
+            for line in runtime_surface.stdout.splitlines()
+            if not line.startswith("cannot delete non-empty directory: ")
+        ).strip()
         if runtime_surface.returncode != 0 or runtime_changes:
             raise OMLError(
                 "REMOTE_MANIFEST_MISMATCH",

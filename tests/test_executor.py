@@ -382,6 +382,38 @@ class SlurmExecutorTest(unittest.TestCase):
 
         self.assertIn("--delete", protected)
 
+    def test_remote_bundle_allows_non_code_output_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            base = make_profile(root, root / "sources")
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            executor = SlurmExecutor(profile)
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.side_effect = (
+                    subprocess.CompletedProcess([], 0, "", ""),
+                    subprocess.CompletedProcess(
+                        [],
+                        0,
+                        "cannot delete non-empty directory: OUT.ABACUS\n"
+                        "cannot delete non-empty directory: .oml/stage-results\n",
+                        "",
+                    ),
+                )
+                evidence = executor.verify_remote_bundle(
+                    root / "runs" / "run-1", "/work/approved/oml/run-1"
+                )
+
+        self.assertEqual(evidence["verdict"], "match")
+
     def test_remote_prepare_requires_a_fresh_directory(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
