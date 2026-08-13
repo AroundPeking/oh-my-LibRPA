@@ -107,12 +107,30 @@ class SlurmExecutor:
             ) from exc
 
     def _run_read_only(self, arguments: list[str]) -> subprocess.CompletedProcess[str]:
+        active_arguments = arguments
         for attempt in range(READ_ONLY_RETRY_ATTEMPTS):
             try:
-                return self._run(arguments)
+                return self._run(active_arguments)
             except OMLError as exc:
                 if exc.code != "SCHEDULER_UNOBSERVABLE" or attempt + 1 == READ_ONLY_RETRY_ATTEMPTS:
                     raise
+                if (
+                    self.profile.transport == "ssh"
+                    and self.profile.ssh is not None
+                    and active_arguments[:2]
+                    == [self.profile.ssh["ssh_program"], self.profile.ssh["host"]]
+                ):
+                    active_arguments = [
+                        self.profile.ssh["ssh_program"],
+                        "-S",
+                        "none",
+                        "-o",
+                        "ControlMaster=no",
+                        "-o",
+                        "ControlPath=none",
+                        self.profile.ssh["host"],
+                        *active_arguments[2:],
+                    ]
         raise AssertionError("unreachable")
 
     def sync_run(self, local_run_dir: Path, remote_run_dir: str | None) -> None:
@@ -179,7 +197,15 @@ class SlurmExecutor:
             )
         temporary.mkdir(parents=True, mode=0o700)
         try:
-            arguments = [self.profile.ssh["rsync_program"], "-a", "--compress"]
+            arguments = [
+                self.profile.ssh["rsync_program"],
+                "-a",
+                "--compress",
+                (
+                    f"--rsh={self.profile.ssh['ssh_program']} -S none "
+                    "-o ControlMaster=no -o ControlPath=none"
+                ),
+            ]
             if link_dest is not None:
                 resolved_link_dest = link_dest.resolve()
                 if not resolved_link_dest.is_dir() or resolved_link_dest.parent != snapshot_dir.parent.resolve():
@@ -544,7 +570,7 @@ class SlurmExecutor:
                 )
             arguments = [self.profile.ssh["ssh_program"], self.profile.ssh["host"], *arguments]
         try:
-            result = self._run(arguments)
+            result = self._run_read_only(arguments)
         except OMLError as exc:
             if exc.code not in {"SUBMISSION_AMBIGUOUS", "SCHEDULER_UNOBSERVABLE"}:
                 raise
@@ -594,7 +620,7 @@ class SlurmExecutor:
             assert self.profile.ssh is not None
             arguments = [self.profile.ssh["ssh_program"], self.profile.ssh["host"], *arguments]
         try:
-            result = self._run(arguments)
+            result = self._run_read_only(arguments)
         except OMLError:
             return {
                 "normalized_state": "UNKNOWN",

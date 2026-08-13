@@ -189,6 +189,44 @@ class SlurmExecutorTest(unittest.TestCase):
         self.assertEqual(observation["error_code"], "SCHEDULER_UNOBSERVABLE")
         self.assertRegex(observation["observed_at"], r"^\d{4}-\d{2}-\d{2}T")
 
+    def test_remote_read_only_status_bypasses_a_stalled_controlmaster(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            base = make_profile(root, root / "sources")
+            profile = replace(
+                base,
+                transport="ssh",
+                ssh={
+                    "host": "approved-hpc",
+                    "remote_run_root": "/work/approved/oml",
+                    "ssh_program": "/usr/bin/ssh",
+                    "rsync_program": "/usr/bin/rsync",
+                },
+            )
+            executor = SlurmExecutor(profile)
+
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.side_effect = (
+                    subprocess.TimeoutExpired([], 20),
+                    subprocess.CompletedProcess([], 0, "RUNNING\n", ""),
+                )
+                observation = executor.status("31415")
+
+        self.assertEqual(observation["normalized_state"], "RUNNING")
+        self.assertEqual(
+            run.call_args_list[1].args[0][:8],
+            [
+                "/usr/bin/ssh",
+                "-S",
+                "none",
+                "-o",
+                "ControlMaster=no",
+                "-o",
+                "ControlPath=none",
+                "approved-hpc",
+            ],
+        )
+
     def test_version_check_timeout_is_not_reported_as_an_ambiguous_submission(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
@@ -340,6 +378,7 @@ class SlurmExecutorTest(unittest.TestCase):
                     "/usr/bin/rsync",
                     "-a",
                     "--compress",
+                    "--rsh=/usr/bin/ssh -S none -o ControlMaster=no -o ControlPath=none",
                     "--",
                     "approved-hpc:/work/approved/oml/run-1/",
                     f"{snapshot.parent}/.{snapshot.name}.fetching/",
