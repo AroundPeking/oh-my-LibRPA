@@ -28,12 +28,18 @@ NORMALIZED_STATES = {
     "CANCELLED": "CANCELLED",
     "PREEMPTED": "CANCELLED",
 }
-FINGERPRINT_SCRIPT = (
-    "import hashlib,json,os,sys;"
-    "p=sys.argv[1];"
-    "print(json.dumps({'sha256':hashlib.file_digest(open(p,'rb'),'sha256').hexdigest(),"
-    "'size':os.path.getsize(p)},sort_keys=True))"
-)
+FINGERPRINT_SCRIPT = """import hashlib
+import json
+import os
+import sys
+
+path = sys.argv[1]
+digest = hashlib.sha256()
+with open(path, "rb") as handle:
+    while chunk := handle.read(1024 * 1024):
+        digest.update(chunk)
+print(json.dumps({"sha256": digest.hexdigest(), "size": os.path.getsize(path)}, sort_keys=True))
+"""
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 ATTEMPT_ID_PATTERN = re.compile(r"^attempt-[0-9a-f]{20}$")
 

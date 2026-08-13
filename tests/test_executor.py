@@ -8,13 +8,16 @@ from unittest.mock import patch
 
 
 from oml_mcp.errors import OMLError
-from oml_mcp.executor import SlurmExecutor
+from oml_mcp.executor import FINGERPRINT_SCRIPT, SlurmExecutor
 from oml_mcp.profiles import load_profile
 from oml_mcp.stage_templates import stage_job_name
 from tests.test_materializer import make_profile
 
 
 class SlurmExecutorTest(unittest.TestCase):
+    def test_executable_fingerprint_script_supports_python_3_10_runtimes(self):
+        self.assertNotIn("file_digest", FINGERPRINT_SCRIPT)
+
     def test_submission_reconciliation_finds_one_job_or_confirms_absence(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
