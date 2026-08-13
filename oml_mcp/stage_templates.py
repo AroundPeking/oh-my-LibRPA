@@ -97,7 +97,7 @@ def render_stage_script(
 #SBATCH --job-name={job_name}
 
 set -euo pipefail
-run_dir="$(cd "$(dirname "${{BASH_SOURCE[0]}}")/../.." && pwd)"
+run_dir="$(pwd -P)"
 cd "$run_dir"
 source ".oml/env.sh"
 export OMP_NUM_THREADS="$OML_OMP_THREADS"

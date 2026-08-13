@@ -10,11 +10,28 @@ from unittest.mock import patch
 from oml_mcp.errors import OMLError
 from oml_mcp.executor import FINGERPRINT_SCRIPT, SlurmExecutor
 from oml_mcp.profiles import load_profile
-from oml_mcp.stage_templates import stage_job_name
+from oml_mcp.stage_templates import render_stage_script, stage_job_name
 from tests.test_materializer import make_profile
 
 
 class SlurmExecutorTest(unittest.TestCase):
+    def test_stage_script_uses_scheduler_working_directory(self):
+        script = render_stage_script(
+            "scf",
+            run_id="run-20260813T010203Z-0123456789",
+            resources={
+                "partition": "p1",
+                "nodes": 1,
+                "ntasks_per_node": 1,
+                "cpus_per_task": 1,
+                "memory_mb": 1000,
+                "walltime_minutes": 10,
+            },
+        )
+
+        self.assertIn('run_dir="$(pwd -P)"', script)
+        self.assertNotIn("BASH_SOURCE", script)
+
     def test_executable_fingerprint_script_supports_python_3_10_runtimes(self):
         self.assertNotIn("file_digest", FINGERPRINT_SCRIPT)
 
