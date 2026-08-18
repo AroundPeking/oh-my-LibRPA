@@ -18,6 +18,7 @@ from tests.test_stage_inspection import command_completed
 def synthetic_scientific_result() -> dict:
     return {
         "definition": {"schema_version": 1, "digest": "d" * 64, "profile_id": "test-local"},
+        "state_space": {"nbands": 2, "basis_dimension": 2, "complete": True},
         "window": {
             "vbm_band": 1,
             "cbm_band": 2,
@@ -105,10 +106,52 @@ class ControlledExecutionTest(unittest.TestCase):
         self.assertEqual(finalized["scientific_status"], "NOT_EVALUATED")
         self.assertEqual(finalized["regression"]["reason_code"], "REFERENCE_NOT_AVAILABLE")
         self.assertEqual(finalized["final_attempt_id"], final_attempt["attempt_id"])
-        self.assertEqual(finalized["evaluator_version"], 4)
+        self.assertEqual(finalized["evaluator_version"], 6)
         self.assertTrue(report_file_exists)
         dimensions = {item["dimension_id"]: item for item in score["dimensions"]}
         self.assertEqual(dimensions["numerical_scientific_validity"]["status"], "NOT_EVALUATED")
+
+    def test_finalize_case_does_not_inherit_axes_from_an_older_evaluator(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            plan, service, run, final_attempt, _ = self.make_passed_run(root)
+            older_report = {
+                "benchmark_id": "bn-reader-v1-3d-v1",
+                "final_attempt_id": final_attempt["attempt_id"],
+                "report": {
+                    "evaluator_version": 4,
+                    "convergence": {
+                        "axes": {
+                            "nfreq": {
+                                "axis": "nfreq",
+                                "status": "PASS",
+                                "reason_code": "WITHIN_TOLERANCE",
+                            }
+                        }
+                    },
+                },
+            }
+            with (
+                patch.object(
+                    service,
+                    "_load_scientific_result",
+                    return_value=synthetic_scientific_result(),
+                ),
+                patch.object(
+                    service.store,
+                    "list_scientific_reports",
+                    return_value=[older_report],
+                ),
+            ):
+                finalized = service.finalize_case(
+                    run["run_id"], plan.digest, "bn-reader-v1-3d-v1"
+                )
+
+        self.assertEqual(finalized["convergence"]["axes"], {})
+        self.assertEqual(
+            finalized["convergence"]["missing_axes"],
+            ["nfreq", "empty_states", "screening_kgrid"],
+        )
 
     def test_finalize_case_requires_every_stage_and_untampered_manifest(self):
         with tempfile.TemporaryDirectory() as tmpdir:

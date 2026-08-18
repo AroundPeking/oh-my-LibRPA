@@ -1,6 +1,6 @@
 # Controlled Execution
 
-OML 0.3 provides bounded MCP execution and scientific finalization for one route: **non-SOC periodic GW** with ABACUS reader-v1, PyATB head/wing, and LibRPA 0.7.0. It does not expose arbitrary shell, SSH, Slurm options, cleanup, repair, or retry commands.
+OML 0.3.1 provides bounded MCP execution and scientific finalization for one route: **non-SOC periodic GW** with ABACUS reader-v1, PyATB head/wing, and LibRPA 0.7.0. It does not expose arbitrary shell, SSH, Slurm options, cleanup, repair, or retry commands.
 
 ## Scope
 
@@ -44,7 +44,7 @@ At preparation and before every submission, OML checks the pinned source SHAs an
 
 If `sbatch` times out after a submission may have reached Slurm, the attempt remains `UNKNOWN`. A later explicit `submit_stage` call queries both `squeue` and `sacct` using the unique full `run_id + stage` job name. One matching job is attached to the original attempt and multiple matches remain blocked. Absence is accepted only after two complete `squeue+sacct` observations at least five minutes apart. The attempt then becomes `FAILED`, but OML still preserves that run directory: a retry requires a new `prepare_run` receipt and fresh run directory.
 
-OML 0.3 never reruns a terminal stage in the same run directory. Failed logs and artifacts remain available for diagnosis; no controlled retry cleans or silently reuses them.
+OML 0.3.1 never reruns a terminal stage in the same run directory. Failed logs and artifacts remain available for diagnosis; no controlled retry cleans or silently reuses them.
 
 An interrupted controller process can leave an attempt in `SUBMITTING`. After the process lock is released, the same bounded reconciliation loop moves it to `UNKNOWN`, attaches a discovered scheduler ID, or eventually establishes separated absence evidence. It never submits a second job during reconciliation.
 
@@ -73,6 +73,19 @@ PyATB may diagonalize the complete AO Hamiltonian internally, but the OML adapte
 `score_case` uses `benchmarks/scorecard-v1.json`, with 100 points across pre-compute validation, stage state, diagnosis, numerical/scientific validity, and efficiency/reproducibility. Hard gates are non-compensating: provenance damage, version mismatch, invalid lineage, duplicate active work, unresolved failure, or non-finite final output makes the run ineligible regardless of raw points.
 
 `finalize_case` evaluates the full low-energy interval from `VBM-3` through `CBM+3` at every band-path k point. Definition-matched regression requires KS, EXX, and GW state errors no larger than `0.001 eV`. Convergence requires isolated `nfreq`, empty-state, and screening-k-grid axes; each axis gates the maximum GW-state change and fundamental-gap change at `0.05 eV`.
+
+The empty-state axis has one finite-basis endpoint rule. When both runs use the
+same positive `band_out` basis dimension, the coarse run uses fewer states, and
+the fine run has `nbands` exactly equal to that basis dimension, the axis passes
+as `COMPLETE_BASIS_STATE_SPACE`. No additional empty state exists in that fixed
+NAO Hilbert space, so asking for a larger `nbands` would be invalid. The measured
+state and gap changes remain in the report. This closes only empty-state
+truncation for the fixed basis; NAO basis completeness is a separate, still
+unevaluated basis-ladder gate.
+
+Scientific reports inherit convergence axes only from reports produced by the
+same evaluator version. This prevents a changed scientific rule from silently
+mixing old and new verdicts in one report.
 
 If an approved reference is absent, definitions differ, or any required convergence axis is absent, numerical/scientific validity remains `NOT_EVALUATED`. Explicit QPE, non-finite, analytic-continuation, unstable-root, state-set, or complete convergence failures produce `FAIL`. A successful scheduler exit or `LIBRPA_PASSED` is not a scientific-validity claim. Frozen replays under `benchmarks/replays/` protect these semantics during harness evolution.
 

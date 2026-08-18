@@ -76,7 +76,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.3.0",
+        version="0.3.1",
     )
     annotations = _read_only_annotations()
 

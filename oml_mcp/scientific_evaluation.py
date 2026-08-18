@@ -195,17 +195,50 @@ def evaluate_convergence_axis(
         float(fine["window"]["fundamental_gw_gap_ev"])
         - float(coarse["window"]["fundamental_gw_gap_ev"])
     )
-    accepted = gw_change <= tolerance_ev + 1e-12 and gap_change <= tolerance_ev + 1e-12
-    return {
+    complete_basis_state_space = False
+    if axis == "empty_states":
+        coarse_space = coarse.get("state_space", {})
+        fine_space = fine.get("state_space", {})
+        if isinstance(coarse_space, dict) and isinstance(fine_space, dict):
+            coarse_nbands = int(coarse_space.get("nbands", 0))
+            fine_nbands = int(fine_space.get("nbands", 0))
+            coarse_basis = int(coarse_space.get("basis_dimension", 0))
+            fine_basis = int(fine_space.get("basis_dimension", 0))
+            complete_basis_state_space = (
+                coarse_basis > 0
+                and coarse_basis == fine_basis
+                and coarse_nbands < fine_nbands
+                and fine_nbands == fine_basis
+                and fine_space.get("complete") is True
+            )
+    accepted = complete_basis_state_space or (
+        gw_change <= tolerance_ev + 1e-12 and gap_change <= tolerance_ev + 1e-12
+    )
+    report = {
         "axis": axis,
         "status": "PASS" if accepted else "FAIL",
-        "reason_code": "WITHIN_TOLERANCE" if accepted else "CONVERGENCE_TOLERANCE_EXCEEDED",
+        "reason_code": (
+            "COMPLETE_BASIS_STATE_SPACE"
+            if complete_basis_state_space
+            else "WITHIN_TOLERANCE"
+            if accepted
+            else "CONVERGENCE_TOLERANCE_EXCEEDED"
+        ),
         "tolerance_ev": tolerance_ev,
         "state_count": len(coarse_states),
         "max_abs_gw_change_ev": gw_change,
         "gap_change_ev": round(gap_change, 12),
         "quantities": quantities,
     }
+    if axis == "empty_states":
+        report.update(
+            {
+                "complete_basis_state_space": complete_basis_state_space,
+                "coarse_state_space": coarse.get("state_space"),
+                "fine_state_space": fine.get("state_space"),
+            }
+        )
+    return report
 
 
 def aggregate_convergence(

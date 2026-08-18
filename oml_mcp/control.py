@@ -41,11 +41,12 @@ from .scientific_registry import (
 from .state import StateStore
 from .stage_inspection import inspect_stage_outputs
 from .validators import validate_case
-from .parsers import ParseError, parse_bz_sampling
+from .parsers import ParseError, parse_band_out, parse_bz_sampling
 
 
 RUNTIME_CODE_SUFFIXES = frozenset({".py", ".pyc", ".sh", ".slurm", ".so", ".dylib"})
 SUBMISSION_ABSENCE_GRACE_SECONDS = 300
+SCIENTIFIC_EVALUATOR_VERSION = 6
 
 
 def _parse_utc(value: str) -> datetime:
@@ -618,6 +619,13 @@ class ControlledExecutionService:
                 )
             window = select_insulating_window(load_band_bundle(snapshot), padding=below)
             definition = build_definition_signature(snapshot)
+            mean_field = parse_band_out(snapshot / "band_out")
+            nbands = int(definition["abacus"]["nbands"])
+            if int(mean_field["nstates"]) != nbands:
+                raise ScientificBandError(
+                    "STATE_SPACE_MISMATCH",
+                    "band_out state count differs from the immutable ABACUS definition",
+                )
             bz_sampling = parse_bz_sampling(snapshot / "bz_sampling_out")
             screening = definition["kpoints"]["scf"]
             window["sampling"] = characterize_window_sampling(
@@ -628,6 +636,11 @@ class ControlledExecutionService:
             )
             return {
                 "definition": definition,
+                "state_space": {
+                    "nbands": nbands,
+                    "basis_dimension": int(mean_field["nbasis"]),
+                    "complete": nbands == int(mean_field["nbasis"]),
+                },
                 "window": window,
                 "diagnostics": inspect_window_diagnostics(
                     window,
@@ -667,7 +680,7 @@ class ControlledExecutionService:
             )
             request = {
                 "schema_version": 1,
-                "evaluator_version": 4,
+                "evaluator_version": SCIENTIFIC_EVALUATOR_VERSION,
                 "run_id": run_id,
                 "plan_digest": plan_digest,
                 "benchmark_id": benchmark_id,
@@ -701,6 +714,8 @@ class ControlledExecutionService:
                 if (
                     previous["benchmark_id"] == benchmark_id
                     and previous["final_attempt_id"] == final_attempt["attempt_id"]
+                    and previous["report"].get("evaluator_version")
+                    == SCIENTIFIC_EVALUATOR_VERSION
                 ):
                     previous_axes = previous["report"].get("convergence", {}).get("axes", {})
                     if isinstance(previous_axes, dict):
@@ -741,7 +756,7 @@ class ControlledExecutionService:
 
         report = {
             "schema_version": 1,
-            "evaluator_version": 4,
+            "evaluator_version": SCIENTIFIC_EVALUATOR_VERSION,
             "report_id": report_id,
             **request,
             "request_digest": request_digest,
@@ -750,6 +765,7 @@ class ControlledExecutionService:
             "profile_id": run["execution_profile_id"],
             "scientific_status": self._scientific_status(regression, convergence),
             "definition": candidate["definition"],
+            "state_space": candidate["state_space"],
             "window": candidate["window"],
             "diagnostics": candidate["diagnostics"],
             "regression": regression,

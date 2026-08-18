@@ -63,17 +63,52 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "CANCELLED",
             "PyATB",
             "nbands",
+            "COMPLETE_BASIS_STATE_SPACE",
+            "basis completeness",
         ):
             self.assertIn(text, guide)
+
+    def test_df_bn_followup_checkpoint_keeps_execution_and_science_separate(self):
+        checkpoint = json.loads(
+            (
+                REPOSITORY
+                / "benchmarks"
+                / "live"
+                / "df-bn-reader-v1-2026-08-18.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(checkpoint["evaluator_version"], 6)
+        self.assertEqual(checkpoint["status"]["execution"], "PASS")
+        self.assertEqual(checkpoint["status"]["scientific_acceptance"], "FAIL")
+        self.assertEqual(checkpoint["status"]["strict_2d"], "NOT_RUN")
+        self.assertEqual(len(checkpoint["runs"]), 4)
+        self.assertTrue(
+            all(
+                stage["state"] == "COMPLETED" and stage["exit_code"] == "0:0"
+                for run in checkpoint["runs"]
+                for stage in run["jobs"].values()
+            )
+        )
+        axes = {item["comparison_id"]: item for item in checkpoint["convergence"]}
+        self.assertEqual(axes["empty-states-25-26"]["status"], "PASS")
+        self.assertEqual(
+            axes["empty-states-25-26"]["reason_code"],
+            "COMPLETE_BASIS_STATE_SPACE",
+        )
+        self.assertEqual(axes["nfreq-16-24"]["status"], "FAIL")
+        self.assertEqual(axes["screening-kgrid-4-8"]["status"], "FAIL")
 
     def test_version_metadata_is_consistent(self):
         plugin = json.loads((REPOSITORY / ".codex-plugin" / "plugin.json").read_text())
         pyproject = (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
+        server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.3.0")
-        self.assertIn('version = "0.3.0"', pyproject)
-        self.assertIn('__version__ = "0.3.0"', package)
+        self.assertEqual(plugin["version"], "0.3.1")
+        self.assertIn('version = "0.3.1"', pyproject)
+        self.assertIn('__version__ = "0.3.1"', package)
+        self.assertIn('version="0.3.1"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (

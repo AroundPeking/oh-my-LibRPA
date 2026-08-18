@@ -1,0 +1,135 @@
+{
+  "benchmark_id": "bn-reader-v1-3d-v1",
+  "checkpoint_id": "df-bn-reader-v1-2026-08-18",
+  "date": "2026-08-18",
+  "evaluator_version": 6,
+  "pinned_revisions": {
+    "abacus": "3efad9ed5ca066aee1d1b2214e43f92a2d2a567e",
+    "librpa": "dd169fa11fa920d580d4f39dc11e218a7f17f7b5",
+    "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "profile_id": "df-p1-bn-smoke-v1",
+  "schema_version": 1,
+  "status": {
+    "execution": "PASS",
+    "oml_report_completeness": "NOT_EVALUATED",
+    "reference_promotion": "BLOCKED",
+    "scientific_acceptance": "FAIL",
+    "strict_2d": "NOT_RUN"
+  },
+  "runs": [
+    {
+      "gw_gap_ev": 6.00029,
+      "jobs": {
+        "librpa": {"elapsed_seconds": 42, "exit_code": "0:0", "id": "3040193", "inspection_pass_gates": 4, "state": "COMPLETED"},
+        "nscf": {"elapsed_seconds": 4, "exit_code": "0:0", "id": "3039814", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "preprocess": {"elapsed_seconds": 2, "exit_code": "0:0", "id": "3039899", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "pyatb": {"elapsed_seconds": 37, "exit_code": "0:0", "id": "3039807", "inspection_pass_gates": 39, "state": "COMPLETED"},
+        "scf": {"elapsed_seconds": 57, "exit_code": "0:0", "id": "3039799", "inspection_pass_gates": 3, "state": "COMPLETED"}
+      },
+      "parameters": {"basis_dimension": 26, "nbands": 26, "nfreq": 24, "screening_kgrid": [4, 4, 4]},
+      "plan_digest": "84a1b49c6466415f2ac3a0b9699c28c1d7c3fa3b17bb52412bc3d006a5ee7a4a",
+      "purpose": "nfreq_fine",
+      "run_id": "run-20260818T004928Z-1d90de4457"
+    },
+    {
+      "gw_gap_ev": 7.3708,
+      "jobs": {
+        "librpa": {"elapsed_seconds": 85, "exit_code": "0:0", "id": "3040194", "inspection_pass_gates": 4, "state": "COMPLETED"},
+        "nscf": {"elapsed_seconds": 4, "exit_code": "0:0", "id": "3039815", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "preprocess": {"elapsed_seconds": 2, "exit_code": "0:0", "id": "3039902", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "pyatb": {"elapsed_seconds": 37, "exit_code": "0:0", "id": "3039808", "inspection_pass_gates": 39, "state": "COMPLETED"},
+        "scf": {"elapsed_seconds": 56, "exit_code": "0:0", "id": "3039800", "inspection_pass_gates": 3, "state": "COMPLETED"}
+      },
+      "parameters": {"basis_dimension": 26, "nbands": 24, "nfreq": 16, "screening_kgrid": [4, 4, 4]},
+      "plan_digest": "42c5754a7c4e24905e547448984860dc7eb49ba9faa91ab66fefe1205227a2ca",
+      "purpose": "empty_states_coarse_24",
+      "run_id": "run-20260818T004929Z-af50dd499c"
+    },
+    {
+      "gw_gap_ev": 6.13999,
+      "jobs": {
+        "librpa": {"elapsed_seconds": 87, "exit_code": "0:0", "id": "3040195", "inspection_pass_gates": 4, "state": "COMPLETED"},
+        "nscf": {"elapsed_seconds": 11, "exit_code": "0:0", "id": "3039816", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "preprocess": {"elapsed_seconds": 2, "exit_code": "0:0", "id": "3039906", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "pyatb": {"elapsed_seconds": 39, "exit_code": "0:0", "id": "3039809", "inspection_pass_gates": 39, "state": "COMPLETED"},
+        "scf": {"elapsed_seconds": 57, "exit_code": "0:0", "id": "3039801", "inspection_pass_gates": 3, "state": "COMPLETED"}
+      },
+      "parameters": {"basis_dimension": 26, "nbands": 25, "nfreq": 16, "screening_kgrid": [4, 4, 4]},
+      "plan_digest": "28d4439c3be1b43f32e19a4db34dc241790220c357a3b5277ca7d7a5f632b583",
+      "purpose": "empty_states_coarse_25",
+      "run_id": "run-20260818T004931Z-2a2456f9e7"
+    },
+    {
+      "gw_gap_ev": 6.07034,
+      "jobs": {
+        "librpa": {"elapsed_seconds": 867, "exit_code": "0:0", "id": "3040196", "inspection_pass_gates": 4, "state": "COMPLETED"},
+        "nscf": {"elapsed_seconds": 11, "exit_code": "0:0", "id": "3039817", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "preprocess": {"elapsed_seconds": 1, "exit_code": "0:0", "id": "3039910", "inspection_pass_gates": 3, "state": "COMPLETED"},
+        "pyatb": {"elapsed_seconds": 40, "exit_code": "0:0", "id": "3039810", "inspection_pass_gates": 39, "state": "COMPLETED"},
+        "scf": {"elapsed_seconds": 64, "exit_code": "0:0", "id": "3039802", "inspection_pass_gates": 3, "state": "COMPLETED"}
+      },
+      "parameters": {"basis_dimension": 26, "nbands": 26, "nfreq": 16, "screening_kgrid": [8, 8, 8]},
+      "plan_digest": "666d019245df3282b160dcaed8a26fa638c350a26ae37724403aed6c8c69731d",
+      "purpose": "screening_kgrid_fine",
+      "run_id": "run-20260818T004932Z-4236d88430"
+    }
+  ],
+  "convergence": [
+    {
+      "coarse_gap_ev": 6.06097,
+      "comparison_id": "nfreq-16-24",
+      "fine_gap_ev": 6.00029,
+      "gap_change_ev": 0.06068,
+      "max_abs_gw_change_ev": 0.33829,
+      "reason_code": "CONVERGENCE_TOLERANCE_EXCEEDED",
+      "report_id": "science-3a7834c651531d8f9142",
+      "status": "FAIL",
+      "values": [16, 24]
+    },
+    {
+      "basis_dimension": 26,
+      "coarse_gap_ev": 7.3708,
+      "comparison_id": "empty-states-24-26",
+      "fine_gap_ev": 6.06097,
+      "gap_change_ev": 1.30983,
+      "max_abs_gw_change_ev": 2.37228,
+      "reason_code": "COMPLETE_BASIS_STATE_SPACE",
+      "report_id": "science-00913c6716a5b2f0f70b",
+      "status": "PASS",
+      "values": [24, 26]
+    },
+    {
+      "basis_dimension": 26,
+      "coarse_gap_ev": 6.13999,
+      "comparison_id": "empty-states-25-26",
+      "fine_gap_ev": 6.06097,
+      "gap_change_ev": 0.07902,
+      "max_abs_gw_change_ev": 0.59081,
+      "reason_code": "COMPLETE_BASIS_STATE_SPACE",
+      "report_id": "science-4031fb9591c3a38af825",
+      "status": "PASS",
+      "values": [25, 26]
+    },
+    {
+      "coarse_gap_ev": 6.06097,
+      "comparison_id": "screening-kgrid-4-8",
+      "fine_gap_ev": 6.07034,
+      "gap_change_ev": 0.00937,
+      "max_abs_exx_change_ev": 0.25653,
+      "max_abs_gw_change_ev": 0.70466,
+      "max_abs_ks_change_ev": 0.03254,
+      "reason_code": "CONVERGENCE_TOLERANCE_EXCEEDED",
+      "report_id": "science-9358e239c10a0b65de4a",
+      "status": "FAIL",
+      "values": [[4, 4, 4], [8, 8, 8]]
+    }
+  ],
+  "remaining_gates": [
+    "nfreq convergence",
+    "screening k-grid convergence",
+    "one combined candidate at all fine settings",
+    "NAO basis completeness",
+    "reference review and promotion"
+  ]
+}

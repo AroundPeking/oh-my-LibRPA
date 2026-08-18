@@ -11,11 +11,12 @@ from oml_mcp.scientific_evaluation import (
 )
 
 
-def definition(*, nfreq: int = 6) -> dict:
+def definition(*, nfreq: int = 6, nbands: int = 8) -> dict:
     content = {
         "schema_version": 1,
         "profile_id": "pinned-stack",
         "software": {"revisions": {"librpa": "a" * 40}},
+        "abacus": {"nbands": nbands},
         "librpa": {"nfreq": nfreq},
     }
     return {**content, "digest": digest_json(content)}
@@ -33,15 +34,17 @@ def state(kpoint, band, ks, exx, gw) -> dict:
     }
 
 
-def scientific_result(*, nfreq: int = 6) -> dict:
+def scientific_result(
+    *, nfreq: int = 6, nbands: int = 8, basis_dimension: int | None = None
+) -> dict:
     states = [
         state((0.0, 0.0, 0.0), 4, -2.0, -2.5, -1.5),
         state((0.0, 0.0, 0.0), 5, 0.5, 0.8, 1.0),
         state((0.5, 0.0, 0.5), 4, -1.8, -2.3, -1.2),
         state((0.5, 0.0, 0.5), 5, 0.2, 0.6, 0.4),
     ]
-    return {
-        "definition": definition(nfreq=nfreq),
+    result = {
+        "definition": definition(nfreq=nfreq, nbands=nbands),
         "window": {
             "vbm_band": 4,
             "cbm_band": 5,
@@ -53,6 +56,13 @@ def scientific_result(*, nfreq: int = 6) -> dict:
         },
         "diagnostics": {"accepted": True, "failure_count": 0, "failures": []},
     }
+    if basis_dimension is not None:
+        result["state_space"] = {
+            "nbands": nbands,
+            "basis_dimension": basis_dimension,
+            "complete": nbands == basis_dimension,
+        }
+    return result
 
 
 def shifted(result: dict, *, quantity: str, delta: float) -> dict:
@@ -214,6 +224,22 @@ class ScientificConvergenceTest(unittest.TestCase):
 
         self.assertEqual(state_report["reason_code"], "STATE_SET_MISMATCH")
         self.assertEqual(qpe_report["reason_code"], "QPE_DIAGNOSTIC_FAILURE")
+
+    def test_complete_finite_basis_is_an_empty_state_endpoint(self):
+        coarse = scientific_result(nbands=25, basis_dimension=26)
+        fine = scientific_result(nbands=26, basis_dimension=26)
+        fine["window"]["states"][0]["gw_ev"] += 1.0
+        fine["window"]["fundamental_gw_gap_ev"] -= 1.0
+
+        report = evaluate_convergence_axis(
+            coarse, fine, axis="empty_states", tolerance_ev=0.05
+        )
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["reason_code"], "COMPLETE_BASIS_STATE_SPACE")
+        self.assertTrue(report["complete_basis_state_space"])
+        self.assertEqual(report["max_abs_gw_change_ev"], 1.0)
+        self.assertEqual(report["gap_change_ev"], 1.0)
 
     def test_all_required_axes_must_be_present_and_pass(self):
         passing = {
