@@ -10,6 +10,18 @@ from .profiles import V2_CAPABILITIES, V2_PROFILE_ID, load_profile
 
 DEFAULT_MANIFEST_NAME = "fisherd-v2-2026-08-30.json"
 ADMISSION_LEVELS = ("L0", "L1", "L2", "L3")
+ABACUS_DEPENDENCY_SOURCES = {
+    "libri": {
+        "component": "librpa",
+        "path": "thirdparty/LibRI",
+        "tree": "d67a9367dcc6c2b29f3833840da3dbacb1fb2b35",
+    },
+    "libcomm": {
+        "component": "librpa",
+        "path": "thirdparty/LibComm",
+        "tree": "323fc5cb988ffa9d8eea646872706e11f2e4810d",
+    },
+}
 
 
 class AdmissionManifestError(ValueError):
@@ -93,6 +105,24 @@ def validate_admission_manifest(manifest: dict[str, Any]) -> None:
         jobs = build.get("compile_jobs", 0)
         if isinstance(jobs, bool) or not isinstance(jobs, int) or not 0 <= jobs <= 16:
             raise AdmissionManifestError(f"builds.{name}.compile_jobs exceeds the limit")
+    abacus_build = builds["abacus"]
+    dependencies = _require_mapping(abacus_build, "dependency_sources", "builds.abacus")
+    for name, expected in ABACUS_DEPENDENCY_SOURCES.items():
+        actual = _require_mapping(dependencies, name, "builds.abacus.dependency_sources")
+        for key, value in expected.items():
+            if actual.get(key) != value:
+                raise AdmissionManifestError(
+                    f"builds.abacus.dependency_sources.{name}.{key} must match pinned LibRPA"
+                )
+    required_dependency_options = {
+        f"-DLIBRI_DIR={remote_root}/src/librpa/thirdparty/LibRI",
+        f"-DLIBCOMM_DIR={remote_root}/src/librpa/thirdparty/LibComm",
+    }
+    cmake_options = abacus_build.get("cmake_options")
+    if not isinstance(cmake_options, list) or not required_dependency_options.issubset(cmake_options):
+        raise AdmissionManifestError(
+            "builds.abacus.cmake_options must select pinned LibRPA LibRI and LibComm"
+        )
 
     levels = manifest.get("levels")
     if not isinstance(levels, list):

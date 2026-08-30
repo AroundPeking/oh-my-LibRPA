@@ -58,8 +58,22 @@
         "-DENABLE_GREENX_MINIMAX=ON",
         "-DENABLE_MLALGO=OFF",
         "-DBUILD_TESTING=ON",
-        "-DDEBUG_INFO=ON"
+        "-DDEBUG_INFO=ON",
+        "-DLIBRI_DIR=/home/ghj/oml-admission/20260830-v2/src/librpa/thirdparty/LibRI",
+        "-DLIBCOMM_DIR=/home/ghj/oml-admission/20260830-v2/src/librpa/thirdparty/LibComm"
       ],
+      "dependency_sources": {
+        "libri": {
+          "component": "librpa",
+          "path": "thirdparty/LibRI",
+          "tree": "d67a9367dcc6c2b29f3833840da3dbacb1fb2b35"
+        },
+        "libcomm": {
+          "component": "librpa",
+          "path": "thirdparty/LibComm",
+          "tree": "323fc5cb988ffa9d8eea646872706e11f2e4810d"
+        }
+      },
       "expected_executable": "abacus_3p"
     },
     "pyatb": {

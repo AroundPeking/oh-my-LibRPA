@@ -50,7 +50,8 @@ create a duplicate build or calculation.
 - [ ] Record `HEAD`, submodule revisions, remote URLs, and clean-tree status.
 - [ ] Configure LibRPA with Intel MPI/LLVM, MKL, LibRI, and tests enabled.
 - [ ] Configure ABACUS with MPI, LibRI, LibComm, GreenX, tests, and debug
-  diagnostics enabled; require the `abacus_3p` executable.
+  diagnostics enabled; use the LibRI/LibComm trees bundled by the pinned LibRPA
+  checkout and require the `abacus_3p` executable.
 - [ ] Build both projects with at most 16 concurrent compile jobs.
 - [ ] Validate PyATB import and the head/wing-producing entry points from its
   clean pinned checkout.

@@ -76,6 +76,33 @@ class AdmissionManifestTest(unittest.TestCase):
             }.issubset(source_tests["abacus-source-contracts"])
         )
 
+    def test_abacus_reuses_the_pinned_librpa_dependency_trees(self):
+        manifest = load_admission_manifest()
+        dependencies = manifest["builds"]["abacus"]["dependency_sources"]
+
+        self.assertEqual(
+            dependencies,
+            {
+                "libri": {
+                    "component": "librpa",
+                    "path": "thirdparty/LibRI",
+                    "tree": "d67a9367dcc6c2b29f3833840da3dbacb1fb2b35",
+                },
+                "libcomm": {
+                    "component": "librpa",
+                    "path": "thirdparty/LibComm",
+                    "tree": "323fc5cb988ffa9d8eea646872706e11f2e4810d",
+                },
+            },
+        )
+
+    def test_validation_rejects_abacus_dependency_tree_drift(self):
+        manifest = load_admission_manifest()
+        manifest["builds"]["abacus"]["dependency_sources"]["libri"]["tree"] = "0" * 40
+
+        with self.assertRaisesRegex(AdmissionManifestError, "dependency_sources.libri.tree"):
+            validate_admission_manifest(manifest)
+
     def test_validation_rejects_resource_drift(self):
         manifest = load_admission_manifest()
         manifest["limits"]["compile_jobs_max"] = 17
