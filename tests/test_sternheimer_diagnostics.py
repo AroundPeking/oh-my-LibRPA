@@ -52,6 +52,7 @@ def write_comparison_fixture(root: pathlib.Path) -> None:
     out_grid = np.diag([0.00, -0.20]).astype(np.complex128)
     total = in_sos + in_pulay + out_grid
 
+    write_coulomb(root / "v1_sternheimer_coulomb_iq_21_rank0.dat", coulomb)
     write_coulomb(root / "v1_coulomb_full_iq_21_rank0.dat", coulomb)
     write_response(root / "v1_sternheimer_chi0_iq_21_ifreq_1_rank0.dat", total)
     write_response(root / "v1_sternheimer_lcao_sos_iq_21_ifreq_1_rank0.dat", total)
@@ -74,7 +75,7 @@ class SternheimerComparisonTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             coulomb = np.diag([4.0, 9.0]).astype(np.complex128)
-            write_coulomb(root / "v1_coulomb_full_iq_21_rank0.dat", coulomb)
+            write_coulomb(root / "v1_sternheimer_coulomb_iq_21_rank0.dat", coulomb)
             write_grid_coulomb(root / "STERNHEIMER_GRID_COULOMB.dat", coulomb)
 
             report = inspect_grid_coulomb_consistency(root, iq=21)
@@ -88,7 +89,7 @@ class SternheimerComparisonTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             write_coulomb(
-                root / "v1_coulomb_full_iq_21_rank0.dat",
+                root / "v1_sternheimer_coulomb_iq_21_rank0.dat",
                 np.diag([4.0, 9.0]).astype(np.complex128),
             )
             write_grid_coulomb(
@@ -105,6 +106,72 @@ class SternheimerComparisonTest(unittest.TestCase):
         )
         self.assertEqual(gate["status"], "FAIL")
         self.assertIn("response production", gate["repair"])
+
+    def test_standard_reader_metric_is_informational_for_sternheimer(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            response_coulomb = np.diag([4.0, 9.0]).astype(np.complex128)
+            write_coulomb(
+                root / "v1_sternheimer_coulomb_iq_21_rank0.dat",
+                response_coulomb,
+            )
+            write_coulomb(
+                root / "v1_coulomb_full_iq_21_rank0.dat",
+                np.diag([400.0, 900.0]).astype(np.complex128),
+            )
+            write_grid_coulomb(root / "STERNHEIMER_GRID_COULOMB.dat", response_coulomb)
+
+            report = inspect_grid_coulomb_consistency(root, iq=21)
+
+        self.assertTrue(report["ok"])
+        self.assertGreater(
+            report["measurements"]["standard_reader_coulomb"][
+                "relative_error_to_response_metric"
+            ],
+            1.0,
+        )
+        self.assertEqual(
+            next(
+                gate
+                for gate in report["gates"]
+                if gate["gate_id"] == "standard_reader_coulomb"
+            )["status"],
+            "PASS",
+        )
+
+    def test_standard_reader_metric_cannot_replace_the_response_metric(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_coulomb(
+                root / "v1_coulomb_full_iq_21_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
+
+            report = inspect_grid_coulomb_consistency(root, iq=21)
+
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["status"], "INCOMPLETE")
+        self.assertIn("v1_sternheimer_coulomb", report["gates"][0]["evidence"][0])
+
+    def test_unrelated_standard_reader_dimensions_do_not_break_the_handoff_gate(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            response_coulomb = np.diag([4.0, 9.0]).astype(np.complex128)
+            write_coulomb(
+                root / "v1_sternheimer_coulomb_iq_21_rank0.dat",
+                response_coulomb,
+            )
+            write_coulomb(
+                root / "v1_coulomb_full_iq_21_rank0.dat",
+                np.eye(3, dtype=np.complex128),
+            )
+
+            report = inspect_grid_coulomb_consistency(root, iq=21)
+
+        self.assertTrue(report["ok"])
+        reader = report["measurements"]["standard_reader_coulomb"]
+        self.assertFalse(reader["comparable_dimensions"])
+        self.assertNotIn("relative_error_to_response_metric", reader)
 
     def test_complete_same_state_fixture_reports_reconstruction_and_trace_log(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -162,7 +229,7 @@ class SternheimerComparisonTest(unittest.TestCase):
 
         grid = report["measurements"]["grid_coulomb"]
         self.assertTrue(grid["present"])
-        self.assertLess(grid["relative_error_to_reader_v1"], 1.0e-14)
+        self.assertLess(grid["relative_error_to_response_metric"], 1.0e-14)
         self.assertAlmostEqual(grid["generalized_eigenvalue_min"], 1.0)
         self.assertAlmostEqual(grid["generalized_eigenvalue_max"], 1.0)
         self.assertLess(grid["maximum_generalized_deviation_from_one"], 1.0e-14)
@@ -189,6 +256,30 @@ class SternheimerComparisonTest(unittest.TestCase):
             item for item in report["gates"] if item["gate_id"] == "representation_consistency"
         )
         self.assertEqual(gate["status"], "FAIL")
+
+    def test_post_response_trace_log_uses_the_dedicated_metric(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_comparison_fixture(root)
+            baseline = inspect_sternheimer_comparison(root, iq=21, ifreq=1)
+            write_coulomb(
+                root / "v1_coulomb_full_iq_21_rank0.dat",
+                np.diag([400.0, 900.0]).astype(np.complex128),
+            )
+
+            report = inspect_sternheimer_comparison(root, iq=21, ifreq=1)
+
+        self.assertTrue(report["ok"])
+        self.assertAlmostEqual(
+            report["measurements"]["trace_log"]["delta"]["integrand_real"],
+            baseline["measurements"]["trace_log"]["delta"]["integrand_real"],
+        )
+        self.assertGreater(
+            report["measurements"]["standard_reader_coulomb"][
+                "relative_error_to_response_metric"
+            ],
+            1.0,
+        )
 
     def test_incomplete_grid_coulomb_is_a_contract_failure(self):
         with tempfile.TemporaryDirectory() as tmpdir:

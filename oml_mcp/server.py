@@ -89,7 +89,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.4.1",
+        version="0.4.2",
     )
     annotations = _read_only_annotations()
 
@@ -256,7 +256,7 @@ def build_server() -> MCPServer:
 
     @server.tool(
         name="inspect_grid_coulomb_consistency",
-        description="Compare single-rank grid-Poisson and reader-v1 Coulomb matrices before response production.",
+        description="Validate the dedicated Sternheimer Coulomb v1 metric and compare optional grid and ordinary reader metrics.",
         annotations=annotations,
         structured_output=True,
     )
@@ -278,7 +278,7 @@ def build_server() -> MCPServer:
 
     @server.tool(
         name="inspect_sternheimer_comparison",
-        description="Compare one single-rank reader-v1 Delta-ST response with same-state LCAO-SOS and component matrices.",
+        description="Evaluate one Delta-ST response family with its dedicated Coulomb v1 metric and same-state diagnostics.",
         annotations=annotations,
         structured_output=True,
     )

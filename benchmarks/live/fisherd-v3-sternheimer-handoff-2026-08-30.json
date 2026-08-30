@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "fisherd-v3-sternheimer-handoff-20260830",
+  "date": "2026-08-30",
+  "profile_id": "abacus-librpa-2026-08-30-v3",
+  "scope": "Sternheimer Coulomb reader-v1 handoff for one solid and one molecule",
+  "host": {
+    "alias": "Fisherd-Server100.96.1.64",
+    "remote_root": "/home/ghj/oml-admission/20260830-v2"
+  },
+  "limits": {
+    "compile_jobs_max": 16,
+    "execution_threads_max": 48
+  },
+  "pinned_revisions": {
+    "abacus": "81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a",
+    "librpa": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+    "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "contract": {
+    "reader_format": "v1",
+    "sternheimer_coulomb_prefix": "v1_sternheimer_coulomb_iq_",
+    "sternheimer_response_prefix": "v1_sternheimer_chi0_iq_",
+    "librpa_task": "sternheimer_rpa",
+    "ordinary_reader_coulomb_role": "diagnostic_only",
+    "symmetry_source": "stru_out",
+    "copy_legacy_symmetry_sidecars": []
+  },
+  "builds": {
+    "abacus": {
+      "source_identity": "PASS",
+      "production_target": "PASS",
+      "unit_test_status": "PASS",
+      "unit_tests_passed": 27,
+      "unit_tests_total": 27,
+      "executable": "/home/ghj/oml-admission/20260830-v2/build/abacus-sternheimer-grid-metric/abacus_3p",
+      "executable_sha256": "61eb3b764bee73bd2dd91678782d82c0ba5b523b31b7322b985e03d0ae34a720",
+      "test_evidence": "/home/ghj/oml-admission/20260830-v2/logs/abacus-sternheimer-grid-metric-gtest.log"
+    },
+    "librpa": {
+      "source_identity": "PASS",
+      "executable": "/home/ghj/oml-admission/20260830-v2/build/librpa/chi0_main.exe",
+      "executable_sha256": "cefc8f33c2a99085db3dd07a0f7110c17fc5176270cc8a2157ac17e4c1aa8f60"
+    }
+  },
+  "cases": {
+    "solid_delta_st_rpa": {
+      "system": "Si2",
+      "status": {
+        "producer": "PASS",
+        "handoff": "PASS",
+        "librpa": "PASS",
+        "scientific": "NOT_EVALUATED",
+        "promotion": "BLOCKED"
+      },
+      "producer": {
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-latest",
+        "kmesh": [4, 4, 4],
+        "q_index": 21,
+        "qpoint": [0.0, 0.25, 0.25],
+        "grid": [24, 24, 24],
+        "frequency_count": 1,
+        "frequency_ha": 0.2981370777853458,
+        "equations": 62464,
+        "failed_equations": 0,
+        "all_converged": true,
+        "max_solver_relative_residual": 9.999967700319632e-09,
+        "max_equation_residual_norm": 5.33628347805294e-08,
+        "wall_seconds": 2083.53,
+        "maximum_rss_kib": 7555920,
+        "response_sha256": "0281ea47db1039542450a9f08484a062bc56cf5659612fc043399e1ff050c982"
+      },
+      "metric": {
+        "path": "v1_sternheimer_coulomb_iq_21_rank0.dat",
+        "sha256": "57aabf8bdecd35eb956ef4fc5f75ef8f0f8ab08ba29ab5cb07f2acefd19ba76e",
+        "dimension": 244,
+        "atom_naux": [122, 122],
+        "hermitian_relative_residual": 4.525946345417533e-15,
+        "eigenvalue_min": 9.173597115547425e-06,
+        "eigenvalue_max": 971.103542267246,
+        "negative_eigenvalues": 0,
+        "relative_difference_from_grid_diagnostic": 1.132172416979503e-16,
+        "maximum_absolute_difference_from_grid_diagnostic": 1.0048591735576161e-14,
+        "relative_difference_from_ordinary_reader": 0.8133250803797222,
+        "maximum_absolute_difference_from_ordinary_reader": 115.41619659544706,
+        "ordinary_reader_role": "diagnostic_only"
+      },
+      "same_state": {
+        "component_reconstruction_relative_error": 9.090450336226364e-16,
+        "delta_vs_lcao_relative_error": 0.005939345812490804,
+        "in_sos_vs_lcao_relative_error": 3.1633450537310665e-05,
+        "delta_trace_log": -3.1041485714755943,
+        "lcao_sos_trace_log": -2.605925910822713,
+        "delta_pi_eigenvalue_min": -2.0630333858892804,
+        "lcao_sos_pi_eigenvalue_min": -2.0502198397612688
+      },
+      "librpa": {
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-latest/librpa-response-metric",
+        "input_sha256": "091b42ff6e7a33fdd7afcc84822d7f6c3aea597641245acd37b4d5af9d2e0abe",
+        "coulomb_prefix": "v1_sternheimer_coulomb_iq_",
+        "trace_log": -3.104148571459,
+        "weighted_ec_rpa_ha": -0.007719384206866,
+        "wall_seconds": 0.73,
+        "maximum_rss_kib": 575760,
+        "finished_successfully": true
+      },
+      "independent_standard_sos": {
+        "frequency_ha": 0.3046801824786727,
+        "trace_log": -2.5831371129304177,
+        "relative_difference_from_same_state_lcao_sos": 0.008744990714298757,
+        "note": "The frequencies differ by 2.19 percent; this is a scale check, not scientific equivalence."
+      },
+      "historical_failure": {
+        "ordinary_reader_trace_log": -174018.53810157388,
+        "reason": "The response was whitened with a different Coulomb representation."
+      }
+    },
+    "molecular_delta_st_rpa": {
+      "system": "H2",
+      "status": {
+        "producer": "PASS",
+        "handoff": "PASS",
+        "librpa": "PASS",
+        "scientific": "NOT_EVALUATED",
+        "promotion": "BLOCKED"
+      },
+      "producer": {
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-h2-molecular-delta-st-latest",
+        "grid": [50, 50, 50],
+        "frequency_count": 1,
+        "frequency_ha": 0.05322431188753,
+        "equations": 30,
+        "failed_equations": 0,
+        "all_converged": true,
+        "max_solver_relative_residual": 3.322591162212585e-07,
+        "max_equation_residual_norm": 2.637976809434776e-07,
+        "wall_seconds": 7.84,
+        "maximum_rss_kib": 7918932,
+        "response_sha256": "80b4e8b6930bc5539c89f3fa480ac53fd5652f29153a43b07d268f7e1b5c14b9"
+      },
+      "metric": {
+        "path": "v1_sternheimer_coulomb_iq_1_rank0.dat",
+        "sha256": "988ec4604924a2271cb1a021bd7a63474fd4733a46159e21dc4cc43e86d2100b",
+        "dimension": 30,
+        "atom_naux": [15, 15],
+        "hermitian_relative_residual": 1.7445238053669702e-17,
+        "eigenvalue_min": 0.005164624217459136,
+        "eigenvalue_max": 206.6497548502384,
+        "negative_eigenvalues": 0,
+        "relative_difference_from_ordinary_reader": 0.003701136514287809,
+        "maximum_absolute_difference_from_ordinary_reader": 0.28468244191954994,
+        "ordinary_reader_role": "diagnostic_only"
+      },
+      "librpa": {
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-h2-molecular-delta-st-latest/librpa-response-metric",
+        "input_sha256": "b61ded7fb93e6a5b75effa5593a4753779fe7771ab3a68d7a30c6d7b498fbb68",
+        "coulomb_prefix": "v1_sternheimer_coulomb_iq_",
+        "trace_log": -0.6424732326962,
+        "ec_rpa_ha": -0.01100066029904,
+        "ordinary_reader_ec_rpa_ha": -0.0110925901502,
+        "relative_change_from_ordinary_reader": 0.008287500927665835,
+        "wall_seconds": 0.58,
+        "maximum_rss_kib": 85336,
+        "finished_successfully": true
+      }
+    }
+  },
+  "result": {
+    "interface_root_cause": "FIXED",
+    "numerical_anomaly": "REMOVED_FOR_TESTED_STATES",
+    "scientific_acceptance": "NOT_EVALUATED",
+    "automatic_promotion": false
+  },
+  "remaining_gates": [
+    "complete q/frequency integration",
+    "solid and molecular convergence ladders",
+    "strict-2D route replay",
+    "periodic GW route replay",
+    "L4 scientific reference comparison"
+  ]
+}

@@ -32,6 +32,8 @@ def classify_file(path: Path) -> str:
         return "librpa_input"
     if name in {"stru_out", "bz_sampling_out", "basis_wfc_out", "basis_aux_out", "basis_aux_shrink_out", "band_out"}:
         return "producer_metadata"
+    if name.startswith("v1_sternheimer_coulomb_iq_"):
+        return "sternheimer_coulomb_v1"
     if name.startswith(("v1_coulomb_full_iq_", "v1_coulomb_cut_iq_")):
         return "reader_v1_coulomb"
     if name.startswith(("v1_Cs_data_", "v1_Cs_shrinked_data_", "v1_shrink_sinvS_")):

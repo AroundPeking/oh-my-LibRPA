@@ -270,31 +270,33 @@ def _trace_log(
     }
 
 
-def _grid_coulomb_measurements(
-    reader_coulomb: np.ndarray,
-    grid_coulomb: np.ndarray,
+def _coulomb_metric_comparison(
+    response_coulomb: np.ndarray,
+    comparison_coulomb: np.ndarray,
     *,
     sqrt_coulomb_threshold: float,
     hermitian_tolerance: float,
     responses: dict[str, np.ndarray] | None = None,
 ) -> dict[str, Any]:
-    reader_hermitian = 0.5 * (reader_coulomb + reader_coulomb.conj().T)
-    grid_hermitian = 0.5 * (grid_coulomb + grid_coulomb.conj().T)
-    reader_eigenvalues, reader_eigenvectors = np.linalg.eigh(reader_hermitian)
-    grid_eigenvalues, grid_eigenvectors = np.linalg.eigh(grid_hermitian)
-    negative_grid_eigenvalues = int(
-        np.sum(grid_eigenvalues < -hermitian_tolerance)
+    response_hermitian = 0.5 * (response_coulomb + response_coulomb.conj().T)
+    comparison_hermitian = 0.5 * (
+        comparison_coulomb + comparison_coulomb.conj().T
     )
-    reader_active = reader_eigenvalues > sqrt_coulomb_threshold
-    active_reader_vectors = reader_eigenvectors[:, reader_active]
-    active_reader_values = reader_eigenvalues[reader_active]
-    if active_reader_values.size:
+    response_eigenvalues, response_eigenvectors = np.linalg.eigh(response_hermitian)
+    comparison_eigenvalues, comparison_eigenvectors = np.linalg.eigh(comparison_hermitian)
+    negative_comparison_eigenvalues = int(
+        np.sum(comparison_eigenvalues < -hermitian_tolerance)
+    )
+    response_active = response_eigenvalues > sqrt_coulomb_threshold
+    active_response_vectors = response_eigenvectors[:, response_active]
+    active_response_values = response_eigenvalues[response_active]
+    if active_response_values.size:
         generalized_coulomb = (
-            active_reader_vectors.conj().T
-            @ grid_hermitian
-            @ active_reader_vectors
+            active_response_vectors.conj().T
+            @ comparison_hermitian
+            @ active_response_vectors
         )
-        inverse_sqrt = 1.0 / np.sqrt(active_reader_values)
+        inverse_sqrt = 1.0 / np.sqrt(active_response_values)
         generalized_coulomb = (
             inverse_sqrt[:, None]
             * generalized_coulomb
@@ -314,37 +316,66 @@ def _grid_coulomb_measurements(
         generalized_max = None
         generalized_deviation = None
     return {
-        "relative_error_to_reader_v1": _relative_norm(
-            grid_hermitian - reader_hermitian, reader_hermitian
+        "relative_error_to_response_metric": _relative_norm(
+            comparison_hermitian - response_hermitian, response_hermitian
         ),
         "maximum_absolute_difference": float(
-            np.max(np.abs(grid_hermitian - reader_hermitian))
+            np.max(np.abs(comparison_hermitian - response_hermitian))
         ),
-        "reader_hermitian_relative_residual": _hermitian_residual(reader_coulomb),
-        "grid_hermitian_relative_residual": _hermitian_residual(grid_coulomb),
-        "reader_eigenvalue_min": float(reader_eigenvalues[0]),
-        "reader_eigenvalue_max": float(reader_eigenvalues[-1]),
-        "grid_eigenvalue_min": float(grid_eigenvalues[0]),
-        "grid_eigenvalue_max": float(grid_eigenvalues[-1]),
-        "grid_negative_eigenvalues": negative_grid_eigenvalues,
-        "generalized_active_channels": int(active_reader_values.size),
+        "response_metric_hermitian_relative_residual": _hermitian_residual(response_coulomb),
+        "comparison_metric_hermitian_relative_residual": _hermitian_residual(comparison_coulomb),
+        "response_metric_eigenvalue_min": float(response_eigenvalues[0]),
+        "response_metric_eigenvalue_max": float(response_eigenvalues[-1]),
+        "comparison_metric_eigenvalue_min": float(comparison_eigenvalues[0]),
+        "comparison_metric_eigenvalue_max": float(comparison_eigenvalues[-1]),
+        "comparison_metric_negative_eigenvalues": negative_comparison_eigenvalues,
+        "generalized_active_channels": int(active_response_values.size),
         "generalized_eigenvalue_min": generalized_min,
         "generalized_eigenvalue_max": generalized_max,
         "maximum_generalized_deviation_from_one": generalized_deviation,
         "trace_log": (
             {
                 name: _trace_log(
-                    grid_eigenvalues,
-                    grid_eigenvectors,
+                    comparison_eigenvalues,
+                    comparison_eigenvectors,
                     response,
                     sqrt_coulomb_threshold,
                 )
                 for name, response in responses.items()
             }
-            if responses is not None and negative_grid_eigenvalues == 0
+            if responses is not None and negative_comparison_eigenvalues == 0
             else None
         ),
     }
+
+
+def _standard_reader_measurements(
+    response_metric: _BlockMatrix,
+    standard_reader: _BlockMatrix,
+    *,
+    sqrt_coulomb_threshold: float,
+    hermitian_tolerance: float,
+) -> dict[str, Any]:
+    comparable_dimensions = standard_reader.values.shape == response_metric.values.shape
+    measurements: dict[str, Any] = {
+        "present": True,
+        "path": str(standard_reader.path),
+        "role": "diagnostic_only",
+        "comparable_dimensions": comparable_dimensions,
+        "iq": int(standard_reader.metadata["iq"]),
+        "naux": int(standard_reader.metadata["naux"]),
+        "atom_naux": standard_reader.metadata["atom_naux"],
+    }
+    if comparable_dimensions:
+        measurements.update(
+            _coulomb_metric_comparison(
+                response_metric.values,
+                standard_reader.values,
+                sqrt_coulomb_threshold=sqrt_coulomb_threshold,
+                hermitian_tolerance=hermitian_tolerance,
+            )
+        )
+    return measurements
 
 
 def inspect_grid_coulomb_consistency(
@@ -366,10 +397,10 @@ def inspect_grid_coulomb_consistency(
             raise SternheimerDiagnosticError(f"{label} must be finite and non-negative")
 
     directory = Path(root).expanduser().resolve()
-    reader_path = directory / f"v1_coulomb_full_iq_{iq}_rank0.dat"
+    response_path = directory / f"v1_sternheimer_coulomb_iq_{iq}_rank0.dat"
+    standard_reader_path = directory / f"v1_coulomb_full_iq_{iq}_rank0.dat"
     grid_path = directory / "STERNHEIMER_GRID_COULOMB.dat"
-    missing = [path for path in (reader_path, grid_path) if not path.is_file()]
-    if missing:
+    if not response_path.is_file():
         return {
             "ok": False,
             "status": "INCOMPLETE",
@@ -379,16 +410,19 @@ def inspect_grid_coulomb_consistency(
                 _gate(
                     "files",
                     "FAIL",
-                    "reader-v1 and grid-Poisson Coulomb diagnostics are both required",
-                    missing,
-                    repair="run the pinned ABACUS grid-Coulomb diagnostic before response production",
+                    "the dedicated Sternheimer Coulomb v1 metric is required",
+                    [response_path],
+                    repair="rerun the pinned ABACUS Sternheimer producer before response production",
                 )
             ],
         }
     try:
-        reader = _read_block_matrix(reader_path, response=False)
-        grid = _read_grid_coulomb(grid_path)
+        response_metric = _read_block_matrix(response_path, response=False)
+        grid = _read_grid_coulomb(grid_path) if grid_path.is_file() else None
     except (OSError, SternheimerDiagnosticError) as exc:
+        required_paths = [response_path]
+        if grid_path.is_file():
+            required_paths.append(grid_path)
         return {
             "ok": False,
             "status": "CONTRACT_FAIL",
@@ -399,28 +433,45 @@ def inspect_grid_coulomb_consistency(
                     "format",
                     "FAIL",
                     str(exc),
-                    [reader_path, grid_path],
-                    repair="regenerate both Coulomb diagnostics with the pinned ABACUS producer",
+                    required_paths,
+                    repair="regenerate the Sternheimer response metric with the pinned ABACUS producer",
                 )
             ],
         }
 
+    standard_reader = None
+    standard_reader_error = None
+    if standard_reader_path.is_file():
+        try:
+            standard_reader = _read_block_matrix(standard_reader_path, response=False)
+        except (OSError, SternheimerDiagnosticError) as exc:
+            standard_reader_error = str(exc)
+
+    evidence = [response_path]
+    if grid is not None:
+        evidence.append(grid_path)
+    if standard_reader_path.is_file():
+        evidence.append(standard_reader_path)
     gates = [
         _gate(
             "files",
             "PASS",
-            "reader-v1 and grid-Poisson Coulomb diagnostics are present",
-            [reader_path, grid_path],
+            "the dedicated Sternheimer Coulomb v1 metric is present",
+            evidence,
         )
     ]
-    if reader.metadata["iq"] != iq or grid.shape != reader.values.shape:
+    metadata_match = (
+        response_metric.metadata["iq"] == iq
+        and (grid is None or grid.shape == response_metric.values.shape)
+    )
+    if not metadata_match:
         gates.append(
             _gate(
                 "metadata",
                 "FAIL",
-                "reader-v1 and grid-Poisson Coulomb dimensions do not match",
-                [reader_path, grid_path],
-                repair="regenerate both matrices for the same q point and auxiliary basis",
+                "the response metric and optional grid diagnostic dimensions do not match",
+                evidence,
+                repair="regenerate the metrics for the same q point and auxiliary basis",
             )
         )
         return {
@@ -434,28 +485,62 @@ def inspect_grid_coulomb_consistency(
         _gate(
             "metadata",
             "PASS",
-            "reader-v1 and grid-Poisson Coulomb dimensions match",
-            [reader_path, grid_path],
+            "the response metric and optional grid diagnostic metadata match",
+            evidence,
         )
     )
-    measurements = _grid_coulomb_measurements(
-        reader.values,
-        grid,
+    comparison = grid if grid is not None else response_metric.values
+    measurements = _coulomb_metric_comparison(
+        response_metric.values,
+        comparison,
         sqrt_coulomb_threshold=sqrt_coulomb_threshold,
         hermitian_tolerance=hermitian_tolerance,
     )
+    measurements["grid_diagnostic_present"] = grid is not None
+    if standard_reader is not None:
+        standard_measurements = _standard_reader_measurements(
+            response_metric,
+            standard_reader,
+            sqrt_coulomb_threshold=sqrt_coulomb_threshold,
+            hermitian_tolerance=hermitian_tolerance,
+        )
+        measurements["standard_reader_coulomb"] = standard_measurements
+        gates.append(
+            _gate(
+                "standard_reader_coulomb",
+                "PASS",
+                "the ordinary reader-v1 Coulomb metric is recorded for comparison only",
+                [standard_reader_path, response_path],
+                measurements={
+                    "comparable_dimensions": standard_measurements["comparable_dimensions"],
+                    "relative_difference": standard_measurements.get(
+                        "relative_error_to_response_metric"
+                    ),
+                },
+            )
+        )
+    elif standard_reader_error is not None:
+        measurements["standard_reader_coulomb"] = {
+            "present": True,
+            "path": str(standard_reader_path),
+            "role": "diagnostic_only",
+            "read_error": standard_reader_error,
+        }
+    else:
+        measurements["standard_reader_coulomb"] = {"present": False}
+
     max_hermitian = max(
-        measurements["reader_hermitian_relative_residual"],
-        measurements["grid_hermitian_relative_residual"],
+        measurements["response_metric_hermitian_relative_residual"],
+        measurements["comparison_metric_hermitian_relative_residual"],
     )
     if max_hermitian > hermitian_tolerance:
         gates.append(
             _gate(
                 "hermiticity",
                 "FAIL",
-                "at least one Coulomb diagnostic exceeds the Hermiticity tolerance",
-                [reader_path, grid_path],
-                repair="audit the reader-v1 and grid-Poisson Coulomb producers",
+                "the response metric or optional grid diagnostic exceeds the Hermiticity tolerance",
+                evidence,
+                repair="audit the Sternheimer Coulomb producer",
                 measurements={"maximum_relative_residual": max_hermitian},
             )
         )
@@ -471,21 +556,21 @@ def inspect_grid_coulomb_consistency(
         _gate(
             "hermiticity",
             "PASS",
-            "both Coulomb diagnostics satisfy the Hermiticity tolerance",
-            [reader_path, grid_path],
+            "the response metric and optional grid diagnostic satisfy the Hermiticity tolerance",
+            evidence,
         )
     )
     if (
-        measurements["reader_eigenvalue_min"] < -hermitian_tolerance
-        or measurements["grid_negative_eigenvalues"]
+        measurements["response_metric_eigenvalue_min"] < -hermitian_tolerance
+        or measurements["comparison_metric_negative_eigenvalues"]
     ):
         gates.append(
             _gate(
                 "positive_semidefinite",
                 "FAIL",
-                "at least one Coulomb diagnostic is not positive semidefinite",
-                [reader_path, grid_path],
-                repair="audit the corresponding Coulomb producer before response calculation",
+                "the response metric or optional grid diagnostic is not positive semidefinite",
+                evidence,
+                repair="audit the Sternheimer Coulomb producer before response calculation",
             )
         )
         return {
@@ -500,21 +585,21 @@ def inspect_grid_coulomb_consistency(
         _gate(
             "positive_semidefinite",
             "PASS",
-            "both Coulomb diagnostics are positive semidefinite",
-            [reader_path, grid_path],
+            "the response metric and optional grid diagnostic are positive semidefinite",
+            evidence,
         )
     )
-    relative_difference = measurements["relative_error_to_reader_v1"]
-    if relative_difference > metric_relative_tolerance:
+    relative_difference = measurements["relative_error_to_response_metric"]
+    if grid is not None and relative_difference > metric_relative_tolerance:
         gates.append(
             _gate(
                 "representation_consistency",
                 "FAIL",
-                "grid-Poisson and reader-v1 Coulomb matrices are not the same auxiliary-basis representation",
-                [reader_path, grid_path],
+                "the dedicated response metric does not reproduce the grid-Poisson diagnostic",
+                [response_path, grid_path],
                 repair=(
-                    "block response production until ABACUS outputs the grid Coulomb matrix used "
-                    "by Sternheimer or applies an explicit grid-to-reader basis transformation"
+                    "block response production until ABACUS writes the Coulomb metric used by "
+                    "the Sternheimer perturbations"
                 ),
                 measurements={
                     "relative_difference": relative_difference,
@@ -534,11 +619,16 @@ def inspect_grid_coulomb_consistency(
         _gate(
             "representation_consistency",
             "PASS",
-            "grid-Poisson and reader-v1 Coulomb matrices satisfy the handoff tolerance",
-            [reader_path, grid_path],
+            (
+                "the dedicated response metric reproduces the grid-Poisson diagnostic"
+                if grid is not None
+                else "the dedicated response metric satisfies the v1 handoff contract"
+            ),
+            [response_path, *([grid_path] if grid is not None else [])],
             measurements={
                 "relative_difference": relative_difference,
                 "tolerance": metric_relative_tolerance,
+                "grid_diagnostic_present": grid is not None,
             },
         )
     )
@@ -575,13 +665,14 @@ def inspect_sternheimer_comparison(
 
     directory = Path(root).expanduser().resolve()
     paths = {
-        "coulomb": directory / f"v1_coulomb_full_iq_{iq}_rank0.dat",
+        "coulomb": directory / f"v1_sternheimer_coulomb_iq_{iq}_rank0.dat",
         "delta": directory / f"v1_sternheimer_chi0_iq_{iq}_ifreq_{ifreq}_rank0.dat",
         "lcao_sos": directory / f"v1_sternheimer_lcao_sos_iq_{iq}_ifreq_{ifreq}_rank0.dat",
         "in_sos": directory / f"v1_sternheimer_delta_in_sos_iq_{iq}_ifreq_{ifreq}_rank0.dat",
         "in_pulay": directory / f"v1_sternheimer_delta_in_pulay_iq_{iq}_ifreq_{ifreq}_rank0.dat",
         "out_grid": directory / f"v1_sternheimer_delta_out_grid_iq_{iq}_ifreq_{ifreq}_rank0.dat",
     }
+    standard_reader_path = directory / f"v1_coulomb_full_iq_{iq}_rank0.dat"
     grid_coulomb_path = directory / "STERNHEIMER_GRID_COULOMB.dat"
     missing = [path for path in paths.values() if not path.is_file()]
     if missing:
@@ -633,6 +724,14 @@ def inspect_sternheimer_comparison(
             ],
         }
 
+    standard_reader = None
+    standard_reader_error = None
+    if standard_reader_path.is_file():
+        try:
+            standard_reader = _read_block_matrix(standard_reader_path, response=False)
+        except (OSError, SternheimerDiagnosticError) as exc:
+            standard_reader_error = str(exc)
+
     gates = [
         _gate(
             "files",
@@ -664,7 +763,7 @@ def inspect_sternheimer_comparison(
             _gate(
                 "metadata",
                 "FAIL",
-                "reader-v1 and optional grid diagnostics do not describe one q/frequency state",
+                "the response metric and response diagnostics do not describe one q/frequency state",
                 metadata_paths,
                 repair="regenerate all comparison matrices in one immutable producer attempt",
             )
@@ -681,7 +780,7 @@ def inspect_sternheimer_comparison(
         _gate(
             "metadata",
             "PASS",
-            "reader-v1 and optional grid diagnostics share q, frequency, dimensions, and weights",
+            "the response metric and response diagnostics share q, frequency, dimensions, and weights",
             metadata_paths,
         )
     )
@@ -807,13 +906,44 @@ def inspect_sternheimer_comparison(
         grid_coulomb_measurements = {
             "present": True,
             "path": str(grid_coulomb_path),
-            **_grid_coulomb_measurements(
+            **_coulomb_metric_comparison(
                 values["coulomb"],
                 grid_coulomb,
                 sqrt_coulomb_threshold=sqrt_coulomb_threshold,
                 hermitian_tolerance=hermitian_tolerance,
                 responses={name: values[name] for name in response_names},
             ),
+        }
+    standard_reader_measurements: dict[str, Any] = {"present": False}
+    if standard_reader is not None:
+        standard_reader_measurements = _standard_reader_measurements(
+            matrices["coulomb"],
+            standard_reader,
+            sqrt_coulomb_threshold=sqrt_coulomb_threshold,
+            hermitian_tolerance=hermitian_tolerance,
+        )
+        gates.append(
+            _gate(
+                "standard_reader_coulomb",
+                "PASS",
+                "the ordinary reader-v1 Coulomb metric is recorded for comparison only",
+                [standard_reader_path, paths["coulomb"]],
+                measurements={
+                    "comparable_dimensions": standard_reader_measurements[
+                        "comparable_dimensions"
+                    ],
+                    "relative_difference": standard_reader_measurements.get(
+                        "relative_error_to_response_metric"
+                    ),
+                },
+            )
+        )
+    elif standard_reader_error is not None:
+        standard_reader_measurements = {
+            "present": True,
+            "path": str(standard_reader_path),
+            "role": "diagnostic_only",
+            "read_error": standard_reader_error,
         }
     measurements = {
         "matrix_dimension": int(response_meta["naux"]),
@@ -839,20 +969,20 @@ def inspect_sternheimer_comparison(
         "dominant_delta_component": max(component_norms, key=component_norms.get),
         "trace_log": trace_log,
         "grid_coulomb": grid_coulomb_measurements,
+        "standard_reader_coulomb": standard_reader_measurements,
     }
     if grid_coulomb is not None:
-        relative_difference = grid_coulomb_measurements["relative_error_to_reader_v1"]
+        relative_difference = grid_coulomb_measurements["relative_error_to_response_metric"]
         if relative_difference > metric_relative_tolerance:
             gates.append(
                 _gate(
                     "representation_consistency",
                     "FAIL",
-                    "grid-Poisson and reader-v1 Coulomb matrices are not the same auxiliary-basis representation",
+                    "the dedicated response metric does not reproduce the grid-Poisson diagnostic",
                     [paths["coulomb"], grid_coulomb_path],
                     repair=(
-                        "block downstream interpretation until ABACUS outputs the grid Coulomb "
-                        "matrix used by Sternheimer or applies an explicit grid-to-reader basis "
-                        "transformation"
+                        "block downstream interpretation until ABACUS writes the Coulomb metric "
+                        "used by the Sternheimer perturbations"
                     ),
                     measurements={
                         "relative_difference": relative_difference,
@@ -873,7 +1003,7 @@ def inspect_sternheimer_comparison(
             _gate(
                 "representation_consistency",
                 "PASS",
-                "grid-Poisson and reader-v1 Coulomb matrices satisfy the handoff tolerance",
+                "the dedicated response metric reproduces the grid-Poisson diagnostic",
                 [paths["coulomb"], grid_coulomb_path],
                 measurements={
                     "relative_difference": relative_difference,

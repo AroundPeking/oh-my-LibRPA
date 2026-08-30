@@ -10,6 +10,7 @@ from oml_mcp.profiles import ProfileError, list_profiles, load_profile
 REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / "abacus-librpa-pyatb-2026-08.json"
 PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / "abacus-librpa-pyatb-2026-08.json"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
+V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 V2_REPOSITORY_PROFILE = (
     pathlib.Path(__file__).resolve().parents[1]
     / "profiles"
@@ -20,6 +21,17 @@ V2_PACKAGED_PROFILE = (
     / "oml_mcp"
     / "profiles"
     / "abacus-librpa-pyatb-2026-08-v2.json"
+)
+V3_REPOSITORY_PROFILE = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "profiles"
+    / "abacus-librpa-pyatb-2026-08-v3.json"
+)
+V3_PACKAGED_PROFILE = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "oml_mcp"
+    / "profiles"
+    / "abacus-librpa-pyatb-2026-08-v3.json"
 )
 
 
@@ -227,6 +239,32 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(contract["symmetry"]["source"], "stru_out")
         self.assertEqual(contract["symmetry"]["rotation_reconstruction"], "librpa")
         self.assertEqual(contract["symmetry"]["copy_legacy_sidecars"], [])
+        self.assertNotIn("sternheimer_rpa", contract["librpa"])
+        self.assertNotIn("response_coulomb_prefix", contract["abacus"]["sternheimer"])
+
+    def test_v3_profile_adds_the_definition_matched_sternheimer_handoff(self):
+        self.assertIn(V3_PROFILE_ID, list_profiles())
+        repository = json.loads(V3_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
+        packaged = json.loads(V3_PACKAGED_PROFILE.read_text(encoding="utf-8"))
+        contract = load_profile(profile_id=V3_PROFILE_ID)["contract"]
+
+        self.assertEqual(packaged, repository)
+        self.assertEqual(
+            repository["components"]["abacus"]["revision"],
+            "81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a",
+        )
+        self.assertEqual(
+            contract["abacus"]["sternheimer"]["response_coulomb_prefix"],
+            "v1_sternheimer_coulomb_iq_",
+        )
+        self.assertEqual(
+            contract["librpa"]["sternheimer_rpa"]["prefix_coul_full"],
+            "v1_sternheimer_coulomb_iq_",
+        )
+        self.assertEqual(
+            contract["librpa"]["sternheimer_rpa"]["ordinary_reader_coulomb_role"],
+            "diagnostic_only",
+        )
 
     def test_unknown_profile_id_is_rejected(self):
         with self.assertRaisesRegex(ProfileError, "unknown profile_id"):

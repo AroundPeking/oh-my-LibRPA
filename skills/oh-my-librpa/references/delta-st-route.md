@@ -26,15 +26,17 @@ Build the induced density from occupations and spin channels,
 
 with the implementation's spin convention. Never add a blind factor of two to an `nspin=2` result.
 
-For the Coulomb-potential perturbation convention, hand the Sternheimer response to LibRPA using the selected full-Coulomb metric and evaluate
+For the Coulomb-potential perturbation convention, hand the Sternheimer response to LibRPA using the exact metric that generated the perturbation and evaluate
 
 \[
- \Pi=V_{\rm full}^{-1/2}M_{\rm ST}V_{\rm full}^{-1/2}.
+ \Pi=V_{\rm response}^{-1/2}M_{\rm ST}V_{\rm response}^{-1/2}.
 \]
 
-Use the same GreenX frequency file across compared runs. A valid endpoint requires ABACUS `status success`, `all_converged yes`, the expected response matrices, the stated residual tolerance, and `libRPA finished successfully`.
+ABACUS writes this matrix as `v1_sternheimer_coulomb_iq_<iq>_rank0.dat`. For LibRPA `task = sternheimer_rpa`, set `prefix_coul_full = v1_sternheimer_coulomb_iq_` and `version_coul_reader = 1`. The ordinary `v1_coulomb_full_iq_*` RI/Ewald family belongs to conventional SOS/GW routes and is not a fallback Sternheimer metric.
 
-With global-equation MPI, ABACUS may write a full-Coulomb matrix as several rank shards. Do not byte-compare one shard with a monolithic reference file. Verify the basis/metadata and either assemble the documented shards or give LibRPA the explicitly selected monolithic full-Coulomb reference.
+Use the same GreenX frequency file across compared runs. A valid endpoint requires ABACUS `status success`, `all_converged yes`, the dedicated Coulomb v1 file, the expected response matrices, the stated residual tolerance, and `libRPA finished successfully`.
+
+The current dedicated response metric is a monolithic rank-0 v1 file. Do not replace it with similarly shaped ordinary Coulomb shards. Verify `iq`, `naux`, per-atom auxiliary sizes, Hermiticity, and positive semidefiniteness before LibRPA starts.
 
 ## Molecules and atoms
 
@@ -86,4 +88,3 @@ Round upward for queue and load-balance margin. More nodes reduce equations per 
 ## Live reporting
 
 For running jobs report: scheduler state, elapsed/limit, equations per rank, slowest-rank fraction, newest progress age, convergence residuals, memory-plan line, projected wall time, and recommended nodes. Never call a job healthy from `RUNNING` alone. If a replacement layout is submitted while the old job continues, use an isolated output root and report both job IDs.
-

@@ -35,7 +35,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         self.assertIn("FHI-aims writes on existing reviewed routes", text)
         self.assertNotIn("run_gw_workflow.sh", text)
 
-    def test_installation_guide_separates_production_and_v2_admission_profiles(self):
+    def test_installation_guide_separates_production_and_admission_profiles(self):
         text = (REPOSITORY / "docs" / "guide" / "installation.md").read_text(
             encoding="utf-8"
         )
@@ -49,6 +49,8 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "propose_evolution_candidate",
             "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08",
             "abacus-librpa-2026-08-30-v2",
+            "abacus-librpa-2026-08-30-v3",
+            "v1_sternheimer_coulomb_iq_",
             "TESTABLE",
             "not promoted automatically",
         ):
@@ -130,10 +132,10 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.4.1")
-        self.assertIn('version = "0.4.1"', pyproject)
-        self.assertIn('__version__ = "0.4.1"', package)
-        self.assertIn('version="0.4.1"', server)
+        self.assertEqual(plugin["version"], "0.4.2")
+        self.assertIn('version = "0.4.2"', pyproject)
+        self.assertIn('__version__ = "0.4.2"', package)
+        self.assertIn('version="0.4.2"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (
@@ -149,7 +151,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         ):
             self.assertIn(phrase, text)
 
-    def test_v2_admission_scope_and_evolution_boundary_are_documented(self):
+    def test_admission_scope_and_evolution_boundary_are_documented(self):
         readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
         skill = (REPOSITORY / "skills" / "oh-my-librpa" / "SKILL.md").read_text(
             encoding="utf-8"
@@ -158,6 +160,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         for text in (readme, skill):
             for phrase in (
                 "abacus-librpa-2026-08-30-v2",
+                "abacus-librpa-2026-08-30-v3",
                 "periodic 3D GW",
                 "strict-2D GW",
                 "molecular Delta-Sternheimer RPA",

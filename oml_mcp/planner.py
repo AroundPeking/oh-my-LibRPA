@@ -5,7 +5,7 @@ from typing import Any
 
 from .intake import ingest_case
 from .models import CasePlan, GateResult
-from .profiles import V2_PROFILE_ID, load_profile
+from .profiles import load_profile
 from .provenance import digest_json, execution_input_manifest, source_manifest_digest
 
 
@@ -179,7 +179,7 @@ def plan_case(
         raise PlanError(f"Phase 1 supports ABACUS cases, got {intake.stack}")
 
     profile = load_profile(profile_id=profile_id) if profile_id is not None else load_profile()
-    is_v2 = profile["profile_id"] == V2_PROFILE_ID
+    is_v2 = profile["schema_version"] == 2
     normalized_task = task.strip().lower()
     normalized_system = system_type.strip().lower()
     normalized_response = response_method.strip().lower()

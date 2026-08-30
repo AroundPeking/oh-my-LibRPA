@@ -52,19 +52,21 @@ In practice, that means the agent can help with:
 - producing a final scientific artifact such as a **paper-style GW band plot**
 
 > [!TIP]
-> The 0.3.1 production profile remains limited to approved non-SOC periodic GW. The v2 profile described below is admission-only; a testable route is not yet a production route.
+> The 0.3.1 production profile remains limited to approved non-SOC periodic GW. Admission profiles are not production routes. The immutable v2 profile records the original Fisherd result; v3 selects the corrected Sternheimer Coulomb handoff.
 
 ### Compatibility generations
 
-OML keeps the 0.3.1 profile unchanged and adds the explicit
-`abacus-librpa-2026-08-30-v2` admission profile for four routes:
+OML keeps the 0.3.1 profile and the historical
+`abacus-librpa-2026-08-30-v2` admission profile unchanged. The corrected
+`abacus-librpa-2026-08-30-v3` profile pins the dedicated Sternheimer response
+metric for four admission routes:
 
 - periodic 3D GW;
 - strict-2D GW with full Ewald Coulomb and analytic Gamma head/wing;
 - molecular Delta-Sternheimer RPA;
 - solid Delta-Sternheimer RPA.
 
-All four start as `TESTABLE`. They become `EXPERIMENTAL` only after reviewed
+All four remain `TESTABLE`. They become `EXPERIMENTAL` only after reviewed
 L0-L3 receipts, and `ENABLED` only after L4 scientific acceptance and a reviewed
 profile commit. OML explicitly selects reader v1. Symmetry comes from `stru_out`,
 LibRPA reconstructs rotations, and legacy symmetry sidecars are never copied.
@@ -113,22 +115,21 @@ write tools `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`,
 Execution requires a reviewed profile ID and immutable plan digest; no tool
 accepts arbitrary command text.
 
-`inspect_grid_coulomb_consistency` is the pre-response gate: it compares the
-grid-Poisson and reader-v1 Coulomb metrics, including their generalized
-eigenvalue spread, without requiring a Sternheimer response. Its default
-reader/grid relative-norm tolerance is `1e-6`; a mismatch blocks response
-production because no grid-to-reader transformation artifact exists in the
-current handoff. The separate
-`inspect_sternheimer_comparison` tool checks one immutable single-rank reader-v1
-diagnostic family and reports Delta-ST versus same-state LCAO-SOS spectra, trace-log
-integrands, the reconstructed Delta response components, and isolated
-generalized-eigenvalue outliers. When `STERNHEIMER_GRID_COULOMB.dat` is present,
-it also compares the grid-Poisson Coulomb matrix with reader-v1 Coulomb and
-evaluates both whitening paths. The same mismatch blocks post-response
-interpretation. A passing numerical comparison still does not become
-scientific acceptance automatically.
+`inspect_grid_coulomb_consistency` is the pre-response gate. It requires the
+dedicated `v1_sternheimer_coulomb_iq_*` metric, checks its reader-v1 structure,
+Hermiticity, and positive spectrum, and compares `STERNHEIMER_GRID_COULOMB.dat`
+when that diagnostic is present. The ordinary `v1_coulomb_full_iq_*` RI/Ewald
+matrix is reported only as a diagnostic and cannot replace the metric used to
+generate the Sternheimer perturbations. The default response/grid relative-norm
+tolerance is `1e-6`.
 
-The current production write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. The v2 routes are available to the registered admission harness but remain blocked from the production materializer.
+`inspect_sternheimer_comparison` checks one immutable single-rank diagnostic
+family and reports Delta-ST versus same-state LCAO-SOS spectra, trace-log
+integrands, reconstructed Delta components, and isolated generalized-eigenvalue
+outliers. All trace-log values use the dedicated Sternheimer metric. A passing
+numerical comparison still does not become scientific acceptance automatically.
+
+The current production write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. The v2 and v3 routes remain blocked from the production materializer.
 
 ### Legacy skills installation
 
@@ -246,6 +247,7 @@ Useful supporting material:
 | `docs/research-siab-first-order-wavefunction-plan.md` | Uniform-grid SH/delta-SH and SIAB first-order-wavefunction research plan |
 | `docs/live-benchmarks/2026-08-13-df-bn-reader-v1-shrink.md` | Live DF reader-v1, symmetry, shrink, and frozen-consumer evidence |
 | `docs/live-benchmarks/2026-08-30-fisherd-v2-admission.md` | Current-stack Fisherd admission evidence for four v2 routes and the evolution scorecard |
+| `docs/live-benchmarks/2026-08-30-fisherd-v3-sternheimer-handoff.md` | Corrected solid and molecular Sternheimer Coulomb handoff evidence |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |

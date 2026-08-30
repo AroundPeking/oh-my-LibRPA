@@ -41,8 +41,8 @@ status/scoring tools, and four bounded execution/finalization tools:
 | `plan_case` | Select the deterministic GW/RPA stage graph |
 | `validate_case` | Check parameters, supported frequency grids, symmetry, shrink data, datasets, and PyATB handoff |
 | `inspect_reader_v1` | Inspect reader-v1 eigenvector, velocity, or complete head/wing data |
-| `inspect_grid_coulomb_consistency` | Compare single-rank grid-Poisson and reader-v1 Coulomb metrics and block an inconsistent handoff before response production |
-| `inspect_sternheimer_comparison` | Compare a single-rank same-state Delta-ST/LCAO-SOS family, Delta components, and optional grid-Poisson versus reader-v1 Coulomb matrices |
+| `inspect_grid_coulomb_consistency` | Validate `v1_sternheimer_coulomb_iq_*` and compare optional grid-Poisson and ordinary reader-v1 metrics without mixing their roles |
+| `inspect_sternheimer_comparison` | Evaluate a same-state Delta-ST/LCAO-SOS family and Delta components using the dedicated Sternheimer Coulomb metric |
 | `prepare_run` | Verify versions and materialize a fresh immutable periodic-GW run |
 | `submit_stage` | Submit one fixed stage after provenance, order, and duplicate gates |
 | `get_status` | Observe current or historical scheduler state without changing it |
@@ -77,7 +77,7 @@ The production materializer still defaults to
 | LibRPA | `Srlive1201/LibRPA:v0.7.0` | `dd169fa11fa920d580d4f39dc11e218a7f17f7b5` |
 | PyATB | `AroundPeking/pyatb:enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
 
-The current admission harness is pinned separately in
+The historical admission harness is pinned separately in
 `profiles/abacus-librpa-pyatb-2026-08-v2.json`, profile ID
 `abacus-librpa-2026-08-30-v2`:
 
@@ -87,12 +87,20 @@ The current admission harness is pinned separately in
 | LibRPA | `AroundPeking/LibRPA:master_ghj` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` |
 | PyATB | `AroundPeking/pyatb:enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
 
-Its periodic 3D GW, strict-2D GW, molecular Delta-ST RPA, and solid Delta-ST
-RPA capabilities are `TESTABLE`. Admission evidence can advance their measured
+The corrected Sternheimer handoff is pinned in
+`profiles/abacus-librpa-pyatb-2026-08-v3.json`, profile ID
+`abacus-librpa-2026-08-30-v3`. It uses ABACUS revision
+`81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a`, requires
+`v1_sternheimer_coulomb_iq_*`, and configures LibRPA with
+`prefix_coul_full = v1_sternheimer_coulomb_iq_`. Ordinary
+`v1_coulomb_full_iq_*` matrices are diagnostic only for this route.
+
+The periodic 3D GW, strict-2D GW, molecular Delta-ST RPA, and solid Delta-ST
+RPA capabilities in both admission generations are `TESTABLE`. Evidence can advance their measured
 level, but the profile is not promoted automatically into the production
 materializer; promotion requires complete gates and a reviewed commit.
 
-Both profiles explicitly use reader-v1 in OML workflows:
+All profiles explicitly use reader-v1 in OML workflows:
 
 - ABACUS: `out_librpa_reader_version 1`
 - LibRPA: `version_coul_reader 1` and `version_lri_reader 1`

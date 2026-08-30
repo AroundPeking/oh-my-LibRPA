@@ -5,7 +5,7 @@ import unittest
 
 from oml_mcp.intake import ingest_case
 from oml_mcp.planner import PlanError, plan_case
-from oml_mcp.profiles import DEFAULT_PROFILE_ID, V2_PROFILE_ID
+from oml_mcp.profiles import DEFAULT_PROFILE_ID, V2_PROFILE_ID, V3_PROFILE_ID
 
 
 class IntakeTest(unittest.TestCase):
@@ -49,6 +49,7 @@ class IntakeTest(unittest.TestCase):
                 "basis_wfc_out",
                 "basis_aux_out",
                 "v1_coulomb_full_iq_0.txt",
+                "v1_sternheimer_coulomb_iq_21_rank0.dat",
                 "v1_Cs_data_0.txt",
             ):
                 (root / name).write_text(name, encoding="utf-8")
@@ -57,6 +58,10 @@ class IntakeTest(unittest.TestCase):
 
         kinds = {item["path"]: item["kind"] for item in report.files}
         self.assertEqual(kinds["v1_coulomb_full_iq_0.txt"], "reader_v1_coulomb")
+        self.assertEqual(
+            kinds["v1_sternheimer_coulomb_iq_21_rank0.dat"],
+            "sternheimer_coulomb_v1",
+        )
         self.assertEqual(kinds["v1_Cs_data_0.txt"], "reader_v1_lri")
         self.assertEqual(kinds["stru_out"], "producer_metadata")
 
@@ -314,6 +319,23 @@ class PlannerTest(unittest.TestCase):
 
         self.assertEqual(explicit.digest, implicit.digest)
         self.assertEqual(explicit.options, implicit.options)
+
+    def test_v3_profile_plans_the_definition_matched_sternheimer_route(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+
+            plan = plan_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                response_method="sternheimer",
+                profile_id=V3_PROFILE_ID,
+            )
+
+        self.assertEqual(plan.profile_id, V3_PROFILE_ID)
+        self.assertEqual(plan.route, "solid_delta_st_rpa")
+        self.assertEqual(plan.stages, ("ground_state", "sternheimer", "librpa"))
 
     def test_sternheimer_response_requires_the_v2_profile(self):
         with tempfile.TemporaryDirectory() as tmpdir:

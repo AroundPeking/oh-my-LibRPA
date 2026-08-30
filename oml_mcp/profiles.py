@@ -8,9 +8,11 @@ from typing import Any
 
 DEFAULT_PROFILE_ID = "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
+V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 PROFILE_NAMES = {
     DEFAULT_PROFILE_ID: "abacus-librpa-pyatb-2026-08.json",
     V2_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v2.json",
+    V3_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v3.json",
 }
 PROFILE_NAME = PROFILE_NAMES[DEFAULT_PROFILE_ID]
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -164,6 +166,22 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
         or librpa_production.get("version_lri_reader") != 1
     ):
         raise ProfileError("schema v2 production requires LibRPA reader v1")
+    if profile.get("profile_id") == V3_PROFILE_ID:
+        sternheimer_abacus = _require_mapping(abacus, "sternheimer", "contract.abacus")
+        sternheimer_librpa = _require_mapping(librpa, "sternheimer_rpa", "contract.librpa")
+        response_prefix = "v1_sternheimer_coulomb_iq_"
+        if (
+            sternheimer_abacus.get("response_coulomb_prefix") != response_prefix
+            or sternheimer_abacus.get("response_coulomb_format") != "v1"
+        ):
+            raise ProfileError("schema v2 Sternheimer output requires the dedicated Coulomb v1 prefix")
+        if (
+            sternheimer_librpa.get("task") != "sternheimer_rpa"
+            or sternheimer_librpa.get("prefix_coul_full") != response_prefix
+            or sternheimer_librpa.get("version_coul_reader") != 1
+            or sternheimer_librpa.get("ordinary_reader_coulomb_role") != "diagnostic_only"
+        ):
+            raise ProfileError("schema v2 LibRPA Sternheimer task must select the dedicated Coulomb v1 metric")
     symmetry = _require_mapping(contract, "symmetry", "contract")
     if symmetry.get("source") != "stru_out":
         raise ProfileError("contract.symmetry.source must be stru_out")

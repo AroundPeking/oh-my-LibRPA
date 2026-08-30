@@ -251,7 +251,8 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             root = pathlib.Path(tmpdir)
             write_comparison_fixture(root)
             for path in root.glob("v1_sternheimer_*.dat"):
-                path.unlink()
+                if not path.name.startswith("v1_sternheimer_coulomb_iq_"):
+                    path.unlink()
             write_grid_coulomb(
                 root / "STERNHEIMER_GRID_COULOMB.dat",
                 np.diag([4.0, 9.0]).astype(np.complex128),
