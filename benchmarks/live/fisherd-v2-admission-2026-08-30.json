@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "campaign_id": "fisherd-v2-admission-20260830",
+  "date": "2026-08-30",
+  "profile_id": "abacus-librpa-2026-08-30-v2",
+  "host": {
+    "alias": "Fisherd-Server100.96.1.64",
+    "remote_root": "/home/ghj/oml-admission/20260830-v2"
+  },
+  "limits": {
+    "compile_jobs_max": 16,
+    "execution_threads_max": 48
+  },
+  "pinned_revisions": {
+    "abacus": "641caa554b44c4db2743603e9c75c96379901d7c",
+    "librpa": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+    "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "contract": {
+    "reader_format": "v1",
+    "symmetry_source": "stru_out",
+    "copy_legacy_symmetry_sidecars": [],
+    "strict_2d_production_coulomb": "full_ewald_analytic_headwing",
+    "strict_2d_diagnostic_only": "direct_mixed_fourier"
+  },
+  "builds": {
+    "abacus": {
+      "source_identity": "PASS",
+      "production_target": "PASS",
+      "aggregate_test_build": "WARN",
+      "executable": "/home/ghj/oml-admission/20260830-v2/build/abacus/abacus_3p",
+      "executable_sha256": "e10b84f52fb9a1605163fed8ad5d3d3ae238bf32a4bb2b1728c5e8ae792c1d53",
+      "warning": "The production abacus_3p target built; the aggregate all-target build stopped at stale MODULE_RI_ri_cv_io_test source that includes removed LRI_CV_Tools.h."
+    },
+    "librpa": {
+      "source_identity": "PASS",
+      "aggregate_build": "PASS",
+      "executable": "/home/ghj/oml-admission/20260830-v2/build/librpa/chi0_main.exe",
+      "executable_sha256": "cefc8f33c2a99085db3dd07a0f7110c17fc5176270cc8a2157ac17e4c1aa8f60"
+    },
+    "pyatb": {
+      "source_identity": "PASS",
+      "isolated_import": "PASS",
+      "extension_sha256": "f6cfba35838053d9a9c44ac9fbc85c28de43d52d7aea84fd13f8571f6035e9d6"
+    }
+  },
+  "source_tests": {
+    "librpa": {
+      "status": "PASS",
+      "passed": 5,
+      "total": 5,
+      "evidence": "/home/ghj/oml-admission/20260830-v2/logs/librpa-l1-ctest.log"
+    },
+    "abacus": {
+      "status": "PASS",
+      "passed": 11,
+      "total": 11,
+      "evidence": "/home/ghj/oml-admission/20260830-v2/logs/abacus-l1-ctest-oneapi.log"
+    }
+  },
+  "attempts": [
+    {
+      "case_id": "strict-2d-headwing-replay",
+      "attempt": 1,
+      "status": "FAIL",
+      "reason": "The staged input_dir pointed to a missing ../dataset/band_out.",
+      "resolution": "A fresh attempt preserved the dataset root and passed both execution and validation."
+    },
+    {
+      "case_id": "strict-2d-headwing-replay",
+      "attempt": 2,
+      "status": "PASS"
+    }
+  ],
+  "routes": [
+    {
+      "route_id": "periodic_3d_gw",
+      "profile_status": "TESTABLE",
+      "levels": {
+        "L0": "PASS",
+        "L1": "PASS",
+        "L2": "PASS",
+        "L3": "NOT_EVALUATED",
+        "L4": "NOT_EVALUATED"
+      },
+      "process_status": "PASS",
+      "numerical_status": "PASS",
+      "scientific_status": "NOT_EVALUATED",
+      "promotion": "BLOCKED",
+      "evidence": {
+        "case": "g0w0_band_abacus_BN_shrink_v1_libri",
+        "staged_task": "g0w0",
+        "table_count": 8,
+        "rows_per_table": 26,
+        "finite_values": 1456,
+        "max_reference_difference": 0.0,
+        "legacy_sidecars": 0,
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l2-periodic-gw-reader-v1/validation.json"
+      }
+    },
+    {
+      "route_id": "strict_2d_gw",
+      "profile_status": "TESTABLE",
+      "levels": {
+        "L0": "PASS",
+        "L1": "PASS",
+        "L2": "PASS",
+        "L3": "NOT_EVALUATED",
+        "L4": "NOT_EVALUATED"
+      },
+      "process_status": "PASS",
+      "numerical_status": "PASS",
+      "scientific_status": "NOT_EVALUATED",
+      "promotion": "BLOCKED",
+      "evidence": {
+        "kind": "synthetic_current-source_replay",
+        "full_ewald": true,
+        "analytic_headwing": true,
+        "reader_format": "v1",
+        "expected_ec_rpa_ha": -0.03189000799689,
+        "actual_ec_rpa_ha": -0.03189000799689,
+        "absolute_difference_ha": 0.0,
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l2-bn-sternheimer-headwing-v1-attempt2"
+      }
+    },
+    {
+      "route_id": "molecular_delta_st_rpa",
+      "profile_status": "TESTABLE",
+      "levels": {
+        "L0": "PASS",
+        "L1": "PASS",
+        "L2": "PASS",
+        "L3": "PASS",
+        "L4": "NOT_EVALUATED"
+      },
+      "process_status": "PASS",
+      "numerical_status": "PASS",
+      "scientific_status": "NOT_EVALUATED",
+      "promotion": "BLOCKED",
+      "evidence": {
+        "system": "H2",
+        "grid": [50, 50, 50],
+        "frequency_count": 1,
+        "equations": 30,
+        "all_converged": true,
+        "max_solver_relative_residual": 3.322591162493099e-07,
+        "max_equation_residual_norm": 2.637976808974272e-07,
+        "ec_rpa_ha": -0.0110925901502,
+        "reader_format": "v1",
+        "legacy_sidecars": 0,
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-h2-molecular-delta-st"
+      }
+    },
+    {
+      "route_id": "solid_delta_st_rpa",
+      "profile_status": "TESTABLE",
+      "levels": {
+        "L0": "PASS",
+        "L1": "PASS",
+        "L2": "PASS",
+        "L3": "INCOMPLETE",
+        "L4": "NOT_EVALUATED"
+      },
+      "process_status": "PASS",
+      "numerical_status": "WARN",
+      "scientific_status": "NOT_EVALUATED",
+      "promotion": "BLOCKED",
+      "evidence": {
+        "system": "Si2",
+        "kmesh": [4, 4, 4],
+        "q_index": 21,
+        "qpoint": [0.0, 0.25, 0.25],
+        "frequency_count": 1,
+        "grid": [24, 24, 24],
+        "abfs_channels": 244,
+        "equations": 62464,
+        "all_converged": true,
+        "max_solver_relative_residual": 9.999967564214065e-09,
+        "max_equation_residual_norm": 5.478494630973629e-08,
+        "producer_wall_seconds": 1706.89,
+        "producer_max_rss_kib": 6359452,
+        "reader_format": "v1",
+        "full_coulomb_files": 64,
+        "cut_coulomb_files": 64,
+        "legacy_data_files": 0,
+        "legacy_sidecars": 0,
+        "single_q_trace_log_integrand": -173946.9229542,
+        "single_q_weighted_ec_rpa_ha": -432.5705097467,
+        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st"
+      },
+      "diagnostics": {
+        "coulomb_eigenvalue_min": 9.250449145695216e-06,
+        "coulomb_eigenvalue_max": 971.1024212062746,
+        "negative_coulomb_eigenvalues": 0,
+        "response_eigenvalue_min": -1894.0861675962565,
+        "response_eigenvalue_max": -1.1638679628970687e-08,
+        "positive_response_eigenvalues": 0,
+        "threshold_ab": "NO_CHANGE",
+        "thresholds_compared": [0.0, 1e-08],
+        "remaining_gate": "same-state current-revision LCAO-SOS comparison and complete q/frequency scientific evaluation"
+      }
+    }
+  ],
+  "scorecard_evidence": {
+    "dimensions": {
+      "reproducibility": 1.0,
+      "prevention": 1.0,
+      "stage_evidence": 0.5,
+      "numerical_evaluation": 0.5,
+      "scientific_evaluation": null,
+      "diagnosis_quality": 1.0
+    },
+    "hard_gates": {
+      "stack_identity": true,
+      "file_contract": true,
+      "finite_output": true,
+      "channel_completeness": null,
+      "scientific_acceptance": null
+    },
+    "penalties": {
+      "failed_attempts": 1,
+      "ambiguous_attempts": 0
+    }
+  },
+  "scorecard_result": {
+    "ok": true,
+    "scorecard_id": "oml-multi-route-admission-v2",
+    "verdict": "INCOMPLETE",
+    "eligible": true,
+    "raw_score": 62.5,
+    "deduction": 2.0,
+    "total_score": 60.5,
+    "evaluated_points": 80,
+    "dimensions": [
+      {"dimension_id": "reproducibility", "weight": 20, "status": "EVALUATED", "value": 1.0, "points": 20.0},
+      {"dimension_id": "prevention", "weight": 15, "status": "EVALUATED", "value": 1.0, "points": 15.0},
+      {"dimension_id": "stage_evidence", "weight": 20, "status": "EVALUATED", "value": 0.5, "points": 10.0},
+      {"dimension_id": "numerical_evaluation", "weight": 15, "status": "EVALUATED", "value": 0.5, "points": 7.5},
+      {"dimension_id": "scientific_evaluation", "weight": 20, "status": "NOT_EVALUATED", "value": null, "points": 0.0},
+      {"dimension_id": "diagnosis_quality", "weight": 10, "status": "EVALUATED", "value": 1.0, "points": 10.0}
+    ],
+    "hard_gates": [
+      {"gate_id": "stack_identity", "status": "PASS"},
+      {"gate_id": "file_contract", "status": "PASS"},
+      {"gate_id": "finite_output", "status": "PASS"},
+      {"gate_id": "channel_completeness", "status": "NOT_EVALUATED"},
+      {"gate_id": "scientific_acceptance", "status": "NOT_EVALUATED"}
+    ],
+    "hard_failures": [],
+    "not_evaluated": [
+      "scientific_evaluation",
+      "channel_completeness",
+      "scientific_acceptance"
+    ],
+    "penalties": {
+      "failed_attempts": 1,
+      "ambiguous_attempts": 0
+    }
+  }
+}

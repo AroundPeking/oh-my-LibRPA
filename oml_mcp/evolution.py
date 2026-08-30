@@ -8,7 +8,7 @@ from .provenance import digest_json
 
 
 ROUTE_MUTATION_AXES = {
-    "periodic_gw": frozenset(
+    "periodic_3d_gw": frozenset(
         {
             "nfreq",
             "nbands",

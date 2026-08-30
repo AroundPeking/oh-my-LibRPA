@@ -248,7 +248,7 @@ dataclasses. Register exact parameter keys by route:
 
 ```python
 ROUTE_MUTATION_AXES = {
-    "periodic_gw": frozenset({"nfreq", "nbands", "screening_kgrid", "nao_family", "abfs_family", "shrink_threshold"}),
+    "periodic_3d_gw": frozenset({"nfreq", "nbands", "screening_kgrid", "nao_family", "abfs_family", "shrink_threshold"}),
     "strict_2d_gw": frozenset({"nfreq", "nbands", "in_plane_kgrid", "vacuum", "ewald_precision"}),
     "molecular_delta_st_rpa": frozenset({"box_size", "nfreq", "grid_cutoff", "pca_threshold", "occupied_basis"}),
     "solid_delta_st_rpa": frozenset({"grid_cutoff", "nfreq", "pca_threshold", "coulomb_metric", "kq_sampling"}),

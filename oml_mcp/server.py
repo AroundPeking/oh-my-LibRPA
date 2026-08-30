@@ -11,8 +11,11 @@ from .artifacts import (
     inspect_headwing_directory,
     inspect_velocity_v1,
 )
+from .admission_manifest import load_admission_manifest
 from .control import ControlledExecutionService
+from .evals import evaluate_evidence, load_scorecard
 from .errors import OMLError
+from .evolution import EvolutionBudget, EvolutionUsage, propose_candidate
 from .execution_profiles import load_execution_profile
 from .intake import ingest_case as ingest_case_data
 from .planner import plan_case as plan_case_data
@@ -22,6 +25,12 @@ from .validators import validate_case as validate_case_data
 
 ArtifactKind = Literal["eigenvector", "velocity", "headwing"]
 ControlledStage = Literal["scf", "pyatb", "nscf", "preprocess", "librpa"]
+AdmissionRoute = Literal[
+    "periodic_3d_gw",
+    "strict_2d_gw",
+    "molecular_delta_st_rpa",
+    "solid_delta_st_rpa",
+]
 
 
 def _read_only_annotations() -> ToolAnnotations:
@@ -76,7 +85,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.3.1",
+        version="0.4.0",
     )
     annotations = _read_only_annotations()
 
@@ -92,6 +101,75 @@ def build_server() -> MCPServer:
     ) -> dict[str, Any]:
         """Inspect a pinned OML compatibility profile without changing it."""
         return load_profile(profile_path, profile_id=profile_id)
+
+    @server.tool(
+        name="inspect_admission_manifest",
+        description="Return the pinned Fisherd v2 route matrix, resource limits, and required gates.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def inspect_admission_manifest(path: str | None = None) -> dict[str, Any]:
+        """Inspect the deterministic v2 admission campaign without running it."""
+        return load_admission_manifest(path)
+
+    @server.tool(
+        name="evaluate_admission",
+        description="Evaluate structured route evidence with a versioned non-compensating scorecard.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def evaluate_admission(
+        evidence: dict[str, Any],
+        scorecard_version: Literal["v1", "v2"] = "v2",
+    ) -> dict[str, Any]:
+        """Score evidence while preserving hard failures and missing evidence."""
+        scorecard_path = (
+            Path(__file__).resolve().parent
+            / "benchmarks"
+            / f"scorecard-{scorecard_version}.json"
+        )
+        return evaluate_evidence(evidence, scorecard=load_scorecard(scorecard_path))
+
+    @server.tool(
+        name="propose_evolution_candidate",
+        description="Validate one registered parameter change and return a proposal-only candidate.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def propose_evolution_candidate(
+        route_id: AdmissionRoute,
+        baseline: dict[str, Any],
+        candidate: dict[str, Any],
+        existing_definition_digests: list[str],
+        max_candidates: int,
+        max_cpu_hours: float,
+        max_wall_seconds: int,
+        max_disk_bytes: int,
+        used_candidates: int = 0,
+        used_cpu_hours: float = 0.0,
+        used_wall_seconds: int = 0,
+        used_disk_bytes: int = 0,
+    ) -> dict[str, Any]:
+        """Create no command, submission, or promotion side effect."""
+        proposal = propose_candidate(
+            route_id=route_id,
+            baseline=baseline,
+            candidate=candidate,
+            existing_definition_digests=frozenset(existing_definition_digests),
+            budget=EvolutionBudget(
+                max_candidates=max_candidates,
+                cpu_hours=max_cpu_hours,
+                wall_seconds=max_wall_seconds,
+                disk_bytes=max_disk_bytes,
+            ),
+            usage=EvolutionUsage(
+                candidates=used_candidates,
+                cpu_hours=used_cpu_hours,
+                wall_seconds=used_wall_seconds,
+                disk_bytes=used_disk_bytes,
+            ),
+        )
+        return proposal.to_dict()
 
     @server.tool(
         name="ingest_case",

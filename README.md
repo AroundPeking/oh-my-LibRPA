@@ -103,7 +103,13 @@ Example prompts:
 - `Check whether these PyATB head/wing files match reader-v1.`
 - `Explain the minimal repair for this LibRPA input.`
 
-The MCP-first skill uses five inspection tools plus `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, and `score_case`. Execution requires a reviewed profile ID and immutable plan digest; no tool accepts arbitrary command text.
+The MCP-first skill uses `inspect_profile`, `inspect_admission_manifest`,
+`ingest_case`, `plan_case`, `validate_case`, `inspect_reader_v1`,
+`evaluate_admission`, and `propose_evolution_candidate` before the controlled
+write tools `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`,
+`finalize_case`, and `score_case`. Evolution candidates are proposal-only.
+Execution requires a reviewed profile ID and immutable plan digest; no tool
+accepts arbitrary command text.
 
 The current production write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. The v2 routes are available to the registered admission harness but remain blocked from the production materializer.
 
@@ -220,6 +226,7 @@ Useful supporting material:
 | `docs/guide/fhi-aims-librpa-qsgw.md` | Supplemental route for `FHI-aims + LibRPA` QSGW/G0W0 cases |
 | `docs/research-siab-first-order-wavefunction-plan.md` | Uniform-grid SH/delta-SH and SIAB first-order-wavefunction research plan |
 | `docs/live-benchmarks/2026-08-13-df-bn-reader-v1-shrink.md` | Live DF reader-v1, symmetry, shrink, and frozen-consumer evidence |
+| `docs/live-benchmarks/2026-08-30-fisherd-v2-admission.md` | Current-stack Fisherd admission evidence for four v2 routes and the evolution scorecard |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |

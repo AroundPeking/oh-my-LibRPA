@@ -9,6 +9,7 @@ from oml_mcp.evolution import (
     EvolutionUsage,
     propose_candidate,
 )
+from oml_mcp.profiles import V2_PROFILE_ID, load_profile
 
 
 class EvolutionPolicyTest(unittest.TestCase):
@@ -36,7 +37,7 @@ class EvolutionPolicyTest(unittest.TestCase):
 
     def propose(self, **overrides) -> CandidateProposal:
         arguments = {
-            "route_id": "periodic_gw",
+            "route_id": "periodic_3d_gw",
             "baseline": self.baseline,
             "candidate": self.candidate,
             "existing_definition_digests": frozenset(),
@@ -49,12 +50,7 @@ class EvolutionPolicyTest(unittest.TestCase):
     def test_route_registry_contains_only_the_four_admission_routes(self):
         self.assertEqual(
             set(ROUTE_MUTATION_AXES),
-            {
-                "periodic_gw",
-                "strict_2d_gw",
-                "molecular_delta_st_rpa",
-                "solid_delta_st_rpa",
-            },
+            set(load_profile(profile_id=V2_PROFILE_ID)["capabilities"]),
         )
         self.assertNotIn("direct_mixed_fourier", ROUTE_MUTATION_AXES)
 

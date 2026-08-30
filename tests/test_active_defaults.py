@@ -25,6 +25,20 @@ def active_files():
 
 
 class ActiveDefaultsTest(unittest.TestCase):
+    def test_version_guard_distinguishes_production_and_v2_admission_profiles(self):
+        text = (ROOT / "skills" / "abacus-librpa-version-guard" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08", text)
+        self.assertIn("abacus-librpa-2026-08-30-v2", text)
+        self.assertIn("641caa554b44c4db2743603e9c75c96379901d7c", text)
+        self.assertIn("7e40c5bbf735a78aa15fa589ca2468fec2e2427b", text)
+        self.assertIn("9fb9028c59b1dbaf9cf66965280961fc2225d9eb", text)
+        self.assertIn("strict_2d_gw", text)
+        self.assertIn("TESTABLE", text)
+        self.assertIn("inspect_profile", text)
+
     def test_active_files_do_not_generate_deprecated_librpa_spellings(self):
         failures = []
         deprecated = re.compile(

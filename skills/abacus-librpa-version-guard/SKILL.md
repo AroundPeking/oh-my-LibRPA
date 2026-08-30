@@ -1,114 +1,114 @@
 ---
 name: abacus-librpa-version-guard
-description: Use when preparing, submitting, auditing, debugging, or interpreting ABACUS+LibRPA calculations against the pinned OML ABACUS master_ghj, LibRPA v0.7.0, and PyATB enable_head_wing profile.
+description: Use when preparing, submitting, auditing, debugging, or interpreting ABACUS+LibRPA calculations against an immutable OML compatibility profile.
 ---
 
 # ABACUS+LibRPA Version Guard
 
-Use this as a preflight gate before any ABACUS+LibRPA calculation or before trusting an existing result. Real compute happens on a server. Resolve the active revisions with the OML MCP `inspect_profile` tool, then compare server source revisions with that profile before submission or interpretation.
+Use this preflight gate before any ABACUS+LibRPA calculation and before trusting
+an existing result. Real compute runs on a server. Call the OML MCP
+`inspect_profile` tool with the intended profile ID, then compare the source
+revisions and executable hashes on the server with that exact profile.
 
-The pinned profile is:
+## Profiles
+
+OML currently keeps two generations. They are not interchangeable.
+
+### Production 0.3.1
+
+Profile `abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08`:
 
 - ABACUS `master_ghj`: `3efad9ed5ca066aee1d1b2214e43f92a2d2a567e`
 - LibRPA `v0.7.0`: `dd169fa11fa920d580d4f39dc11e218a7f17f7b5`
 - PyATB `enable_head_wing`: `9fb9028c59b1dbaf9cf66965280961fc2225d9eb`
+- approved write scope: non-SOC periodic 3D GW only
+- `strict_2d_gw`: blocked by `LIBRPA_070_STRICT_2D_INVALID`
+
+### V2 Admission
+
+Profile `abacus-librpa-2026-08-30-v2`:
+
+- ABACUS `master_ghj`: `641caa554b44c4db2743603e9c75c96379901d7c`
+- LibRPA `master_ghj` (0.7.0 line): `7e40c5bbf735a78aa15fa589ca2468fec2e2427b`
+- PyATB `enable_head_wing`: `9fb9028c59b1dbaf9cf66965280961fc2225d9eb`
+- registered `TESTABLE` routes: `periodic_3d_gw`, `strict_2d_gw`,
+  `molecular_delta_st_rpa`, and `solid_delta_st_rpa`
+- write scope: admission harness only; these routes are not production-enabled
+
+Do not carry the old strict-2D block into the v2 profile. Conversely, do not
+treat `TESTABLE` as `ENABLED`: L3 evidence permits only a reviewed move to
+`EXPERIMENTAL`, and L4 scientific acceptance plus review is required for
+production enablement.
 
 ## Hard Gates
 
-1. Do not run full ABACUS+LibRPA physics calculations on the local laptop. Local work is limited to editing, staging, static checks, parsing, plotting, and tiny non-physics smoke commands. If the user explicitly asks for local compute, pause and confirm it as an exception.
-2. Before queue submission, restart, or result interpretation, verify ABACUS and LibRPA revisions. For head/wing workflows, verify PyATB as well.
-3. Treat the MCP profile as the normal baseline. A server executable built from a different branch or commit is not acceptable just because it runs.
-4. If a feature branch is intentionally being tested, record the branch name, commit SHA, reason, and which parameter conventions belong to that branch.
-5. If versions cannot be proven, do not silently continue. Either rebuild/sync on the server, or ask whether the user wants an explicit old-version exception.
+1. Record the profile ID before comparing any SHA. A matching branch name is
+   insufficient.
+2. Verify ABACUS and LibRPA source revisions before submission, restart, or
+   interpretation. Verify PyATB whenever head/wing data is used.
+3. Hash the actual ABACUS and LibRPA executables. Source identity alone does not
+   prove which binary was run.
+4. Require clean pinned source trees, or record a feature-branch exception with
+   branch, commit, reason, and parameter contract.
+5. A mismatch or unknown revision blocks normal execution. Old results may be
+   inspected only as explicitly labelled reproductions.
+6. Keep process completion, numerical validity, and scientific acceptance as
+   separate statuses.
 
-## What To Check
+## Data Contract
 
-For each run, record:
+- OML production output explicitly sets ABACUS
+  `out_librpa_reader_version 1` and LibRPA `version_coul_reader 1` plus
+  `version_lri_reader 1`.
+- Legacy is available only through an explicit compatibility profile; never
+  infer it from LibRPA's source default `-1`.
+- Symmetry operations come from `stru_out`, and LibRPA reconstructs rotations.
+  Do not copy or require `irreducible_sector.txt`, `symrot_R.txt`,
+  `symrot_k.txt`, or `symrot_abf_k.txt`.
+- Strict-2D production uses full Ewald Coulomb with analytic Gamma head/wing.
+  `direct_mixed_fourier` remains a diagnostic control, not a production route.
 
-- server host, run directory, and scheduler job id if submitted
-- absolute `ABACUS` and `LIBRPA` executable paths
-- `stat` timestamp/size for both executables
-- source repository path used to build each executable, if available
-- ABACUS branch and `HEAD` SHA on the server
-- LibRPA branch and `HEAD` SHA on the server
-- pinned ABACUS, LibRPA, and PyATB SHAs returned by `inspect_profile`
-- PyATB source revision and adapter revision when head/wing data is used
-- whether server SHAs match the pinned profile, or the explicit exception reason
+## Evidence
 
-Prefer source-tree SHAs over binary timestamps. If only `stat` output is available, state that it is weak evidence and do not treat the binary as current.
+For every run, record:
 
-## Minimal Command Pattern
+- host, run directory, and scheduler job ID when applicable
+- profile ID and pinned component revisions returned by `inspect_profile`
+- absolute executable paths, SHA-256 hashes, sizes, and timestamps
+- source paths, branches, HEAD revisions, tree hashes, and clean-tree status
+- PyATB source and extension hashes when used
+- reader format, `stru_out` presence, and absence of legacy symmetry sidecars
+- input-manifest digest and immutable stage receipt
 
-Adjust paths to the active machine, but keep the same evidence shape.
+Prefer source-tree SHAs and executable hashes over timestamps. If only a
+timestamp is available, label the binary identity as unknown.
 
-Local reference:
-
-```bash
-git -C /Users/ghj/code/merge/abacus-develop status --short --branch
-git -C /Users/ghj/code/merge/abacus-develop rev-parse master_ghj
-git -C /Users/ghj/code/merge/abacus-develop log -1 --oneline master_ghj
-
-git -C /Users/ghj/code/LibRPA status --short --branch
-git -C /Users/ghj/code/LibRPA rev-parse 'v0.7.0^{commit}'
-git -C /Users/ghj/code/LibRPA log -1 --oneline 'v0.7.0^{commit}'
-
-git -C "$PYATB_SRC" status --short --branch
-git -C "$PYATB_SRC" rev-parse enable_head_wing
-git -C "$PYATB_SRC" log -1 --oneline enable_head_wing
-```
-
-Server executable and source evidence:
-
-```bash
-readlink -f "$ABACUS" "$LIBRPA"
-stat -c '%y %s %n' "$ABACUS" "$LIBRPA"
-git -C "$ABACUS_SRC" status --short --branch
-git -C "$ABACUS_SRC" rev-parse HEAD
-git -C "$ABACUS_SRC" log -1 --oneline
-git -C "$LIBRPA_SRC" status --short --branch
-git -C "$LIBRPA_SRC" rev-parse HEAD
-git -C "$LIBRPA_SRC" log -1 --oneline
-```
-
-If the executable path does not reveal the source directory, search nearby build metadata and scripts, then report uncertainty instead of guessing:
-
-```bash
-dirname "$(readlink -f "$ABACUS")"
-dirname "$(readlink -f "$LIBRPA")"
-find "$(dirname "$(readlink -f "$ABACUS")")" -maxdepth 4 -name .git -type d 2>/dev/null
-find "$(dirname "$(readlink -f "$LIBRPA")")" -maxdepth 4 -name .git -type d 2>/dev/null
-```
-
-## Version Decision Rules
-
-Use this table before submitting or trusting a run:
+## Decision Table
 
 | Situation | Action |
 |---|---|
-| Server ABACUS and LibRPA match the pinned profile | Proceed after recording evidence. |
-| Head/wing route also matches pinned PyATB | Proceed after validating the adapter output. |
-| One side is older or unknown | Stop; rebuild/sync before running. |
-| Both sides are older but the user asked to reproduce an old result | Proceed only after labeling it as an old-version reproduction. |
-| A named feature branch is under development | Proceed only with branch name, SHA, and reason recorded. |
-| Existing result has no source/version evidence | Treat as untrusted for parameter-sensitive conclusions. |
+| Source and executable evidence match the selected profile | Continue to route-specific gates. |
+| PyATB head/wing route also matches | Continue to state and symmetry-dimension gates. |
+| One component is older, dirty, or unknown | Block normal execution and rebuild or sync. |
+| An old result is intentionally reproduced | Keep it isolated and label the profile exception. |
+| A feature branch is tested | Record branch, SHA, reason, and contract before execution. |
+| Existing output lacks version evidence | Do not use it for parameter-sensitive conclusions. |
 
-Do not "fix" input parameter errors by guessing compatibility with another binary. First determine whether the binary differs from the pinned profile; reader-v1, shrink, symmetry, PyATB, and head/wing behavior is version-sensitive.
+## Output Block
 
-## Output Requirement
-
-Before any real run, include a compact version block:
+Before a real run or when reporting a finished calculation, include:
 
 ```text
 Execution: server=<host>, local_compute=no
-Profile: abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08
-ABACUS pinned master_ghj: 3efad9ed5ca066aee1d1b2214e43f92a2d2a567e
-LibRPA pinned v0.7.0: dd169fa11fa920d580d4f39dc11e218a7f17f7b5
-PyATB pinned enable_head_wing: 9fb9028c59b1dbaf9cf66965280961fc2225d9eb
-ABACUS server build: <branch> <sha> <path>
-LibRPA server build: <branch> <sha> <path>
-PyATB server source: <branch> <sha> <path-or-not-used>
-Version verdict: match | mismatch | feature-branch exception | unknown-blocked
-Next action: submit | rebuild | ask for exception | inspect build provenance
+Profile: <profile-id>
+ABACUS pinned: <ref> <sha>
+LibRPA pinned: <ref> <sha>
+PyATB pinned: <ref> <sha-or-not-used>
+ABACUS build: <sha256> <path>
+LibRPA build: <sha256> <path>
+PyATB extension: <sha256-or-not-used> <path-or-not-used>
+Reader contract: v1 | explicit-legacy
+Symmetry source: stru_out
+Version verdict: match | mismatch-blocked | feature-branch-exception | unknown-blocked
+Route status: BLOCKED | TESTABLE | EXPERIMENTAL | ENABLED
 ```
-
-If reporting a finished calculation, include the same block or explicitly say the result is not version-verified.

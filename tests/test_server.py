@@ -25,10 +25,13 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             {tool.name for tool in tools},
             {
                 "inspect_profile",
+                "inspect_admission_manifest",
                 "ingest_case",
                 "plan_case",
                 "validate_case",
                 "inspect_reader_v1",
+                "evaluate_admission",
+                "propose_evolution_candidate",
                 "prepare_run",
                 "submit_stage",
                 "get_status",
@@ -42,10 +45,13 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         by_name = {tool.name: tool for tool in tools}
         read_only = {
             "inspect_profile",
+            "inspect_admission_manifest",
             "ingest_case",
             "plan_case",
             "validate_case",
             "inspect_reader_v1",
+            "evaluate_admission",
+            "propose_evolution_candidate",
             "get_status",
             "score_case",
         }
@@ -168,9 +174,54 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 11)
+        self.assertEqual(len(listed.tools), 14)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "v0.7.0")
+
+    async def test_admission_and_evolution_tools_are_deterministic_and_read_only(self):
+        manifest = await self.call("inspect_admission_manifest", {})
+        score = await self.call(
+            "evaluate_admission",
+            {
+                "evidence": {
+                    "dimensions": {
+                        "reproducibility": 1.0,
+                        "prevention": 1.0,
+                        "stage_evidence": 1.0,
+                        "numerical_evaluation": 1.0,
+                        "scientific_evaluation": None,
+                        "diagnosis_quality": 1.0,
+                    },
+                    "hard_gates": {
+                        "stack_identity": True,
+                        "file_contract": True,
+                        "finite_output": True,
+                        "channel_completeness": True,
+                        "scientific_acceptance": None,
+                    },
+                    "penalties": {"failed_attempts": 0, "ambiguous_attempts": 0},
+                },
+                "scorecard_version": "v2",
+            },
+        )
+        proposal = await self.call(
+            "propose_evolution_candidate",
+            {
+                "route_id": "periodic_3d_gw",
+                "baseline": {"nfreq": 12, "nbands": 40},
+                "candidate": {"nfreq": 16, "nbands": 40},
+                "existing_definition_digests": [],
+                "max_candidates": 4,
+                "max_cpu_hours": 20.0,
+                "max_wall_seconds": 7200,
+                "max_disk_bytes": 1000000000,
+            },
+        )
+
+        self.assertEqual(manifest["profile_id"], V2_PROFILE_ID)
+        self.assertEqual(score["verdict"], "INCOMPLETE")
+        self.assertEqual(proposal["status"], "PROPOSAL_ONLY")
+        self.assertEqual(proposal["changed_axis"], "nfreq")
 
     async def test_controlled_tools_forward_only_typed_receipt_identifiers(self):
         class FakeService:

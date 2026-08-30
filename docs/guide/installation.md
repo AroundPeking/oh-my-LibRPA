@@ -28,11 +28,15 @@ The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.js
 
 ### MCP tools
 
-OML exposes five inspection tools, five execution-control tools, and one scientific-finalization tool:
+OML exposes 14 MCP tools: eight case/admission inspection tools, two read-only
+status/scoring tools, and four bounded execution/finalization tools:
 
 | Tool | Purpose |
 | --- | --- |
 | `inspect_profile` | Report pinned source revisions and the exact workflow contract |
+| `inspect_admission_manifest` | Validate and report the registered v2 Fisherd admission campaign |
+| `evaluate_admission` | Apply the selected versioned scorecard without changing files or jobs |
+| `propose_evolution_candidate` | Propose one registered benchmark-axis change within an explicit budget |
 | `ingest_case` | Classify case ownership and fingerprint discovered files |
 | `plan_case` | Select the deterministic GW/RPA stage graph |
 | `validate_case` | Check parameters, symmetry, shrink data, datasets, and PyATB handoff |
@@ -44,13 +48,21 @@ OML exposes five inspection tools, five execution-control tools, and one scienti
 | `finalize_case` | Evaluate a passed 3D GW snapshot against registered scientific policy |
 | `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
-The five original tools and `get_status`/`score_case` are read-only. `prepare_run`, `submit_stage`, `inspect_stage`, and idempotent `finalize_case` are consequential but bounded. Controlled execution is disabled until an administrator installs an enabled execution profile. See [`controlled-execution.md`](controlled-execution.md) for the profile schema, fixed sequence, receipts, scorecard, and current exclusions.
+The eight inspection/admission tools plus `get_status` and `score_case` are
+read-only. `propose_evolution_candidate` returns a proposal only; it never edits
+inputs or submits work. `prepare_run`, `submit_stage`, `inspect_stage`, and
+idempotent `finalize_case` are consequential but bounded. Controlled execution
+is disabled until an administrator installs an enabled execution profile. See
+[`controlled-execution.md`](controlled-execution.md) for the profile schema,
+fixed sequence, receipts, scorecard, and current exclusions.
 
 `get_status` and `score_case` do not create a missing state database. Preparation is the operation that initializes controlled state.
 
-## Pinned Compatibility Profile
+## Pinned Compatibility Profiles
 
-The default profile is `profiles/abacus-librpa-pyatb-2026-08.json`:
+The production materializer still defaults to
+`profiles/abacus-librpa-pyatb-2026-08.json`, profile ID
+`abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08`:
 
 | Component | Ref | Audited revision |
 | --- | --- | --- |
@@ -58,7 +70,22 @@ The default profile is `profiles/abacus-librpa-pyatb-2026-08.json`:
 | LibRPA | `Srlive1201/LibRPA:v0.7.0` | `dd169fa11fa920d580d4f39dc11e218a7f17f7b5` |
 | PyATB | `AroundPeking/pyatb:enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
 
-The OML production policy explicitly uses reader-v1:
+The current admission harness is pinned separately in
+`profiles/abacus-librpa-pyatb-2026-08-v2.json`, profile ID
+`abacus-librpa-2026-08-30-v2`:
+
+| Component | Ref | Audited revision |
+| --- | --- | --- |
+| ABACUS | `AroundPeking/abacus-develop:master_ghj` | `641caa554b44c4db2743603e9c75c96379901d7c` |
+| LibRPA | `AroundPeking/LibRPA:master_ghj` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` |
+| PyATB | `AroundPeking/pyatb:enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
+
+Its periodic 3D GW, strict-2D GW, molecular Delta-ST RPA, and solid Delta-ST
+RPA capabilities are `TESTABLE`. Admission evidence can advance their measured
+level, but the profile is not promoted automatically into the production
+materializer; promotion requires complete gates and a reviewed commit.
+
+Both profiles explicitly use reader-v1 in OML workflows:
 
 - ABACUS: `out_librpa_reader_version 1`
 - LibRPA: `version_coul_reader 1` and `version_lri_reader 1`

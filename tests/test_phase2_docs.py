@@ -15,9 +15,12 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         self.assertLessEqual(len(text.split()), 220)
         for tool in (
             "inspect_profile",
+            "inspect_admission_manifest",
             "ingest_case",
             "plan_case",
             "validate_case",
+            "evaluate_admission",
+            "propose_evolution_candidate",
             "prepare_run",
             "submit_stage",
             "get_status",
@@ -27,7 +30,25 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         ):
             self.assertIn(f"`{tool}`", text)
         self.assertIn("never bypass", text.lower())
+        self.assertIn("FHI-aims writes on existing reviewed routes", text)
         self.assertNotIn("run_gw_workflow.sh", text)
+
+    def test_installation_guide_separates_production_and_v2_admission_profiles(self):
+        text = (REPOSITORY / "docs" / "guide" / "installation.md").read_text(
+            encoding="utf-8"
+        )
+
+        for phrase in (
+            "14 MCP tools",
+            "inspect_admission_manifest",
+            "evaluate_admission",
+            "propose_evolution_candidate",
+            "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08",
+            "abacus-librpa-2026-08-30-v2",
+            "TESTABLE",
+            "not promoted automatically",
+        ):
+            self.assertIn(phrase, text)
 
     def test_execution_guide_documents_profile_and_scope_boundaries(self):
         guide = (REPOSITORY / "docs" / "guide" / "controlled-execution.md").read_text(
@@ -105,10 +126,10 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.3.1")
-        self.assertIn('version = "0.3.1"', pyproject)
-        self.assertIn('__version__ = "0.3.1"', package)
-        self.assertIn('version="0.3.1"', server)
+        self.assertEqual(plugin["version"], "0.4.0")
+        self.assertIn('version = "0.4.0"', pyproject)
+        self.assertIn('__version__ = "0.4.0"', package)
+        self.assertIn('version="0.4.0"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (
