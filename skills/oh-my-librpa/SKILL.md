@@ -7,15 +7,13 @@ description: Use when users ask to prepare, inspect, validate, run, debug, or re
 
 Use OML MCP first.
 
-1. Call `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`. Repair each `FAIL`; report each `WARN`. Use `inspect_reader_v1` for binary-v1 artifacts.
-2. Controlled writes support approved non-SOC periodic GW only. Call `prepare_run` with the reviewed digest and registered execution profile.
-3. In fixed order, call `submit_stage`, monitor with read-only `get_status`, and call `inspect_stage` only for terminal `COMPLETED`, `FAILED`, or `CANCELLED`. Every terminal outcome is snapshotted. Failed/cancelled states are forced `FAIL`; completed jobs still need artifact gates.
-4. After final 3D GW inspection, call `finalize_case` with registered benchmark/convergence IDs, then `score_case`. Never promote `NOT_EVALUATED` to PASS.
+1. Call `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`. Repair each `FAIL`; report each `WARN`. Use `inspect_reader_v1` for reader v1 artifacts.
+2. The old profile permits approved non-SOC periodic GW production only. Use `prepare_run`, then fixed-order `submit_stage`, read-only `get_status`, terminal `inspect_stage`, `finalize_case`, and `score_case`.
+3. Profile `abacus-librpa-2026-08-30-v2` registers periodic 3D GW, strict-2D GW, molecular Delta-Sternheimer RPA, and solid Delta-Sternheimer RPA as admission-only `TESTABLE` routes. Do not send them through the production materializer.
+4. Automatic evolution changes one registered axis and returns `PROPOSAL_ONLY`; it cannot submit or promote a route.
 
-Never bypass MCP controlled execution with direct shell, SSH, Slurm, cleanup, overwrite, or automatic retry operations. Do not submit stale plans, changed manifests, unknown binaries, duplicate attempts, or a stage whose prerequisites have not passed.
+Never bypass MCP with direct shell, SSH, Slurm, cleanup, overwrite, or automatic retry. Never submit stale plans, changed manifests, unknown binaries, duplicates, or stages with unmet prerequisites.
 
-Keep RPA, molecular/atomic GW, magnetic/SOC, FHI-aims, and Delta-Sternheimer on existing reviewed routes. Strict 2D is blocked as `LIBRPA_070_STRICT_2D_INVALID` pending corrected LibRPA and dedicated gates.
+Keep FHI-aims writes on existing reviewed routes and use their dedicated ownership gate.
 
-Symmetry metadata comes from `stru_out`; legacy symmetry sidecars are neither copied nor required.
-
-PyATB `band_out`, `k_path_info`, eigenvectors, and velocities must use the ABACUS `band_out` state count. Never pass extra full-AO states to LibRPA 0.7.0.
+Symmetry comes from `stru_out`; LibRPA rebuilds rotations. Legacy symmetry sidecars are neither copied nor required. PyATB state, eigenvector, velocity, and symmetry dimensions must match ABACUS and `bz_sampling_out`.

@@ -52,7 +52,24 @@ In practice, that means the agent can help with:
 - producing a final scientific artifact such as a **paper-style GW band plot**
 
 > [!TIP]
-> Controlled execution is default-disabled and currently limited to the approved non-SOC periodic GW route. Inspection remains available for the broader supported workflows.
+> The 0.3.1 production profile remains limited to approved non-SOC periodic GW. The v2 profile described below is admission-only; a testable route is not yet a production route.
+
+### Compatibility generations
+
+OML keeps the 0.3.1 profile unchanged and adds the explicit
+`abacus-librpa-2026-08-30-v2` admission profile for four routes:
+
+- periodic 3D GW;
+- strict-2D GW with full Ewald Coulomb and analytic Gamma head/wing;
+- molecular Delta-Sternheimer RPA;
+- solid Delta-Sternheimer RPA.
+
+All four start as `TESTABLE`. They become `EXPERIMENTAL` only after reviewed
+L0-L3 receipts, and `ENABLED` only after L4 scientific acceptance and a reviewed
+profile commit. OML explicitly selects reader v1. Symmetry comes from `stru_out`,
+LibRPA reconstructs rotations, and legacy symmetry sidecars are never copied.
+Automatic evolution changes one registered parameter at a time and produces a
+`PROPOSAL_ONLY` record; it cannot submit a job or promote policy.
 
 ---
 
@@ -88,7 +105,7 @@ Example prompts:
 
 The MCP-first skill uses five inspection tools plus `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, and `score_case`. Execution requires a reviewed profile ID and immutable plan digest; no tool accepts arbitrary command text.
 
-The current write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. RPA, molecules, strict 2D, magnetic/SOC, FHI-aims, regression, and Delta-Sternheimer execution remain on their reviewed routes.
+The current production write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. The v2 routes are available to the registered admission harness but remain blocked from the production materializer.
 
 ### Legacy skills installation
 
@@ -174,6 +191,9 @@ Molecule GW:      SCF -> LibRPA
 Periodic GW:      SCF -> pyatb -> NSCF -> preprocess -> LibRPA
 Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC, stru_out metadata) -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
 RPA:              SCF -> LibRPA
+Strict-2D GW v2:  SCF -> pyatb -> NSCF -> preprocess -> LibRPA
+Molecular Delta:  ground state -> Sternheimer response -> LibRPA
+Solid Delta:      ground state -> Sternheimer response -> LibRPA
 ```
 
 OML explicitly selects reader-v1 even though the inspected ABACUS and LibRPA source defaults are legacy/auto values. It also writes the main mean-field names explicitly: `prefix_eigvecs_scf = KS_eigenvector`, `fn_eigocc_scf = band_out`, and, for GW, `fn_vxc_scf = vxc_out`. Symmetry operations are read from `stru_out`; the old symmetry sidecar files are not required. For SOC cases, do not use the periodic symmetry lane. Keep the ABACUS side on `symmetry = -1` and do not enable the LibRPA symmetry flags.
@@ -238,6 +258,7 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 - versioned 100-point benchmark scorecard with non-compensating hard gates and frozen replays
 - approved helper-script hashes, executable fingerprints, and safe ambiguous-submission reconciliation
 - pinned compatibility profile: ABACUS `master_ghj`, LibRPA `v0.7.0`, PyATB `enable_head_wing`
+- separate v2 admission profile for current ABACUS/LibRPA/PyATB revisions and four testable routes
 - explicit reader-v1 policy and `stru_out` symmetry validation without legacy sidecars
 - PyATB head/wing validation under `input_dir/pyatb_librpa_df`
 - chat orchestrator skill: `oh-my-librpa`

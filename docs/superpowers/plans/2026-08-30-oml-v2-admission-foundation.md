@@ -321,44 +321,44 @@ Commit message: `Add OML admission scorecard v2`
 - Modify: `skills/oh-my-librpa/SKILL.md`
 - Modify: `tests/test_phase2_docs.py`
 
-- [ ] **Step 1: Write failing documentation assertions**
+- [x] **Step 1: Write failing documentation assertions**
 
 Assert the README and routing skill name the v2 profile, all four admission
 routes, reader v1, no symmetry-sidecar copying, and proposal-only automatic
 evolution.
 
-- [ ] **Step 2: Run documentation tests and confirm RED**
+- [x] **Step 2: Run documentation tests and confirm RED**
 
 Run: `.venv/bin/python -m unittest tests.test_phase2_docs -v`
 
 Expected: FAIL because the current documentation still describes strict 2D as
 globally blocked.
 
-- [ ] **Step 3: Update concise user-facing documentation**
+- [x] **Step 3: Update concise user-facing documentation**
 
 Describe the old production profile and new testable profile separately. State
 that v2 routes remain admission-only until receipts promote them, and that the
 MCP service never copies the four legacy symmetry sidecars.
 
-- [ ] **Step 4: Run full verification**
+- [x] **Step 4: Run full verification**
 
 Run:
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
-scripts/self_test.sh
+scripts/self_test.sh --workspace "$PWD" --installed-root "$PWD"
 .venv/bin/python -m build
 ```
 
 Expected: unit suite, self-test, source distribution, and wheel build all pass.
 
-- [ ] **Step 5: Check worktree and commit attribution**
+- [x] **Step 5: Check worktree and commit attribution**
 
 Run `git diff --check`, inspect the complete branch diff, and verify every new
 commit has author `Codex <codex@openai.com>` and committer
 `AroundPeking <gonghuanjing@iphy.ac.cn>`.
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 Commit message: `Document OML v2 admission foundation`
 

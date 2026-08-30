@@ -124,6 +124,25 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         ):
             self.assertIn(phrase, text)
 
+    def test_v2_admission_scope_and_evolution_boundary_are_documented(self):
+        readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
+        skill = (REPOSITORY / "skills" / "oh-my-librpa" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+
+        for text in (readme, skill):
+            for phrase in (
+                "abacus-librpa-2026-08-30-v2",
+                "periodic 3D GW",
+                "strict-2D GW",
+                "molecular Delta-Sternheimer RPA",
+                "solid Delta-Sternheimer RPA",
+                "reader v1",
+                "PROPOSAL_ONLY",
+            ):
+                self.assertIn(phrase, text)
+            self.assertIn("sidecars", text)
+
 
 if __name__ == "__main__":
     unittest.main()
