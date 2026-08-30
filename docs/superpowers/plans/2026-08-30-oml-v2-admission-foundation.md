@@ -173,7 +173,7 @@ Commit message: `Plan OML v2 admission routes`
 - Create: `tests/test_admission.py`
 - Modify: `pyproject.toml`
 
-- [ ] **Step 1: Write failing receipt tests**
+- [x] **Step 1: Write failing receipt tests**
 
 Test `build_admission_receipt()` with pinned revisions, build hashes, host,
 input manifest digest, stage, resources, process status, gates, scientific
@@ -182,13 +182,13 @@ receipt digest, a non-SHA build fingerprint is rejected, resource use above 16
 compile jobs or 48 execution threads is rejected, and `ENABLED` promotion
 eligibility is rejected by this builder.
 
-- [ ] **Step 2: Run receipt tests and confirm RED**
+- [x] **Step 2: Run receipt tests and confirm RED**
 
 Run: `.venv/bin/python -m unittest tests.test_admission -v`
 
 Expected: FAIL because `oml_mcp.admission` does not exist.
 
-- [ ] **Step 3: Implement deterministic receipt construction**
+- [x] **Step 3: Implement deterministic receipt construction**
 
 Create frozen `AdmissionResources` and `AdmissionReceipt` dataclasses:
 
@@ -211,13 +211,13 @@ Implement `build_admission_receipt` with the complete keyword interface listed
 in Step 1. Canonical JSON excluding `receipt_digest` supplies the SHA-256
 receipt digest.
 
-- [ ] **Step 4: Run receipt tests and confirm GREEN**
+- [x] **Step 4: Run receipt tests and confirm GREEN**
 
 Run: `.venv/bin/python -m unittest tests.test_admission -v`
 
 Expected: all admission receipt tests pass.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 Commit message: `Add immutable admission receipts`
 
