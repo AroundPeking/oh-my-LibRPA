@@ -25,7 +25,7 @@ def active_files():
 
 
 class ActiveDefaultsTest(unittest.TestCase):
-    def test_version_guard_distinguishes_production_and_v2_admission_profiles(self):
+    def test_version_guard_distinguishes_production_v2_and_v3_profiles(self):
         text = (ROOT / "skills" / "abacus-librpa-version-guard" / "SKILL.md").read_text(
             encoding="utf-8"
         )
@@ -33,6 +33,10 @@ class ActiveDefaultsTest(unittest.TestCase):
         self.assertIn("abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08", text)
         self.assertIn("abacus-librpa-2026-08-30-v2", text)
         self.assertIn("641caa554b44c4db2743603e9c75c96379901d7c", text)
+        self.assertIn("abacus-librpa-2026-08-30-v3", text)
+        self.assertIn("81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a", text)
+        self.assertIn("v1_sternheimer_coulomb_iq_", text)
+        self.assertIn("diagnostic only", text)
         self.assertIn("7e40c5bbf735a78aa15fa589ca2468fec2e2427b", text)
         self.assertIn("9fb9028c59b1dbaf9cf66965280961fc2225d9eb", text)
         self.assertIn("strict_2d_gw", text)

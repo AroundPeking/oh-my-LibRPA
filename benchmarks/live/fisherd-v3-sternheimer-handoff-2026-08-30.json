@@ -2,11 +2,12 @@
   "schema_version": 1,
   "benchmark_id": "fisherd-v3-sternheimer-handoff-20260830",
   "date": "2026-08-30",
+  "last_verified": "2026-08-31",
   "profile_id": "abacus-librpa-2026-08-30-v3",
   "scope": "Sternheimer Coulomb reader-v1 handoff for one solid and one molecule",
   "host": {
     "alias": "Fisherd-Server100.96.1.64",
-    "remote_root": "/home/ghj/oml-admission/20260830-v2"
+    "remote_root": "/home/ghj/oml-admission/20260831-v3"
   },
   "limits": {
     "compile_jobs_max": 16,
@@ -29,13 +30,17 @@
   "builds": {
     "abacus": {
       "source_identity": "PASS",
+      "source_checkout": "/home/ghj/oml-admission/20260831-v3/src/abacus",
+      "source_worktree_clean": true,
       "production_target": "PASS",
       "unit_test_status": "PASS",
       "unit_tests_passed": 27,
       "unit_tests_total": 27,
-      "executable": "/home/ghj/oml-admission/20260830-v2/build/abacus-sternheimer-grid-metric/abacus_3p",
-      "executable_sha256": "61eb3b764bee73bd2dd91678782d82c0ba5b523b31b7322b985e03d0ae34a720",
-      "test_evidence": "/home/ghj/oml-admission/20260830-v2/logs/abacus-sternheimer-grid-metric-gtest.log"
+      "executable": "/home/ghj/oml-admission/20260831-v3/build/abacus/abacus_3p",
+      "executable_sha256": "21e5ad5d8b073e36dc58408e8a37202c28340ea45107ed11b0a4ae25655f32fa",
+      "test_evidence": "/home/ghj/oml-admission/20260831-v3/logs/abacus-sternheimer-gtest.log",
+      "historical_equivalent_executable_sha256": "61eb3b764bee73bd2dd91678782d82c0ba5b523b31b7322b985e03d0ae34a720",
+      "historical_source_checkout_clean": false
     },
     "librpa": {
       "source_identity": "PASS",
@@ -54,7 +59,7 @@
         "promotion": "BLOCKED"
       },
       "producer": {
-        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-latest",
+        "path": "/home/ghj/oml-admission/20260831-v3/runs/si-q21-clean-v3",
         "kmesh": [4, 4, 4],
         "q_index": 21,
         "qpoint": [0.0, 0.25, 0.25],
@@ -64,11 +69,11 @@
         "equations": 62464,
         "failed_equations": 0,
         "all_converged": true,
-        "max_solver_relative_residual": 9.999967700319632e-09,
-        "max_equation_residual_norm": 5.33628347805294e-08,
-        "wall_seconds": 2083.53,
-        "maximum_rss_kib": 7555920,
-        "response_sha256": "0281ea47db1039542450a9f08484a062bc56cf5659612fc043399e1ff050c982"
+        "max_solver_relative_residual": 9.99996779214899e-09,
+        "max_equation_residual_norm": 4.907909460547194e-08,
+        "wall_seconds": 1427.88,
+        "maximum_rss_kib": 7520432,
+        "response_sha256": "b1c1a7601665ee35c8a3226db9dd40425e20cc35768f74f61b3bca86422b11f7"
       },
       "metric": {
         "path": "v1_sternheimer_coulomb_iq_21_rank0.dat",
@@ -81,28 +86,40 @@
         "negative_eigenvalues": 0,
         "relative_difference_from_grid_diagnostic": 1.132172416979503e-16,
         "maximum_absolute_difference_from_grid_diagnostic": 1.0048591735576161e-14,
+        "grid_diagnostic_reference_path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-grid-metric-v1-latest",
         "relative_difference_from_ordinary_reader": 0.8133250803797222,
         "maximum_absolute_difference_from_ordinary_reader": 115.41619659544706,
         "ordinary_reader_role": "diagnostic_only"
       },
       "same_state": {
-        "component_reconstruction_relative_error": 9.090450336226364e-16,
-        "delta_vs_lcao_relative_error": 0.005939345812490804,
-        "in_sos_vs_lcao_relative_error": 3.1633450537310665e-05,
-        "delta_trace_log": -3.1041485714755943,
-        "lcao_sos_trace_log": -2.605925910822713,
-        "delta_pi_eigenvalue_min": -2.0630333858892804,
-        "lcao_sos_pi_eigenvalue_min": -2.0502198397612688
+        "component_reconstruction_relative_error": 8.902070315527028e-16,
+        "delta_vs_lcao_relative_error": 0.005939345812402436,
+        "in_sos_vs_lcao_relative_error": 3.163345054519213e-05,
+        "delta_trace_log": -3.1041485714280883,
+        "lcao_sos_trace_log": -2.60592591082355,
+        "delta_pi_eigenvalue_min": -2.063033385887265,
+        "lcao_sos_pi_eigenvalue_min": -2.050219839760639
       },
       "librpa": {
-        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-latest/librpa-response-metric",
+        "path": "/home/ghj/oml-admission/20260831-v3/runs/si-q21-clean-v3/librpa-response-metric-clean",
         "input_sha256": "091b42ff6e7a33fdd7afcc84822d7f6c3aea597641245acd37b4d5af9d2e0abe",
         "coulomb_prefix": "v1_sternheimer_coulomb_iq_",
-        "trace_log": -3.104148571459,
-        "weighted_ec_rpa_ha": -0.007719384206866,
-        "wall_seconds": 0.73,
-        "maximum_rss_kib": 575760,
+        "trace_log": -3.104148571418,
+        "weighted_ec_rpa_ha": -0.007719384206762,
+        "wall_seconds": 0.51,
+        "maximum_rss_kib": 589908,
         "finished_successfully": true
+      },
+      "clean_rebuild_comparison": {
+        "reference_path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-latest",
+        "reference_response_sha256": "0281ea47db1039542450a9f08484a062bc56cf5659612fc043399e1ff050c982",
+        "metric_byte_identical": true,
+        "response_byte_identical": false,
+        "response_maximum_absolute_difference": 7.037215254968032e-11,
+        "response_relative_frobenius_difference": 5.053481006117458e-13,
+        "trace_log_absolute_difference": 4.1e-11,
+        "weighted_ec_rpa_absolute_difference_ha": 1.04e-13,
+        "decision": "PASS_NUMERICAL_NOT_BITWISE"
       },
       "independent_standard_sos": {
         "frequency_ha": 0.3046801824786727,
@@ -125,18 +142,24 @@
         "promotion": "BLOCKED"
       },
       "producer": {
-        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-h2-molecular-delta-st-latest",
+        "path": "/home/ghj/oml-admission/20260831-v3/runs/h2-clean-v3",
         "grid": [50, 50, 50],
         "frequency_count": 1,
         "frequency_ha": 0.05322431188753,
         "equations": 30,
         "failed_equations": 0,
         "all_converged": true,
-        "max_solver_relative_residual": 3.322591162212585e-07,
-        "max_equation_residual_norm": 2.637976809434776e-07,
-        "wall_seconds": 7.84,
-        "maximum_rss_kib": 7918932,
-        "response_sha256": "80b4e8b6930bc5539c89f3fa480ac53fd5652f29153a43b07d268f7e1b5c14b9"
+        "max_solver_relative_residual": 3.322591225271014e-07,
+        "max_equation_residual_norm": 2.637976806788969e-07,
+        "wall_seconds": 8.56,
+        "maximum_rss_kib": 7909172,
+        "response_sha256": "e6cf6d458e13ba00a8b88ac196b7b914c39dd59738fd250453793ccb0ba0fed8",
+        "wrapper_observation": {
+          "caller_exit_code": 1,
+          "producer_exit_code": 0,
+          "timed_command_exit_code": 0,
+          "decision": "PASS_PRODUCER_WRAPPER_MISMATCH"
+        }
       },
       "metric": {
         "path": "v1_sternheimer_coulomb_iq_1_rank0.dat",
@@ -152,16 +175,43 @@
         "ordinary_reader_role": "diagnostic_only"
       },
       "librpa": {
-        "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-h2-molecular-delta-st-latest/librpa-response-metric",
+        "path": "/home/ghj/oml-admission/20260831-v3/runs/h2-clean-v3/librpa-response-metric-clean-retry1",
         "input_sha256": "b61ded7fb93e6a5b75effa5593a4753779fe7771ab3a68d7a30c6d7b498fbb68",
         "coulomb_prefix": "v1_sternheimer_coulomb_iq_",
         "trace_log": -0.6424732326962,
         "ec_rpa_ha": -0.01100066029904,
         "ordinary_reader_ec_rpa_ha": -0.0110925901502,
         "relative_change_from_ordinary_reader": 0.008287500927665835,
-        "wall_seconds": 0.58,
-        "maximum_rss_kib": 85336,
-        "finished_successfully": true
+        "wall_seconds": 0.0964,
+        "maximum_rss_kib": null,
+        "resource_measurement": "not_captured",
+        "finished_successfully": true,
+        "attempts": [
+          {
+            "path": "/home/ghj/oml-admission/20260831-v3/runs/h2-clean-v3/librpa-response-metric-clean",
+            "exit_code": 127,
+            "classification": "PRE_EXECUTION_ENVIRONMENT_FAILURE",
+            "physics_started": false,
+            "diagnosis": "Intel MKL and Fortran runtime libraries were absent from the non-interactive shell environment"
+          },
+          {
+            "path": "/home/ghj/oml-admission/20260831-v3/runs/h2-clean-v3/librpa-response-metric-clean-retry1",
+            "exit_code": 0,
+            "classification": "PASS",
+            "physics_started": true
+          }
+        ]
+      },
+      "clean_rebuild_comparison": {
+        "reference_path": "/home/ghj/oml-admission/20260830-v2/runs/l3-h2-molecular-delta-st-latest",
+        "reference_response_sha256": "80b4e8b6930bc5539c89f3fa480ac53fd5652f29153a43b07d268f7e1b5c14b9",
+        "metric_byte_identical": true,
+        "response_byte_identical": false,
+        "response_maximum_absolute_difference": 1.318944953254686e-13,
+        "response_relative_frobenius_difference": 3.8828684926499545e-14,
+        "ec_rpa_real_absolute_difference_ha": 0.0,
+        "ec_rpa_imaginary_absolute_ha": 2.331492236732e-27,
+        "decision": "PASS_NUMERICAL_NOT_BITWISE"
       }
     }
   },
