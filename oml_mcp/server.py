@@ -86,9 +86,12 @@ def build_server() -> MCPServer:
         annotations=annotations,
         structured_output=True,
     )
-    def inspect_profile(profile_path: str | None = None) -> dict[str, Any]:
+    def inspect_profile(
+        profile_path: str | None = None,
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
         """Inspect a pinned OML compatibility profile without changing it."""
-        return load_profile(profile_path)
+        return load_profile(profile_path, profile_id=profile_id)
 
     @server.tool(
         name="ingest_case",
@@ -113,6 +116,8 @@ def build_server() -> MCPServer:
         use_symmetry: bool = False,
         soc: bool = False,
         headwing: bool | None = None,
+        response_method: Literal["sos", "sternheimer"] = "sos",
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Plan a supported ABACUS plus LibRPA route without writing files."""
         return plan_case_data(
@@ -122,6 +127,8 @@ def build_server() -> MCPServer:
             use_symmetry=use_symmetry,
             soc=soc,
             headwing=headwing,
+            response_method=response_method,
+            profile_id=profile_id,
         ).to_dict()
 
     @server.tool(

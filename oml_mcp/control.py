@@ -132,6 +132,8 @@ class ControlledExecutionService:
                 use_symmetry=bool(options["use_symmetry"]),
                 soc=bool(options["soc"]),
                 headwing=bool(options["headwing"]),
+                response_method=str(options.get("response_method", "sos")),
+                profile_id=str(plan["profile_id"]),
             )
         except (PlanError, ValueError, OSError) as exc:
             raise OMLError(

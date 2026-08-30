@@ -9,6 +9,7 @@ from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from oml_mcp.server import build_server
+from oml_mcp.profiles import V2_PROFILE_ID
 
 from tests.test_artifacts import write_eigenvector_v1
 import tests.test_validators as validator_fixtures
@@ -115,6 +116,29 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(intake["stack"], "abacus_librpa")
         self.assertEqual(plan["route"], "periodic_gw_symmetry")
         self.assertTrue(report["accepted"], report)
+
+    async def test_profile_and_planner_expose_v2_admission_routes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "INPUT_scf").write_text("INPUT_PARAMETERS\nrpa 1\n", encoding="utf-8")
+            (root / "STRU").write_text("ATOMIC_SPECIES\n", encoding="utf-8")
+
+            profile = await self.call("inspect_profile", {"profile_id": V2_PROFILE_ID})
+            plan = await self.call(
+                "plan_case",
+                {
+                    "path": str(root),
+                    "task": "rpa",
+                    "system_type": "molecule",
+                    "response_method": "sternheimer",
+                    "profile_id": V2_PROFILE_ID,
+                },
+            )
+
+        self.assertEqual(profile["profile_id"], V2_PROFILE_ID)
+        self.assertEqual(plan["route"], "molecular_delta_st_rpa")
+        self.assertEqual(plan["stages"], ["ground_state", "sternheimer", "librpa"])
+        self.assertEqual(plan["options"]["capability"]["status"], "TESTABLE")
 
     async def test_reader_v1_dispatches_by_artifact_kind(self):
         with tempfile.TemporaryDirectory() as tmpdir:

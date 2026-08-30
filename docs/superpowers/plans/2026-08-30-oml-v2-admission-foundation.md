@@ -95,7 +95,7 @@ Commit message: `Add OML v2 compatibility profile`
 - Modify: `tests/test_intake_planner.py`
 - Modify: `tests/test_server.py`
 
-- [ ] **Step 1: Write failing route-planning tests**
+- [x] **Step 1: Write failing route-planning tests**
 
 Add tests for these explicit calls and stage graphs:
 
@@ -125,13 +125,13 @@ plan_case(
 Assert every v2 plan contains its `TESTABLE` capability and reader format
 `v1`. Assert the old default strict-2D plan remains deferred and stage-free.
 
-- [ ] **Step 2: Run planner tests and confirm RED**
+- [x] **Step 2: Run planner tests and confirm RED**
 
 Run: `.venv/bin/python -m unittest tests.test_intake_planner -v`
 
 Expected: FAIL because `profile_id` and `response_method` are unsupported.
 
-- [ ] **Step 3: Implement profile-aware deterministic planning**
+- [x] **Step 3: Implement profile-aware deterministic planning**
 
 Add route stages:
 
@@ -150,19 +150,19 @@ Update source-plan reproduction to pass the stored profile and response method.
 Keep v2 routes blocked from the existing production materializer with stable
 `ADMISSION_ONLY_ROUTE` evidence until the Fisherd admission executor is added.
 
-- [ ] **Step 4: Expose the new read-only planner parameters through MCP**
+- [x] **Step 4: Expose the new read-only planner parameters through MCP**
 
 Extend `inspect_profile` with `profile_id` and extend `plan_case` with optional
 `profile_id` and `response_method: Literal["sos", "sternheimer"]`. Do not add an
 arbitrary command parameter.
 
-- [ ] **Step 5: Run planner and MCP tests and confirm GREEN**
+- [x] **Step 5: Run planner and MCP tests and confirm GREEN**
 
 Run: `.venv/bin/python -m unittest tests.test_intake_planner tests.test_server -v`
 
 Expected: all focused tests pass and old default route assertions remain green.
 
-- [ ] **Step 6: Commit Task 2**
+- [x] **Step 6: Commit Task 2**
 
 Commit message: `Plan OML v2 admission routes`
 

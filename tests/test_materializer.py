@@ -9,6 +9,7 @@ from oml_mcp.errors import OMLError
 from oml_mcp.execution_profiles import ExecutionProfile, execution_profile_receipt
 from oml_mcp.materializer import prepare_run
 from oml_mcp.planner import plan_case
+from oml_mcp.profiles import V2_PROFILE_ID
 
 
 def make_periodic_source(root: pathlib.Path) -> None:
@@ -498,6 +499,31 @@ class MaterializerTest(unittest.TestCase):
         self.assertEqual(raised.exception.code, "CAPABILITY_BLOCKED")
         self.assertIn("LIBRPA_070_STRICT_2D_INVALID", raised.exception.evidence)
         self.assertEqual(before, after)
+
+    def test_v2_route_is_admission_only_in_the_production_materializer(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+            plan = plan_case(
+                source,
+                task="gw",
+                system_type="2d",
+                profile_id=V2_PROFILE_ID,
+            )
+
+            with self.assertRaises(OMLError) as raised:
+                prepare_run(
+                    source,
+                    plan.digest,
+                    profile,
+                    execution_receipt=make_execution_receipt(profile),
+                )
+
+        self.assertEqual(raised.exception.code, "ADMISSION_ONLY_ROUTE")
+        self.assertIn(V2_PROFILE_ID, raised.exception.evidence)
 
     def test_mixed_source_after_planning_returns_stable_stale_plan_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:

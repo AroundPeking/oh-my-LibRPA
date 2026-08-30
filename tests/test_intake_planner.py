@@ -5,6 +5,7 @@ import unittest
 
 from oml_mcp.intake import ingest_case
 from oml_mcp.planner import PlanError, plan_case
+from oml_mcp.profiles import DEFAULT_PROFILE_ID, V2_PROFILE_ID
 
 
 class IntakeTest(unittest.TestCase):
@@ -245,6 +246,87 @@ class PlannerTest(unittest.TestCase):
         self.assertIn("KPT_scf", paths)
         self.assertNotIn("INPUT", paths)
         self.assertNotIn("KPT", paths)
+
+    def test_v2_profile_plans_the_four_testable_routes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+            periodic = plan_case(
+                root,
+                task="gw",
+                system_type="solid",
+                profile_id=V2_PROFILE_ID,
+            )
+            strict_2d = plan_case(
+                root,
+                task="gw",
+                system_type="2d",
+                profile_id=V2_PROFILE_ID,
+            )
+            molecular_delta = plan_case(
+                root,
+                task="rpa",
+                system_type="molecule",
+                response_method="sternheimer",
+                profile_id=V2_PROFILE_ID,
+            )
+            solid_delta = plan_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                response_method="sternheimer",
+                profile_id=V2_PROFILE_ID,
+            )
+
+        self.assertEqual(periodic.route, "periodic_gw")
+        self.assertEqual(strict_2d.route, "strict_2d_gw")
+        self.assertEqual(
+            strict_2d.stages,
+            ("scf", "pyatb", "nscf", "preprocess", "librpa"),
+        )
+        self.assertEqual(molecular_delta.route, "molecular_delta_st_rpa")
+        self.assertEqual(
+            molecular_delta.stages,
+            ("ground_state", "sternheimer", "librpa"),
+        )
+        self.assertEqual(solid_delta.route, "solid_delta_st_rpa")
+        self.assertEqual(
+            solid_delta.stages,
+            ("ground_state", "sternheimer", "librpa"),
+        )
+        for plan in (periodic, strict_2d, molecular_delta, solid_delta):
+            self.assertEqual(plan.profile_id, V2_PROFILE_ID)
+            self.assertEqual(plan.options["reader_format"], "v1")
+            self.assertEqual(plan.options["capability"]["status"], "TESTABLE")
+            self.assertEqual(plan.gates[0].status, "WARN")
+
+    def test_explicit_old_profile_preserves_default_plan_digest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+            implicit = plan_case(root, task="gw", system_type="solid")
+            explicit = plan_case(
+                root,
+                task="gw",
+                system_type="solid",
+                profile_id=DEFAULT_PROFILE_ID,
+            )
+
+        self.assertEqual(explicit.digest, implicit.digest)
+        self.assertEqual(explicit.options, implicit.options)
+
+    def test_sternheimer_response_requires_the_v2_profile(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_abacus_case(root)
+
+            with self.assertRaisesRegex(PlanError, "v2"):
+                plan_case(
+                    root,
+                    task="rpa",
+                    system_type="solid",
+                    response_method="sternheimer",
+                )
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from .errors import OMLError
 from .execution_profiles import ExecutionProfile
 from .parsers import ParseError, parse_abacus_input, parse_bool, parse_int, parse_librpa_input
 from .planner import PlanError, plan_case
-from .profiles import load_profile
+from .profiles import V2_PROFILE_ID, load_profile
 from .provenance import ProvenanceError, digest_json, sha256_file
 from .stage_templates import CONTROLLED_PERIODIC_STAGES, render_env, render_stage_script
 from .state import StateStore
@@ -28,25 +28,47 @@ def _is_under(path: Path, roots: tuple[Path, ...]) -> bool:
 
 
 def _match_periodic_plan(source: Path, plan_digest: str):
-    requests = (
-        ("solid", False, True),
-        ("solid", True, True),
-        ("solid", False, False),
-        ("solid", True, False),
-        ("2d", False, True),
-        ("2d", True, True),
-    )
-    candidates = tuple(
-        plan_case(
-            source,
-            task="gw",
-            system_type=system_type,
-            use_symmetry=use_symmetry,
-            soc=False,
-            headwing=headwing,
+    requests = [
+        {
+            "task": "gw",
+            "system_type": system_type,
+            "use_symmetry": use_symmetry,
+            "soc": False,
+            "headwing": headwing,
+        }
+        for system_type, use_symmetry, headwing in (
+            ("solid", False, True),
+            ("solid", True, True),
+            ("solid", False, False),
+            ("solid", True, False),
+            ("2d", False, True),
+            ("2d", True, True),
         )
-        for system_type, use_symmetry, headwing in requests
+    ]
+    requests.extend(
+        {
+            **request,
+            "profile_id": V2_PROFILE_ID,
+        }
+        for request in tuple(requests)
     )
+    requests.extend(
+        (
+            {
+                "task": "rpa",
+                "system_type": "molecule",
+                "response_method": "sternheimer",
+                "profile_id": V2_PROFILE_ID,
+            },
+            {
+                "task": "rpa",
+                "system_type": "solid",
+                "response_method": "sternheimer",
+                "profile_id": V2_PROFILE_ID,
+            },
+        )
+    )
+    candidates = tuple(plan_case(source, **request) for request in requests)
     matches = tuple(plan for plan in candidates if plan.digest == plan_digest)
     if len(matches) != 1:
         raise OMLError(
@@ -285,6 +307,20 @@ def prepare_run(
             evidence=(str(source),),
             recovery="replace escaped links with regular immutable source files",
         ) from exc
+    capability = plan.options.get("capability")
+    if plan.profile_id == V2_PROFILE_ID or (
+        isinstance(capability, dict) and capability.get("status") == "TESTABLE"
+    ):
+        raise OMLError(
+            "ADMISSION_ONLY_ROUTE",
+            "the selected v2 route is restricted to the registered admission harness",
+            evidence=(
+                plan.profile_id,
+                plan.route,
+                str(capability.get("status", "")) if isinstance(capability, dict) else "",
+            ),
+            recovery="run the pinned L0-L3 admission suite before production materialization",
+        )
     if plan.route == "strict_2d_gw_deferred":
         capability = plan.options["capability"]
         raise OMLError(
