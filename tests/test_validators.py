@@ -419,6 +419,101 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(gate.status, "FAIL")
         self.assertFalse(report.accepted)
 
+    def test_unsupported_minimax_frequency_count_fails_before_librpa(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            path = root / "librpa.in"
+            path.write_text(
+                path.read_text(encoding="utf-8") + "nfreq = 1\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        gate = self.gate(report, "librpa.frequency_grid")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertFalse(report.accepted)
+        self.assertIn("6, 8", gate.repair)
+
+    def test_supported_minimax_frequency_count_passes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            path = root / "librpa.in"
+            path.write_text(
+                path.read_text(encoding="utf-8")
+                + "tfgrids_type = minimax\n"
+                + "nfreq = 6\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        self.assertEqual(self.gate(report, "librpa.frequency_grid").status, "PASS")
+
+    def test_frequency_only_grid_fails_before_rpa_chi0_build(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root, task="rpa")
+            path = root / "librpa.in"
+            path.write_text(
+                path.read_text(encoding="utf-8")
+                + "tfgrids_type = evenspaced\n"
+                + "nfreq = 1\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        gate = self.gate(report, "librpa.frequency_grid")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertFalse(report.accepted)
+        self.assertIn("conventional", gate.message)
+
+    def test_debug_time_frequency_grid_is_not_admitted_for_production(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            path = root / "librpa.in"
+            path.write_text(
+                path.read_text(encoding="utf-8")
+                + "tfgrids_type = evenspaced_tf\n"
+                + "nfreq = 1\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+            )
+
+        gate = self.gate(report, "librpa.frequency_grid")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertFalse(report.accepted)
+        self.assertIn("debug-only", gate.message)
+
     def test_explicit_reader_v1_contract_is_required(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

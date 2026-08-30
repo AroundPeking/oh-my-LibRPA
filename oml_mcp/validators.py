@@ -162,6 +162,85 @@ def _fullcoul_exx_gate(librpa: InputDocument) -> GateResult:
     )
 
 
+def _frequency_grid_gate(
+    librpa: InputDocument,
+    frequency_contract: dict[str, object],
+) -> GateResult:
+    default_grid = str(frequency_contract["default"])
+    recognized_types = frozenset(
+        str(value) for value in frequency_contract["recognized_types"]
+    )
+    production_types = frozenset(
+        str(value) for value in frequency_contract["production_types"]
+    )
+    debug_only_types = frozenset(
+        str(value) for value in frequency_contract["debug_only_types"]
+    )
+    minimax_counts = tuple(
+        int(value) for value in frequency_contract["minimax_nfreq_supported"]
+    )
+    grid_type = (
+        librpa.value("tfgrids_type")
+        or librpa.value("tfgrid_type")
+        or default_grid
+    ).strip()
+    try:
+        nfreq = parse_int(
+            librpa.value("nfreq", str(frequency_contract["default_nfreq"])),
+            name="nfreq",
+        )
+    except ParseError as exc:
+        return _fail(
+            "librpa.frequency_grid",
+            str(exc),
+            (str(librpa.path),),
+            "set nfreq to a positive integer supported by the selected frequency grid",
+        )
+    if grid_type not in recognized_types:
+        return _fail(
+            "librpa.frequency_grid",
+            f"LibRPA does not recognize frequency grid type {grid_type!r}",
+            (str(librpa.path),),
+            "use one of " + ", ".join(sorted(recognized_types)),
+        )
+    if grid_type not in production_types:
+        if grid_type in debug_only_types:
+            summary = (
+                f"{grid_type} is a debug-only time-frequency grid with placeholder transforms"
+            )
+        else:
+            summary = (
+                f"{grid_type} supplies no time grid, while the conventional frequency-domain "
+                "chi0 builder is not implemented in the pinned LibRPA source"
+            )
+        return _fail(
+            "librpa.frequency_grid",
+            summary,
+            (str(librpa.path), f"tfgrids_type={grid_type}"),
+            "use minimax with a supported nfreq for production RPA/GW response calculations",
+        )
+    if nfreq <= 0:
+        return _fail(
+            "librpa.frequency_grid",
+            "nfreq must be positive",
+            (str(librpa.path), f"nfreq={nfreq}"),
+            "set nfreq to a positive integer supported by the selected frequency grid",
+        )
+    if grid_type == "minimax" and nfreq not in minimax_counts:
+        supported = ", ".join(str(value) for value in minimax_counts)
+        return _fail(
+            "librpa.frequency_grid",
+            f"GreenX minimax does not support nfreq={nfreq} in the pinned LibRPA source",
+            (str(librpa.path), f"tfgrids_type={grid_type}", f"nfreq={nfreq}"),
+            f"set nfreq to one of {supported}; the pinned production route requires minimax",
+        )
+    return _pass(
+        "librpa.frequency_grid",
+        f"{grid_type} accepts nfreq={nfreq} in the pinned LibRPA source",
+        str(librpa.path),
+    )
+
+
 def _unsupported_key_gate(librpa: InputDocument, unsupported: dict[str, str]) -> GateResult:
     found = [(key, unsupported[key]) for key in unsupported if key in librpa.keys]
     if found:
@@ -648,6 +727,7 @@ def validate_case(
         _unsupported_key_gate(librpa, contract["librpa"]["unsupported_oml_keys"]),
         _task_gate(librpa, normalized_task),
         _fullcoul_exx_gate(librpa),
+        _frequency_grid_gate(librpa, contract["librpa"]["frequency_grids"]),
         _route_policy_gate(normalized_task, system_type, use_symmetry, profile),
         _headwing_policy_gate(librpa, normalized_task, system_type, headwing),
         _value_gate(

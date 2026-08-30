@@ -76,6 +76,16 @@ class CompatibilityProfileTest(unittest.TestCase):
             librpa["unsupported_oml_keys"]["use_input_gw_symmetry"],
             "use_symmetry_gw",
         )
+        self.assertEqual(
+            librpa["frequency_grids"]["minimax_nfreq_supported"],
+            list(range(6, 35, 2)),
+        )
+        self.assertEqual(librpa["frequency_grids"]["default_nfreq"], 6)
+        self.assertEqual(librpa["frequency_grids"]["production_types"], ["minimax"])
+        self.assertEqual(
+            librpa["frequency_grids"]["recognized_types"],
+            ["GL", "split-GL", "GC-I", "GL-II", "minimax", "evenspaced", "evenspaced_tf"],
+        )
 
     def test_librpa_070_blocks_strict_2d_until_a_corrected_profile_is_pinned(self):
         profile = load_profile()
@@ -141,6 +151,17 @@ class CompatibilityProfileTest(unittest.TestCase):
             with self.assertRaisesRegex(ProfileError, "pyatb.*revision"):
                 load_profile(path)
 
+    def test_profile_validation_rejects_missing_frequency_grid_contract(self):
+        profile = load_profile()
+        del profile["contract"]["librpa"]["frequency_grids"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "bad-profile.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+
+            with self.assertRaisesRegex(ProfileError, "frequency_grids"):
+                load_profile(path)
+
     def test_profile_validation_rejects_a_2d_block_for_another_librpa_revision(self):
         profile = load_profile()
         profile["capabilities"]["strict_2d_gw"]["component_revision"] = "0" * 40
@@ -175,6 +196,10 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(
             profile["components"]["pyatb"]["revision"],
             "9fb9028c59b1dbaf9cf66965280961fc2225d9eb",
+        )
+        self.assertEqual(
+            profile["contract"]["librpa"]["frequency_grids"]["default"],
+            "minimax",
         )
         self.assertEqual(
             set(profile["capabilities"]),

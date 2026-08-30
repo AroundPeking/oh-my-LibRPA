@@ -70,6 +70,25 @@
       "case_id": "strict-2d-headwing-replay",
       "attempt": 2,
       "status": "PASS"
+    },
+    {
+      "case_id": "solid-delta-st-independent-sos",
+      "attempt": 1,
+      "status": "FAIL",
+      "reason": "nfreq=1 selected the default minimax grid, but GreenX only supports even counts from 6 through 34 in the pinned LibRPA source.",
+      "resolution": "OML now rejects unsupported minimax counts before execution."
+    },
+    {
+      "case_id": "solid-delta-st-independent-sos",
+      "attempt": 2,
+      "status": "FAIL",
+      "reason": "The evenspaced grid parsed, but it supplies no time grid and the conventional frequency-domain chi0 builder throws Not implemented.",
+      "resolution": "OML now rejects parser-recognized but non-production grids for RPA/GW response tasks."
+    },
+    {
+      "case_id": "solid-delta-st-independent-sos",
+      "attempt": 3,
+      "status": "PASS"
     }
   ],
   "routes": [
@@ -189,15 +208,88 @@
         "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st"
       },
       "diagnostics": {
-        "coulomb_eigenvalue_min": 9.250449145695216e-06,
-        "coulomb_eigenvalue_max": 971.1024212062746,
-        "negative_coulomb_eigenvalues": 0,
-        "response_eigenvalue_min": -1894.0861675962565,
-        "response_eigenvalue_max": -1.1638679628970687e-08,
-        "positive_response_eigenvalues": 0,
         "threshold_ab": "NO_CHANGE",
         "thresholds_compared": [0.0, 1e-08],
-        "remaining_gate": "same-state current-revision LCAO-SOS comparison and complete q/frequency scientific evaluation"
+        "same_state": {
+          "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-9344810c",
+          "omega_ha": 0.2981370777853458,
+          "delta_vs_lcao_relative_error": 0.005939345812778122,
+          "in_sos_vs_lcao_relative_error": 3.163345053358631e-05,
+          "component_reconstruction_relative_error": 9.297567186154485e-16,
+          "reader_v1_whitening": {
+            "delta_trace_log": -174018.53810157388,
+            "delta_pi_eigenvalue_min": -171190.34366273813,
+            "lcao_sos_trace_log": -173330.32914393087,
+            "lcao_sos_pi_eigenvalue_min": -170971.74985392092
+          },
+          "grid_coulomb_whitening": {
+            "delta_trace_log": -3.1041485714,
+            "delta_pi_eigenvalue_min": -2.0630333859,
+            "lcao_sos_trace_log": -2.6059259108,
+            "lcao_sos_pi_eigenvalue_min": -2.0502198398,
+            "in_sos_trace_log": -2.6061518623,
+            "pulay_trace_log": -0.00317036044,
+            "out_grid_trace_log": -0.11057171577
+          }
+        },
+        "rmesh_ab": {
+          "changed_axis": "coulomb_metric",
+          "baseline_rmesh_times": 1,
+          "candidate_rmesh_times": 2,
+          "candidate_path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-delta-st-rmesh2-9344810c",
+          "all_equations_converged": true,
+          "coulomb_relative_change": 1.2398305988174041e-09,
+          "delta_response_relative_change": 8.359045431696139e-13,
+          "lcao_sos_relative_change": 2.380036953994157e-15,
+          "verdict": "NO_MATERIAL_CHANGE"
+        },
+        "grid_coulomb_consistency": {
+          "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-grid-coulomb-rmesh2-9344810c",
+          "reader_eigenvalue_min": 9.2583383188e-06,
+          "reader_eigenvalue_max": 971.1024212203,
+          "grid_eigenvalue_min": 9.1735971831e-06,
+          "grid_eigenvalue_max": 971.1035422672,
+          "negative_eigenvalues": 0,
+          "relative_frobenius_difference": 0.8133258915998763,
+          "maximum_absolute_difference": 115.41619659544705,
+          "generalized_eigenvalue_min": 1.086689276112257e-05,
+          "generalized_eigenvalue_max": 92097.69957340516,
+          "maximum_generalized_deviation_from_one": 92096.69957340516,
+          "verdict": "INCOMPATIBLE_METRICS"
+        },
+        "independent_librpa_sos": {
+          "status": "PASS",
+          "path": "/home/ghj/oml-admission/20260830-v2/runs/l3-si-solid-sos-rmesh2-minimax6",
+          "frequency_grid": "minimax",
+          "frequency_count": 6,
+          "wall_seconds": 44.16,
+          "maximum_rss_kib": 2147808,
+          "total_ec_rpa_ha": -2.846971381648,
+          "q21_integrated_contribution_ha": -0.00590991323516258,
+          "q21_near_frequency": {
+            "standard_sos_omega_ha": 0.3046801824786727,
+            "sternheimer_omega_ha": 0.2981370777853458,
+            "frequency_relative_difference": 0.021946631871255538,
+            "standard_sos_trace_log": -2.5831371129304177,
+            "standard_sos_pi_eigenvalue_min": -2.0038192270537047,
+            "grid_whitened_lcao_sos_trace_log": -2.6059259108,
+            "grid_whitened_lcao_sos_pi_eigenvalue_min": -2.0502198398,
+            "trace_log_relative_difference": 0.008744990705659095
+          }
+        },
+        "root_cause": {
+          "status": "CONFIRMED",
+          "finding": "The ABACUS Sternheimer response is generated with the grid-Poisson Coulomb representation, but the LibRPA handoff whitens it with an incompatible reader-v1 RI/Ewald Coulomb representation.",
+          "excluded": [
+            "Delta linear-solver convergence",
+            "Pulay term",
+            "out-of-grid virtual term",
+            "rmesh_times",
+            "small Coulomb eigenvalue threshold",
+            "negative Coulomb spectrum"
+          ]
+        },
+        "remaining_gate": "Implement a definition-consistent grid-to-reader Coulomb handoff or basis transformation, then repeat complete q/frequency and convergence evaluation."
       }
     }
   ],
@@ -218,7 +310,7 @@
       "scientific_acceptance": null
     },
     "penalties": {
-      "failed_attempts": 1,
+      "failed_attempts": 3,
       "ambiguous_attempts": 0
     }
   },
@@ -228,8 +320,8 @@
     "verdict": "INCOMPLETE",
     "eligible": true,
     "raw_score": 62.5,
-    "deduction": 2.0,
-    "total_score": 60.5,
+    "deduction": 6.0,
+    "total_score": 56.5,
     "evaluated_points": 80,
     "dimensions": [
       {"dimension_id": "reproducibility", "weight": 20, "status": "EVALUATED", "value": 1.0, "points": 20.0},
@@ -253,7 +345,7 @@
       "scientific_acceptance"
     ],
     "penalties": {
-      "failed_attempts": 1,
+      "failed_attempts": 3,
       "ambiguous_attempts": 0
     }
   }

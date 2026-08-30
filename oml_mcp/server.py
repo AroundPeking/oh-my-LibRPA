@@ -20,6 +20,10 @@ from .execution_profiles import load_execution_profile
 from .intake import ingest_case as ingest_case_data
 from .planner import plan_case as plan_case_data
 from .profiles import load_profile
+from .sternheimer_diagnostics import (
+    inspect_grid_coulomb_consistency as inspect_grid_coulomb_consistency_data,
+    inspect_sternheimer_comparison as inspect_sternheimer_comparison_data,
+)
 from .validators import validate_case as validate_case_data
 
 
@@ -85,7 +89,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.4.0",
+        version="0.4.1",
     )
     annotations = _read_only_annotations()
 
@@ -249,6 +253,54 @@ def build_server() -> MCPServer:
         if artifact_kind == "velocity":
             return inspect_velocity_v1(artifact_path).to_dict()
         return inspect_headwing_directory(artifact_path).to_dict()
+
+    @server.tool(
+        name="inspect_grid_coulomb_consistency",
+        description="Compare single-rank grid-Poisson and reader-v1 Coulomb matrices before response production.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def inspect_grid_coulomb_consistency(
+        path: str,
+        iq: int,
+        sqrt_coulomb_threshold: float = 0.0,
+        hermitian_tolerance: float = 1.0e-10,
+        metric_relative_tolerance: float = 1.0e-6,
+    ) -> dict[str, Any]:
+        """Read pre-response Coulomb diagnostics without changing inputs or jobs."""
+        return inspect_grid_coulomb_consistency_data(
+            Path(path),
+            iq=iq,
+            sqrt_coulomb_threshold=sqrt_coulomb_threshold,
+            hermitian_tolerance=hermitian_tolerance,
+            metric_relative_tolerance=metric_relative_tolerance,
+        )
+
+    @server.tool(
+        name="inspect_sternheimer_comparison",
+        description="Compare one single-rank reader-v1 Delta-ST response with same-state LCAO-SOS and component matrices.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def inspect_sternheimer_comparison(
+        path: str,
+        iq: int,
+        ifreq: int,
+        sqrt_coulomb_threshold: float = 0.0,
+        hermitian_tolerance: float = 1.0e-10,
+        reconstruction_tolerance: float = 1.0e-8,
+        metric_relative_tolerance: float = 1.0e-6,
+    ) -> dict[str, Any]:
+        """Read numerical diagnostics without changing inputs, jobs, or route status."""
+        return inspect_sternheimer_comparison_data(
+            Path(path),
+            iq=iq,
+            ifreq=ifreq,
+            sqrt_coulomb_threshold=sqrt_coulomb_threshold,
+            hermitian_tolerance=hermitian_tolerance,
+            reconstruction_tolerance=reconstruction_tolerance,
+            metric_relative_tolerance=metric_relative_tolerance,
+        )
 
     @server.tool(
         name="prepare_run",

@@ -28,7 +28,7 @@ The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.js
 
 ### MCP tools
 
-OML exposes 14 MCP tools: eight case/admission inspection tools, two read-only
+OML exposes 16 MCP tools: ten case/admission inspection tools, two read-only
 status/scoring tools, and four bounded execution/finalization tools:
 
 | Tool | Purpose |
@@ -39,8 +39,10 @@ status/scoring tools, and four bounded execution/finalization tools:
 | `propose_evolution_candidate` | Propose one registered benchmark-axis change within an explicit budget |
 | `ingest_case` | Classify case ownership and fingerprint discovered files |
 | `plan_case` | Select the deterministic GW/RPA stage graph |
-| `validate_case` | Check parameters, symmetry, shrink data, datasets, and PyATB handoff |
+| `validate_case` | Check parameters, supported frequency grids, symmetry, shrink data, datasets, and PyATB handoff |
 | `inspect_reader_v1` | Inspect reader-v1 eigenvector, velocity, or complete head/wing data |
+| `inspect_grid_coulomb_consistency` | Compare single-rank grid-Poisson and reader-v1 Coulomb metrics and block an inconsistent handoff before response production |
+| `inspect_sternheimer_comparison` | Compare a single-rank same-state Delta-ST/LCAO-SOS family, Delta components, and optional grid-Poisson versus reader-v1 Coulomb matrices |
 | `prepare_run` | Verify versions and materialize a fresh immutable periodic-GW run |
 | `submit_stage` | Submit one fixed stage after provenance, order, and duplicate gates |
 | `get_status` | Observe current or historical scheduler state without changing it |
@@ -48,13 +50,18 @@ status/scoring tools, and four bounded execution/finalization tools:
 | `finalize_case` | Evaluate a passed 3D GW snapshot against registered scientific policy |
 | `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
-The eight inspection/admission tools plus `get_status` and `score_case` are
+The ten inspection/admission tools plus `get_status` and `score_case` are
 read-only. `propose_evolution_candidate` returns a proposal only; it never edits
 inputs or submits work. `prepare_run`, `submit_stage`, `inspect_stage`, and
 idempotent `finalize_case` are consequential but bounded. Controlled execution
 is disabled until an administrator installs an enabled execution profile. See
 [`controlled-execution.md`](controlled-execution.md) for the profile schema,
 fixed sequence, receipts, scorecard, and current exclusions.
+
+For the pinned LibRPA source, production RPA/GW response calculations use the
+minimax time-frequency route. OML rejects unsupported GreenX counts, grids that
+would enter the unimplemented conventional chi0 builder, and the debug-only
+`evenspaced_tf` route before submission.
 
 `get_status` and `score_case` do not create a missing state database. Preparation is the operation that initializes controlled state.
 

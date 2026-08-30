@@ -60,6 +60,47 @@ class FisherdAdmissionEvidenceTest(unittest.TestCase):
         self.assertEqual(solid["numerical_status"], "WARN")
         self.assertEqual(solid["scientific_status"], "NOT_EVALUATED")
         self.assertEqual(solid["diagnostics"]["threshold_ab"], "NO_CHANGE")
+        self.assertEqual(
+            solid["diagnostics"]["rmesh_ab"]["verdict"],
+            "NO_MATERIAL_CHANGE",
+        )
+        self.assertEqual(
+            solid["diagnostics"]["grid_coulomb_consistency"]["verdict"],
+            "INCOMPATIBLE_METRICS",
+        )
+        self.assertEqual(
+            solid["diagnostics"]["root_cause"]["status"],
+            "CONFIRMED",
+        )
+        self.assertAlmostEqual(
+            solid["diagnostics"]["same_state"]["delta_vs_lcao_relative_error"],
+            0.005939345812778122,
+        )
+        independent = solid["diagnostics"]["independent_librpa_sos"]
+        self.assertEqual(independent["status"], "PASS")
+        self.assertEqual(independent["frequency_grid"], "minimax")
+        self.assertEqual(independent["frequency_count"], 6)
+        self.assertAlmostEqual(independent["total_ec_rpa_ha"], -2.846971381648)
+        self.assertAlmostEqual(
+            independent["q21_near_frequency"]["trace_log_relative_difference"],
+            0.008744990705659095,
+        )
+
+    def test_failed_diagnostic_attempts_are_retained(self):
+        statuses = [
+            (item["case_id"], item["attempt"], item["status"])
+            for item in self.data["attempts"]
+        ]
+        self.assertEqual(
+            statuses,
+            [
+                ("strict-2d-headwing-replay", 1, "FAIL"),
+                ("strict-2d-headwing-replay", 2, "PASS"),
+                ("solid-delta-st-independent-sos", 1, "FAIL"),
+                ("solid-delta-st-independent-sos", 2, "FAIL"),
+                ("solid-delta-st-independent-sos", 3, "PASS"),
+            ],
+        )
 
     def test_embedded_v2_score_is_reproducible_and_incomplete(self):
         card = load_scorecard(REPOSITORY / "benchmarks" / "scorecard-v2.json")
@@ -67,6 +108,8 @@ class FisherdAdmissionEvidenceTest(unittest.TestCase):
 
         self.assertEqual(report, self.data["scorecard_result"])
         self.assertEqual(report["verdict"], "INCOMPLETE")
+        self.assertEqual(report["penalties"]["failed_attempts"], 3)
+        self.assertEqual(report["total_score"], 56.5)
         self.assertIn("scientific_evaluation", report["not_evaluated"])
         self.assertIn("scientific_acceptance", report["not_evaluated"])
 

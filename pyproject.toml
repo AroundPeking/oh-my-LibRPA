@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oh-my-librpa-mcp"
-version = "0.4.0"
+version = "0.4.1"
 description = "Deterministic validation and controlled execution for ABACUS, LibRPA, and PyATB"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,12 +13,11 @@ authors = [
 ]
 dependencies = [
   "mcp>=2.0,<3",
+  "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
-test = [
-  "numpy>=1.26",
-]
+test = []
 
 [project.scripts]
 oh-my-librpa-mcp = "oml_mcp.server:main"

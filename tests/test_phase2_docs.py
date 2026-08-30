@@ -19,6 +19,8 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "ingest_case",
             "plan_case",
             "validate_case",
+            "inspect_grid_coulomb_consistency",
+            "inspect_sternheimer_comparison",
             "evaluate_admission",
             "propose_evolution_candidate",
             "prepare_run",
@@ -39,8 +41,10 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         )
 
         for phrase in (
-            "14 MCP tools",
+            "16 MCP tools",
             "inspect_admission_manifest",
+            "inspect_grid_coulomb_consistency",
+            "inspect_sternheimer_comparison",
             "evaluate_admission",
             "propose_evolution_candidate",
             "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08",
@@ -126,10 +130,10 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.4.0")
-        self.assertIn('version = "0.4.0"', pyproject)
-        self.assertIn('__version__ = "0.4.0"', package)
-        self.assertIn('version="0.4.0"', server)
+        self.assertEqual(plugin["version"], "0.4.1")
+        self.assertIn('version = "0.4.1"', pyproject)
+        self.assertIn('__version__ = "0.4.1"', package)
+        self.assertIn('version="0.4.1"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (

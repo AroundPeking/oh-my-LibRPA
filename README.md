@@ -105,11 +105,28 @@ Example prompts:
 
 The MCP-first skill uses `inspect_profile`, `inspect_admission_manifest`,
 `ingest_case`, `plan_case`, `validate_case`, `inspect_reader_v1`,
-`evaluate_admission`, and `propose_evolution_candidate` before the controlled
+`inspect_grid_coulomb_consistency`, `inspect_sternheimer_comparison`,
+`evaluate_admission`, and
+`propose_evolution_candidate` before the controlled
 write tools `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`,
 `finalize_case`, and `score_case`. Evolution candidates are proposal-only.
 Execution requires a reviewed profile ID and immutable plan digest; no tool
 accepts arbitrary command text.
+
+`inspect_grid_coulomb_consistency` is the pre-response gate: it compares the
+grid-Poisson and reader-v1 Coulomb metrics, including their generalized
+eigenvalue spread, without requiring a Sternheimer response. Its default
+reader/grid relative-norm tolerance is `1e-6`; a mismatch blocks response
+production because no grid-to-reader transformation artifact exists in the
+current handoff. The separate
+`inspect_sternheimer_comparison` tool checks one immutable single-rank reader-v1
+diagnostic family and reports Delta-ST versus same-state LCAO-SOS spectra, trace-log
+integrands, the reconstructed Delta response components, and isolated
+generalized-eigenvalue outliers. When `STERNHEIMER_GRID_COULOMB.dat` is present,
+it also compares the grid-Poisson Coulomb matrix with reader-v1 Coulomb and
+evaluates both whitening paths. The same mismatch blocks post-response
+interpretation. A passing numerical comparison still does not become
+scientific acceptance automatically.
 
 The current production write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. The v2 routes are available to the registered admission harness but remain blocked from the production materializer.
 
@@ -175,6 +192,8 @@ For Windows + Git Bash agent updates, see:
 - new isolated run directory per run chain
 - when reusing an old case, copy only source inputs and helper scripts into the new run directory; never carry over generated outputs such as `OUT.ABACUS`, `band_out`, `coulomb_*`, `LibRPA*.out`, `librpa.d`, `time.json`, or old GW data
 - static preflight before remote execution
+- source-backed LibRPA frequency-grid checks: production RPA/GW uses minimax,
+  with a GreenX-supported even `nfreq` from 6 through 34
 - Markdown run reports written both in-run and to archive
 - stage-by-stage reporting for SCF / pyatb / NSCF / preprocess / LibRPA
 - **absolute reproducibility**: all conversations, intermediate specs, and code versions are archived with structured naming — enabling quantitative evaluation of AI-assisted physics workflows (inspired by [DMRG-LLM, arXiv:2604.04089](https://arxiv.org/abs/2604.04089))

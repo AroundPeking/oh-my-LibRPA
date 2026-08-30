@@ -98,7 +98,16 @@
         "use_symmetry_gw",
         "use_symmetry_rpa"
       ],
-      "reader_versions": [-1, 0, 1]
+      "reader_versions": [-1, 0, 1],
+      "frequency_grids": {
+        "default": "minimax",
+        "default_nfreq": 6,
+        "recognized_types": ["GL", "split-GL", "GC-I", "GL-II", "minimax", "evenspaced", "evenspaced_tf"],
+        "production_types": ["minimax"],
+        "time_grid_types": ["minimax", "evenspaced_tf"],
+        "debug_only_types": ["evenspaced_tf"],
+        "minimax_nfreq_supported": [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+      }
     },
     "symmetry": {
       "source": "stru_out",

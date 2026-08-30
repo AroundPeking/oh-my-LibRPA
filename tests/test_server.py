@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import numpy as np
 
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -12,6 +13,7 @@ from oml_mcp.server import build_server
 from oml_mcp.profiles import V2_PROFILE_ID
 
 from tests.test_artifacts import write_eigenvector_v1
+from tests.test_sternheimer_diagnostics import write_comparison_fixture, write_grid_coulomb
 import tests.test_validators as validator_fixtures
 
 
@@ -30,6 +32,8 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "plan_case",
                 "validate_case",
                 "inspect_reader_v1",
+                "inspect_grid_coulomb_consistency",
+                "inspect_sternheimer_comparison",
                 "evaluate_admission",
                 "propose_evolution_candidate",
                 "prepare_run",
@@ -50,6 +54,8 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             "plan_case",
             "validate_case",
             "inspect_reader_v1",
+            "inspect_grid_coulomb_consistency",
+            "inspect_sternheimer_comparison",
             "evaluate_admission",
             "propose_evolution_candidate",
             "get_status",
@@ -174,7 +180,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 14)
+        self.assertEqual(len(listed.tools), 16)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "v0.7.0")
 
@@ -222,6 +228,42 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(score["verdict"], "INCOMPLETE")
         self.assertEqual(proposal["status"], "PROPOSAL_ONLY")
         self.assertEqual(proposal["changed_axis"], "nfreq")
+
+    async def test_sternheimer_comparison_tool_returns_numerical_diagnostics(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_comparison_fixture(root)
+
+            report = await self.call(
+                "inspect_sternheimer_comparison",
+                {"path": str(root), "iq": 21, "ifreq": 1},
+            )
+
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["status"], "EVALUATED")
+        self.assertLess(
+            report["measurements"]["component_reconstruction_relative_error"],
+            1.0e-14,
+        )
+
+    async def test_grid_coulomb_tool_runs_without_response_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_comparison_fixture(root)
+            for path in root.glob("v1_sternheimer_*.dat"):
+                path.unlink()
+            write_grid_coulomb(
+                root / "STERNHEIMER_GRID_COULOMB.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
+
+            report = await self.call(
+                "inspect_grid_coulomb_consistency",
+                {"path": str(root), "iq": 21},
+            )
+
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["status"], "EVALUATED")
 
     async def test_controlled_tools_forward_only_typed_receipt_identifiers(self):
         class FakeService:

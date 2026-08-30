@@ -10,7 +10,7 @@ Use OML MCP first.
 Apply `librpa-openmp-mkl-threading` before LibRPA submission or performance
 diagnosis; producer thread settings do not define LibRPA settings.
 
-1. Call `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`. Repair each `FAIL`; report each `WARN`. Use `inspect_reader_v1` for reader v1 artifacts.
+1. Call `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`. Repair each `FAIL`; report each `WARN`. Use `inspect_reader_v1` for reader v1 artifacts, `inspect_grid_coulomb_consistency` before solid response production, and `inspect_sternheimer_comparison` for same-state Delta/LCAO-SOS diagnostics. Treat a Coulomb representation mismatch as a blocking interface failure.
 2. Production supports approved non-SOC periodic GW only: `prepare_run`, fixed-order `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, then `score_case`.
 3. Profile `abacus-librpa-2026-08-30-v2` keeps periodic 3D GW, strict-2D GW, molecular Delta-Sternheimer RPA, and solid Delta-Sternheimer RPA admission-only. Use `inspect_admission_manifest` and `evaluate_admission`.
 4. `propose_evolution_candidate` changes one registered axis and returns `PROPOSAL_ONLY`; it never submits or promotes.

@@ -92,6 +92,57 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
     contract = _require_mapping(profile, "contract", "profile")
     for name in ("abacus", "librpa", "pyatb_adapter"):
         _require_mapping(contract, name, "contract")
+    librpa = contract["librpa"]
+    frequency_grids = _require_mapping(
+        librpa,
+        "frequency_grids",
+        "contract.librpa",
+    )
+    recognized_types = frequency_grids.get("recognized_types")
+    if (
+        not isinstance(recognized_types, list)
+        or not recognized_types
+        or any(not isinstance(value, str) or not value for value in recognized_types)
+        or frequency_grids.get("default") not in recognized_types
+    ):
+        raise ProfileError(
+            "contract.librpa.frequency_grids must define a default in recognized_types"
+        )
+    production_types = frequency_grids.get("production_types")
+    time_grid_types = frequency_grids.get("time_grid_types")
+    debug_only_types = frequency_grids.get("debug_only_types")
+    if (
+        not isinstance(production_types, list)
+        or not production_types
+        or any(value not in recognized_types for value in production_types)
+        or frequency_grids.get("default") not in production_types
+        or not isinstance(time_grid_types, list)
+        or any(value not in recognized_types for value in time_grid_types)
+        or any(value not in time_grid_types for value in production_types)
+        or not isinstance(debug_only_types, list)
+        or any(value not in time_grid_types for value in debug_only_types)
+        or set(debug_only_types) & set(production_types)
+    ):
+        raise ProfileError(
+            "contract.librpa.frequency_grids production/time/debug type sets are invalid"
+        )
+    minimax_counts = frequency_grids.get("minimax_nfreq_supported")
+    if (
+        not isinstance(minimax_counts, list)
+        or not minimax_counts
+        or any(not isinstance(value, int) or value <= 0 for value in minimax_counts)
+        or minimax_counts != sorted(set(minimax_counts))
+    ):
+        raise ProfileError(
+            "contract.librpa.frequency_grids.minimax_nfreq_supported must be sorted positive integers"
+        )
+    if (
+        not isinstance(frequency_grids.get("default_nfreq"), int)
+        or frequency_grids["default_nfreq"] not in minimax_counts
+    ):
+        raise ProfileError(
+            "contract.librpa.frequency_grids.default_nfreq must be a supported minimax count"
+        )
     helpers = _require_mapping(contract, "workflow_helpers", "contract")
     if set(helpers) != WORKFLOW_HELPERS:
         raise ProfileError("contract.workflow_helpers must list the approved helper quartet")
@@ -104,7 +155,6 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
         return
 
     abacus = contract["abacus"]
-    librpa = contract["librpa"]
     abacus_production = _require_mapping(abacus, "production", "contract.abacus")
     librpa_production = _require_mapping(librpa, "production", "contract.librpa")
     if abacus_production.get("out_librpa_reader_version") != 1:
