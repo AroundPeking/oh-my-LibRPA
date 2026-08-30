@@ -29,6 +29,7 @@ include = ["oml_mcp*"]
 [tool.setuptools.package-data]
 oml_mcp = [
   "profiles/*.json",
+  "admission_manifests/*.json",
   "benchmarks/*.json",
   "execution_profiles_registry/*.json",
   "scientific_benchmarks/*.json",

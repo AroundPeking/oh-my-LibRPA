@@ -1,0 +1,199 @@
+{
+  "manifest_schema": "oml.admission-manifest.v1",
+  "campaign_id": "fisherd-v2-admission-20260830",
+  "profile_id": "abacus-librpa-2026-08-30-v2",
+  "host": {
+    "alias": "Fisherd-Server100.96.1.64",
+    "remote_root": "/home/ghj/oml-admission/20260830-v2"
+  },
+  "limits": {
+    "compile_jobs_max": 16,
+    "execution_threads_max": 48
+  },
+  "sources": {
+    "abacus": {
+      "repository": "https://github.com/AroundPeking/abacus-develop.git",
+      "ref": "master_ghj",
+      "revision": "641caa554b44c4db2743603e9c75c96379901d7c"
+    },
+    "librpa": {
+      "repository": "https://github.com/AroundPeking/LibRPA.git",
+      "ref": "master_ghj",
+      "revision": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b"
+    },
+    "pyatb": {
+      "repository": "https://github.com/AroundPeking/pyatb.git",
+      "ref": "enable_head_wing",
+      "revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+    }
+  },
+  "contract": {
+    "reader_format": "v1",
+    "symmetry_source": "stru_out",
+    "rotation_reconstruction": "librpa",
+    "copy_legacy_symmetry_sidecars": [],
+    "strict_2d_production_coulomb": "full_ewald_analytic_headwing",
+    "strict_2d_diagnostic_only": "direct_mixed_fourier"
+  },
+  "builds": {
+    "librpa": {
+      "compiler": "mpiicpx",
+      "fortran_compiler": "ifx",
+      "compile_jobs": 16,
+      "cmake_options": [
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DLIBRPA_ENABLE_TEST=ON",
+        "-DLIBRPA_ENABLE_FORTRAN_BIND=OFF",
+        "-DLIBRPA_USE_LIBRI=ON"
+      ]
+    },
+    "abacus": {
+      "compiler": "mpiicpx",
+      "compile_jobs": 16,
+      "cmake_options": [
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DENABLE_MPI=ON",
+        "-DENABLE_LIBRI=ON",
+        "-DENABLE_LIBCOMM=ON",
+        "-DENABLE_GREENX_MINIMAX=ON",
+        "-DENABLE_MLALGO=OFF",
+        "-DBUILD_TESTING=ON",
+        "-DDEBUG_INFO=ON"
+      ],
+      "expected_executable": "abacus_3p"
+    },
+    "pyatb": {
+      "compiler": "python",
+      "compile_jobs": 0,
+      "validation": "clean-checkout-import-and-headwing-cli"
+    }
+  },
+  "levels": [
+    {
+      "level": "L0",
+      "purpose": "pinned source, clean build, and host provenance",
+      "cases": [
+        {
+          "case_id": "librpa-clean-build",
+          "component": "librpa",
+          "execution_threads": 1,
+          "gates": ["exact_revision", "clean_tree", "configure_pass", "build_pass"]
+        },
+        {
+          "case_id": "abacus-clean-build",
+          "component": "abacus",
+          "execution_threads": 1,
+          "gates": ["exact_revision", "clean_tree", "configure_pass", "build_pass", "abacus_3p_exists"]
+        },
+        {
+          "case_id": "pyatb-clean-import",
+          "component": "pyatb",
+          "execution_threads": 1,
+          "gates": ["exact_revision", "clean_tree", "import_pass", "headwing_entrypoints_present"]
+        }
+      ]
+    },
+    {
+      "level": "L1",
+      "purpose": "source-level contract tests",
+      "cases": [
+        {
+          "case_id": "librpa-source-contracts",
+          "route_id": "strict_2d_gw",
+          "execution_threads": 4,
+          "targets": [
+            "test_rpa_headwing",
+            "test_strict_2d_coulomb_head_metadata",
+            "test_sternheimer_rpa",
+            "test_sternheimer_symmetry",
+            "test_sternheimer_qsum"
+          ],
+          "gates": ["all_targets_registered", "all_tests_pass"]
+        },
+        {
+          "case_id": "abacus-source-contracts",
+          "route_id": "solid_delta_st_rpa",
+          "execution_threads": 4,
+          "targets": [
+            "MODULE_RI_ewald_tail_utils_test",
+            "MODULE_RI_gaussian_abfs_2d_integrals_test",
+            "MODULE_RI_ewald_gaussian_cutoff_test",
+            "MODULE_RI_librpa_stru_units_test",
+            "MODULE_RI_librpa_2d_coulomb_head_test",
+            "MODULE_RI_ewald_mpi_distribution_test_parallel",
+            "MODULE_RI_sternheimer_runtime_options_test",
+            "MODULE_RI_sternheimer_rpa_test",
+            "MODULE_RI_sternheimer_delta_test",
+            "MODULE_RI_sternheimer_periodic_solver_test",
+            "MODULE_RI_sternheimer_kq_test"
+          ],
+          "gates": ["all_targets_registered", "all_tests_pass"]
+        }
+      ]
+    },
+    {
+      "level": "L2",
+      "purpose": "reader-v1 and symmetry handoff replays",
+      "cases": [
+        {
+          "case_id": "periodic-3d-reader-v1-replay",
+          "route_id": "periodic_3d_gw",
+          "execution_threads": 16,
+          "gates": ["reader_v1", "no_legacy_sidecars", "stru_out_symmetry", "finite_outputs"]
+        },
+        {
+          "case_id": "strict-2d-headwing-replay",
+          "route_id": "strict_2d_gw",
+          "execution_threads": 16,
+          "gates": ["full_ewald", "analytic_headwing", "reader_v1", "finite_outputs"]
+        },
+        {
+          "case_id": "molecular-delta-v1-contract",
+          "route_id": "molecular_delta_st_rpa",
+          "execution_threads": 16,
+          "gates": ["reader_v1", "sternheimer_artifacts", "finite_response"]
+        },
+        {
+          "case_id": "solid-delta-v1-contract",
+          "route_id": "solid_delta_st_rpa",
+          "execution_threads": 16,
+          "gates": ["reader_v1", "sternheimer_artifacts", "finite_response"]
+        }
+      ]
+    },
+    {
+      "level": "L3",
+      "purpose": "bounded end-to-end smoke calculations",
+      "cases": [
+        {
+          "case_id": "periodic-3d-gw-smoke",
+          "route_id": "periodic_3d_gw",
+          "execution_threads": 32,
+          "system": "small insulating 3D fixture",
+          "gates": ["producer_complete", "pyatb_complete", "librpa_complete", "finite_gw"]
+        },
+        {
+          "case_id": "strict-2d-gw-smoke",
+          "route_id": "strict_2d_gw",
+          "execution_threads": 32,
+          "system": "existing strict-2D replay before a new producer",
+          "gates": ["full_ewald", "analytic_headwing", "no_cut_coulomb_production", "finite_gw"]
+        },
+        {
+          "case_id": "h2-molecular-delta-smoke",
+          "route_id": "molecular_delta_st_rpa",
+          "execution_threads": 32,
+          "system": "H2",
+          "gates": ["all_converged", "full_ewald_librpa", "finite_ec", "equation_count"]
+        },
+        {
+          "case_id": "si-solid-delta-smoke",
+          "route_id": "solid_delta_st_rpa",
+          "execution_threads": 48,
+          "system": "Si representative q and imaginary frequency",
+          "gates": ["solver_complete", "finite_response", "same_state_sos_comparison"]
+        }
+      ]
+    }
+  ]
+}
