@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "scorecard_id": "oml-multi-route-admission-v2",
+  "total_points": 100,
+  "pass_threshold": 90,
+  "dimensions": [
+    {"dimension_id": "reproducibility", "weight": 20},
+    {"dimension_id": "prevention", "weight": 15},
+    {"dimension_id": "stage_evidence", "weight": 20},
+    {"dimension_id": "numerical_evaluation", "weight": 15},
+    {"dimension_id": "scientific_evaluation", "weight": 20},
+    {"dimension_id": "diagnosis_quality", "weight": 10}
+  ],
+  "hard_gates": [
+    "stack_identity",
+    "file_contract",
+    "finite_output",
+    "channel_completeness",
+    "scientific_acceptance"
+  ],
+  "penalties": {
+    "failed_attempts": 2,
+    "ambiguous_attempts": 5,
+    "maximum_deduction": 20
+  }
+}

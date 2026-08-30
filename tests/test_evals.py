@@ -258,6 +258,68 @@ class ScorecardTest(unittest.TestCase):
         self.assertEqual(report["progress"]["scientific_report_id"], "science-scored-pass")
         self.assertEqual(report["progress"]["scientific_status"], "PASS")
 
+    def test_v2_scorecard_has_the_approved_dimensions_and_packaged_copy(self):
+        repository_path = REPOSITORY / "benchmarks" / "scorecard-v2.json"
+        packaged_path = REPOSITORY / "oml_mcp" / "benchmarks" / "scorecard-v2.json"
+        scorecard = load_scorecard(repository_path)
+
+        self.assertEqual(
+            {item["dimension_id"]: item["weight"] for item in scorecard["dimensions"]},
+            {
+                "reproducibility": 20,
+                "prevention": 15,
+                "stage_evidence": 20,
+                "numerical_evaluation": 15,
+                "scientific_evaluation": 20,
+                "diagnosis_quality": 10,
+            },
+        )
+        self.assertEqual(
+            json.loads(repository_path.read_text(encoding="utf-8")),
+            json.loads(packaged_path.read_text(encoding="utf-8")),
+        )
+
+    def test_v2_hard_gates_are_non_compensating(self):
+        card = load_scorecard(REPOSITORY / "benchmarks" / "scorecard-v2.json")
+        dimensions = {item["dimension_id"]: 1.0 for item in card["dimensions"]}
+
+        for failed_gate in card["hard_gates"]:
+            hard_gates = {gate_id: True for gate_id in card["hard_gates"]}
+            hard_gates[failed_gate] = False
+            report = evaluate_evidence(
+                {
+                    "dimensions": dimensions,
+                    "hard_gates": hard_gates,
+                    "penalties": {"failed_attempts": 0, "ambiguous_attempts": 0},
+                },
+                scorecard=card,
+            )
+
+            with self.subTest(failed_gate=failed_gate):
+                self.assertEqual(report["verdict"], "FAIL")
+                self.assertEqual(report["total_score"], 0.0)
+
+    def test_v2_missing_evidence_is_incomplete_not_failed(self):
+        card = load_scorecard(REPOSITORY / "benchmarks" / "scorecard-v2.json")
+        dimensions = {item["dimension_id"]: 1.0 for item in card["dimensions"]}
+        dimensions["scientific_evaluation"] = None
+        hard_gates = {gate_id: True for gate_id in card["hard_gates"]}
+        hard_gates["scientific_acceptance"] = None
+
+        report = evaluate_evidence(
+            {
+                "dimensions": dimensions,
+                "hard_gates": hard_gates,
+                "penalties": {"failed_attempts": 0, "ambiguous_attempts": 0},
+            },
+            scorecard=card,
+        )
+
+        self.assertEqual(report["verdict"], "INCOMPLETE")
+        self.assertTrue(report["eligible"])
+        self.assertIn("scientific_evaluation", report["not_evaluated"])
+        self.assertIn("scientific_acceptance", report["not_evaluated"])
+
 
 if __name__ == "__main__":
     unittest.main()

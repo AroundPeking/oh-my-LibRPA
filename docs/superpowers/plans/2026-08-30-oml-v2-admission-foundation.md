@@ -279,7 +279,7 @@ Commit message: `Add controlled evolution proposals`
 - Modify: `pyproject.toml`
 - Modify: `tests/test_evals.py`
 
-- [ ] **Step 1: Write failing v2 scorecard tests**
+- [x] **Step 1: Write failing v2 scorecard tests**
 
 Load `scorecard-v2.json` explicitly and assert weights 20/15/20/15/20/10 for
 reproducibility, prevention, stage evidence, numerical evaluation, scientific
@@ -287,13 +287,13 @@ evaluation, and diagnosis quality. Assert any false stack/contract/finite/
 completeness/scientific hard gate forces score zero, while a missing hard gate
 or dimension produces `INCOMPLETE` rather than `FAIL`.
 
-- [ ] **Step 2: Run scorecard tests and confirm RED**
+- [x] **Step 2: Run scorecard tests and confirm RED**
 
 Run: `.venv/bin/python -m unittest tests.test_evals -v`
 
 Expected: FAIL because the v2 scorecard files do not exist.
 
-- [ ] **Step 3: Add v2 card and preserve generic evaluator behavior**
+- [x] **Step 3: Add v2 card and preserve generic evaluator behavior**
 
 Define six dimensions totaling 100 and hard gates:
 
@@ -304,13 +304,13 @@ Define six dimensions totaling 100 and hard gates:
 Keep `score_run()` on scorecard v1 until route-specific v2 receipts are wired in
 the Fisherd implementation. Package both scorecards.
 
-- [ ] **Step 4: Run scorecard tests and confirm GREEN**
+- [x] **Step 4: Run scorecard tests and confirm GREEN**
 
 Run: `.venv/bin/python -m unittest tests.test_evals -v`
 
 Expected: all v1 and v2 scorecard tests pass.
 
-- [ ] **Step 5: Commit Task 5**
+- [x] **Step 5: Commit Task 5**
 
 Commit message: `Add OML admission scorecard v2`
 
