@@ -227,7 +227,7 @@ Commit message: `Add immutable admission receipts`
 - Create: `oml_mcp/evolution.py`
 - Create: `tests/test_evolution.py`
 
-- [ ] **Step 1: Write failing mutation-policy tests**
+- [x] **Step 1: Write failing mutation-policy tests**
 
 Test route registries for 3D GW, strict-2D Ewald GW, molecular Delta-ST, and
 solid Delta-ST. Test that `propose_candidate()` permits one registered axis,
@@ -235,13 +235,13 @@ rejects two changed axes, rejects an unregistered key, rejects a duplicate
 definition digest, rejects exhausted candidate/CPU/wall/disk budgets, and
 returns `PROPOSAL_ONLY` with no submission command.
 
-- [ ] **Step 2: Run evolution tests and confirm RED**
+- [x] **Step 2: Run evolution tests and confirm RED**
 
 Run: `.venv/bin/python -m unittest tests.test_evolution -v`
 
 Expected: FAIL because `oml_mcp.evolution` does not exist.
 
-- [ ] **Step 3: Implement route registries and proposal validation**
+- [x] **Step 3: Implement route registries and proposal validation**
 
 Create frozen `EvolutionBudget`, `EvolutionUsage`, and `CandidateProposal`
 dataclasses. Register exact parameter keys by route:
@@ -260,13 +260,13 @@ budget, and usage keyword inputs from Step 1. The proposal records exactly one
 changed axis and a canonical definition digest. It has status `PROPOSAL_ONLY`
 and contains no execution method.
 
-- [ ] **Step 4: Run evolution tests and confirm GREEN**
+- [x] **Step 4: Run evolution tests and confirm GREEN**
 
 Run: `.venv/bin/python -m unittest tests.test_evolution -v`
 
 Expected: all controlled-evolution tests pass.
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 Commit message: `Add controlled evolution proposals`
 
