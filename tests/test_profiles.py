@@ -4,11 +4,23 @@ import tempfile
 import unittest
 
 
-from oml_mcp.profiles import ProfileError, load_profile
+from oml_mcp.profiles import ProfileError, list_profiles, load_profile
 
 
 REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / "abacus-librpa-pyatb-2026-08.json"
 PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / "abacus-librpa-pyatb-2026-08.json"
+V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
+V2_REPOSITORY_PROFILE = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "profiles"
+    / "abacus-librpa-pyatb-2026-08-v2.json"
+)
+V2_PACKAGED_PROFILE = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "oml_mcp"
+    / "profiles"
+    / "abacus-librpa-pyatb-2026-08-v2.json"
+)
 
 
 class CompatibilityProfileTest(unittest.TestCase):
@@ -139,6 +151,61 @@ class CompatibilityProfileTest(unittest.TestCase):
 
             with self.assertRaisesRegex(ProfileError, "strict_2d_gw.*revision"):
                 load_profile(path)
+
+    def test_v2_profile_is_registered_and_packaged_once(self):
+        self.assertIn(V2_PROFILE_ID, list_profiles())
+        repository = json.loads(V2_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
+        packaged = json.loads(V2_PACKAGED_PROFILE.read_text(encoding="utf-8"))
+
+        self.assertEqual(packaged, repository)
+        self.assertEqual(load_profile(profile_id=V2_PROFILE_ID), repository)
+
+    def test_v2_profile_pins_the_current_stack_as_testable(self):
+        profile = load_profile(profile_id=V2_PROFILE_ID)
+
+        self.assertEqual(profile["schema_version"], 2)
+        self.assertEqual(
+            profile["components"]["abacus"]["revision"],
+            "641caa554b44c4db2743603e9c75c96379901d7c",
+        )
+        self.assertEqual(
+            profile["components"]["librpa"]["revision"],
+            "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+        )
+        self.assertEqual(
+            profile["components"]["pyatb"]["revision"],
+            "9fb9028c59b1dbaf9cf66965280961fc2225d9eb",
+        )
+        self.assertEqual(
+            set(profile["capabilities"]),
+            {
+                "periodic_3d_gw",
+                "strict_2d_gw",
+                "molecular_delta_st_rpa",
+                "solid_delta_st_rpa",
+            },
+        )
+        self.assertTrue(
+            all(item["status"] == "TESTABLE" for item in profile["capabilities"].values())
+        )
+        self.assertEqual(profile["admission"]["levels"], ["L0", "L1", "L2", "L3", "L4"])
+
+    def test_v2_profile_explicitly_selects_reader_v1_and_stru_out_symmetry(self):
+        contract = load_profile(profile_id=V2_PROFILE_ID)["contract"]
+
+        self.assertEqual(contract["abacus"]["source_default"]["out_librpa_reader_version"], 0)
+        self.assertEqual(contract["abacus"]["production"]["out_librpa_reader_version"], 1)
+        self.assertEqual(contract["librpa"]["source_default"]["version_coul_reader"], -1)
+        self.assertEqual(contract["librpa"]["source_default"]["version_lri_reader"], -1)
+        self.assertEqual(contract["librpa"]["production"]["version_coul_reader"], 1)
+        self.assertEqual(contract["librpa"]["production"]["version_lri_reader"], 1)
+        self.assertEqual(contract["symmetry"]["source"], "stru_out")
+        self.assertEqual(contract["symmetry"]["rotation_reconstruction"], "librpa")
+        self.assertEqual(contract["symmetry"]["copy_legacy_sidecars"], [])
+
+    def test_unknown_profile_id_is_rejected(self):
+        with self.assertRaisesRegex(ProfileError, "unknown profile_id"):
+            load_profile(profile_id="missing-profile")
 
 
 if __name__ == "__main__":

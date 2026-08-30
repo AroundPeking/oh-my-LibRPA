@@ -18,7 +18,7 @@
 - Create: `profiles/abacus-librpa-pyatb-2026-08-v2.json`
 - Modify: `tests/test_profiles.py`
 
-- [ ] **Step 1: Write failing registry and v2 contract tests**
+- [x] **Step 1: Write failing registry and v2 contract tests**
 
 Add tests which call `list_profiles()` and
 `load_profile(profile_id="abacus-librpa-2026-08-30-v2")`, then assert the three
@@ -26,13 +26,13 @@ pinned revisions, four `TESTABLE` capabilities, admission levels `L0` through
 `L4`, reader-v1 production values, `stru_out` symmetry source, and an empty
 legacy-sidecar copy list. Assert an unknown profile ID raises `ProfileError`.
 
-- [ ] **Step 2: Run the focused tests and confirm RED**
+- [x] **Step 2: Run the focused tests and confirm RED**
 
 Run: `.venv/bin/python -m unittest tests.test_profiles -v`
 
 Expected: FAIL because `list_profiles` and the v2 registry do not exist.
 
-- [ ] **Step 3: Add the profile registry and schema-v2 validator**
+- [x] **Step 3: Add the profile registry and schema-v2 validator**
 
 Implement these public interfaces while retaining `load_profile()` as the old
 default:
@@ -75,13 +75,13 @@ Schema v1 keeps the exact old capability constraints. Schema v2 accepts only
 capabilities, and validates the profile's admission-level and reader-v1
 contract objects.
 
-- [ ] **Step 4: Run profile tests and confirm GREEN**
+- [x] **Step 4: Run profile tests and confirm GREEN**
 
 Run: `.venv/bin/python -m unittest tests.test_profiles -v`
 
 Expected: all profile tests pass.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 Commit message: `Add OML v2 compatibility profile`
 
