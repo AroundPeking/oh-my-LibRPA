@@ -1,0 +1,168 @@
+{
+  "schema_version": 2,
+  "profile_id": "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1",
+  "verified_at": "2026-09-02",
+  "components": {
+    "abacus": {
+      "repository": "https://github.com/AroundPeking/abacus-develop.git",
+      "ref": "master_ghj",
+      "revision": "0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43",
+      "role": "immutable_replay_producer"
+    },
+    "librpa": {
+      "repository": "https://github.com/AroundPeking/LibRPA.git",
+      "ref": "codex/strict2d-rpa-qavg-20260901",
+      "revision": "c87103df00b772ddbfc21597884c2787cf685037",
+      "executable_sha256": "0ca485dde5833dd190709c59d4689c263c2344041f2c71be4bc33c7e0b5da3c9"
+    },
+    "pyatb": {
+      "repository": "https://github.com/AroundPeking/pyatb.git",
+      "ref": "enable_head_wing",
+      "revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb",
+      "role": "immutable_replay_producer"
+    }
+  },
+  "capabilities": {
+    "strict_2d_sos_rpa": {
+      "status": "TESTABLE",
+      "admission_level": "L3",
+      "experimental_requires": ["L0", "L1", "L2", "L3"],
+      "promotion_requires": ["reviewed OML commit", "at least three converged in-plane k meshes"]
+    }
+  },
+  "admission": {
+    "levels": ["L0", "L1", "L2", "L3", "L4"],
+    "df_dcu_limits": {
+      "partition": "normal",
+      "work_root": "/work1",
+      "nodes": 4,
+      "mpi_ranks": 4,
+      "omp_threads_per_rank": 30,
+      "mkl_threads_per_rank": 30,
+      "mpi_launcher": "mpirun -ppn 1"
+    },
+    "promotion": {
+      "automatic": false,
+      "reviewed_commit": true,
+      "two_mesh_smoke_is_convergence_evidence": false
+    }
+  },
+  "contract": {
+    "abacus": {
+      "source_default": {"out_librpa_reader_version": 0},
+      "allowed": {"out_librpa_reader_version": [0, 1]},
+      "production": {
+        "basis_type": "lcao",
+        "rpa": 1,
+        "out_librpa_reader_version": 1
+      },
+      "symmetry": {"enabled": 1, "disabled": -1, "stru_out_convention": "row"},
+      "shrink_enabled_when": "shrink_abfs_pca_thr >= 0"
+    },
+    "librpa": {
+      "source_default": {"version_coul_reader": -1, "version_lri_reader": -1},
+      "production": {
+        "task": "rpa",
+        "prefix_coul_full": "v1_coulomb_full_iq_",
+        "prefix_coul_cut": "v1_coulomb_cut_iq_",
+        "prefix_eigvecs_scf": "KS_eigenvector",
+        "prefix_lri_coeff": "v1_Cs_data_",
+        "prefix_lri_coeff_shrink": "v1_Cs_shrinked_data_",
+        "prefix_shrink_sinvS": "v1_shrink_sinvS_",
+        "fn_stru": "stru_out",
+        "fn_bz_sampling": "bz_sampling_out",
+        "fn_basis_wfc": "basis_wfc_out",
+        "fn_basis_aux": "basis_aux_out",
+        "fn_basis_aux_shrink": "basis_aux_shrink_out",
+        "fn_eigocc_scf": "band_out",
+        "fn_vxc_scf": "vxc_out",
+        "version_coul_reader": 1,
+        "version_lri_reader": 1,
+        "parallel_routing": "libri",
+        "use_kpara_scf_eigvec": true
+      },
+      "canonical_symmetry_keys": ["use_symmetry_exx", "use_symmetry_gw", "use_symmetry_rpa"],
+      "unsupported_oml_keys": {
+        "use_input_exx_symmetry": "use_symmetry_exx",
+        "use_input_gw_symmetry": "use_symmetry_gw",
+        "use_input_rpa_symmetry": "use_symmetry_rpa"
+      },
+      "deprecated_values": {"task": {"g0w0_band": "g0w0"}},
+      "reader_versions": [-1, 0, 1],
+      "frequency_grids": {
+        "default": "minimax",
+        "default_nfreq": 16,
+        "recognized_types": ["GL", "split-GL", "GC-I", "GL-II", "minimax", "evenspaced", "evenspaced_tf"],
+        "production_types": ["minimax"],
+        "time_grid_types": ["minimax", "evenspaced_tf"],
+        "debug_only_types": ["evenspaced_tf"],
+        "minimax_nfreq_supported": [16]
+      }
+    },
+    "strict_2d_sos_rpa": {
+      "task": "rpa",
+      "response_method": "sos",
+      "reader_format": "v1",
+      "coulomb": "full_2d_ewald",
+      "coulomb_head_artifact": "librpa_2d_coulomb_head.dat",
+      "nfreq": 16,
+      "headwing": "qavg",
+      "head_only": false,
+      "producer_policy": "reuse_validated_only",
+      "allow_abacus_rerun": false,
+      "allow_pyatb_rerun": false,
+      "required_input": {
+        "replace_w_head": true,
+        "option_dielect_func": 3,
+        "use_2d_dielectric": true,
+        "use_pyatb": true,
+        "rpa_headwing_mode": "qavg",
+        "rpa_headwing_body_start": 1
+      },
+      "runtime_acceptance": {
+        "qavg_records": 16,
+        "weight_sum_tolerance": 1e-6,
+        "imaginary_energy_tolerance_hartree": 1e-8,
+        "qsum_absolute_tolerance_hartree": 5e-9,
+        "qsum_relative_tolerance": 1e-8,
+        "finite_values": true,
+        "lu_info": 0
+      },
+      "k_mesh_acceptance": {
+        "minimum_meshes_for_convergence_claim": 3,
+        "two_mesh_scope": "functional_smoke_only",
+        "forbid_convergence_exponent_claim": true
+      }
+    },
+    "symmetry": {
+      "source": "stru_out",
+      "rotation_reconstruction": "librpa",
+      "copy_legacy_sidecars": []
+    },
+    "artifacts": {
+      "required_base": ["stru_out", "bz_sampling_out", "basis_wfc_out", "basis_aux_out", "band_out", "librpa_2d_coulomb_head.dat"],
+      "required_shrink": ["basis_aux_shrink_out", "v1_Cs_shrinked_data_", "v1_shrink_sinvS_"],
+      "v1_prefixes": ["v1_coulomb_full_iq_", "v1_coulomb_cut_iq_", "v1_Cs_data_", "v1_Cs_shrinked_data_", "v1_shrink_sinvS_"],
+      "legacy_prefixes": ["coulomb_mat", "coulomb_cut", "Cs_data", "Cs_shrinked_data", "shrink_sinvS_"],
+      "legacy_symmetry_sidecars_not_required": ["irreducible_sector.txt", "symrot_R.txt", "symrot_k.txt", "symrot_abf_k.txt"]
+    },
+    "workflow_helpers": {
+      "perform.sh": "b1c4e2327c996c0b03b4ec4a284f0710ea8b103d2237486a15414ca2af09e891",
+      "get_diel.py": "fea2d2e62a23aa86bd17b8a447dd58f078679fcf7b6db31b493fe2b13137e714",
+      "output_librpa.py": "10986012071d6bb1d235874c5136e79b5b2f137e6b71bbd78a7cecdc9060305a",
+      "preprocess_abacus_for_librpa_band.py": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
+    },
+    "pyatb_adapter": {
+      "producer_role": "Reuse only the already validated full-grid eigenvector and velocity handoff; rerun is prohibited.",
+      "directory": "pyatb_librpa_df",
+      "location": "input_dir/pyatb_librpa_df",
+      "required_text": ["k_path_info", "band_out"],
+      "eigenvector_prefix": "KS_eigenvector_",
+      "velocity_prefix": "velocity_matrix",
+      "eigenvector_v1": {"marker": -12345679, "kind": 28},
+      "velocity_v1": {"marker": -12345680, "kind": 29, "nalpha": 3},
+      "state_coverage": "pyatb_nstates_equal_abacus_nbands",
+      "kpoint_policy": "full_regular_grid"
+    }
+  }
+}

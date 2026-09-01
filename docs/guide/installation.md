@@ -100,6 +100,13 @@ RPA capabilities in both admission generations are `TESTABLE`. Evidence can adva
 level, but the profile is not promoted automatically into the production
 materializer; promotion requires complete gates and a reviewed commit.
 
+The df_dcu profile `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` and admission
+manifest `df-dcu-strict2d-sos-rpa-2026-09-02-v1` add the independent
+`strict_2d_sos_rpa` route as `TESTABLE`. It is a LibRPA-only replay of a
+validated reader-v1/full-2D-Ewald producer, fixes `nfreq=16` and qavg
+head/wing, and prohibits ABACUS/PyATB reruns. Its N=8/N=12 evidence is a
+functional smoke only and does not establish a k-point convergence exponent.
+
 All profiles explicitly use reader-v1 in OML workflows:
 
 - ABACUS: `out_librpa_reader_version 1`

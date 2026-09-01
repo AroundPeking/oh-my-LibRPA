@@ -34,6 +34,7 @@ AdmissionRoute = Literal[
     "strict_2d_gw",
     "molecular_delta_st_rpa",
     "solid_delta_st_rpa",
+    "strict_2d_sos_rpa",
 ]
 
 
@@ -89,7 +90,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.4.2",
+        version="0.4.3",
     )
     annotations = _read_only_annotations()
 
@@ -108,13 +109,16 @@ def build_server() -> MCPServer:
 
     @server.tool(
         name="inspect_admission_manifest",
-        description="Return the pinned Fisherd v2 route matrix, resource limits, and required gates.",
+        description="Return a pinned route admission matrix, resource limits, and required gates.",
         annotations=annotations,
         structured_output=True,
     )
-    def inspect_admission_manifest(path: str | None = None) -> dict[str, Any]:
-        """Inspect the deterministic v2 admission campaign without running it."""
-        return load_admission_manifest(path)
+    def inspect_admission_manifest(
+        path: str | None = None,
+        manifest_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Inspect a deterministic admission campaign without running it."""
+        return load_admission_manifest(path, manifest_id=manifest_id)
 
     @server.tool(
         name="evaluate_admission",
@@ -227,6 +231,8 @@ def build_server() -> MCPServer:
         soc: bool = False,
         headwing: bool | None = None,
         stage: Literal["input", "pre_librpa"] = "pre_librpa",
+        response_method: Literal["sos", "sternheimer"] = "sos",
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Validate an ABACUS plus LibRPA case and return every gate."""
         return validate_case_data(
@@ -237,6 +243,8 @@ def build_server() -> MCPServer:
             soc=soc,
             headwing=headwing,
             stage=stage,
+            response_method=response_method,
+            profile_id=profile_id,
         ).to_dict()
 
     @server.tool(

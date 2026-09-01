@@ -24,7 +24,7 @@ from .parsers import (
     parse_librpa_input,
     parse_vxc_out,
 )
-from .profiles import load_profile
+from .profiles import STRICT_2D_SOS_RPA_PROFILE_ID, load_profile
 
 
 VALID_STAGES = frozenset({"input", "pre_librpa"})
@@ -83,8 +83,10 @@ def _find_by_prefix(root: Path, prefix: str) -> tuple[Path, ...]:
     )
 
 
-def _parse_inputs(case_root: Path) -> tuple[InputDocument, InputDocument] | ValidationReport:
-    profile = load_profile()
+def _parse_inputs(
+    case_root: Path, *, profile_id: str | None = None
+) -> tuple[InputDocument, InputDocument] | ValidationReport:
+    profile = load_profile(profile_id=profile_id) if profile_id is not None else load_profile()
     try:
         abacus = parse_abacus_input(case_root / "INPUT_scf")
         librpa = parse_librpa_input(case_root / "librpa.in")
@@ -355,11 +357,14 @@ def _headwing_policy_gate(
     task: str,
     system_type: str,
     requested: bool | None,
+    strict_2d_sos_rpa: bool = False,
 ) -> GateResult:
     actual = _bool_value(librpa, "replace_w_head")
     normalized_system = system_type.strip().lower()
     periodic_3d = task == "gw" and normalized_system in {"solid", "periodic"}
-    strict_2d = task == "gw" and normalized_system in {"2d", "two-dimensional"}
+    strict_2d = (
+        task == "gw" or (task == "rpa" and strict_2d_sos_rpa)
+    ) and normalized_system in {"2d", "two-dimensional"}
     expected = (True if requested is None else requested) if periodic_3d else strict_2d
     if actual is None or actual != expected:
         return _fail(
@@ -385,8 +390,29 @@ def _route_policy_gate(
     system_type: str,
     use_symmetry: bool,
     profile: dict[str, Any],
+    response_method: str,
 ) -> GateResult:
     normalized_system = system_type.strip().lower()
+    if profile["profile_id"] == STRICT_2D_SOS_RPA_PROFILE_ID:
+        if (
+            task != "rpa"
+            or normalized_system not in {"2d", "two-dimensional"}
+            or response_method != "sos"
+        ):
+            return _fail(
+                "route.strict_2d_sos_rpa",
+                "the selected profile only admits strict-2D SOS-RPA",
+                (
+                    f"task={task}",
+                    f"system_type={system_type}",
+                    f"response_method={response_method}",
+                ),
+                "select task=rpa, system_type=2d, and response_method=sos",
+            )
+        return _pass(
+            "route.strict_2d_sos_rpa",
+            "task, system type, and response method select strict-2D SOS-RPA",
+        )
     if task == "gw" and normalized_system in {"2d", "two-dimensional"}:
         blocked = profile["capabilities"]["strict_2d_gw"]
         return _fail(
@@ -407,6 +433,55 @@ def _route_policy_gate(
             "set use_symmetry = false for molecular GW",
         )
     return _pass("route.policy", "task and system type select a supported OML route")
+
+
+def _strict_2d_sos_rpa_input_gate(
+    librpa: InputDocument,
+    profile: dict[str, Any],
+) -> GateResult:
+    if profile["profile_id"] != STRICT_2D_SOS_RPA_PROFILE_ID:
+        return _skip(
+            "librpa.strict_2d_sos_rpa",
+            "the selected profile is not the strict-2D SOS-RPA replay route",
+        )
+    required = profile["contract"]["strict_2d_sos_rpa"]["required_input"]
+    mismatches: list[str] = []
+    for key in ("replace_w_head", "use_2d_dielectric", "use_pyatb"):
+        actual = _bool_value(librpa, key)
+        if actual is not required[key]:
+            mismatches.append(f"{key}={librpa.value(key)!r} expected t")
+    mode = (librpa.value("rpa_headwing_mode") or "").strip().lower()
+    if mode != required["rpa_headwing_mode"]:
+        mismatches.append(
+            f"rpa_headwing_mode={librpa.value('rpa_headwing_mode')!r} expected qavg"
+        )
+    if _int_value(librpa, "option_dielect_func") != required["option_dielect_func"]:
+        mismatches.append(
+            f"option_dielect_func={librpa.value('option_dielect_func')!r} expected 3"
+        )
+    if _int_value(librpa, "rpa_headwing_body_start") != required["rpa_headwing_body_start"]:
+        mismatches.append(
+            "rpa_headwing_body_start="
+            f"{librpa.value('rpa_headwing_body_start')!r} expected 1"
+        )
+    if "head_only" in librpa.keys:
+        mismatches.append("head_only must be absent")
+    if mismatches:
+        return _fail(
+            "librpa.strict_2d_sos_rpa",
+            "librpa.in does not match the strict-2D SOS-RPA qavg contract",
+            (str(librpa.path), *mismatches),
+            (
+                "enable replace_w_head/use_2d_dielectric/use_pyatb, set "
+                "option_dielect_func=3, rpa_headwing_mode=qavg and "
+                "rpa_headwing_body_start=1, and remove head_only"
+            ),
+        )
+    return _pass(
+        "librpa.strict_2d_sos_rpa",
+        "librpa.in matches the strict-2D SOS-RPA qavg contract",
+        str(librpa.path),
+    )
 
 
 def _map_kpoints_by_coordinates(
@@ -448,6 +523,22 @@ def _artifact_existence_gate(root: Path, names: Iterable[str], gate_id: str, lab
             f"regenerate the missing {label} with the pinned ABACUS reader-v1 producer",
         )
     return _pass(gate_id, f"all required {label} exist", str(root))
+
+
+def _strict2d_coulomb_head_gate(root: Path, filename: str) -> GateResult:
+    path = root / filename
+    if not path.is_file() or path.stat().st_size <= 0:
+        return _fail(
+            "strict2d.coulomb_head",
+            "strict-2D Coulomb head artifact is missing or empty",
+            (str(path),),
+            "reuse the non-empty librpa_2d_coulomb_head.dat from the validated producer",
+        )
+    return _pass(
+        "strict2d.coulomb_head",
+        "strict-2D Coulomb head artifact exists and is non-empty",
+        str(path),
+    )
 
 
 def _prefix_artifact_gate(
@@ -668,14 +759,16 @@ def validate_case(
     soc: bool = False,
     headwing: bool | None = None,
     stage: str = "pre_librpa",
+    response_method: str = "sos",
+    profile_id: str | None = None,
 ) -> ValidationReport:
-    profile = load_profile()
-    profile_id = profile["profile_id"]
+    profile = load_profile(profile_id=profile_id) if profile_id is not None else load_profile()
+    selected_profile_id = profile["profile_id"]
     case_root = Path(path).expanduser().resolve()
     normalized_stage = stage.strip().lower()
     if normalized_stage not in VALID_STAGES:
         return ValidationReport(
-            profile_id,
+            selected_profile_id,
             (
                 _fail(
                     "validation.stage",
@@ -685,13 +778,14 @@ def validate_case(
                 ),
             ),
         )
-    parsed = _parse_inputs(case_root)
+    parsed = _parse_inputs(case_root, profile_id=selected_profile_id)
     if isinstance(parsed, ValidationReport):
         return parsed
     abacus, librpa = parsed
     contract = profile["contract"]
     production = contract["librpa"]["production"]
     normalized_task = task.strip().lower()
+    normalized_response = response_method.strip().lower()
     required_v1_names = {
         "prefix_coul_full": production["prefix_coul_full"],
         "prefix_eigvecs_scf": production["prefix_eigvecs_scf"],
@@ -728,8 +822,21 @@ def validate_case(
         _task_gate(librpa, normalized_task),
         _fullcoul_exx_gate(librpa),
         _frequency_grid_gate(librpa, contract["librpa"]["frequency_grids"]),
-        _route_policy_gate(normalized_task, system_type, use_symmetry, profile),
-        _headwing_policy_gate(librpa, normalized_task, system_type, headwing),
+        _route_policy_gate(
+            normalized_task,
+            system_type,
+            use_symmetry,
+            profile,
+            normalized_response,
+        ),
+        _headwing_policy_gate(
+            librpa,
+            normalized_task,
+            system_type,
+            headwing,
+            strict_2d_sos_rpa=selected_profile_id == STRICT_2D_SOS_RPA_PROFILE_ID,
+        ),
+        _strict_2d_sos_rpa_input_gate(librpa, profile),
         _value_gate(
             librpa,
             "librpa.reader_v1",
@@ -804,7 +911,7 @@ def validate_case(
                 _skip("pyatb.alignment", "PyATB outputs are not required at the input stage"),
             )
         )
-        return ValidationReport(profile_id, tuple(gates))
+        return ValidationReport(selected_profile_id, tuple(gates))
 
     dataset = _dataset_root(case_root, librpa)
     base_names = (
@@ -815,6 +922,13 @@ def validate_case(
         production["fn_eigocc_scf"],
     )
     gates.append(_artifact_existence_gate(dataset, base_names, "dataset.artifacts", "base artifacts"))
+    if selected_profile_id == STRICT_2D_SOS_RPA_PROFILE_ID:
+        gates.append(
+            _strict2d_coulomb_head_gate(
+                dataset,
+                profile["contract"]["strict_2d_sos_rpa"]["coulomb_head_artifact"],
+            )
+        )
     required_prefixes = (
         (production["prefix_coul_full"], production["prefix_coul_cut"], production["prefix_lri_coeff"])
         if normalized_task == "gw"
@@ -1163,4 +1277,4 @@ def validate_case(
         gates.append(
             _skip("pyatb.alignment", "replace_w_head is missing or invalid")
         )
-    return ValidationReport(profile_id, tuple(gates))
+    return ValidationReport(selected_profile_id, tuple(gates))

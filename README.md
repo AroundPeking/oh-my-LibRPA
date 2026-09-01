@@ -73,6 +73,12 @@ LibRPA reconstructs rotations, and legacy symmetry sidecars are never copied.
 Automatic evolution changes one registered parameter at a time and produces a
 `PROPOSAL_ONLY` record; it cannot submit a job or promote policy.
 
+The separate profile `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` and
+manifest `df-dcu-strict2d-sos-rpa-2026-09-02-v1` register the
+`strict_2d_sos_rpa` LibRPA-only replay as `TESTABLE`. It fixes reader-v1,
+full 2D Ewald, `nfreq=16`, and qavg head/wing, forbids ABACUS/PyATB reruns, and
+records N=8/N=12 only as a functional smoke rather than k-point convergence.
+
 ---
 
 ## Quick start
@@ -217,6 +223,7 @@ Molecule GW:      SCF -> LibRPA
 Periodic GW:      SCF -> pyatb -> NSCF -> preprocess -> LibRPA
 Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC, stru_out metadata) -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
 RPA:              SCF -> LibRPA
+Strict-2D SOS-RPA: validated ABACUS/PyATB producer -> LibRPA only (qavg, TESTABLE)
 Strict-2D GW v2:  SCF -> pyatb -> NSCF -> preprocess -> LibRPA
 Molecular Delta:  ground state -> Sternheimer response -> LibRPA
 Solid Delta:      ground state -> Sternheimer response -> LibRPA
@@ -248,6 +255,7 @@ Useful supporting material:
 | `docs/live-benchmarks/2026-08-13-df-bn-reader-v1-shrink.md` | Live DF reader-v1, symmetry, shrink, and frozen-consumer evidence |
 | `docs/live-benchmarks/2026-08-30-fisherd-v2-admission.md` | Current-stack Fisherd admission evidence for four v2 routes and the evolution scorecard |
 | `docs/live-benchmarks/2026-08-30-fisherd-v3-sternheimer-handoff.md` | Corrected solid and molecular Sternheimer Coulomb handoff evidence |
+| `docs/live-benchmarks/2026-09-02-df-dcu-strict2d-sos-rpa.md` | df_dcu strict-2D SOS-RPA N=8/N=12 admission smoke and remaining k-convergence boundary |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |

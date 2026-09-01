@@ -27,6 +27,7 @@ ROUTE_MUTATION_AXES = {
     "solid_delta_st_rpa": frozenset(
         {"grid_cutoff", "nfreq", "pca_threshold", "coulomb_metric", "kq_sampling"}
     ),
+    "strict_2d_sos_rpa": frozenset({"in_plane_kgrid", "vacuum"}),
 }
 
 

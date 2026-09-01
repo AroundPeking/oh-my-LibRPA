@@ -9,10 +9,12 @@ from typing import Any
 DEFAULT_PROFILE_ID = "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
+STRICT_2D_SOS_RPA_PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 PROFILE_NAMES = {
     DEFAULT_PROFILE_ID: "abacus-librpa-pyatb-2026-08.json",
     V2_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v2.json",
     V3_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v3.json",
+    STRICT_2D_SOS_RPA_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json",
 }
 PROFILE_NAME = PROFILE_NAMES[DEFAULT_PROFILE_ID]
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -27,6 +29,7 @@ V2_CAPABILITIES = frozenset(
         "solid_delta_st_rpa",
     }
 )
+STRICT_2D_SOS_RPA_CAPABILITIES = frozenset({"strict_2d_sos_rpa"})
 CAPABILITY_STATUSES = frozenset({"BLOCKED", "TESTABLE", "EXPERIMENTAL", "ENABLED"})
 ADMISSION_LEVELS = ["L0", "L1", "L2", "L3", "L4"]
 
@@ -222,9 +225,18 @@ def _validate_v1_capabilities(profile: dict[str, Any], components: dict[str, Any
 
 def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
     capabilities = _require_mapping(profile, "capabilities", "profile")
-    if set(capabilities) != V2_CAPABILITIES:
-        raise ProfileError("schema v2 capabilities must list the four admission routes")
-    for route_id in sorted(V2_CAPABILITIES):
+    strict_2d_sos_rpa = profile.get("profile_id") == STRICT_2D_SOS_RPA_PROFILE_ID
+    expected_capabilities = (
+        STRICT_2D_SOS_RPA_CAPABILITIES if strict_2d_sos_rpa else V2_CAPABILITIES
+    )
+    if set(capabilities) != expected_capabilities:
+        description = (
+            "the strict_2d_sos_rpa admission route"
+            if strict_2d_sos_rpa
+            else "the four admission routes"
+        )
+        raise ProfileError(f"schema v2 capabilities must list {description}")
+    for route_id in sorted(expected_capabilities):
         capability = _require_mapping(capabilities, route_id, "capabilities")
         status = capability.get("status")
         if status not in CAPABILITY_STATUSES:
@@ -240,9 +252,65 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
     admission = _require_mapping(profile, "admission", "profile")
     if admission.get("levels") != ADMISSION_LEVELS:
         raise ProfileError("admission.levels must be L0 through L4")
-    limits = _require_mapping(admission, "fisherd_limits", "admission")
-    if limits.get("compile_jobs_max") != 16 or limits.get("execution_threads_max") != 48:
-        raise ProfileError("admission.fisherd_limits must enforce 16 build jobs and 48 threads")
+    if strict_2d_sos_rpa:
+        route_capability = capabilities["strict_2d_sos_rpa"]
+        if (
+            route_capability.get("status") != "TESTABLE"
+            or route_capability.get("admission_level") != "L3"
+        ):
+            raise ProfileError(
+                "capabilities.strict_2d_sos_rpa must remain TESTABLE at L3"
+            )
+        limits = _require_mapping(admission, "df_dcu_limits", "admission")
+        required_limits = {
+            "partition": "normal",
+            "work_root": "/work1",
+            "nodes": 4,
+            "mpi_ranks": 4,
+            "omp_threads_per_rank": 30,
+            "mkl_threads_per_rank": 30,
+            "mpi_launcher": "mpirun -ppn 1",
+        }
+        if any(limits.get(key) != value for key, value in required_limits.items()):
+            raise ProfileError(
+                "admission.df_dcu_limits must enforce normal, /work1, 4 ranks, and 30 threads"
+            )
+        route_contract = _require_mapping(
+            _require_mapping(profile, "contract", "profile"),
+            "strict_2d_sos_rpa",
+            "contract",
+        )
+        if (
+            route_contract.get("task") != "rpa"
+            or route_contract.get("response_method") != "sos"
+            or route_contract.get("reader_format") != "v1"
+            or route_contract.get("coulomb") != "full_2d_ewald"
+            or route_contract.get("coulomb_head_artifact")
+            != "librpa_2d_coulomb_head.dat"
+            or route_contract.get("nfreq") != 16
+            or route_contract.get("headwing") != "qavg"
+            or route_contract.get("head_only") is not False
+            or route_contract.get("producer_policy") != "reuse_validated_only"
+            or route_contract.get("allow_abacus_rerun") is not False
+            or route_contract.get("allow_pyatb_rerun") is not False
+        ):
+            raise ProfileError("contract.strict_2d_sos_rpa is not the pinned replay-only route")
+        if route_contract.get("required_input") != {
+            "replace_w_head": True,
+            "option_dielect_func": 3,
+            "use_2d_dielectric": True,
+            "use_pyatb": True,
+            "rpa_headwing_mode": "qavg",
+            "rpa_headwing_body_start": 1,
+        }:
+            raise ProfileError("contract.strict_2d_sos_rpa qavg input contract has drifted")
+        librpa = profile["components"]["librpa"]
+        if not SHA256_PATTERN.fullmatch(str(librpa.get("executable_sha256", ""))):
+            raise ProfileError("components.librpa.executable_sha256 must be a SHA-256 digest")
+    else:
+        limits = _require_mapping(admission, "fisherd_limits", "admission")
+        if limits.get("compile_jobs_max") != 16 or limits.get("execution_threads_max") != 48:
+            raise ProfileError("admission.fisherd_limits must enforce 16 build jobs and 48 threads")
     promotion = _require_mapping(admission, "promotion", "admission")
     if promotion.get("automatic") is not False or promotion.get("reviewed_commit") is not True:
         raise ProfileError("admission promotion must require a reviewed commit")

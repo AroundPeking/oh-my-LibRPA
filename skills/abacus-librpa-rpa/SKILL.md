@@ -22,6 +22,16 @@ Do not use the GW-only dielectric-function path for RPA:
 - do not run `preprocess_abacus_for_librpa_band.py`
 - do not require `KPT_nscf`
 
+### Registered strict-2D SOS-RPA replay
+
+The exception is OML profile
+`abacus-librpa-2026-09-02-strict2d-sos-rpa-v1`, route
+`strict_2d_sos_rpa`. It is a LibRPA-only replay of already validated ABACUS and
+PyATB data: no ABACUS/PyATB rerun. Require reader-v1, full 2D Ewald,
+`librpa_2d_coulomb_head.dat`, `nfreq=16`, `replace_w_head=t`,
+`use_2d_dielectric=t`, `use_pyatb=t`, and `rpa_headwing_mode=qavg`; omit
+`head_only`. This route is `TESTABLE`, not production-enabled.
+
 ## Default `librpa.in` Preset for RPA
 
 For RPA requests, set:

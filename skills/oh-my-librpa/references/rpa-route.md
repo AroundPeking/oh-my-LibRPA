@@ -23,6 +23,23 @@ Do not silently insert GW-only preprocessing into a normal RPA job:
 
 For `2D`, follow the same short route unless the user explicitly asks for a more specialized setup; ask about Coulomb treatment and vacuum assumptions before submission.
 
+### Registered strict-2D SOS-RPA replay
+
+For profile `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1`, select route
+`strict_2d_sos_rpa`. This is a LibRPA-only replay with no ABACUS/PyATB rerun;
+reuse only the validated reader-v1 producer and its
+`librpa_2d_coulomb_head.dat`. Fix `nfreq=16`, full 2D Ewald,
+`replace_w_head=t`, `use_2d_dielectric=t`, `use_pyatb=t`, and
+`rpa_headwing_mode=qavg`; do not set `head_only`. On df_dcu use `normal`, keep
+all paths under `/work1`, launch four ranks with `mpirun -ppn 1`, and use 30
+OpenMP/MKL threads per rank.
+
+Admission requires source/MPI tests, producer completeness, duplicate-job
+checks, finite energies, qavg weight closure, negligible imaginary parts,
+q-sum equality, zero LU info, and MPI/singleton consistency. N=8 and N=12 are
+only a functional smoke; at least three meshes are required before any
+convergence claim.
+
 ## Default `librpa.in` preset
 
 Set or verify:

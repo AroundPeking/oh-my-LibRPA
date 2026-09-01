@@ -1,0 +1,161 @@
+{
+  "manifest_schema": "oml.admission-manifest.v1",
+  "manifest_id": "df-dcu-strict2d-sos-rpa-2026-09-02-v1",
+  "campaign_id": "strict2d-rpa-validation-20260901",
+  "profile_id": "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1",
+  "host": {
+    "alias": "df_dcu",
+    "remote_root": "/work1/ghj/strict2d_rpa_validation_20260901",
+    "partition": "normal",
+    "work_root": "/work1"
+  },
+  "limits": {
+    "nodes": 4,
+    "mpi_ranks": 4,
+    "omp_threads_per_rank": 30,
+    "mkl_threads_per_rank": 30,
+    "mpi_launcher": "mpirun -ppn 1"
+  },
+  "sources": {
+    "abacus": {
+      "repository": "https://github.com/AroundPeking/abacus-develop.git",
+      "ref": "master_ghj",
+      "revision": "0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43"
+    },
+    "librpa": {
+      "repository": "https://github.com/AroundPeking/LibRPA.git",
+      "ref": "codex/strict2d-rpa-qavg-20260901",
+      "revision": "c87103df00b772ddbfc21597884c2787cf685037",
+      "executable_sha256": "0ca485dde5833dd190709c59d4689c263c2344041f2c71be4bc33c7e0b5da3c9"
+    },
+    "pyatb": {
+      "repository": "https://github.com/AroundPeking/pyatb.git",
+      "ref": "enable_head_wing",
+      "revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+    }
+  },
+  "route": {
+    "route_id": "strict_2d_sos_rpa",
+    "status": "TESTABLE",
+    "response_method": "sos",
+    "execution_stages": ["librpa"],
+    "producer_policy": "reuse_validated_only"
+  },
+  "contract": {
+    "reader_format": "v1",
+    "task": "rpa",
+    "nfreq": 16,
+    "coulomb": "full_2d_ewald",
+    "coulomb_head_artifact": "librpa_2d_coulomb_head.dat",
+    "headwing": "qavg",
+    "head_only": false,
+    "allow_abacus_rerun": false,
+    "allow_pyatb_rerun": false
+  },
+  "validated_cases": [
+    {
+      "mesh": 8,
+      "job_id": 21833983,
+      "status": "PASS",
+      "validation_sha256": "77b55f6c252c8de2d99c0cf96dae1b398aeaddbcd9ab4b32bfb80b7bc16653b2",
+      "gamma_hartree": -0.06924276799691,
+      "total_hartree": -1.268385066102
+    },
+    {
+      "mesh": 12,
+      "job_id": 21834156,
+      "status": "PASS",
+      "validation_sha256": "fec00d16bed5a9067e0d846d2a975b5b5c4068363e6ebf1c84f343cee206d99b",
+      "gamma_hartree": -0.03075665041071,
+      "total_hartree": -1.242737105060
+    }
+  ],
+  "k_mesh_claim": {
+    "scope": "functional_smoke_only",
+    "comparison_sha256": "62cd62f73ac719f12788adfdf9d112b25ced7514dac2a02ac0fc30d7c5fc46f3",
+    "convergence_exponent_established": false,
+    "minimum_meshes_for_convergence_claim": 3
+  },
+  "levels": [
+    {
+      "level": "L0",
+      "purpose": "exact LibRPA source, binary, host, and immutable producer provenance",
+      "cases": [
+        {
+          "case_id": "strict2d-sos-rpa-provenance",
+          "route_id": "strict_2d_sos_rpa",
+          "gates": [
+            "exact_librpa_revision",
+            "executable_sha256",
+            "partition_normal",
+            "work_paths_under_work1",
+            "abacus_rerun_prohibited",
+            "pyatb_rerun_prohibited"
+          ]
+        }
+      ]
+    },
+    {
+      "level": "L1",
+      "purpose": "source and real-MPI regression tests",
+      "cases": [
+        {
+          "case_id": "strict2d-sos-rpa-source-regressions",
+          "route_id": "strict_2d_sos_rpa",
+          "targets": [
+            "test_rpa_headwing",
+            "test_rpa_headwing_mpi",
+            "test_blacs",
+            "GreenX testsuite"
+          ],
+          "gates": [
+            "source_tests_pass",
+            "mpi_world_size_4",
+            "mpi_ppn_1",
+            "omp_mkl_30"
+          ]
+        }
+      ]
+    },
+    {
+      "level": "L2",
+      "purpose": "reader-v1 full-Ewald producer replay without producer reruns",
+      "cases": [
+        {
+          "case_id": "strict2d-sos-rpa-producer-replay",
+          "route_id": "strict_2d_sos_rpa",
+          "gates": [
+            "producer_complete",
+            "reader_v1",
+            "full_2d_ewald",
+            "coulomb_head_artifact",
+            "headwing_qavg",
+            "head_only_absent",
+            "duplicate_job_check"
+          ]
+        }
+      ]
+    },
+    {
+      "level": "L3",
+      "purpose": "bounded N8 and N12 functional and numerical smoke",
+      "cases": [
+        {
+          "case_id": "mos2-strict2d-sos-rpa-n8-n12-smoke",
+          "route_id": "strict_2d_sos_rpa",
+          "gates": [
+            "qavg_record_count",
+            "qavg_weight_sum",
+            "finite_energies",
+            "negligible_imaginary_energy",
+            "qsum_matches_total",
+            "lu_info_zero",
+            "antihermitian_residual",
+            "mpi_singleton_consistency",
+            "k_mesh_smoke_scope"
+          ]
+        }
+      ]
+    }
+  ]
+}

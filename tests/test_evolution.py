@@ -9,7 +9,7 @@ from oml_mcp.evolution import (
     EvolutionUsage,
     propose_candidate,
 )
-from oml_mcp.profiles import V2_PROFILE_ID, load_profile
+from oml_mcp.profiles import STRICT_2D_SOS_RPA_PROFILE_ID, V2_PROFILE_ID, load_profile
 
 
 class EvolutionPolicyTest(unittest.TestCase):
@@ -47,10 +47,11 @@ class EvolutionPolicyTest(unittest.TestCase):
         arguments.update(overrides)
         return propose_candidate(**arguments)
 
-    def test_route_registry_contains_only_the_four_admission_routes(self):
+    def test_route_registry_contains_the_historical_and_strict2d_admission_routes(self):
         self.assertEqual(
             set(ROUTE_MUTATION_AXES),
-            set(load_profile(profile_id=V2_PROFILE_ID)["capabilities"]),
+            set(load_profile(profile_id=V2_PROFILE_ID)["capabilities"])
+            | set(load_profile(profile_id=STRICT_2D_SOS_RPA_PROFILE_ID)["capabilities"]),
         )
         self.assertNotIn("direct_mixed_fourier", ROUTE_MUTATION_AXES)
 

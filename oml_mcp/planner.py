@@ -5,7 +5,7 @@ from typing import Any
 
 from .intake import ingest_case
 from .models import CasePlan, GateResult
-from .profiles import load_profile
+from .profiles import STRICT_2D_SOS_RPA_PROFILE_ID, load_profile
 from .provenance import digest_json, execution_input_manifest, source_manifest_digest
 
 
@@ -24,6 +24,7 @@ ROUTE_STAGES = {
     "rpa": ("scf", "librpa"),
     "molecular_delta_st_rpa": ("ground_state", "sternheimer", "librpa"),
     "solid_delta_st_rpa": ("ground_state", "sternheimer", "librpa"),
+    "strict_2d_sos_rpa": ("librpa",),
 }
 
 
@@ -41,6 +42,8 @@ def _capability_id(route: str) -> str | None:
         return "molecular_delta_st_rpa"
     if route == "solid_delta_st_rpa":
         return "solid_delta_st_rpa"
+    if route == "strict_2d_sos_rpa":
+        return "strict_2d_sos_rpa"
     return None
 
 
@@ -49,9 +52,26 @@ def _plan_rpa_route(
     normalized_system: str,
     response_method: str,
     is_v2: bool,
+    profile_id: str,
     headwing: bool | None,
     assumptions: list[str],
 ) -> str:
+    strict_2d_sos_rpa = profile_id == STRICT_2D_SOS_RPA_PROFILE_ID
+    if strict_2d_sos_rpa:
+        if normalized_system not in {"2d", "two-dimensional"}:
+            raise PlanError("strict-2D SOS-RPA requires system_type=2d")
+        if response_method != "sos":
+            raise PlanError("strict-2D SOS-RPA requires the SOS response method")
+        if headwing is False:
+            raise PlanError("strict-2D SOS-RPA requires analytic head/wing q averaging")
+        assumptions.extend(
+            (
+                "reuse the validated reader-v1 ABACUS and PyATB producer without rerunning either producer",
+                "use full 2D Ewald Coulomb with analytic Gamma head/wing q averaging",
+                "two in-plane k meshes are a functional smoke only, not a convergence exponent",
+            )
+        )
+        return "strict_2d_sos_rpa"
     if response_method == "sternheimer":
         if not is_v2:
             raise PlanError("Delta-Sternheimer RPA requires the v2 compatibility profile")
@@ -184,11 +204,17 @@ def plan_case(
     normalized_system = system_type.strip().lower()
     normalized_response = response_method.strip().lower()
     assumptions: list[str] = []
+    if (
+        profile["profile_id"] == STRICT_2D_SOS_RPA_PROFILE_ID
+        and normalized_task != "rpa"
+    ):
+        raise PlanError("the selected profile only admits strict-2D SOS-RPA")
     if normalized_task == "rpa":
         route = _plan_rpa_route(
             normalized_system=normalized_system,
             response_method=normalized_response,
             is_v2=is_v2,
+            profile_id=profile["profile_id"],
             headwing=headwing,
             assumptions=assumptions,
         )
@@ -232,6 +258,19 @@ def plan_case(
                 "capability": capability,
             }
         )
+        if route == "strict_2d_sos_rpa":
+            route_contract = profile["contract"]["strict_2d_sos_rpa"]
+            options.update(
+                {
+                    "nfreq": route_contract["nfreq"],
+                    "headwing": route_contract["headwing"],
+                    "head_only": route_contract["head_only"],
+                    "coulomb": route_contract["coulomb"],
+                    "allow_abacus_rerun": route_contract["allow_abacus_rerun"],
+                    "allow_pyatb_rerun": route_contract["allow_pyatb_rerun"],
+                    "execution": profile["admission"]["df_dcu_limits"],
+                }
+            )
 
     plan_payload = {
         "schema_version": 2 if is_v2 else 1,
