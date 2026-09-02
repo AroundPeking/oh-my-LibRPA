@@ -68,7 +68,11 @@ def _plan_rpa_route(
             (
                 "reuse the validated reader-v1 ABACUS and PyATB producer without rerunning either producer",
                 "use full 2D Ewald Coulomb with analytic Gamma head/wing q averaging",
-                "two in-plane k meshes are a functional smoke only, not a convergence exponent",
+                (
+                    "the N=8, N=10, N=12, and N=16 mesh series validates function "
+                    "and numerics only; a stable asymptotic regime is still required "
+                    "for a convergence claim"
+                ),
             )
         )
         return "strict_2d_sos_rpa"

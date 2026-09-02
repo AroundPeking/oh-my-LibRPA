@@ -193,26 +193,70 @@ def _validate_strict_2d_sos_rpa_manifest(manifest: dict[str, Any]) -> None:
         "lu_info_zero",
         "antihermitian_residual",
         "mpi_singleton_consistency",
-        "k_mesh_smoke_scope",
+        "k_mesh_validation_scope",
     }
     missing_gates = sorted(required_gates - gates)
     if missing_gates:
         raise AdmissionManifestError(f"strict-2D SOS-RPA gates are incomplete: {missing_gates}")
 
     validated_cases = manifest.get("validated_cases")
-    if not isinstance(validated_cases, list) or {
-        case.get("mesh") for case in validated_cases if isinstance(case, dict)
-    } != {8, 10, 12, 16}:
+    if (
+        not isinstance(validated_cases, list)
+        or len(validated_cases) != 4
+        or not all(isinstance(case, dict) for case in validated_cases)
+        or {case.get("mesh") for case in validated_cases} != {8, 10, 12, 16}
+    ):
         raise AdmissionManifestError(
-            "validated_cases must contain the N8, N10, N12, and N16 smokes"
+            "validated_cases must contain the N8, N10, N12, and N16 validations"
         )
     if any(case.get("status") != "PASS" for case in validated_cases):
         raise AdmissionManifestError("validated_cases must pass every recorded gate")
+    expected_validated_cases = {
+        8: (
+            21833983,
+            "77b55f6c252c8de2d99c0cf96dae1b398aeaddbcd9ab4b32bfb80b7bc16653b2",
+            -0.06924276799691,
+            -1.268385066102,
+        ),
+        10: (
+            21836052,
+            "43700709662f46924212bdee5f8655af5be8ef93e5f281b34639df8023c6d361",
+            -0.04430281538195,
+            -1.250904354656,
+        ),
+        12: (
+            21834156,
+            "fec00d16bed5a9067e0d846d2a975b5b5c4068363e6ebf1c84f343cee206d99b",
+            -0.03075665041071,
+            -1.242737105060,
+        ),
+        16: (
+            21836055,
+            "717b4ec716465af0eed96dea5c20a6611b02d054efc1898b1e91b7b242b0da18",
+            -0.01729559985264,
+            -1.235513727806,
+        ),
+    }
+    for case in validated_cases:
+        expected = expected_validated_cases[case["mesh"]]
+        actual = (
+            case.get("job_id"),
+            case.get("validation_sha256"),
+            case.get("gamma_hartree"),
+            case.get("total_hartree"),
+        )
+        if actual != expected:
+            raise AdmissionManifestError(
+                f"validated case N{case['mesh']} does not match the immutable remote receipt"
+            )
 
     validation_controls = manifest.get("validation_controls")
-    if not isinstance(validation_controls, list) or {
-        case.get("mesh") for case in validation_controls if isinstance(case, dict)
-    } != {8, 10, 12, 16}:
+    if (
+        not isinstance(validation_controls, list)
+        or len(validation_controls) != 4
+        or not all(isinstance(case, dict) for case in validation_controls)
+        or {case.get("mesh") for case in validation_controls} != {8, 10, 12, 16}
+    ):
         raise AdmissionManifestError(
             "validation_controls must contain N8, N10, N12, and N16 no-head/wing cases"
         )
@@ -225,16 +269,62 @@ def _validate_strict_2d_sos_rpa_manifest(manifest: dict[str, Any]) -> None:
         raise AdmissionManifestError(
             "no-head/wing cases are diagnostic controls, not the physical route"
         )
+    expected_controls = {
+        8: (
+            21836051,
+            "aaf088689c18bde12a81f8894e978b21494318a744a7e23dbfb7ba48f553467b",
+            -0.06874078563292,
+            0.001177389900275,
+            -1.267883084,
+        ),
+        10: (
+            21836053,
+            "cecd1f66e9c2527f8db7c194f481f3ea53575e67329a4cbe99d3b9d22291d0bf",
+            -0.0440523269055,
+            0.0004836568334641,
+            -1.250653866,
+        ),
+        12: (
+            21836121,
+            "40207b14af5adcbc9a2ebe7b2731ac44a6c09deaa22f13fb3232c9d584b0aeb2",
+            -0.03072700387026,
+            0.0008455291320996,
+            -1.242707459,
+        ),
+        16: (
+            21836057,
+            "58deba977fba09021bbf51a07778c0a187d36d6ab610ca48c6a9dc0d857a0fb5",
+            -0.01729769618594,
+            0.0004161330175857,
+            -1.235515824,
+        ),
+    }
+    for case in validation_controls:
+        expected = expected_controls[case["mesh"]]
+        actual = (
+            case.get("job_id"),
+            case.get("validation_sha256"),
+            case.get("gamma_real_hartree"),
+            case.get("gamma_imag_hartree"),
+            case.get("total_hartree"),
+        )
+        if actual != expected:
+            raise AdmissionManifestError(
+                f"diagnostic control N{case['mesh']} does not match the immutable remote receipt"
+            )
 
     k_mesh_claim = _require_mapping(manifest, "k_mesh_claim", "manifest")
     if (
         k_mesh_claim.get("scope") != "four_mesh_functional_and_numerical_not_asymptotic"
         or k_mesh_claim.get("convergence_exponent_established") is not False
-        or k_mesh_claim.get("minimum_meshes_for_convergence_claim") != 3
+        or k_mesh_claim.get("mesh_count") != 4
+        or k_mesh_claim.get("minimum_meshes_for_exponent_fit") != 3
+        or k_mesh_claim.get("asymptotic_fit_stable") is not False
+        or k_mesh_claim.get("comparison_sha256")
+        != "5c5d8b1d17a17480fc33693bc67fea0f55e78e83eb7064d3348b095de60dbd8b"
         or k_mesh_claim.get("observed_free_power") != 2.642
-        or not isinstance(
-            k_mesh_claim.get("fixed_n_minus_3_rms_millihartree"), (int, float)
-        )
+        or k_mesh_claim.get("fixed_n_minus_3_rms_millihartree") != 0.399888
+        or k_mesh_claim.get("extrapolated_limit_span_millihartree") != 2.092244
     ):
         raise AdmissionManifestError(
             "four meshes validate the route but do not establish asymptotic convergence"

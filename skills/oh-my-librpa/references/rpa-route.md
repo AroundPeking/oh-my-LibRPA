@@ -36,9 +36,10 @@ OpenMP/MKL threads per rank.
 
 Admission requires source/MPI tests, producer completeness, duplicate-job
 checks, finite energies, qavg weight closure, negligible imaginary parts,
-q-sum equality, zero LU info, and MPI/singleton consistency. N=8 and N=12 are
-only a functional smoke; at least three meshes are required before any
-convergence claim.
+q-sum equality, zero LU info, and MPI/singleton consistency. N=8, N=10, N=12,
+and N=16 validate the function and numerics only; the observed exponent still
+drifts, so a denser stable asymptotic series is required before any convergence
+claim.
 
 ## Default `librpa.in` preset
 

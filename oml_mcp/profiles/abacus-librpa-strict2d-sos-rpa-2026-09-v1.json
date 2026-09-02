@@ -27,7 +27,10 @@
       "status": "TESTABLE",
       "admission_level": "L3",
       "experimental_requires": ["L0", "L1", "L2", "L3"],
-      "promotion_requires": ["reviewed OML commit", "at least three converged in-plane k meshes"]
+      "promotion_requires": [
+        "reviewed OML commit",
+        "a stable asymptotic fit from a denser in-plane k-mesh series"
+      ]
     }
   },
   "admission": {
@@ -44,7 +47,7 @@
     "promotion": {
       "automatic": false,
       "reviewed_commit": true,
-      "two_mesh_smoke_is_convergence_evidence": false
+      "mesh_series_is_convergence_evidence_without_stable_fit": false
     }
   },
   "contract": {
@@ -129,8 +132,9 @@
         "lu_info": 0
       },
       "k_mesh_acceptance": {
-        "minimum_meshes_for_convergence_claim": 3,
-        "two_mesh_scope": "functional_smoke_only",
+        "validated_scope": "four_mesh_functional_and_numerical_not_asymptotic",
+        "minimum_meshes_for_exponent_fit": 3,
+        "require_stable_asymptotic_fit": true,
         "forbid_convergence_exponent_claim": true
       }
     },

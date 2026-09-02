@@ -136,7 +136,9 @@
     "scope": "four_mesh_functional_and_numerical_not_asymptotic",
     "comparison_sha256": "5c5d8b1d17a17480fc33693bc67fea0f55e78e83eb7064d3348b095de60dbd8b",
     "convergence_exponent_established": false,
-    "minimum_meshes_for_convergence_claim": 3,
+    "mesh_count": 4,
+    "minimum_meshes_for_exponent_fit": 3,
+    "asymptotic_fit_stable": false,
     "observed_free_power": 2.642,
     "fixed_n_minus_3_rms_millihartree": 0.399888,
     "extrapolated_limit_span_millihartree": 2.092244
@@ -206,7 +208,7 @@
       "purpose": "bounded N8, N10, N12, and N16 functional and numerical validation",
       "cases": [
         {
-          "case_id": "mos2-strict2d-sos-rpa-n8-n10-n12-n16-smoke",
+          "case_id": "mos2-strict2d-sos-rpa-n8-n10-n12-n16-validation",
           "route_id": "strict_2d_sos_rpa",
           "gates": [
             "qavg_record_count",
@@ -217,7 +219,7 @@
             "lu_info_zero",
             "antihermitian_residual",
             "mpi_singleton_consistency",
-            "k_mesh_smoke_scope"
+            "k_mesh_validation_scope"
           ]
         }
       ]

@@ -7,6 +7,8 @@ description: ABACUS + LibRPA RPA workflow guidance with conservative defaults an
 
 Before any RPA compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real physics compute must run on a server by default, using the pinned ABACUS `master_ghj` and LibRPA `v0.7.0` profile unless this is a recorded reproduction.
 
+Apply `$librpa-openmp-mkl-threading` before preparing, submitting, restarting, or performance-diagnosing the LibRPA RPA stage.
+
 Primary objective: get stable and reproducible RPA results first, then optimize performance and scale.
 
 ## Execution Order
@@ -65,6 +67,7 @@ For RPA requests, set:
 - Ensure no GW-only preprocessing step is inserted into the RPA route.
 - Ensure frequency-grid parameters are self-consistent.
 - Ensure key file paths are not stitched from unrelated directories.
+- Keep the ABACUS producer and LibRPA thread environments separate. For one LibRPA MPI rank per node, require `OMP_NUM_THREADS == MKL_NUM_THREADS == SLURM_CPUS_PER_TASK` and `MKL_DYNAMIC=FALSE`.
 
 ## Output Requirement
 

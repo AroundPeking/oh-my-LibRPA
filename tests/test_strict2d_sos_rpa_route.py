@@ -9,7 +9,7 @@ from oml_mcp.planner import PlanError, plan_case
 from oml_mcp.server import build_server
 from oml_mcp.validators import validate_case
 from oml_mcp.evolution import ROUTE_MUTATION_AXES
-from tests.test_validators import WorkflowValidatorTest
+from tests import test_validators
 from oml_mcp.admission_manifest import (
     AdmissionManifestError,
     load_admission_manifest,
@@ -85,6 +85,12 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         self.assertEqual(contract["producer_policy"], "reuse_validated_only")
         self.assertFalse(contract["allow_abacus_rerun"])
         self.assertFalse(contract["allow_pyatb_rerun"])
+        self.assertEqual(
+            contract["k_mesh_acceptance"]["validated_scope"],
+            "four_mesh_functional_and_numerical_not_asymptotic",
+        )
+        self.assertTrue(contract["k_mesh_acceptance"]["require_stable_asymptotic_fit"])
+        self.assertTrue(contract["k_mesh_acceptance"]["forbid_convergence_exponent_claim"])
 
     def test_profile_cannot_self_promote_beyond_testable_l3(self):
         profile = load_profile(profile_id=PROFILE_ID)
@@ -93,6 +99,17 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             path = pathlib.Path(tmpdir) / "promoted.json"
             path.write_text(json.dumps(profile), encoding="utf-8")
             with self.assertRaisesRegex(ProfileError, "TESTABLE"):
+                load_profile(path)
+
+    def test_profile_requires_a_stable_asymptotic_fit_before_promotion(self):
+        profile = load_profile(profile_id=PROFILE_ID)
+        profile["admission"]["promotion"][
+            "mesh_series_is_convergence_evidence_without_stable_fit"
+        ] = True
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "promoted-without-stable-fit.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+            with self.assertRaisesRegex(ProfileError, "stable asymptotic fit"):
                 load_profile(path)
 
     def test_profile_rejects_headwing_contract_drift(self):
@@ -134,6 +151,10 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             self.assertIn("librpa_2d_coulomb_head.dat", text)
             self.assertIn("no ABACUS/PyATB rerun", text)
 
+        rpa_skill = texts[0]
+        self.assertIn("$librpa-openmp-mkl-threading", rpa_skill)
+        self.assertIn("OMP_NUM_THREADS == MKL_NUM_THREADS", rpa_skill)
+
     def test_live_benchmark_keeps_result_gates_and_remaining_convergence_separate(self):
         path = (
             pathlib.Path(__file__).resolve().parents[1]
@@ -167,6 +188,9 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             self.assertIn(MANIFEST_ID, text)
             self.assertIn("strict_2d_sos_rpa", text)
             self.assertIn("TESTABLE", text)
+            self.assertIn("N=8/10/12/16", text)
+            self.assertIn("stable asymptotic", text)
+            self.assertNotIn("N=8/N=12", text)
 
     def test_plan_case_selects_a_librpa_only_strict2d_sos_rpa_replay(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -192,6 +216,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         self.assertFalse(plan.options["allow_abacus_rerun"])
         self.assertFalse(plan.options["allow_pyatb_rerun"])
         self.assertEqual(plan.gates[0].status, "WARN")
+        self.assertTrue(any("stable asymptotic regime" in item for item in plan.assumptions))
 
     def test_plan_case_rejects_headwing_off_and_non_sos_response(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -274,7 +299,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
     def test_pre_librpa_validation_requires_the_coulomb_head_artifact(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            WorkflowValidatorTest().make_case(
+            test_validators.WorkflowValidatorTest().make_case(
                 root,
                 task="rpa",
                 headwing=True,
@@ -368,6 +393,8 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             )
         )
         self.assertFalse(manifest["k_mesh_claim"]["convergence_exponent_established"])
+        self.assertFalse(manifest["k_mesh_claim"]["asymptotic_fit_stable"])
+        self.assertEqual(manifest["k_mesh_claim"]["mesh_count"], 4)
         self.assertEqual(manifest["k_mesh_claim"]["observed_free_power"], 2.642)
         self.assertLess(manifest["k_mesh_claim"]["fixed_n_minus_3_rms_millihartree"], 0.5)
         self.assertTrue(
@@ -384,9 +411,19 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
                 "qsum_matches_total",
                 "lu_info_zero",
                 "mpi_singleton_consistency",
-                "k_mesh_smoke_scope",
+                "k_mesh_validation_scope",
             }.issubset(gates)
         )
+
+    def test_packaged_manifest_matches_repository_audit_copy(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        name = f"{MANIFEST_ID}.json"
+        repository = json.loads((root / "admission" / name).read_text(encoding="utf-8"))
+        packaged = json.loads(
+            (root / "oml_mcp" / "admission_manifests" / name).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(packaged, repository)
 
     def test_admission_manifest_rejects_debug_or_an_asymptotic_convergence_claim(self):
         manifest = load_admission_manifest(manifest_id=MANIFEST_ID)
@@ -397,6 +434,13 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         manifest = load_admission_manifest(manifest_id=MANIFEST_ID)
         manifest["k_mesh_claim"]["convergence_exponent_established"] = True
         with self.assertRaisesRegex(AdmissionManifestError, "convergence"):
+            validate_admission_manifest(manifest)
+
+    def test_admission_manifest_rejects_remote_receipt_drift(self):
+        manifest = load_admission_manifest(manifest_id=MANIFEST_ID)
+        manifest["validated_cases"][0]["validation_sha256"] = "0" * 64
+
+        with self.assertRaisesRegex(AdmissionManifestError, "immutable remote receipt"):
             validate_admission_manifest(manifest)
 
 

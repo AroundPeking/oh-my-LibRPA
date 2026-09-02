@@ -304,6 +304,15 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
             "rpa_headwing_body_start": 1,
         }:
             raise ProfileError("contract.strict_2d_sos_rpa qavg input contract has drifted")
+        if route_contract.get("k_mesh_acceptance") != {
+            "validated_scope": "four_mesh_functional_and_numerical_not_asymptotic",
+            "minimum_meshes_for_exponent_fit": 3,
+            "require_stable_asymptotic_fit": True,
+            "forbid_convergence_exponent_claim": True,
+        }:
+            raise ProfileError(
+                "contract.strict_2d_sos_rpa must keep the four-mesh series below convergence promotion"
+            )
         librpa = profile["components"]["librpa"]
         if not SHA256_PATTERN.fullmatch(str(librpa.get("executable_sha256", ""))):
             raise ProfileError("components.librpa.executable_sha256 must be a SHA-256 digest")
@@ -314,6 +323,12 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
     promotion = _require_mapping(admission, "promotion", "admission")
     if promotion.get("automatic") is not False or promotion.get("reviewed_commit") is not True:
         raise ProfileError("admission promotion must require a reviewed commit")
+    if strict_2d_sos_rpa and promotion.get(
+        "mesh_series_is_convergence_evidence_without_stable_fit"
+    ) is not False:
+        raise ProfileError(
+            "strict-2D SOS-RPA promotion must require a stable asymptotic fit"
+        )
 
 
 def validate_profile(profile: dict[str, Any]) -> None:
