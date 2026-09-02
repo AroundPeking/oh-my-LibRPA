@@ -145,14 +145,17 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
 
         for phrase in (
             "21833983",
+            "21836052",
             "21834156",
+            "21836055",
             "c87103df00b772ddbfc21597884c2787cf685037",
             "strict_2d_sos_rpa",
             "RESULT",
             "GATES",
             "REMAINING",
-            "functional smoke only",
-            "no convergence exponent claim",
+            "four meshes establish functional and numerical route consistency",
+            "no N^-3 claim",
+            "diagnostic failure-mode control",
         ):
             self.assertIn(phrase, text)
 
@@ -333,7 +336,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         self.assertEqual(present_gate.status, "PASS")
         self.assertTrue(present.accepted, present.to_dict())
 
-    def test_admission_manifest_records_the_two_validated_smokes_and_hard_gates(self):
+    def test_admission_manifest_records_four_validated_meshes_and_nohw_controls(self):
         manifest = load_admission_manifest(manifest_id=MANIFEST_ID)
         gates = {
             gate
@@ -347,9 +350,26 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         self.assertEqual(manifest["host"]["remote_root"], "/work1/ghj/strict2d_rpa_validation_20260901")
         self.assertEqual(manifest["route"]["route_id"], "strict_2d_sos_rpa")
         self.assertEqual(manifest["route"]["status"], "TESTABLE")
-        self.assertEqual({case["mesh"] for case in manifest["validated_cases"]}, {8, 12})
+        self.assertEqual(
+            {case["mesh"] for case in manifest["validated_cases"]},
+            {8, 10, 12, 16},
+        )
         self.assertTrue(all(case["status"] == "PASS" for case in manifest["validated_cases"]))
+        self.assertEqual(
+            {case["mesh"] for case in manifest["validation_controls"]},
+            {8, 10, 12, 16},
+        )
+        self.assertTrue(
+            all(
+                case["route"] == "diagnostic_no_headwing"
+                and case["physical_route"] is False
+                and case["status"] == "PASS_FINITE_Q_CONTROL_RAW_GAMMA_COMPLEX"
+                for case in manifest["validation_controls"]
+            )
+        )
         self.assertFalse(manifest["k_mesh_claim"]["convergence_exponent_established"])
+        self.assertEqual(manifest["k_mesh_claim"]["observed_free_power"], 2.642)
+        self.assertLess(manifest["k_mesh_claim"]["fixed_n_minus_3_rms_millihartree"], 0.5)
         self.assertTrue(
             {
                 "source_tests_pass",
@@ -368,7 +388,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             }.issubset(gates)
         )
 
-    def test_admission_manifest_rejects_debug_or_a_two_mesh_convergence_claim(self):
+    def test_admission_manifest_rejects_debug_or_an_asymptotic_convergence_claim(self):
         manifest = load_admission_manifest(manifest_id=MANIFEST_ID)
         manifest["host"]["partition"] = "debug"
         with self.assertRaisesRegex(AdmissionManifestError, "normal"):

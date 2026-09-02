@@ -202,18 +202,42 @@ def _validate_strict_2d_sos_rpa_manifest(manifest: dict[str, Any]) -> None:
     validated_cases = manifest.get("validated_cases")
     if not isinstance(validated_cases, list) or {
         case.get("mesh") for case in validated_cases if isinstance(case, dict)
-    } != {8, 12}:
-        raise AdmissionManifestError("validated_cases must contain the N8 and N12 smokes")
+    } != {8, 10, 12, 16}:
+        raise AdmissionManifestError(
+            "validated_cases must contain the N8, N10, N12, and N16 smokes"
+        )
     if any(case.get("status") != "PASS" for case in validated_cases):
         raise AdmissionManifestError("validated_cases must pass every recorded gate")
-    k_mesh_claim = _require_mapping(manifest, "k_mesh_claim", "manifest")
-    if (
-        k_mesh_claim.get("scope") != "functional_smoke_only"
-        or k_mesh_claim.get("convergence_exponent_established") is not False
-        or k_mesh_claim.get("minimum_meshes_for_convergence_claim") != 3
+
+    validation_controls = manifest.get("validation_controls")
+    if not isinstance(validation_controls, list) or {
+        case.get("mesh") for case in validation_controls if isinstance(case, dict)
+    } != {8, 10, 12, 16}:
+        raise AdmissionManifestError(
+            "validation_controls must contain N8, N10, N12, and N16 no-head/wing cases"
+        )
+    if any(
+        case.get("route") != "diagnostic_no_headwing"
+        or case.get("physical_route") is not False
+        or case.get("status") != "PASS_FINITE_Q_CONTROL_RAW_GAMMA_COMPLEX"
+        for case in validation_controls
     ):
         raise AdmissionManifestError(
-            "two meshes are only a functional smoke and cannot establish convergence"
+            "no-head/wing cases are diagnostic controls, not the physical route"
+        )
+
+    k_mesh_claim = _require_mapping(manifest, "k_mesh_claim", "manifest")
+    if (
+        k_mesh_claim.get("scope") != "four_mesh_functional_and_numerical_not_asymptotic"
+        or k_mesh_claim.get("convergence_exponent_established") is not False
+        or k_mesh_claim.get("minimum_meshes_for_convergence_claim") != 3
+        or k_mesh_claim.get("observed_free_power") != 2.642
+        or not isinstance(
+            k_mesh_claim.get("fixed_n_minus_3_rms_millihartree"), (int, float)
+        )
+    ):
+        raise AdmissionManifestError(
+            "four meshes validate the route but do not establish asymptotic convergence"
         )
 
 

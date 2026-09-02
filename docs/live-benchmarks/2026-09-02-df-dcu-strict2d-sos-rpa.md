@@ -7,17 +7,29 @@ Executable SHA-256: `0ca485dde5833dd190709c59d4689c263c2344041f2c71be4bc33c7e0b5
 
 ## RESULT
 
-MoS2 N=8 job `21833983` and N=12 job `21834156` both passed the bounded
-LibRPA-only functional and numerical smoke. The route reuses the validated
+MoS2 qavg jobs N=8 `21833983`, N=10 `21836052`, N=12 `21834156`, and N=16
+`21836055` all passed the bounded LibRPA-only functional and numerical
+validation. The route reuses the validated
 reader-v1 ABACUS/PyATB producer, full 2D Ewald Coulomb, and
-`librpa_2d_coulomb_head.dat`; there was no ABACUS/PyATB rerun. Both runs used
+`librpa_2d_coulomb_head.dat`; there was no ABACUS/PyATB rerun. All four runs used
 `task=rpa`, `nfreq=16`, analytic head/wing `qavg`, no `head_only`, four MPI
 ranks with `mpirun -ppn 1`, and 30 OpenMP/MKL threads per rank.
 
-N=8 gave Gamma `-0.06924276799691 Ha` and total `-1.268385066102 Ha`. N=12
-gave Gamma `-0.03075665041071 Ha` and total `-1.242737105060 Ha`. The N=12/N=8
-Gamma ratio was `0.4441857439`, close to the 2D q-cell area ratio `4/9`; this
-is a consistency observation, not a fitted law.
+The qavg `(Gamma, total)` energies in Ha are N=8
+`(-0.06924276799691, -1.268385066102)`, N=10
+`(-0.04430281538195, -1.250904354656)`, N=12
+`(-0.03075665041071, -1.242737105060)`, and N=16
+`(-0.01729559985264, -1.235513727806)`. The Gamma contribution scales close
+to the 2D q-cell area. The four-point free-power fit gives `p=2.642`; the
+fixed N^-3 fit has RMS `0.399888 mHa`. These are diagnostics, not an accepted
+asymptotic exponent.
+
+Matched no-head/wing jobs N=8 `21836051`, N=10 `21836053`, N=12 `21836121`,
+and N=16 `21836057` reproduce every non-Gamma contribution within `0.6 nHa`,
+so the control isolates the Gamma treatment. Its raw Gamma contribution is
+complex, with imaginary parts between `0.416` and `1.177 mHa`; it is therefore
+recorded only as a diagnostic failure-mode control and is not an alternative
+physical route.
 
 ## GATES
 
@@ -37,7 +49,9 @@ tests, including an explicit four-rank Intel MPI head/wing regression.
 
 ## REMAINING
 
-This is a functional smoke only. N=8 and N=12 are two meshes, so there is no convergence exponent claim and no N^-3 claim. The route remains `TESTABLE`.
-At least three controlled in-plane meshes, with the physical definition held
-fixed, are required before assessing the asymptotic k-point convergence law or
+The four meshes establish functional and numerical route consistency, but do
+not yet establish the asymptotic convergence law. The adjacent effective
+exponents drift from `2.732` to `2.518`, and the tested extrapolations span
+about `2.09 mHa`. There is therefore no N^-3 claim and the route remains
+`TESTABLE`; denser meshes are still required for physical convergence and any
 promotion beyond admission testing.

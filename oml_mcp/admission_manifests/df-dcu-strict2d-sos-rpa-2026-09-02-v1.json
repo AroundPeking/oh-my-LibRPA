@@ -62,19 +62,84 @@
       "total_hartree": -1.268385066102
     },
     {
+      "mesh": 10,
+      "job_id": 21836052,
+      "status": "PASS",
+      "validation_sha256": "43700709662f46924212bdee5f8655af5be8ef93e5f281b34639df8023c6d361",
+      "gamma_hartree": -0.04430281538195,
+      "total_hartree": -1.250904354656
+    },
+    {
       "mesh": 12,
       "job_id": 21834156,
       "status": "PASS",
       "validation_sha256": "fec00d16bed5a9067e0d846d2a975b5b5c4068363e6ebf1c84f343cee206d99b",
       "gamma_hartree": -0.03075665041071,
       "total_hartree": -1.242737105060
+    },
+    {
+      "mesh": 16,
+      "job_id": 21836055,
+      "status": "PASS",
+      "validation_sha256": "717b4ec716465af0eed96dea5c20a6611b02d054efc1898b1e91b7b242b0da18",
+      "gamma_hartree": -0.01729559985264,
+      "total_hartree": -1.235513727806
+    }
+  ],
+  "validation_controls": [
+    {
+      "mesh": 8,
+      "job_id": 21836051,
+      "route": "diagnostic_no_headwing",
+      "physical_route": false,
+      "status": "PASS_FINITE_Q_CONTROL_RAW_GAMMA_COMPLEX",
+      "validation_sha256": "aaf088689c18bde12a81f8894e978b21494318a744a7e23dbfb7ba48f553467b",
+      "gamma_real_hartree": -0.06874078563292,
+      "gamma_imag_hartree": 0.001177389900275,
+      "total_hartree": -1.267883084
+    },
+    {
+      "mesh": 10,
+      "job_id": 21836053,
+      "route": "diagnostic_no_headwing",
+      "physical_route": false,
+      "status": "PASS_FINITE_Q_CONTROL_RAW_GAMMA_COMPLEX",
+      "validation_sha256": "cecd1f66e9c2527f8db7c194f481f3ea53575e67329a4cbe99d3b9d22291d0bf",
+      "gamma_real_hartree": -0.04405232690550,
+      "gamma_imag_hartree": 0.0004836568334641,
+      "total_hartree": -1.250653866
+    },
+    {
+      "mesh": 12,
+      "job_id": 21836121,
+      "route": "diagnostic_no_headwing",
+      "physical_route": false,
+      "status": "PASS_FINITE_Q_CONTROL_RAW_GAMMA_COMPLEX",
+      "validation_sha256": "40207b14af5adcbc9a2ebe7b2731ac44a6c09deaa22f13fb3232c9d584b0aeb2",
+      "gamma_real_hartree": -0.03072700387026,
+      "gamma_imag_hartree": 0.0008455291320996,
+      "total_hartree": -1.242707459
+    },
+    {
+      "mesh": 16,
+      "job_id": 21836057,
+      "route": "diagnostic_no_headwing",
+      "physical_route": false,
+      "status": "PASS_FINITE_Q_CONTROL_RAW_GAMMA_COMPLEX",
+      "validation_sha256": "58deba977fba09021bbf51a07778c0a187d36d6ab610ca48c6a9dc0d857a0fb5",
+      "gamma_real_hartree": -0.01729769618594,
+      "gamma_imag_hartree": 0.0004161330175857,
+      "total_hartree": -1.235515824
     }
   ],
   "k_mesh_claim": {
-    "scope": "functional_smoke_only",
-    "comparison_sha256": "62cd62f73ac719f12788adfdf9d112b25ced7514dac2a02ac0fc30d7c5fc46f3",
+    "scope": "four_mesh_functional_and_numerical_not_asymptotic",
+    "comparison_sha256": "5c5d8b1d17a17480fc33693bc67fea0f55e78e83eb7064d3348b095de60dbd8b",
     "convergence_exponent_established": false,
-    "minimum_meshes_for_convergence_claim": 3
+    "minimum_meshes_for_convergence_claim": 3,
+    "observed_free_power": 2.642,
+    "fixed_n_minus_3_rms_millihartree": 0.399888,
+    "extrapolated_limit_span_millihartree": 2.092244
   },
   "levels": [
     {
@@ -138,10 +203,10 @@
     },
     {
       "level": "L3",
-      "purpose": "bounded N8 and N12 functional and numerical smoke",
+      "purpose": "bounded N8, N10, N12, and N16 functional and numerical validation",
       "cases": [
         {
-          "case_id": "mos2-strict2d-sos-rpa-n8-n12-smoke",
+          "case_id": "mos2-strict2d-sos-rpa-n8-n10-n12-n16-smoke",
           "route_id": "strict_2d_sos_rpa",
           "gates": [
             "qavg_record_count",
