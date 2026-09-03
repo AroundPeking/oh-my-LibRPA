@@ -23,6 +23,14 @@ The accepted strict-2D row uses benchmark
 reference-bounded four-mesh criterion. It establishes no asymptotic exponent
 and is not strict-2D GW acceptance.
 
+The 2026-09-03 Fisherd current-stack replay leaves
+`molecular_delta_st_rpa` at `REFERENCE_PENDING`. ABACUS
+`1648a8a344427ae1b6394912bf677c4a20e053f2` passed its focused tests and H2
+solver gate, but the L3 handoff is `BLOCKED_MISSING_RESPONSE_COULOMB` because
+the dedicated `v1_sternheimer_coulomb_iq_*` artifact is absent. The available
+ordinary reader-v1 Coulomb matrix is a diagnostic and cannot satisfy this
+gate.
+
 ## Material-Class Benchmarks
 
 | Benchmark row | Initial reference | Distinguishing physics | Minimum result checks | Status |

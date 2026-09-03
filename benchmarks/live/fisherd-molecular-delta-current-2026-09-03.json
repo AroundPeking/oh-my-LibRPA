@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "fisherd-molecular-delta-current-20260903",
+  "date": "2026-09-03",
+  "last_verified": "2026-09-03",
+  "scope": "Current-stack H2 Delta-Sternheimer reader-v1 compatibility replay",
+  "host": {
+    "alias": "Fisherd-Server100.96.1.64",
+    "remote_root": "/home/ghj/oml-benchmarks/20260903-molecular-delta"
+  },
+  "limits": {
+    "compile_jobs_max": 16,
+    "execution_threads_max": 48
+  },
+  "pinned_revisions": {
+    "abacus": "1648a8a344427ae1b6394912bf677c4a20e053f2",
+    "librpa": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+    "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "source_relationship": {
+    "validated_dedicated_metric_revision": "81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a",
+    "validated_revision_is_ancestor_of_current_abacus": false,
+    "validated_revision_branch": "origin/codex/sternheimer-grid-metric-handoff-20260830",
+    "decision": "CURRENT_MASTER_GHJ_LACKS_VALIDATED_DEDICATED_METRIC_CHANGE"
+  },
+  "contract": {
+    "reader_format": "v1",
+    "sternheimer_coulomb_prefix": "v1_sternheimer_coulomb_iq_",
+    "sternheimer_response_prefix": "v1_sternheimer_chi0_iq_",
+    "librpa_task": "sternheimer_rpa",
+    "ordinary_reader_coulomb_role": "diagnostic_only",
+    "allow_ordinary_reader_fallback": false,
+    "symmetry_source": "stru_out",
+    "copy_legacy_symmetry_sidecars": []
+  },
+  "builds": {
+    "abacus": {
+      "source_checkout": "/home/ghj/oml-benchmarks/20260903-molecular-delta/src/abacus",
+      "source_worktree_clean": true,
+      "source_tree_oid": "a03daee0a17479851e5f5a33baa25c8db6ff61c4",
+      "production_target": "PASS",
+      "executable": "/home/ghj/oml-benchmarks/20260903-molecular-delta/build/abacus/abacus_3p",
+      "executable_sha256": "7aba04e711e68bc654dc737ed5c1a330ddfe62a7ea2305c4d78b6edad5347b5a",
+      "focused_tests_passed": 7,
+      "focused_tests_total": 7,
+      "focused_test_log": "/home/ghj/oml-benchmarks/20260903-molecular-delta/logs/abacus-focused-ctest.log",
+      "focused_test_log_sha256": "0ff852831b36cb5a6281fdde883a3612fca6fc1c3d92b8b028a6fac74c87c279",
+      "focused_tests": [
+        "MODULE_IO_read_item_serial",
+        "MODULE_RI_sternheimer_delta_test",
+        "MODULE_RI_sternheimer_abacus_fd_adapter_test",
+        "MODULE_RI_sternheimer_response_grid_test",
+        "MODULE_RI_sternheimer_abacus_st_smoke_test",
+        "MODULE_RI_sternheimer_periodic_solver_test",
+        "MODULE_RI_sternheimer_kq_test"
+      ]
+    },
+    "librpa": {
+      "executable": "/home/ghj/oml-admission/20260830-v2/build/librpa/chi0_main.exe",
+      "executable_sha256": "cefc8f33c2a99085db3dd07a0f7110c17fc5176270cc8a2157ac17e4c1aa8f60"
+    }
+  },
+  "case": {
+    "case_id": "h2-historical-contract-replay-current-master-ghj",
+    "system": "H2",
+    "path": "/home/ghj/oml-benchmarks/20260903-molecular-delta/runs/h2-historical-contract-replay",
+    "status": {
+      "producer": "PASS",
+      "handoff": "BLOCKED_MISSING_RESPONSE_COULOMB",
+      "librpa_production": "NOT_RUN_HANDOFF_BLOCKED",
+      "scientific": "NOT_EVALUATED",
+      "promotion": "BLOCKED"
+    },
+    "input_identity_sha256": {
+      "INPUT": "6777fea67fbf8aa7988b65ad5c79603011419670f682aa05316fbc2356dc1e69",
+      "KPT": "91042b39ee493cb5c1bee648adc865a2e5935a29278eb405dc009f994db55ece",
+      "STRU": "d7323acd4162304915cdf7941ff3df07a7e19473d8f6d0fb05a13204d64e8aba",
+      "pseudopotential": "3f5deaaf57ff09d87da2c2c186eb1654d174fe385c9edc265036b3c8869286ef",
+      "orbital": "38c8327dd6b16c0d02a5a34e688fdb2d4ec73e4a9de00a6e248e4d246db3c2fc",
+      "frequency_grid": "d1d23f494049e8ebd09883eb37a5a62487968d9940127ffe8fa50edc953a47d4"
+    },
+    "producer": {
+      "exit_code": 0,
+      "reader_format": "v1",
+      "grid": [50, 50, 50],
+      "frequency_count": 1,
+      "frequency_hartree": 0.05322431188753406,
+      "fd_order": 8,
+      "preconditioner": "fd_spectral",
+      "preconditioner_regularization_rydberg": 0.0,
+      "zero_order_source": "lcao_ks",
+      "virtual_source": "ks_bands",
+      "unoccupied_bands_per_spin": 9,
+      "response_spin_channels": 1,
+      "equations": 30,
+      "failed_equations": 0,
+      "all_converged": true,
+      "max_solver_relative_residual": 3.322591176989514e-7,
+      "max_equation_residual_norm": 2.637976893536892e-7,
+      "wall_seconds": 6.70,
+      "maximum_rss_kib": 8203396,
+      "status_sha256": "d9f4e44666ad4cb4c3f90423ef79dc7af8fb775e5bb1fa0b197d115f10c13ffc",
+      "response_sha256": "94b561114c9e98b1940d664de27e2a3d73ae6ffe34624b070b7c7a8cf12ac86f"
+    },
+    "metric_contract": {
+      "required_prefix": "v1_sternheimer_coulomb_iq_",
+      "required_path": "v1_sternheimer_coulomb_iq_1_rank0.dat",
+      "dedicated_response_metric_present": false,
+      "ordinary_reader_path": "v1_coulomb_full_iq_1_rank0.dat",
+      "ordinary_reader_metric_present": true,
+      "ordinary_reader_role": "diagnostic_only",
+      "ordinary_reader_sha256": "b7ebbc09ed118f3c24eceb694f1197463d802525f3fcdfdf6c3e02ddaac422e5",
+      "historical_ordinary_reader_sha256": "b7ebbc09ed118f3c24eceb694f1197463d802525f3fcdfdf6c3e02ddaac422e5",
+      "validated_dedicated_metric_sha256": "988ec4604924a2271cb1a021bd7a63474fd4733a46159e21dc4cc43e86d2100b",
+      "matrix_dimension": 30,
+      "atom_naux": [15, 15],
+      "ordinary_reader_frobenius_norm": 208.84403428790992,
+      "validated_dedicated_metric_frobenius_norm": 208.36785566478466,
+      "relative_frobenius_difference_from_validated_dedicated_metric": 0.0037011365142878075,
+      "maximum_absolute_difference": 0.28468244191954994,
+      "decision": "BLOCK"
+    },
+    "ordinary_metric_diagnostic": {
+      "classification": "DIAGNOSTIC_ONLY",
+      "librpa_input_sha256": "9d9c8ece5f7bf243ccbfb82f5dd5a38b125213cbea3190c181e4dd9207ed3d96",
+      "librpa_output_sha256": "c9b0ea87ad8a1704dde5ec998a69f5f7c6a49d1da0d34bbbf69fde069140c78c",
+      "coulomb_prefix": "v1_coulomb_full_iq_",
+      "exit_code": 0,
+      "finished_successfully": true,
+      "ec_rpa_hartree": -0.01109259015020,
+      "validated_dedicated_metric_ec_rpa_hartree": -0.01100066029904,
+      "absolute_energy_difference_hartree": 0.00009192985116,
+      "absolute_energy_difference_kcal_mol": 0.057686852552,
+      "relative_difference_to_ordinary_result": 0.008287500927666,
+      "wall_seconds": 0.57,
+      "maximum_rss_kib": 87380,
+      "production_acceptance": false
+    }
+  },
+  "result": {
+    "source_build": "PASS",
+    "producer_solver": "PASS",
+    "compatibility": "BLOCKED",
+    "blocker": "MISSING_DEDICATED_STERNHEIMER_COULOMB_V1",
+    "scientific_acceptance": "NOT_EVALUATED",
+    "automatic_promotion": false
+  },
+  "next_required_work": [
+    "restore the dedicated response Coulomb output on the selected ABACUS production revision",
+    "repeat the H2 L3 handoff with prefix_coul_full = v1_sternheimer_coulomb_iq_",
+    "converge molecule and atom absolute Ec plus the binding contribution",
+    "complete box, real-space Ecut, frequency, PCA/ABFS, and SOS controls"
+  ]
+}

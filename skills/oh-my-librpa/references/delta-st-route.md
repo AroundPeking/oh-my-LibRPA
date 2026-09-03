@@ -38,6 +38,20 @@ Use the same GreenX frequency file across compared runs. A valid endpoint requir
 
 The current dedicated response metric is a monolithic rank-0 v1 file. Do not replace it with similarly shaped ordinary Coulomb shards. Verify `iq`, `naux`, per-atom auxiliary sizes, Hermiticity, and positive semidefiniteness before LibRPA starts.
 
+### Current `master_ghj` compatibility checkpoint
+
+The Fisherd replay of ABACUS
+`1648a8a344427ae1b6394912bf677c4a20e053f2` passed seven focused source tests
+and all 30 H2 FD8 response equations, but it did not emit
+`v1_sternheimer_coulomb_iq_1_rank0.dat`. Classify this exact stack as
+`BLOCKED_MISSING_RESPONSE_COULOMB` before production LibRPA. The ordinary
+`v1_coulomb_full_iq_1_rank0.dat` is present but differs from the validated
+dedicated metric; the workflow must not substitute it. The metric-writing
+revision `81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a` is not an ancestor of this
+tested `master_ghj` revision. Keep the solver result as producer evidence and
+the handoff as blocked evidence until a newer production revision restores the
+dedicated artifact.
+
 ## Molecules and atoms
 
 Represent an isolated atom or molecule with a Gamma-only periodic supercell. Converge the molecule and every atomic fragment independently with respect to box size before forming a binding or dissociation energy. During an Ecut scan, remove explicit `nx/ny/nz` so `ecutwfc` selects the native uniform FFT grid. Keep geometry, orbital basis, auxiliary basis, frequency file, Coulomb matrix, solver tolerance, and spin state fixed.
