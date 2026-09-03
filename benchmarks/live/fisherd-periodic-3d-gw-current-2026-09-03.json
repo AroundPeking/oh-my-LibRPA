@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "fisherd-periodic-3d-gw-current-20260903",
+  "date": "2026-09-03",
+  "last_verified": "2026-09-03",
+  "scope": "Current-stack BN reader-v1 symmetry, shrink, QP-grid, and band handoff replay",
+  "host": {
+    "alias": "Fisherd-Server100.96.1.64",
+    "remote_root": "/home/ghj/oml-benchmarks/20260903-periodic-3d-gw/runs/bn-sym-shrink-current",
+    "remote_evidence_sha256": "407345ef7b859f30118ce019a74a57896abc02437021cbe86fd557173b6fc08b"
+  },
+  "limits": {
+    "execution_threads_max": 48
+  },
+  "pinned_revisions": {
+    "abacus": "1648a8a344427ae1b6394912bf677c4a20e053f2",
+    "librpa": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+    "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "contract": {
+    "route": "periodic_3d_gw",
+    "reader_format": "v1",
+    "symmetry_source": "stru_out",
+    "copy_legacy_symmetry_sidecars": [],
+    "screening_kgrid": [2, 2, 2],
+    "irreducible_kpoints": 3,
+    "band_kpoints": 3,
+    "nbands": 26,
+    "basis_dimension": 26,
+    "nfreq": 8,
+    "ecutwfc_rydberg": 100,
+    "exx_pca_threshold": 0.001,
+    "shrink_abfs_pca_threshold": 0.1,
+    "singularity_correction": "massidda",
+    "use_shrink_abfs": true,
+    "use_symmetry_exx": true,
+    "use_symmetry_gw": true,
+    "replace_w_head": false,
+    "pyatb_role": "NOT_REQUIRED_WITHOUT_HEAD_REPLACEMENT"
+  },
+  "builds": {
+    "abacus": {
+      "executable": "/home/ghj/oml-benchmarks/20260903-molecular-delta/build/abacus/abacus_3p",
+      "executable_sha256": "7aba04e711e68bc654dc737ed5c1a330ddfe62a7ea2305c4d78b6edad5347b5a"
+    },
+    "librpa": {
+      "executable": "/home/ghj/oml-admission/20260830-v2/build/librpa/chi0_main.exe",
+      "executable_sha256": "cefc8f33c2a99085db3dd07a0f7110c17fc5176270cc8a2157ac17e4c1aa8f60",
+      "official_reference_source_revision": "a56500a434d0f57e06eb8cfed2dacd3f66833f78"
+    },
+    "band_preprocessor": {
+      "sha256": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
+    }
+  },
+  "case": {
+    "case_id": "bn-sym-shrink-current-master-ghj",
+    "system": "bulk BN",
+    "input_identity_sha256": {
+      "INPUT_scf": "accb558d6025bf5d195a67e408c9f13704ee1b49159ead3a3fc723c4f298c89a",
+      "INPUT_nscf": "591b5e04a45c7eabc58e78cb0e7da0172c2fa108fe89f1be3a01e0ef888f87e0",
+      "KPT_scf": "92b917107d9df11da28a465cc4900f3574956a057ddf9f7ad125e75c956ec508",
+      "KPT_nscf": "2f9da2627f297de88053c0724be9882bbb054f782f748f8ea2117f07bca5f034",
+      "STRU": "52cf12d4a3b0e272ff9ef209685016c1b9153b81657368cb3ffcd23358b3f7e5",
+      "librpa.in": "8833ba5acd5ba8afc42185e2ebbfa8d93682d286d694718be71128e21f5c27bc",
+      "pseudopotentials": {
+        "B_ONCV_PBE-1.0.upf": "0ea384402c92516dcca6032c1b249e6ced70770661b2acb930e34b5f230b401f",
+        "N_ONCV_PBE-1.0.upf": "b8b7334fbc55c79ced5bb9486c45ce5f0dcae1b7ea5e7523cfcd9814ca58f1c8"
+      },
+      "orbitals": {
+        "B_gga_8au_100Ry_2s2p1d.orb": "ad38bd9aeb0e47c950f58a3857318f29b85712dbc11c1cbf0846e3c510b223b1",
+        "N_gga_8au_100Ry_2s2p1d.orb": "91a13eefbf479e5784ef6a65978e815492aac67ab8a3ce1a30dbbc44effa7147"
+      }
+    },
+    "artifact_sha256": {
+      "stru_out": "e9b77fb9f6b28a45585f26ff607ce33111edb8d8102477f6367a3513eeb130eb",
+      "bz_sampling_out": "26c340cb50938543ed609313cbfa2702e02265a57fc1792b0a317fd5ba7b53b2",
+      "basis_wfc_out": "38affe9b02f79b71b11ef4019b53bd9789e8f18cc4a63c72569a10eea7f2b082",
+      "basis_aux_out": "651bc6bb9eec2a160212857393300585479b3647dcf4b1434b72281b50beb7e4",
+      "basis_aux_shrink_out": "26f83d28b463585f40cac5249775bd8b5c373d920552f4f2a8c7be99d8e819cc",
+      "KS_eigenvector_0.dat": "758d4bce7ca3db1d9633711a250224558fa10c23079f023617415495786bfffc",
+      "v1_Cs_data_0.txt": "b016facf91a56f4961f2a3e3a94f7a97d1bd189ef5d623a759778e27c725d5da",
+      "v1_Cs_shrinked_data_0.txt": "c31a624050ed3d0ff2aff7f54a3d9c7e7d9630bc5e7b53e96c4220fff7dfe454",
+      "v1_shrink_sinvS_0.txt": "2434c66cd98aa5e86b95bf0c3c394b4c3b739cbfacda6802994450cf7b9ab294",
+      "v1_coulomb_full_iq_1_rank0.dat": "53143c4d1e4b92e914fd3950d0d7806bbadf4a479ec96c1add8cddca3db7dee8",
+      "v1_coulomb_cut_iq_1_rank0.dat": "5fcc0e05e9666853ccf619af4d3365855e505310a6acc6f504d0ac5fc45080b5"
+    }
+  },
+  "producer": {
+    "scf": {
+      "exit_code": 0,
+      "final_total_energy_ev": -347.8644069358,
+      "symmetry_operations_in_stru_out": 24,
+      "wall_seconds": 56.14,
+      "maximum_rss_kib": 2653440
+    },
+    "nscf": {
+      "exit_code": 0,
+      "symmetry_setting": -1,
+      "band_kpoints": 3,
+      "wall_seconds": 0.92,
+      "maximum_rss_kib": 212120
+    },
+    "preprocess": {
+      "exit_code": 0,
+      "wall_seconds": 0.05,
+      "maximum_rss_kib": 14152
+    },
+    "legacy_symmetry_sidecars_in_dataset": [],
+    "v1_headers": {
+      "ks": {
+        "marker": -12345679,
+        "kind": 28,
+        "irreducible_kpoints": 3,
+        "nspin": 1,
+        "nstates": 26,
+        "nbasis": 26,
+        "blocks": 1
+      },
+      "coulomb": {
+        "marker": -20129433,
+        "qpoints": 3,
+        "naux": 34,
+        "complex_flag": 1,
+        "natoms": 2,
+        "blocks_per_qpoint": 3
+      }
+    }
+  },
+  "consumer": {
+    "np1_omp48": {
+      "exit_code": 0,
+      "finished_successfully": true,
+      "wall_seconds": 1.25,
+      "maximum_rss_kib": 195496
+    },
+    "np4_omp1": {
+      "exit_code": 0,
+      "finished_successfully": true,
+      "wall_seconds": 1.55,
+      "maximum_rss_kib": 120584
+    }
+  },
+  "comparisons": {
+    "regular_grid_current_vs_official_reference": {
+      "current_tables": 8,
+      "reference_tables": 8,
+      "current_rows": 208,
+      "reference_rows": 208,
+      "shape_ok": true,
+      "max_abs_diff_ev": 0.000010000000003174137,
+      "threshold_ev": 0.0001,
+      "status": "PASS"
+    },
+    "regular_grid_np1_omp48_vs_np4_omp1": {
+      "shape_ok": true,
+      "max_abs_diff_ev": 0.0,
+      "threshold_ev": 0.0001,
+      "status": "PASS"
+    },
+    "band_np1_omp48_vs_np4_omp1": {
+      "KS_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0},
+      "EXX_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0},
+      "GW_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0}
+    },
+    "current_librpa_official_frozen_dataset_vs_reference": {
+      "KS_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0},
+      "EXX_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0},
+      "GW_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0}
+    },
+    "current_end_to_end_vs_official_frozen_reference": {
+      "KS_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0},
+      "EXX_band_spin_1.dat": {
+        "shape_ok": true,
+        "max_abs_diff_ev": 89.24885,
+        "worst": {"k_row": 2, "band": 24, "current_ev": -20.51687, "reference_ev": -109.76572}
+      },
+      "GW_band_spin_1.dat": {
+        "shape_ok": true,
+        "max_abs_diff_ev": 126.67942,
+        "worst": {"k_row": 2, "band": 24, "current_ev": -11.49342, "reference_ev": -138.17284}
+      }
+    },
+    "official_grid_current_band_control_vs_reference": {
+      "KS_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 0.0},
+      "EXX_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 5.14608},
+      "GW_band_spin_1.dat": {"shape_ok": true, "max_abs_diff_ev": 4.76818}
+    }
+  },
+  "symmetry_diagnostics": {
+    "ks_degeneracy_tolerance_ev": 0.00001,
+    "current_degenerate_group_count": 20,
+    "current_exx_max_split_ev": 0.00001,
+    "current_gw_max_split_ev": 0.0,
+    "official_exx_max_split_ev": 178.49769,
+    "official_gw_max_split_ev": 185.71242,
+    "current_and_historical_wavefunctions_span_the_same_midpoint_degenerate_subspaces": true,
+    "maximum_relative_midpoint_subspace_residual": 2.682368208744482e-9,
+    "classification": "DEGENERATE_GAUGE_REFERENCE_MISMATCH"
+  },
+  "regular_grid_gap": {
+    "vbm_ev": 9.71387,
+    "cbm_ev": 16.80283,
+    "gap_ev": 7.08896
+  },
+  "known_scientific_convergence": {
+    "source_checkpoint": "df-bn-reader-v1-2026-08-18",
+    "nfreq_16_to_24_max_abs_gw_change_ev": 0.33829,
+    "screening_kgrid_4_to_8_max_abs_gw_change_ev": 0.70466,
+    "status": "FAIL"
+  },
+  "status": {
+    "source_build": "PASS",
+    "producer": "PASS",
+    "reader_v1_handoff": "PASS",
+    "librpa_frozen_input_regression": "PASS",
+    "current_parallel_reproducibility": "PASS",
+    "historical_end_to_end_band_reference": "BLOCKED_DEGENERATE_GAUGE_MISMATCH",
+    "scientific_convergence": "NOT_EVALUATED",
+    "reference_promotion": "BLOCKED"
+  },
+  "result": {
+    "interface_regression": "PASS_WITH_DEGENERATE_GAUGE_CAVEAT",
+    "scientific_acceptance": "NOT_EVALUATED",
+    "automatic_promotion": false
+  },
+  "next_required_work": [
+    "add a controlled unitary-rotation fixture for degenerate SCF and band manifolds",
+    "define a gauge-invariant LibRPA band observable or explicitly diagonalize the self-energy in each protected degenerate subspace",
+    "repeat frequency and screening-k-grid convergence on one current-stack candidate",
+    "complete NAO and ABFS basis ladders before reference promotion"
+  ]
+}

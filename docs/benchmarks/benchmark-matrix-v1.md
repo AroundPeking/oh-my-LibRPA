@@ -31,6 +31,16 @@ the dedicated `v1_sternheimer_coulomb_iq_*` artifact is absent. The available
 ordinary reader-v1 Coulomb matrix is a diagnostic and cannot satisfy this
 gate.
 
+The 2026-09-03 Fisherd current-stack BN replay keeps `periodic_3d_gw` at
+`PARTIAL_REFERENCE`. Current ABACUS completes SCF, NSCF, reader-v1, embedded
+symmetry, shrink, and band preprocessing; current LibRPA matches the official
+frozen dataset exactly and reproduces current results across `1x48` and `4x1`
+layouts. The historical end-to-end band comparison is
+`BLOCKED_DEGENERATE_GAUGE_MISMATCH`: KS eigenvalues match exactly, but EXX/GW
+members of degenerate manifolds are not statewise comparable across the old
+and current producer gauges. Frequency and screening-grid convergence remain
+unaccepted, so this interface pass cannot promote a scientific reference.
+
 ## Material-Class Benchmarks
 
 | Benchmark row | Initial reference | Distinguishing physics | Minimum result checks | Status |

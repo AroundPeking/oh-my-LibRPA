@@ -289,6 +289,29 @@ For periodic GW post-processing, prefer `plot_gw_band_paper.py` and load `rules/
 - for occupied-only plots, sort only the occupied manifold
 - for near-gap plots, sort occupied and low-lying conduction manifolds separately
 
+### Degenerate gauge regression rule
+
+Historical `KS/EXX/GW_band_spin_*` files are not automatically a statewise
+reference after ABACUS is rebuilt. Exact or near-exact degenerate KS manifolds
+may be represented by different unitary rotations even when the eigenvalues
+and subspaces agree.
+
+When a current end-to-end band replay differs from a historical reference:
+
+- first compare the regular-grid QP tables and run current LibRPA on the full
+  historical frozen dataset;
+- compare the current result across at least two MPI/OpenMP layouts;
+- verify whether KS eigenvalues match and whether changed eigenvectors remain
+  inside the same degenerate subspaces;
+- do not repair the mismatch by copying only historical band eigenvectors or
+  only historical SCF/grid files, because these gauges form one matched
+  handoff;
+- classify unresolved statewise differences as
+  `BLOCKED_DEGENERATE_GAUGE_MISMATCH`;
+- a degenerate gauge diagnostic must not promote an interface replay to a
+  scientific reference. Promotion requires a gauge-invariant observable or
+  explicit self-energy treatment inside the protected degenerate subspace.
+
 ## Reporting requirement
 
 For every recommendation or action, report:
