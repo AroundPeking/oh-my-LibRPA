@@ -127,7 +127,8 @@ Example prompts:
 The MCP-first skill uses `inspect_profile`, `inspect_admission_manifest`,
 `ingest_case`, `plan_case`, `validate_case`, `inspect_reader_v1`,
 `inspect_grid_coulomb_consistency`, `inspect_sternheimer_comparison`,
-`inspect_route_benchmark`, `evaluate_route_benchmark`, `evaluate_admission`, and
+`inspect_route_benchmark`, `evaluate_route_benchmark`,
+`evaluate_route_benchmark_suite`, `evaluate_admission`, and
 `propose_evolution_candidate` before the controlled
 write tools `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`,
 `finalize_case`, and `score_case`. Evolution candidates are proposal-only.
@@ -307,6 +308,7 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 - immutable plan, execution, manifest, attempt, observation, and stage-inspection receipts
 - versioned 100-point benchmark scorecard with non-compensating hard gates and frozen replays
 - route-specific reference benchmarks with machine-evaluated non-compensating scientific gates
+- frozen positive/negative regression suites that report false-pass and false-block counts
 - approved helper-script hashes, executable fingerprints, and safe ambiguous-submission reconciliation
 - pinned compatibility profile: ABACUS `master_ghj`, LibRPA `v0.7.0`, PyATB `enable_head_wing`
 - separate v2 admission profile for current ABACUS/LibRPA/PyATB revisions and four testable routes

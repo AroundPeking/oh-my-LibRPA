@@ -58,6 +58,10 @@ universal asymptotic power law.
 all derived metrics, and returns individual gates plus a non-compensating
 PASS/FAIL verdict. A failed hard gate cannot be repaired by a score.
 
+`evaluate_route_benchmark_suite` replays an immutable positive/negative fixture
+set. It reports false-pass, false-block, and fixture-receipt mismatch counts;
+all three must be zero before an evaluator change is eligible for review.
+
 ## Benchmark Program
 
 The first benchmark matrix separates route validation from material-class

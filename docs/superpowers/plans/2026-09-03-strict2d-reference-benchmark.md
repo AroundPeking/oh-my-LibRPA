@@ -72,3 +72,10 @@
 - [x] Review the diff for accidental historical-profile or unrelated-file changes.
 - [x] Commit with Codex as author and AroundPeking as committer.
 - [x] Push the feature branch and verify the remote head.
+
+### Task 6: Freeze the evaluator regression suite
+
+- [x] Add one known-good and ten blocked route fixtures.
+- [x] Report false-pass, false-block, and fixture-receipt mismatch separately.
+- [x] Expose read-only suite replay through MCP.
+- [x] Re-run tests, package smoke tests, commit, and push.

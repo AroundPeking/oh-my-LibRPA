@@ -4,6 +4,11 @@ import unittest
 
 
 from oml_mcp.admission_manifest import load_admission_manifest
+from oml_mcp.benchmark_suite import (
+    evaluate_registered_route_benchmark_suite,
+    evaluate_route_benchmark_suite,
+    load_route_benchmark_suite,
+)
 from oml_mcp.evals import evaluate_evidence, load_scorecard
 from oml_mcp.route_benchmark import (
     RouteBenchmarkError,
@@ -17,6 +22,7 @@ from oml_mcp.server import build_server
 
 BENCHMARK_ID = "strict2d-sos-rpa-mos2-qavg-v1"
 MANIFEST_ID = "df-dcu-strict2d-sos-rpa-2026-09-02-v1"
+SUITE_ID = "strict2d-sos-rpa-regression-v1"
 
 
 class RouteBenchmarkTest(unittest.TestCase):
@@ -146,6 +152,7 @@ class RouteBenchmarkTest(unittest.TestCase):
             "MaxRSS",
         ):
             self.assertIn(phrase, text)
+        self.assertIn(SUITE_ID, text)
 
     def test_user_guidance_promotes_only_the_reference_bounded_sos_rpa_route(self):
         root = pathlib.Path(__file__).resolve().parents[1]
@@ -168,6 +175,13 @@ class RouteBenchmarkTest(unittest.TestCase):
             self.assertIn("reference-bounded", normalized)
             self.assertIn("not strict-2D GW", normalized)
             self.assertIn("no asymptotic exponent", normalized)
+
+        for path in (
+            root / "README.md",
+            root / "docs" / "guide" / "installation.md",
+            root / "skills" / "oh-my-librpa" / "SKILL.md",
+        ):
+            self.assertIn("evaluate_route_benchmark_suite", path.read_text(encoding="utf-8"))
 
     def test_harness_scorecard_v3_requires_reference_and_false_pass_gates(self):
         root = pathlib.Path(__file__).resolve().parents[1]
@@ -197,6 +211,63 @@ class RouteBenchmarkTest(unittest.TestCase):
         self.assertFalse(blocked["eligible"])
         self.assertEqual(blocked["total_score"], 0.0)
 
+    def test_registered_regression_suite_has_positive_and_failure_fixtures(self):
+        suite = load_route_benchmark_suite(SUITE_ID)
+
+        self.assertEqual(suite["benchmark_id"], BENCHMARK_ID)
+        self.assertGreaterEqual(len(suite["cases"]), 10)
+        self.assertEqual(
+            {case["expected_verdict"] for case in suite["cases"]},
+            {"PASS", "BLOCK"},
+        )
+        case_ids = {case["case_id"] for case in suite["cases"]}
+        for case_id in (
+            "reference-pass",
+            "mixed-reader-contract",
+            "missing-mesh",
+            "non-finite-energy",
+            "failed-process-status",
+            "energy-drift",
+            "finite-q-drift",
+            "asymptotic-overclaim",
+            "stale-fit-receipt",
+        ):
+            self.assertIn(case_id, case_ids)
+        root = pathlib.Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "benchmarks" / "suites" / f"{SUITE_ID}.json").read_bytes(),
+            (
+                root / "oml_mcp" / "benchmark_suites" / f"{SUITE_ID}.json"
+            ).read_bytes(),
+        )
+
+    def test_registered_regression_suite_has_no_false_pass_or_false_block(self):
+        result = evaluate_registered_route_benchmark_suite(suite_id=SUITE_ID)
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["false_pass_count"], 0)
+        self.assertEqual(result["false_block_count"], 0)
+        self.assertEqual(result["fixture_mismatch_count"], 0)
+        self.assertEqual(result["review_eligibility"], "REVIEWABLE")
+        self.assertTrue(result["scorecard_gate_evidence"]["no_known_false_pass"])
+        self.assertTrue(all(case["status"] == "PASS" for case in result["cases"]))
+
+    def test_regression_suite_detects_a_false_pass(self):
+        suite = load_route_benchmark_suite(SUITE_ID)
+        suite["cases"].append(
+            {
+                "case_id": "deliberate-false-pass",
+                "expected_verdict": "BLOCK",
+                "operations": [],
+                "expected_failed_gates": [],
+            }
+        )
+
+        result = evaluate_route_benchmark_suite(suite)
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["false_pass_count"], 1)
+
 
 class RouteBenchmarkServerTest(unittest.IsolatedAsyncioTestCase):
     async def test_mcp_inspects_and_evaluates_the_reference_benchmark(self):
@@ -214,6 +285,17 @@ class RouteBenchmarkServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(inspected.structured_content["benchmark_id"], BENCHMARK_ID)
         self.assertFalse(evaluated.is_error, evaluated.content)
         self.assertEqual(evaluated.structured_content["status"], "PASS")
+
+    async def test_mcp_runs_the_registered_false_pass_regression_suite(self):
+        result = await build_server().call_tool(
+            "evaluate_route_benchmark_suite",
+            {"suite_id": SUITE_ID},
+        )
+
+        self.assertFalse(result.is_error, result.content)
+        self.assertEqual(result.structured_content["status"], "PASS")
+        self.assertEqual(result.structured_content["false_pass_count"], 0)
+        self.assertEqual(result.structured_content["false_block_count"], 0)
 
 
 if __name__ == "__main__":

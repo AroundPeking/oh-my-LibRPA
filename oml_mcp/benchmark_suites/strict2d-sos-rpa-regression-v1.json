@@ -1,0 +1,95 @@
+{
+  "schema": "oml.route-benchmark-suite.v1",
+  "suite_id": "strict2d-sos-rpa-regression-v1",
+  "benchmark_id": "strict2d-sos-rpa-mos2-qavg-v1",
+  "manifest_id": "df-dcu-strict2d-sos-rpa-2026-09-02-v1",
+  "cases": [
+    {
+      "case_id": "reference-pass",
+      "expected_verdict": "PASS",
+      "operations": [],
+      "expected_failed_gates": []
+    },
+    {
+      "case_id": "source-revision-drift",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["sources", "abacus", "revision"], "value": "0000000000000000000000000000000000000000"}
+      ],
+      "expected_failed_gates": ["identity.reference"]
+    },
+    {
+      "case_id": "route-drift",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["route", "route_id"], "value": "strict_2d_gw"}
+      ],
+      "expected_failed_gates": ["identity.reference"]
+    },
+    {
+      "case_id": "mixed-reader-contract",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["contract", "reader_format"], "value": "legacy"}
+      ],
+      "expected_failed_gates": ["identity.reference"]
+    },
+    {
+      "case_id": "missing-mesh",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "remove", "path": ["validated_cases", 3]}
+      ],
+      "expected_failed_gates": ["mesh.completeness"]
+    },
+    {
+      "case_id": "non-finite-energy",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["validated_cases", 0, "total_hartree"], "value": "nan"}
+      ],
+      "expected_failed_gates": [],
+      "expected_error_contains": "must be finite"
+    },
+    {
+      "case_id": "failed-process-status",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["validated_cases", 0, "status"], "value": "FAILED"}
+      ],
+      "expected_failed_gates": ["evidence.status"]
+    },
+    {
+      "case_id": "energy-drift",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["validated_cases", 3, "total_hartree"], "value": -1.225513727806}
+      ],
+      "expected_failed_gates": ["reference.total_energy", "convergence.endpoint_delta"]
+    },
+    {
+      "case_id": "finite-q-drift",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["validation_controls", 0, "total_hartree"], "value": -1.267873084}
+      ],
+      "expected_failed_gates": ["control.finite_q_agreement"]
+    },
+    {
+      "case_id": "asymptotic-overclaim",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["k_mesh_claim", "convergence_exponent_established"], "value": true}
+      ],
+      "expected_failed_gates": ["claim.boundary"]
+    },
+    {
+      "case_id": "stale-fit-receipt",
+      "expected_verdict": "BLOCK",
+      "operations": [
+        {"op": "replace", "path": ["k_mesh_claim", "fixed_n_minus_3_rms_millihartree"], "value": 99.0}
+      ],
+      "expected_failed_gates": ["receipt.derived_metrics"]
+    }
+  ]
+}

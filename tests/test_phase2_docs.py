@@ -18,6 +18,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "inspect_admission_manifest",
             "inspect_route_benchmark",
             "evaluate_route_benchmark",
+            "evaluate_route_benchmark_suite",
             "ingest_case",
             "plan_case",
             "validate_case",
@@ -43,10 +44,11 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         )
 
         for phrase in (
-            "18 MCP tools",
+            "19 MCP tools",
             "inspect_admission_manifest",
             "inspect_route_benchmark",
             "evaluate_route_benchmark",
+            "evaluate_route_benchmark_suite",
             "inspect_grid_coulomb_consistency",
             "inspect_sternheimer_comparison",
             "evaluate_admission",
@@ -136,11 +138,12 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.4.4")
-        self.assertIn('version = "0.4.4"', pyproject)
+        self.assertEqual(plugin["version"], "0.4.5")
+        self.assertIn('version = "0.4.5"', pyproject)
+        self.assertIn('"benchmark_suites/*.json"', pyproject)
         self.assertIn('"route_benchmarks/*.json"', pyproject)
-        self.assertIn('__version__ = "0.4.4"', package)
-        self.assertIn('version="0.4.4"', server)
+        self.assertIn('__version__ = "0.4.5"', package)
+        self.assertIn('version="0.4.5"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (

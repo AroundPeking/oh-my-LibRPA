@@ -12,6 +12,7 @@ from .artifacts import (
     inspect_velocity_v1,
 )
 from .admission_manifest import load_admission_manifest
+from .benchmark_suite import evaluate_registered_route_benchmark_suite
 from .control import ControlledExecutionService
 from .evals import evaluate_evidence, load_scorecard
 from .errors import OMLError
@@ -94,7 +95,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.4.4",
+        version="0.4.5",
     )
     annotations = _read_only_annotations()
 
@@ -167,6 +168,16 @@ def build_server() -> MCPServer:
             benchmark_id=benchmark_id,
             manifest_id=manifest_id,
         )
+
+    @server.tool(
+        name="evaluate_route_benchmark_suite",
+        description="Replay frozen good and bad fixtures and report false-pass and false-block counts.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def evaluate_route_benchmark_suite(suite_id: str) -> dict[str, Any]:
+        """Run a registered, read-only benchmark regression suite."""
+        return evaluate_registered_route_benchmark_suite(suite_id=suite_id)
 
     @server.tool(
         name="propose_evolution_candidate",

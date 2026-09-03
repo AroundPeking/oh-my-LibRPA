@@ -28,7 +28,7 @@ The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.js
 
 ### MCP tools
 
-OML exposes 18 MCP tools: twelve case/admission/benchmark inspection tools, two read-only
+OML exposes 19 MCP tools: thirteen case/admission/benchmark inspection tools, two read-only
 status/scoring tools, and four bounded execution/finalization tools:
 
 | Tool | Purpose |
@@ -37,6 +37,7 @@ status/scoring tools, and four bounded execution/finalization tools:
 | `inspect_admission_manifest` | Validate and report the registered v2 Fisherd admission campaign |
 | `inspect_route_benchmark` | Return an immutable route-specific scientific benchmark and its hard tolerances |
 | `evaluate_route_benchmark` | Recompute all non-compensating gates from a registered benchmark and manifest |
+| `evaluate_route_benchmark_suite` | Replay frozen good/bad fixtures and report false-pass and false-block counts |
 | `evaluate_admission` | Apply the selected versioned scorecard without changing files or jobs |
 | `propose_evolution_candidate` | Propose one registered benchmark-axis change within an explicit budget |
 | `ingest_case` | Classify case ownership and fingerprint discovered files |
@@ -52,7 +53,7 @@ status/scoring tools, and four bounded execution/finalization tools:
 | `finalize_case` | Evaluate a passed 3D GW snapshot against registered scientific policy |
 | `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
-The twelve inspection/admission/benchmark tools plus `get_status` and `score_case` are
+The thirteen inspection/admission/benchmark tools plus `get_status` and `score_case` are
 read-only. `propose_evolution_candidate` returns a proposal only; it never edits
 inputs or submits work. `prepare_run`, `submit_stage`, `inspect_stage`, and
 idempotent `finalize_case` are consequential but bounded. Controlled execution
@@ -122,6 +123,11 @@ rule requires the documented energies, Gamma area scaling, N=12 to N=16
 endpoint change, fit residual, extrapolation span, and finite-q control within
 their registered tolerances. It makes no asymptotic exponent claim and is not
 strict-2D GW acceptance.
+
+Suite `strict2d-sos-rpa-regression-v1` freezes one accepted replay and ten
+blocked fixtures. `evaluate_route_benchmark_suite` must report zero false-pass,
+zero false-block, and zero fixture mismatch before an evaluator change is
+eligible for review.
 
 All profiles explicitly use reader-v1 in OML workflows:
 

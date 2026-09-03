@@ -55,3 +55,12 @@ mixed-reader, mixed-symmetry, stale-plan, duplicate-job and wrong-state
 fixtures. It reports false-pass and false-block counts separately. A new rule
 cannot be promoted when it turns a known bad fixture into a pass, even if its
 aggregate score improves.
+
+Registered suite `strict2d-sos-rpa-regression-v1` currently supplies one
+known-good strict-2D SOS-RPA replay and ten blocked fixtures. It covers source
+and route drift, mixed reader contract, missing mesh, non-finite energy, failed
+process status, reference-energy drift, finite-q disagreement, an asymptotic
+overclaim, and a stale fit receipt. Project-wide mixed-symmetry, stale-plan,
+duplicate-job, and wrong-state fixtures remain required for the corresponding
+route evaluators; this route-specific suite does not claim that broader
+coverage.

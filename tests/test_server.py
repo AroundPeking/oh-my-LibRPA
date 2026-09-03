@@ -30,6 +30,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "inspect_admission_manifest",
                 "inspect_route_benchmark",
                 "evaluate_route_benchmark",
+                "evaluate_route_benchmark_suite",
                 "ingest_case",
                 "plan_case",
                 "validate_case",
@@ -54,6 +55,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             "inspect_admission_manifest",
             "inspect_route_benchmark",
             "evaluate_route_benchmark",
+            "evaluate_route_benchmark_suite",
             "ingest_case",
             "plan_case",
             "validate_case",
@@ -184,7 +186,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 18)
+        self.assertEqual(len(listed.tools), 19)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "v0.7.0")
 
