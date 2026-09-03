@@ -130,7 +130,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 },
             )
 
-        self.assertEqual(profile["components"]["librpa"]["ref"], "v0.7.0")
+        self.assertEqual(profile["components"]["librpa"]["ref"], "master_ghj")
         self.assertEqual(intake["stack"], "abacus_librpa")
         self.assertEqual(plan["route"], "periodic_gw_symmetry")
         self.assertTrue(report["accepted"], report)
@@ -188,7 +188,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
         self.assertEqual(len(listed.tools), 19)
         self.assertFalse(called.is_error)
-        self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "v0.7.0")
+        self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "master_ghj")
 
     async def test_admission_and_evolution_tools_are_deterministic_and_read_only(self):
         manifest = await self.call("inspect_admission_manifest", {})

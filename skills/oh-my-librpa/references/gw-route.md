@@ -30,7 +30,10 @@ For reused periodic GW cases on the current `df` ABACUS route, reject these stal
 Set or verify these `librpa.in` defaults unless a stronger empirical rule overrides them:
 
 - `task = g0w0`
-- `nfreq = 16`
+- for the current periodic 3D solid lane, start with `nfreq = 24`
+- for routes outside that lane, do not inherit the BN frequency or Pade defaults without a route-specific benchmark
+- for the current periodic 3D solid lane, `n_params_anacon = 6`
+- `option_qpe_solver = 0`
 - `use_soc = 0/1` according to the chosen spin/SOC branch
 - `option_dielect_func = 3`
 - `replace_w_head = t`
@@ -57,12 +60,17 @@ When materializing a fresh GW case for that request, pass `--enable-nscf-band-co
 
 - for template-generated inputs that use explicit lattice vectors, set `latname = user_defined_lattice`
 
-Time-frequency grid guardrails:
+Time-frequency grid and analytic-continuation guardrails:
 
-- if `tfgrid_type = minimax` or the key is omitted and LibRPA will use the default `minimax`, require `nfreq >= 6`
+- use the canonical LibRPA key `tfgrids_type`; do not write the obsolete singular spelling `tfgrid_type`
+- if `tfgrids_type = minimax` or the key is omitted and LibRPA will use the default `minimax`, require `nfreq >= 6`
 - reason: the LibRPA minimax path uses GreenX-backed minimax grids and the supported grid count starts at `6`; do not treat `nfreq < 6` as a valid minimax setup
-- if a quick functional smoke test really needs `nfreq < 6`, explicitly switch away from minimax, for example to `tfgrid_type = evenspaced_tf` or `tfgrid_type = evenspaced`
+- if a quick functional smoke test really needs `nfreq < 6`, explicitly switch away from minimax, for example to `tfgrids_type = evenspaced_tf` or `tfgrids_type = evenspaced`
 - never present `nfreq < 6` as a production or convergence-quality GW/RPA setting; it is only acceptable for narrow path-validation smoke tests with a non-minimax grid
+- record `n_params_anacon`, `n_params_anacon_resample`, `anacon_tfgrids_type`, `anacon_nfreq`, `option_qpe_solver`, `qpe_solver_thres`, `qpe_solver_n_iter_max`, `qpe_solver_damp_factor`, `use_qpe_adaptive_damp`, `use_qpe_legacy_update`, and `override_qpe_solver_nan` in the scientific definition
+- an `nfreq` convergence pair may change only `nfreq`; changing the Padé order, resampling grid, or QP solver invalidates the pair
+- LibRPA's source default `n_params_anacon = -1` uses all `nfreq` points. The current BN `4x4x4` benchmark found that setting unstable across `24 -> 32`; the six-parameter setting passed the declared VBM-3 through CBM+3 gate. Treat `6` as the current periodic 3D OML baseline, not a universal molecule, strict-2D, SOC, or material-class result
+- gate the declared low-energy window and gap, while reporting unstable high-unoccupied Padé roots separately; a stable gap alone is insufficient
 
 Before selecting PP / NAO / ABFS assets for a GW case, enforce the matching rule from `references/pp-nao-abfs-library.md`: pseudopotential, atomic basis, and auxiliary basis must correspond to the same intended setup and must not be mixed casually across unrelated PP families.
 
@@ -136,6 +144,7 @@ Use the full periodic route.
 Required checks and stages:
 
 - ask how many k-points to use in `KPT`; default to `8 8 8`
+- keep `n_params_anacon = 6` fixed while increasing `nfreq` through the current periodic-solid convergence ladder
 - require explicit `KPT_nscf`
 - prefer the updated `get_diel.py` and `preprocess_abacus_for_librpa_band.py` copies that match the merged ABACUS branch; do not fall back to stale helpers that assume only legacy `EFERMI` parsing or one fixed wavefunction filename pattern
 - treat the periodic GW helper quartet as inseparable: `perform.sh`, `get_diel.py`, `output_librpa.py`, and `preprocess_abacus_for_librpa_band.py`

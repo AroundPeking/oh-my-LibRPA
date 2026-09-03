@@ -319,12 +319,24 @@ else
 fi
 
 nfreq="$(trim "$(get_value "$librpa" "nfreq" || true)")"
+tfgrids_type="$(trim "$(get_value "$librpa" "tfgrids_type" || true)")"
+legacy_tfgrid_type="$(trim "$(get_value "$librpa" "tfgrid_type" || true)")"
+if [[ -n "$legacy_tfgrid_type" ]]; then
+  note_fail "librpa.in uses obsolete singular key tfgrid_type; replace it with tfgrids_type"
+fi
+if [[ -z "$tfgrids_type" ]]; then
+  tfgrids_type="minimax"
+fi
 if [[ -z "$nfreq" ]]; then
   note_warn "nfreq not found in librpa.in"
-elif [[ "$nfreq" == "16" ]]; then
+elif [[ "$tfgrids_type" == "minimax" ]] && [[ "$nfreq" =~ ^[0-9]+$ ]] && (( nfreq < 6 )); then
+  note_fail "tfgrids_type=minimax requires nfreq>=6 in LibRPA; nfreq=$nfreq requires an explicit non-minimax debug grid"
+elif [[ "$needs_periodic_gw_route" -eq 1 && "$nfreq" == "24" ]]; then
+  note_pass "nfreq=24 current periodic GW starting point"
+elif [[ "$needs_periodic_gw_route" -eq 0 && "$nfreq" == "16" ]]; then
   note_pass "nfreq=16 smoke default"
 else
-  note_warn "nfreq=$nfreq (recommended smoke default: 16)"
+  note_warn "nfreq=$nfreq (current periodic GW starts at 24; other route defaults remain route-specific)"
 fi
 
 if grep -qiE '^use_shrink_abfs[[:space:]]*=[[:space:]]*t([[:space:]]|$)' "$librpa"; then

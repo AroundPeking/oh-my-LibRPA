@@ -243,18 +243,78 @@ def _frequency_grid_gate(
     )
 
 
+def _periodic_3d_gw_continuation_gate(
+    librpa: InputDocument,
+    profile: dict[str, object],
+    *,
+    task: str,
+    system_type: str,
+) -> GateResult:
+    route_contract = profile["contract"].get("periodic_3d_gw")
+    periodic_3d_gw = task == "gw" and system_type.strip().lower() in {
+        "solid",
+        "periodic",
+    }
+    if not isinstance(route_contract, dict) or not periodic_3d_gw:
+        return _skip(
+            "librpa.periodic_3d_gw_continuation",
+            "the current periodic 3D GW continuation contract does not apply",
+        )
+
+    required = route_contract["analytic_continuation"]
+    actual_grid = (librpa.value("tfgrids_type") or "").strip()
+    actual_nparams = _int_value(librpa, "n_params_anacon")
+    actual_solver = _int_value(librpa, "option_qpe_solver")
+    actual_adaptive = _bool_value(librpa, "use_qpe_adaptive_damp")
+    mismatches = []
+    if actual_grid != required["tfgrids_type"]:
+        mismatches.append(
+            f"tfgrids_type={librpa.value('tfgrids_type')!r} "
+            f"expected {required['tfgrids_type']}"
+        )
+    if actual_nparams != required["n_params_anacon"]:
+        mismatches.append(
+            f"n_params_anacon={librpa.value('n_params_anacon')!r} "
+            f"expected {required['n_params_anacon']}"
+        )
+    if actual_solver != required["option_qpe_solver"]:
+        mismatches.append(
+            f"option_qpe_solver={librpa.value('option_qpe_solver')!r} "
+            f"expected {required['option_qpe_solver']}"
+        )
+    if actual_adaptive is not required["use_qpe_adaptive_damp"]:
+        mismatches.append(
+            f"use_qpe_adaptive_damp={librpa.value('use_qpe_adaptive_damp')!r} expected f"
+        )
+    if mismatches:
+        return _fail(
+            "librpa.periodic_3d_gw_continuation",
+            "periodic 3D GW analytic-continuation controls do not match the current benchmark",
+            (str(librpa.path), *mismatches),
+            (
+                "set tfgrids_type = minimax, n_params_anacon = 6, "
+                "option_qpe_solver = 0, and use_qpe_adaptive_damp = f"
+            ),
+        )
+    return _pass(
+        "librpa.periodic_3d_gw_continuation",
+        "periodic 3D GW analytic-continuation controls match the current benchmark",
+        str(librpa.path),
+    )
+
+
 def _unsupported_key_gate(librpa: InputDocument, unsupported: dict[str, str]) -> GateResult:
     found = [(key, unsupported[key]) for key in unsupported if key in librpa.keys]
     if found:
         return _fail(
             "librpa.unsupported_keys",
-            "librpa.in uses OML symmetry keys that LibRPA 0.7.0 does not parse",
+            "librpa.in uses obsolete OML keys that the pinned LibRPA does not parse",
             tuple(f"{key} -> {replacement}" for key, replacement in found),
             "replace " + ", ".join(f"{key} with {replacement}" for key, replacement in found),
         )
     return _pass(
         "librpa.unsupported_keys",
-        "librpa.in contains no obsolete OML symmetry spellings",
+        "librpa.in contains no obsolete OML key spellings",
         str(librpa.path),
     )
 
@@ -822,6 +882,12 @@ def validate_case(
         _task_gate(librpa, normalized_task),
         _fullcoul_exx_gate(librpa),
         _frequency_grid_gate(librpa, contract["librpa"]["frequency_grids"]),
+        _periodic_3d_gw_continuation_gate(
+            librpa,
+            profile,
+            task=normalized_task,
+            system_type=system_type,
+        ),
         _route_policy_gate(
             normalized_task,
             system_type,

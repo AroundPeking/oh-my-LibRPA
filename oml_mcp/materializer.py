@@ -313,7 +313,7 @@ def prepare_run(
     ):
         raise OMLError(
             "ADMISSION_ONLY_ROUTE",
-            "the selected v2 route is restricted to the registered admission harness",
+            "the selected admission-only route is restricted to its registered harness",
             evidence=(
                 plan.profile_id,
                 plan.route,

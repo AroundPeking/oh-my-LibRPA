@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "benchmark_id": "fisherd-periodic-3d-gw-current-20260903",
+  "profile_id": "abacus-librpa-2026-09-03-v4",
   "date": "2026-09-03",
   "last_verified": "2026-09-03",
   "scope": "Current-stack BN reader-v1 symmetry, shrink, QP-grid, and band handoff replay",
@@ -208,12 +209,172 @@
     "screening_kgrid_4_to_8_max_abs_gw_change_ev": 0.70466,
     "status": "FAIL"
   },
+  "current_scientific_followup": {
+    "remote_root": "/home/ghj/oml-benchmarks/20260903-periodic-3d-gw/runs/bn-k444-current-20260903",
+    "screening_kgrid": [4, 4, 4],
+    "irreducible_kpoints": 8,
+    "band_kpoints": 3,
+    "state_window": {
+      "band_start": 1,
+      "band_stop": 8,
+      "state_count": 24,
+      "definition": "VBM-3 through CBM+3 at every band-path k point"
+    },
+    "continuation_contract": {
+      "tfgrids_type": "minimax",
+      "n_params_anacon": 6,
+      "option_qpe_solver": 0,
+      "use_qpe_adaptive_damp": false
+    },
+    "producer": {
+      "scf": {
+        "exit_code": 0,
+        "wall_seconds": 54.91,
+        "maximum_rss_kib": 2743792
+      },
+      "nscf": {
+        "exit_code": 0,
+        "wall_seconds": 0.92,
+        "maximum_rss_kib": 209960
+      },
+      "preprocess_exit_code": 0,
+      "reader_v1_full_coulomb_files": 8,
+      "reader_v1_cut_coulomb_files": 8,
+      "dataset_size_mib": 27
+    },
+    "legacy_symmetry_sidecars_in_dataset": [],
+    "artifact_sha256": {
+      "INPUT_scf": "accb558d6025bf5d195a67e408c9f13704ee1b49159ead3a3fc723c4f298c89a",
+      "KPT_scf": "1ad281c0f88e2f4269b222db91fc59e3365188569a96e8629b57c8f65b0613e7",
+      "STRU": "52cf12d4a3b0e272ff9ef209685016c1b9153b81657368cb3ffcd23358b3f7e5",
+      "stru_out": "e9b77fb9f6b28a45585f26ff607ce33111edb8d8102477f6367a3513eeb130eb",
+      "INPUT_nscf": "591b5e04a45c7eabc58e78cb0e7da0172c2fa108fe89f1be3a01e0ef888f87e0",
+      "KPT_nscf": "2f9da2627f297de88053c0724be9882bbb054f782f748f8ea2117f07bca5f034",
+      "bz_sampling_out": "00256c88562671f5c83740697df096b4d42d1e278fde42777392523ecb318444",
+      "nfreq24_librpa_input": "fff17df6eb7d05fc129f4fb000e7e24e47240a5ee4d56798c6eed24451ec9507",
+      "nfreq24_gw_band": "52b8a6054e1a2756982df675b36d13ba398f7236baa1165a6c5ce0e81a7ff40f",
+      "nfreq32_librpa_input": "3a42b7128229dde638f6e9151ac6ece70c8bd3bcd17ab0d8ab17aaab4ff14ee6",
+      "nfreq32_gw_band": "26f5debd4872c3754e28238caf7c97e11584bad9e3d3a42408c3af9edf6e9845"
+    },
+    "frequency_ladder": [
+      {
+        "nfreq": 16,
+        "gap_ev": 6.24342,
+        "wall_seconds": 15.70,
+        "maximum_rss_kib": 426368,
+        "qpe_failure_count": 0,
+        "nonfinite_band_count": 0,
+        "to_next_max_window_change_ev": 0.51179,
+        "to_next_gap_change_ev": 0.02747,
+        "to_next_status": "FAIL"
+      },
+      {
+        "nfreq": 24,
+        "gap_ev": 6.27089,
+        "wall_seconds": 21.23,
+        "maximum_rss_kib": 475020,
+        "qpe_failure_count": 0,
+        "nonfinite_band_count": 0,
+        "to_next_max_window_change_ev": 0.04440,
+        "to_next_gap_change_ev": 0.00021,
+        "to_next_status": "PASS"
+      },
+      {
+        "nfreq": 32,
+        "gap_ev": 6.27110,
+        "wall_seconds": 25.17,
+        "maximum_rss_kib": 495256,
+        "qpe_failure_count": 0,
+        "nonfinite_band_count": 0
+      }
+    ],
+    "frequency_axis": {
+      "coarse_nfreq": 24,
+      "fine_nfreq": 32,
+      "threshold_ev": 0.05,
+      "max_window_change_ev": 0.04440,
+      "gap_change_ev": 0.00021,
+      "worst_state": {
+        "spin": 1,
+        "kpoint": [0.0, 0.0, 0.0],
+        "band": 1,
+        "coarse_ev": -10.94133,
+        "fine_ev": -10.89693
+      },
+      "status": "PASS"
+    },
+    "high_unoccupied_report": {
+      "band_start": 9,
+      "band_stop": 26,
+      "max_abs_change_ev": 1.44653,
+      "worst_state": {
+        "spin": 1,
+        "kpoint": [0.5, 0.0, 0.5],
+        "band": 26
+      },
+      "part_of_low_energy_gate": false,
+      "status": "REPORTED_NOT_GATED"
+    },
+    "continuation_negative_controls": [
+      {
+        "control_id": "all-points-self-consistent",
+        "n_params_anacon": -1,
+        "option_qpe_solver": 0,
+        "max_window_change_ev": 0.35045,
+        "gap_change_ev": 0.0,
+        "max_all_band_change_ev": 90.05310,
+        "nonfinite_high_state_count": 0,
+        "status": "FAIL"
+      },
+      {
+        "control_id": "pade-12-self-consistent",
+        "n_params_anacon": 12,
+        "option_qpe_solver": 0,
+        "max_window_change_ev": 0.56241,
+        "gap_change_ev": 0.0,
+        "nonfinite_high_state_count": 1,
+        "status": "FAIL"
+      },
+      {
+        "control_id": "all-points-perturbative",
+        "n_params_anacon": -1,
+        "option_qpe_solver": 2,
+        "max_window_change_ev": 0.38074,
+        "gap_change_ev": 0.00003,
+        "max_all_band_change_ev": 1996.89089,
+        "nonfinite_high_state_count": 0,
+        "status": "FAIL"
+      }
+    ],
+    "screening_kgrid_axis": {
+      "coarse_grid": [2, 2, 2],
+      "fine_grid": [4, 4, 4],
+      "nfreq": 24,
+      "n_params_anacon": 6,
+      "threshold_ev": 0.05,
+      "coarse_gap_ev": -132.38050,
+      "fine_gap_ev": 6.27089,
+      "max_ks_window_change_ev": 0.50430,
+      "max_exx_window_change_ev": 128.33563,
+      "max_window_change_ev": 139.78139,
+      "worst_state": {
+        "spin": 1,
+        "kpoint": [0.25, 0.0, 0.25],
+        "band": 5,
+        "coarse_ev": -122.67340,
+        "fine_ev": 17.10799
+      },
+      "status": "FAIL"
+    }
+  },
   "status": {
     "source_build": "PASS",
     "producer": "PASS",
     "reader_v1_handoff": "PASS",
     "librpa_frozen_input_regression": "PASS",
     "current_parallel_reproducibility": "PASS",
+    "current_frequency_axis": "PASS",
+    "current_screening_kgrid_axis": "FAIL",
     "historical_end_to_end_band_reference": "BLOCKED_DEGENERATE_GAUGE_MISMATCH",
     "scientific_convergence": "NOT_EVALUATED",
     "reference_promotion": "BLOCKED"
@@ -224,9 +385,9 @@
     "automatic_promotion": false
   },
   "next_required_work": [
-    "add a controlled unitary-rotation fixture for degenerate SCF and band manifolds",
     "define a gauge-invariant LibRPA band observable or explicitly diagonalize the self-energy in each protected degenerate subspace",
-    "repeat frequency and screening-k-grid convergence on one current-stack candidate",
+    "extend the current screening grid beyond 4x4x4 and require an adjacent fine-grid pass",
+    "add a current-stack symmetry versus full-q control with the same continuation contract",
     "complete NAO and ABFS basis ladders before reference promotion"
   ]
 }

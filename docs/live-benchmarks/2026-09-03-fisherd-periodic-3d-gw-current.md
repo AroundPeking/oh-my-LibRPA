@@ -37,10 +37,12 @@ but is not executed in this no-head-replacement regression.
 | LibRPA executable | `cefc8f33c2a99085db3dd07a0f7110c17fc5176270cc8a2157ac17e4c1aa8f60` |
 | band preprocessor | `c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5` |
 
-Retained live evidence is under
+The L3 replay evidence is under
 `/home/ghj/oml-benchmarks/20260903-periodic-3d-gw/runs/bn-sym-shrink-current`.
 Its machine-generated receipt has SHA-256
 `407345ef7b859f30118ce019a74a57896abc02437021cbe86fd557173b6fc08b`.
+The current-stack convergence follow-up is retained separately under
+`/home/ghj/oml-benchmarks/20260903-periodic-3d-gw/runs/bn-k444-current-20260903`.
 
 ## Producer And Handoff
 
@@ -103,6 +105,51 @@ exact, and current parallel layouts agree. It is also not accepted as a
 scientific pass: OML must not silently average, reorder, or compare individual
 members of a historical degenerate manifold as if state identity were fixed.
 
+## Current-Stack Convergence Follow-Up
+
+A fresh `4x4x4` producer was generated with the same structure, PP, NAO,
+26-state complete basis, reader-v1, shrink, symmetry, Massidda correction, and
+current executables. Its SCF completed in `54.91 s` with `2743792 KiB` maximum
+RSS and produced eight irreducible q points, eight full and eight cut reader-v1
+Coulomb files, and no legacy symmetry sidecars. NSCF and preprocessing also
+completed.
+
+The frequency ladder fixes `tfgrids_type = minimax`,
+`n_params_anacon = 6`, `option_qpe_solver = 0`, and
+`use_qpe_adaptive_damp = false`. Only `nfreq` changes:
+
+| Pair | Gap change | Maximum GW change in VBM-3 through CBM+3 | Result |
+| --- | ---: | ---: | --- |
+| `16 -> 24` | `0.02747 eV` | `0.51179 eV` | FAIL |
+| `24 -> 32` | `0.00021 eV` | `0.04440 eV` | PASS |
+
+All three runs are finite and have no explicit QP-solver failure. The accepted
+`24 -> 32` pair has gaps `6.27089 -> 6.27110 eV`; its worst low-energy state
+is Gamma band 1. This accepts only the current BN frequency axis under the
+explicit six-parameter continuation contract. It does not establish a generic
+Padé setting for molecules, strict-2D GW, SOC, or other material classes.
+
+The high-unoccupied region is reported separately: bands 9-26 change by up to
+`1.44653 eV`, at X band 26. This does not enter the declared low-energy gate,
+but it remains visible in the evidence rather than being called converged.
+
+Three negative controls explain why the continuation settings are part of the
+scientific definition. Using all frequency points as Padé parameters gives a
+`0.35045 eV` low-energy change and a `90.05310 eV` high-state root switch.
+Twelve parameters gives a `0.56241 eV` low-energy change and a non-finite
+high-energy state at 32 frequencies. Switching the all-point calculation to
+the perturbative QP solver still gives `0.38074 eV` in the low-energy window
+and a `1996.89089 eV` high-state excursion. A stable gap alone would have
+missed every one of these failures.
+
+The matched `2x2x2 -> 4x4x4` screening-grid pair fixes `nfreq = 24` and
+`n_params_anacon = 6`. It fails strongly: the low-energy maximum is
+`139.78139 eV`, and the fixed-frontier gap changes from `-132.38050` to
+`6.27089 eV`. The worst state is the off-grid Gamma-X midpoint band 5, whose
+EXX value already changes from `-106.05359` to `22.28204 eV`. Therefore the
+coarse-grid anomaly is an interpolation/screening-grid failure, not a
+frequency or QP-solver failure.
+
 ## Acceptance Boundary
 
 | Gate | Result |
@@ -112,24 +159,27 @@ members of a historical degenerate manifold as if state identity were fixed.
 | reader-v1 and embedded-symmetry handoff | PASS |
 | current LibRPA on official frozen dataset | PASS |
 | current `1x48` versus `4x1` reproducibility | PASS |
+| current `nfreq 24 -> 32`, fixed six-parameter Padé | PASS |
+| current screening grid `2x2x2 -> 4x4x4` | FAIL |
 | historical end-to-end band reference | `BLOCKED_DEGENERATE_GAUGE_MISMATCH` |
 | scientific convergence | `NOT_EVALUATED` |
 | reference promotion | BLOCKED |
 
-The earlier BN campaign still reports `0.33829 eV` maximum GW-state change for
-`nfreq 16 -> 24` and `0.70466 eV` for screening grid `4x4x4 -> 8x8x8`. This
-small replay cannot supersede those failed convergence gates, so the benchmark
-matrix remains `PARTIAL_REFERENCE`.
+The current frequency axis now has a passing adjacent pair, but the current
+screening-grid axis does not. The earlier independent BN campaign also reports
+`0.70466 eV` for `4x4x4 -> 8x8x8`. Because no current finer-grid, basis, or
+definition-matched physical reference is accepted, the benchmark matrix
+remains `PARTIAL_REFERENCE` and scientific acceptance remains `NOT_EVALUATED`.
 
 ## Next Gates
 
-1. Add a fixture that applies controlled unitary rotations to protected
-   degenerate SCF and band manifolds.
-2. Require a gauge-invariant band observable, or diagonalize the self-energy
+1. Require a gauge-invariant band observable, or diagonalize the self-energy
    within each protected degenerate subspace before assigning state energies.
-3. Repeat frequency and screening-grid convergence on one current-stack
-   candidate.
-4. Complete NAO and ABFS basis ladders before reference review.
+2. Extend the current screening grid beyond `4x4x4` and require an adjacent
+   fine-grid pass under the same continuation contract.
+3. Add a current-stack symmetry/full-q comparison without changing any other
+   physical or numerical setting.
+4. Complete empty-state, NAO, and ABFS ladders before reference review.
 
 The machine-readable record is
 `benchmarks/live/fisherd-periodic-3d-gw-current-2026-09-03.json`.

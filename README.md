@@ -52,21 +52,27 @@ In practice, that means the agent can help with:
 - producing a final scientific artifact such as a **paper-style GW band plot**
 
 > [!TIP]
-> The 0.3.1 production profile remains limited to approved non-SOC periodic GW. Admission profiles are not production routes. The immutable v2 profile records the original Fisherd result; v3 selects the corrected Sternheimer Coulomb handoff.
+> The current default is admission profile `abacus-librpa-2026-09-03-v4`; it does not authorize unattended production. The old 0.3.1 profile remains available only by explicit ID. The immutable v2 profile records the original Fisherd result, while v3 reproduces the corrected Sternheimer Coulomb handoff that is absent from current ABACUS master.
 
 ### Compatibility generations
 
-OML keeps the 0.3.1 profile and the historical
-`abacus-librpa-2026-08-30-v2` admission profile unchanged. The corrected
-`abacus-librpa-2026-08-30-v3` profile pins the dedicated Sternheimer response
-metric for four admission routes:
+OML keeps historical profiles
+`abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08`,
+`abacus-librpa-2026-08-30-v2`, and `abacus-librpa-2026-08-30-v3` unchanged for
+explicit reproduction. Current default `abacus-librpa-2026-09-03-v4` pins ABACUS
+`1648a8a344427ae1b6394912bf677c4a20e053f2`, LibRPA
+`7e40c5bbf735a78aa15fa589ca2468fec2e2427b`, and PyATB
+`9fb9028c59b1dbaf9cf66965280961fc2225d9eb` for four admission routes:
 
 - periodic 3D GW;
 - strict-2D GW with full Ewald Coulomb and analytic Gamma head/wing;
 - molecular Delta-Sternheimer RPA;
 - solid Delta-Sternheimer RPA.
 
-All four remain `TESTABLE`. They become `EXPERIMENTAL` only after reviewed
+Periodic 3D GW is `EXPERIMENTAL` at L3, including its
+accepted fixed-continuation `nfreq=24 -> 32` axis; the failed screening k-grid
+axis prevents L4 acceptance. The other v4 routes remain `TESTABLE`. Current Delta-Sternheimer remains blocked at the
+dedicated response-Coulomb handoff. Routes become `EXPERIMENTAL` only after reviewed
 L0-L3 receipts, and `ENABLED` only after L4 scientific acceptance and a reviewed
 profile commit. OML explicitly selects reader v1. Symmetry comes from `stru_out`,
 LibRPA reconstructs rotations, and legacy symmetry sidecars are never copied.

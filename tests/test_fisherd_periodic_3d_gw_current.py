@@ -18,6 +18,10 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
 
     def test_exact_current_stack_and_v1_contract_are_recorded(self):
         self.assertEqual(
+            self.data["profile_id"],
+            "abacus-librpa-2026-09-03-v4",
+        )
+        self.assertEqual(
             self.data["pinned_revisions"],
             {
                 "abacus": "1648a8a344427ae1b6394912bf677c4a20e053f2",
@@ -121,6 +125,59 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         )
         self.assertFalse(self.data["result"]["automatic_promotion"])
 
+    def test_current_k444_frequency_ladder_pins_continuation_and_passes_only_fine_pair(self):
+        followup = self.data["current_scientific_followup"]
+        self.assertEqual(followup["screening_kgrid"], [4, 4, 4])
+        self.assertEqual(followup["irreducible_kpoints"], 8)
+        self.assertEqual(followup["legacy_symmetry_sidecars_in_dataset"], [])
+        self.assertEqual(
+            followup["continuation_contract"],
+            {
+                "tfgrids_type": "minimax",
+                "n_params_anacon": 6,
+                "option_qpe_solver": 0,
+                "use_qpe_adaptive_damp": False,
+            },
+        )
+
+        ladder = followup["frequency_ladder"]
+        self.assertEqual([item["nfreq"] for item in ladder], [16, 24, 32])
+        self.assertEqual(ladder[0]["to_next_status"], "FAIL")
+        self.assertEqual(ladder[1]["to_next_status"], "PASS")
+        self.assertAlmostEqual(ladder[0]["to_next_max_window_change_ev"], 0.51179)
+        self.assertAlmostEqual(ladder[1]["to_next_max_window_change_ev"], 0.04440)
+        self.assertAlmostEqual(ladder[1]["to_next_gap_change_ev"], 0.00021)
+        self.assertEqual(followup["frequency_axis"]["status"], "PASS")
+
+    def test_continuation_and_coarse_kgrid_negative_controls_remain_failures(self):
+        followup = self.data["current_scientific_followup"]
+        controls = {
+            item["control_id"]: item
+            for item in followup["continuation_negative_controls"]
+        }
+        self.assertEqual(controls["all-points-self-consistent"]["status"], "FAIL")
+        self.assertAlmostEqual(
+            controls["all-points-self-consistent"]["max_window_change_ev"],
+            0.35045,
+        )
+        self.assertEqual(controls["pade-12-self-consistent"]["status"], "FAIL")
+        self.assertGreater(
+            controls["pade-12-self-consistent"]["nonfinite_high_state_count"],
+            0,
+        )
+        self.assertEqual(controls["all-points-perturbative"]["status"], "FAIL")
+
+        kgrid = followup["screening_kgrid_axis"]
+        self.assertEqual(kgrid["status"], "FAIL")
+        self.assertAlmostEqual(kgrid["coarse_gap_ev"], -132.38050)
+        self.assertAlmostEqual(kgrid["fine_gap_ev"], 6.27089)
+        self.assertAlmostEqual(kgrid["max_window_change_ev"], 139.78139)
+        self.assertEqual(kgrid["worst_state"]["band"], 5)
+
+        high = followup["high_unoccupied_report"]
+        self.assertFalse(high["part_of_low_energy_gate"])
+        self.assertAlmostEqual(high["max_abs_change_ev"], 1.44653)
+
     def test_report_matrix_and_route_guide_preserve_the_same_boundary(self):
         report = (
             REPOSITORY
@@ -144,12 +201,17 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
             "BLOCKED_DEGENERATE_GAUGE_MISMATCH",
             "126.67942 eV",
             "NOT_EVALUATED",
+            "0.04440 eV",
+            "139.78139 eV",
+            "n_params_anacon = 6",
         ):
             self.assertIn(phrase, report)
         self.assertIn("PARTIAL_REFERENCE", matrix)
         self.assertIn("BLOCKED_DEGENERATE_GAUGE_MISMATCH", matrix)
         self.assertIn("degenerate gauge", route_guide)
         self.assertIn("must not promote", route_guide)
+        self.assertIn("n_params_anacon = 6", route_guide)
+        self.assertIn("Padé", route_guide)
 
 
 if __name__ == "__main__":

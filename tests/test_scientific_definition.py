@@ -19,7 +19,15 @@ REVISIONS = {
 }
 
 
-def write_run(root: pathlib.Path, *, nfreq: int = 6, nbands: int = 8, grid=(2, 2, 2)) -> None:
+def write_run(
+    root: pathlib.Path,
+    *,
+    nfreq: int = 6,
+    nbands: int = 8,
+    grid=(2, 2, 2),
+    n_params_anacon: int = 6,
+    option_qpe_solver: int = 0,
+) -> None:
     oml = root / ".oml"
     oml.mkdir(parents=True)
     (root / "INPUT_scf").write_text(
@@ -59,7 +67,30 @@ def write_run(root: pathlib.Path, *, nfreq: int = 6, nbands: int = 8, grid=(2, 2
         "\n".join(
             (
                 "task = g0w0",
+                "tfgrids_type = minimax",
                 f"nfreq = {nfreq}",
+                "tfgrids_freq_min = 0.005",
+                "tfgrids_freq_interval = 0",
+                "tfgrids_freq_max = 1000",
+                "tfgrids_time_min = 0.005",
+                "tfgrids_time_interval = 0",
+                "minimax_emin = -1",
+                "minimax_emax = -1",
+                "minimax_regulation = 0",
+                f"n_params_anacon = {n_params_anacon}",
+                "n_params_anacon_resample = -1",
+                "anacon_nfreq = -1",
+                f"option_qpe_solver = {option_qpe_solver}",
+                "qpe_solver_thres = 1e-6",
+                "qpe_solver_n_iter_max = 10000",
+                "qpe_solver_damp_factor = 0.1",
+                "use_qpe_adaptive_damp = f",
+                "use_qpe_legacy_update = f",
+                "override_qpe_solver_nan = f",
+                "use_hedin_shift = f",
+                "istate_ref_hedin_shift = -1",
+                "n_bands_chi0 = -1",
+                "n_bands_sigc = -1",
                 "option_dielect_func = 3",
                 "replace_w_head = t",
                 "use_fullcoul_exx = f",
@@ -145,10 +176,49 @@ class ScientificDefinitionTest(unittest.TestCase):
             right = build_definition_signature(right_root)
 
         self.assertEqual(left, repeated)
+        self.assertEqual(left["schema_version"], 2)
+        self.assertEqual(
+            left["librpa"]["frequency_grid"],
+            {
+                "type": "minimax",
+                "nfreq": 6,
+                "frequency_min": 0.005,
+                "frequency_interval": 0.0,
+                "frequency_max": 1000.0,
+                "time_min": 0.005,
+                "time_interval": 0.0,
+                "minimax_emin": -1.0,
+                "minimax_emax": -1.0,
+                "minimax_regulation": 0.0,
+            },
+        )
+        self.assertEqual(left["librpa"]["analytic_continuation"]["n_params"], 6)
+        self.assertEqual(left["librpa"]["qpe_solver"]["option"], 0)
         self.assertNotEqual(left["digest"], right["digest"])
         differences = compare_definitions(left, right)
-        self.assertEqual([item["field"] for item in differences], ["librpa.nfreq"])
+        self.assertEqual(
+            [item["field"] for item in differences],
+            ["librpa.frequency_grid.nfreq"],
+        )
         self.assertEqual(compare_definitions(left, right, allowed_axis="nfreq"), [])
+
+    def test_nfreq_axis_rejects_continuation_or_qpe_solver_drift(self):
+        with tempfile.TemporaryDirectory() as left_tmp, tempfile.TemporaryDirectory() as right_tmp:
+            left_root = pathlib.Path(left_tmp)
+            right_root = pathlib.Path(right_tmp)
+            write_run(left_root, nfreq=24, n_params_anacon=6, option_qpe_solver=0)
+            write_run(right_root, nfreq=32, n_params_anacon=8, option_qpe_solver=1)
+
+            left = build_definition_signature(left_root)
+            right = build_definition_signature(right_root)
+
+        with self.assertRaises(ScientificDefinitionError) as raised:
+            compare_definitions(left, right, allowed_axis="nfreq")
+
+        self.assertEqual(raised.exception.code, "MULTIPLE_DEFINITION_CHANGES")
+        self.assertIn("librpa.analytic_continuation.n_params", raised.exception.fields)
+        self.assertIn("librpa.qpe_solver.option", raised.exception.fields)
+        self.assertIn("librpa.frequency_grid.nfreq", raised.exception.fields)
 
     def test_empty_state_and_kgrid_axes_are_isolated(self):
         with tempfile.TemporaryDirectory() as base_tmp, tempfile.TemporaryDirectory() as bands_tmp, tempfile.TemporaryDirectory() as grid_tmp:

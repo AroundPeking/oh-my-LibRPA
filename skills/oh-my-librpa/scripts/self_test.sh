@@ -484,7 +484,7 @@ EOF
 cat <<'EOF' > "$case_missing_output/librpa.in"
 task = g0w0
 nfreq = 16
-tfgrid_type = minimax
+tfgrids_type = minimax
 EOF
 cat <<'EOF' > "$case_missing_output/get_diel.py"
 print("E_FERMI")

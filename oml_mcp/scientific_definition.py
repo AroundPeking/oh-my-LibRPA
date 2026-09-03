@@ -17,9 +17,12 @@ from .provenance import digest_json
 
 
 CONVERGENCE_AXES = {
-    "nfreq": frozenset({"librpa.nfreq"}),
-    "empty_states": frozenset({"abacus.nbands"}),
-    "screening_kgrid": frozenset({"kpoints.scf.grid"}),
+    "nfreq": (
+        frozenset({"librpa.frequency_grid.nfreq"}),
+        frozenset({"librpa.nfreq"}),
+    ),
+    "empty_states": (frozenset({"abacus.nbands"}),),
+    "screening_kgrid": (frozenset({"kpoints.scf.grid"}),),
 }
 WORKFLOW_HELPERS = (
     "perform.sh",
@@ -208,7 +211,68 @@ def build_definition_signature(run_root: str | Path) -> dict[str, object]:
         "kpoints": {"scf": kpt_scf, "band_path": kpt_nscf},
         "librpa": {
             "task": librpa.value("task", ""),
-            "nfreq": parse_int(librpa.value("nfreq", "0"), name="nfreq"),
+            "frequency_grid": {
+                "type": librpa.value("tfgrids_type", "minimax").strip().lower(),
+                "nfreq": parse_int(librpa.value("nfreq", "6"), name="nfreq"),
+                "frequency_min": _optional_float(librpa, "tfgrids_freq_min", "0.005"),
+                "frequency_interval": _optional_float(
+                    librpa, "tfgrids_freq_interval", "0"
+                ),
+                "frequency_max": _optional_float(librpa, "tfgrids_freq_max", "1000"),
+                "time_min": _optional_float(librpa, "tfgrids_time_min", "0.005"),
+                "time_interval": _optional_float(librpa, "tfgrids_time_interval", "0"),
+                "minimax_emin": _optional_float(librpa, "minimax_emin", "-1"),
+                "minimax_emax": _optional_float(librpa, "minimax_emax", "-1"),
+                "minimax_regulation": _optional_float(
+                    librpa, "minimax_regulation", "0"
+                ),
+            },
+            "analytic_continuation": {
+                "n_params": parse_int(
+                    librpa.value("n_params_anacon", "-1"), name="n_params_anacon"
+                ),
+                "source_n_params": parse_int(
+                    librpa.value("n_params_anacon_resample", "-1"),
+                    name="n_params_anacon_resample",
+                ),
+                "grid_type": librpa.value("anacon_tfgrids_type", "unset")
+                .strip()
+                .lower(),
+                "nfreq": parse_int(
+                    librpa.value("anacon_nfreq", "-1"), name="anacon_nfreq"
+                ),
+            },
+            "qpe_solver": {
+                "option": parse_int(
+                    librpa.value("option_qpe_solver", "0"), name="option_qpe_solver"
+                ),
+                "threshold_hartree": _optional_float(
+                    librpa, "qpe_solver_thres", "1e-6"
+                ),
+                "max_iterations": parse_int(
+                    librpa.value("qpe_solver_n_iter_max", "10000"),
+                    name="qpe_solver_n_iter_max",
+                ),
+                "damping_factor": _optional_float(
+                    librpa, "qpe_solver_damp_factor", "0.1"
+                ),
+                "adaptive_damping": _optional_bool(librpa, "use_qpe_adaptive_damp"),
+                "legacy_update": _optional_bool(librpa, "use_qpe_legacy_update"),
+                "override_failure_with_last_iterate": _optional_bool(
+                    librpa, "override_qpe_solver_nan"
+                ),
+                "use_hedin_shift": _optional_bool(librpa, "use_hedin_shift"),
+                "hedin_reference_state": parse_int(
+                    librpa.value("istate_ref_hedin_shift", "-1"),
+                    name="istate_ref_hedin_shift",
+                ),
+            },
+            "n_bands_chi0": parse_int(
+                librpa.value("n_bands_chi0", "-1"), name="n_bands_chi0"
+            ),
+            "n_bands_sigc": parse_int(
+                librpa.value("n_bands_sigc", "-1"), name="n_bands_sigc"
+            ),
             "option_dielect_func": parse_int(
                 librpa.value("option_dielect_func", "0"), name="option_dielect_func"
             ),
@@ -231,7 +295,7 @@ def build_definition_signature(run_root: str | Path) -> dict[str, object]:
             "libri_g0w0_threshold_Wc": _optional_float(librpa, "libri_g0w0_threshold_Wc"),
         },
     }
-    return {"schema_version": 1, "digest": digest_json(definition), **definition}
+    return {"schema_version": 2, "digest": digest_json(definition), **definition}
 
 
 def _flatten(value: Any, prefix: str = "") -> dict[str, Any]:
@@ -262,21 +326,25 @@ def compare_definitions(
     ]
     if allowed_axis is None:
         return differences
-    allowed = CONVERGENCE_AXES.get(allowed_axis)
-    if allowed is None:
+    allowed_alternatives = CONVERGENCE_AXES.get(allowed_axis)
+    if allowed_alternatives is None:
         raise ScientificDefinitionError(
             "CONVERGENCE_AXIS_INVALID",
             f"unsupported convergence axis: {allowed_axis}",
             fields=tuple(item["field"] for item in differences),
         )
-    extra = tuple(item["field"] for item in differences if item["field"] not in allowed)
-    changed_allowed = {item["field"] for item in differences if item["field"] in allowed}
-    if extra or changed_allowed != set(allowed):
+    changed_fields = {str(item["field"]) for item in differences}
+    if changed_fields not in allowed_alternatives:
         fields = tuple(item["field"] for item in differences)
         raise ScientificDefinitionError(
             "MULTIPLE_DEFINITION_CHANGES",
             "convergence pair changes more than the declared axis",
             fields=fields,
-            details={"axis": allowed_axis, "allowed_fields": sorted(allowed)},
+            details={
+                "axis": allowed_axis,
+                "allowed_field_sets": [
+                    sorted(allowed) for allowed in allowed_alternatives
+                ],
+            },
         )
     return []

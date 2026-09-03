@@ -39,6 +39,11 @@ def make_periodic_source(root: pathlib.Path) -> None:
         "\n".join(
             (
                 "task = g0w0",
+                "tfgrids_type = minimax",
+                "nfreq = 24",
+                "n_params_anacon = 6",
+                "option_qpe_solver = 0",
+                "use_qpe_adaptive_damp = f",
                 "input_dir = .",
                 "prefix_coul_full = v1_coulomb_full_iq_",
                 "prefix_coul_cut = v1_coulomb_cut_iq_",
@@ -496,8 +501,9 @@ class MaterializerTest(unittest.TestCase):
                 )
             after = tuple(profile.allowed_run_roots[0].glob("run-*"))
 
-        self.assertEqual(raised.exception.code, "CAPABILITY_BLOCKED")
-        self.assertIn("LIBRPA_070_STRICT_2D_INVALID", raised.exception.evidence)
+        self.assertEqual(raised.exception.code, "ADMISSION_ONLY_ROUTE")
+        self.assertIn("selected admission-only route", str(raised.exception))
+        self.assertIn("strict_2d_gw", raised.exception.evidence)
         self.assertEqual(before, after)
 
     def test_v2_route_is_admission_only_in_the_production_materializer(self):

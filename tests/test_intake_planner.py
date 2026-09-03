@@ -5,7 +5,12 @@ import unittest
 
 from oml_mcp.intake import ingest_case
 from oml_mcp.planner import PlanError, plan_case
-from oml_mcp.profiles import DEFAULT_PROFILE_ID, V2_PROFILE_ID, V3_PROFILE_ID
+from oml_mcp.profiles import (
+    DEFAULT_PROFILE_ID,
+    LEGACY_PROFILE_ID,
+    V2_PROFILE_ID,
+    V3_PROFILE_ID,
+)
 
 
 class IntakeTest(unittest.TestCase):
@@ -75,7 +80,12 @@ class PlannerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_abacus_case(root)
-            plan = plan_case(root, task="gw", system_type="molecule")
+            plan = plan_case(
+                root,
+                task="gw",
+                system_type="molecule",
+                profile_id=LEGACY_PROFILE_ID,
+            )
 
         self.assertEqual(plan.route, "molecular_gw")
         self.assertEqual(plan.stages, ("scf", "librpa"))
@@ -86,9 +96,21 @@ class PlannerTest(unittest.TestCase):
             self.make_abacus_case(root)
 
             with self.assertRaisesRegex(PlanError, "symmetry"):
-                plan_case(root, task="gw", system_type="molecule", use_symmetry=True)
+                plan_case(
+                    root,
+                    task="gw",
+                    system_type="molecule",
+                    use_symmetry=True,
+                    profile_id=LEGACY_PROFILE_ID,
+                )
             with self.assertRaisesRegex(PlanError, "head/wing"):
-                plan_case(root, task="gw", system_type="molecule", headwing=True)
+                plan_case(
+                    root,
+                    task="gw",
+                    system_type="molecule",
+                    headwing=True,
+                    profile_id=LEGACY_PROFILE_ID,
+                )
 
     def test_periodic_gw_and_symmetry_routes(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -139,26 +161,31 @@ class PlannerTest(unittest.TestCase):
         self.assertEqual(symmetry.route, "periodic_gw_symmetry_no_headwing")
         self.assertNotIn("pyatb", symmetry.stages)
 
-    def test_strict_2d_route_is_discoverable_but_has_no_executable_stages(self):
+    def test_current_strict_2d_route_is_admission_only(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_abacus_case(root)
             plan = plan_case(root, task="gw", system_type="2d")
 
-        self.assertEqual(plan.route, "strict_2d_gw_deferred")
-        self.assertEqual(plan.stages, ())
+        self.assertEqual(plan.route, "strict_2d_gw")
+        self.assertEqual(
+            plan.stages,
+            ("scf", "pyatb", "nscf", "preprocess", "librpa"),
+        )
         self.assertTrue(plan.accepted)
         self.assertEqual(plan.gates[0].status, "WARN")
-        self.assertEqual(
-            plan.options["capability"]["reason_code"],
-            "LIBRPA_070_STRICT_2D_INVALID",
-        )
+        self.assertEqual(plan.options["capability"]["status"], "TESTABLE")
 
     def test_rpa_route_has_no_pyatb_or_nscf(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_abacus_case(root)
-            plan = plan_case(root, task="rpa", system_type="solid")
+            plan = plan_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                profile_id=LEGACY_PROFILE_ID,
+            )
 
         self.assertEqual(plan.route, "rpa")
         self.assertEqual(plan.stages, ("scf", "librpa"))
@@ -305,7 +332,7 @@ class PlannerTest(unittest.TestCase):
             self.assertEqual(plan.options["capability"]["status"], "TESTABLE")
             self.assertEqual(plan.gates[0].status, "WARN")
 
-    def test_explicit_old_profile_preserves_default_plan_digest(self):
+    def test_explicit_current_profile_preserves_default_plan_digest(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_abacus_case(root)
@@ -337,18 +364,21 @@ class PlannerTest(unittest.TestCase):
         self.assertEqual(plan.route, "solid_delta_st_rpa")
         self.assertEqual(plan.stages, ("ground_state", "sternheimer", "librpa"))
 
-    def test_sternheimer_response_requires_the_v2_profile(self):
+    def test_current_default_plans_sternheimer_as_admission_only(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_abacus_case(root)
 
-            with self.assertRaisesRegex(PlanError, "v2"):
-                plan_case(
-                    root,
-                    task="rpa",
-                    system_type="solid",
-                    response_method="sternheimer",
-                )
+            plan = plan_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                response_method="sternheimer",
+            )
+
+        self.assertEqual(plan.profile_id, DEFAULT_PROFILE_ID)
+        self.assertEqual(plan.route, "solid_delta_st_rpa")
+        self.assertEqual(plan.options["capability"]["status"], "TESTABLE")
 
 
 if __name__ == "__main__":

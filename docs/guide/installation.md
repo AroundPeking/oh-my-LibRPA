@@ -75,15 +75,23 @@ would enter the unimplemented conventional chi0 builder, and the debug-only
 
 ## Pinned Compatibility Profiles
 
-The production materializer still defaults to
-`profiles/abacus-librpa-pyatb-2026-08.json`, profile ID
-`abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08`:
+OML now defaults to the current admission profile
+`profiles/abacus-librpa-pyatb-2026-09-v4.json`, profile ID
+`abacus-librpa-2026-09-03-v4`:
 
 | Component | Ref | Audited revision |
 | --- | --- | --- |
-| ABACUS | `AroundPeking/abacus-develop:master_ghj` | `3efad9ed5ca066aee1d1b2214e43f92a2d2a567e` |
-| LibRPA | `Srlive1201/LibRPA:v0.7.0` | `dd169fa11fa920d580d4f39dc11e218a7f17f7b5` |
+| ABACUS | `AroundPeking/abacus-develop:master_ghj` | `1648a8a344427ae1b6394912bf677c4a20e053f2` |
+| LibRPA | `AroundPeking/LibRPA:master_ghj` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` |
 | PyATB | `AroundPeking/pyatb:enable_head_wing` | `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` |
+
+This profile is not production-enabled. Periodic 3D GW is `EXPERIMENTAL` at L3 and fixes
+`tfgrids_type=minimax`, `n_params_anacon=6`, `option_qpe_solver=0`, and
+`use_qpe_adaptive_damp=f`; only its `nfreq=24 -> 32` BN axis has passed. The
+screening k-grid axis fails, so the route is not promoted automatically. The
+legacy 0.3.1 profile
+`abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08` remains registered for
+explicit reproduction.
 
 The historical admission harness is pinned separately in
 `profiles/abacus-librpa-pyatb-2026-08-v2.json`, profile ID
@@ -104,9 +112,11 @@ The corrected Sternheimer handoff is pinned in
 `v1_coulomb_full_iq_*` matrices are diagnostic only for this route.
 
 The periodic 3D GW, strict-2D GW, molecular Delta-ST RPA, and solid Delta-ST
-RPA capabilities in both admission generations are `TESTABLE`. Evidence can advance their measured
-level, but the profile is not promoted automatically into the production
-materializer; promotion requires complete gates and a reviewed commit.
+RPA capabilities in v2 and v3 are `TESTABLE`; v4 keeps all except periodic 3D
+GW `TESTABLE`. Evidence can advance their measured level, but no profile is promoted automatically; promotion
+requires complete gates and a reviewed commit. V3 remains the dedicated
+Sternheimer reproduction profile because current v4 ABACUS does not emit that
+metric.
 
 The df_dcu profile `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` and admission
 manifest `df-dcu-strict2d-sos-rpa-2026-09-02-v1` add the independent

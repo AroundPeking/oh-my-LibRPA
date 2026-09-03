@@ -16,13 +16,16 @@ revisions and executable hashes on the server.
 | `abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08` | `3efad9ed5ca066aee1d1b2214e43f92a2d2a567e` | `dd169fa11fa920d580d4f39dc11e218a7f17f7b5` | enabled non-SOC 3D GW; strict-2D blocked |
 | `abacus-librpa-2026-08-30-v2` | `641caa554b44c4db2743603e9c75c96379901d7c` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` | immutable historical admission |
 | `abacus-librpa-2026-08-30-v3` | `81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` | corrected Sternheimer admission |
+| `abacus-librpa-2026-09-03-v4` | `1648a8a344427ae1b6394912bf677c4a20e053f2` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` | current default; periodic 3D GW EXPERIMENTAL at L3 |
 | `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` | `0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43` replay only | `c87103df00b772ddbfc21597884c2787cf685037` | `strict_2d_sos_rpa`, TESTABLE LibRPA-only qavg replay |
 | `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` | `0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43` replay only | `c87103df00b772ddbfc21597884c2787cf685037` | `strict_2d_sos_rpa`, ENABLED reference-bounded replay |
 
-All use PyATB `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` where required. V2/v3 register
+All use PyATB `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` where required. V2/v3/v4 register
 `periodic_3d_gw`, `strict_2d_gw`, `molecular_delta_st_rpa`, and
-`solid_delta_st_rpa` as `TESTABLE`, not `ENABLED`. Keep v2 historical; use v3
-for new Sternheimer work. Promotion requires reviewed L3 evidence for
+`solid_delta_st_rpa` as admission routes. In v4, only periodic 3D GW is
+`EXPERIMENTAL`; none is `ENABLED`. Use v4 for new work. Keep
+v2 historical and use v3 only for the dedicated Sternheimer metric absent from
+current ABACUS master. Promotion requires reviewed L3 evidence for
 `EXPERIMENTAL` and L4 scientific acceptance for production.
 
 The strict-2D SOS-RPA profile requires executable SHA-256
@@ -52,6 +55,10 @@ asymptotic exponent claim, and is not strict-2D GW acceptance.
 - For v3 `task = sternheimer_rpa`, set
   `prefix_coul_full = v1_sternheimer_coulomb_iq_`. Ordinary
   `v1_coulomb_full_iq_` is diagnostic only and cannot replace it.
+- For v4 periodic 3D GW, explicitly set `tfgrids_type = minimax`,
+  `n_params_anacon = 6`, `option_qpe_solver = 0`, and
+  `use_qpe_adaptive_damp = f`. Start the current convergence ladder at
+  `nfreq = 24`; change only `nfreq` when comparing with `32`.
 - Legacy requires an explicit profile. Never infer it from source default `-1`.
 - Symmetry comes from `stru_out`; LibRPA rebuilds rotations. Copy no legacy sidecars.
 - Strict-2D uses full Ewald plus analytic Gamma head/wing;

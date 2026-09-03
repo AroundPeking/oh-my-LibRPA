@@ -391,8 +391,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             )
             librpa = root / "librpa.in"
             librpa.write_text(
-                librpa.read_text(encoding="utf-8")
-                + "nfreq = 16\n"
+                librpa.read_text(encoding="utf-8").replace("nfreq = 24", "nfreq = 16")
                 + "option_dielect_func = 3\n"
                 + "use_2d_dielectric = t\n"
                 + "use_pyatb = t\n"

@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_PROFILE_ID = "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08"
+LEGACY_PROFILE_ID = "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
+V4_PROFILE_ID = "abacus-librpa-2026-09-03-v4"
+DEFAULT_PROFILE_ID = V4_PROFILE_ID
 STRICT_2D_SOS_RPA_PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID = (
     "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
@@ -17,9 +19,10 @@ STRICT_2D_SOS_RPA_PROFILE_IDS = frozenset(
     {STRICT_2D_SOS_RPA_PROFILE_ID, STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID}
 )
 PROFILE_NAMES = {
-    DEFAULT_PROFILE_ID: "abacus-librpa-pyatb-2026-08.json",
+    LEGACY_PROFILE_ID: "abacus-librpa-pyatb-2026-08.json",
     V2_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v2.json",
     V3_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v3.json",
+    V4_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v4.json",
     STRICT_2D_SOS_RPA_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json",
     STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json",
 }
@@ -196,6 +199,52 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
             or sternheimer_librpa.get("ordinary_reader_coulomb_role") != "diagnostic_only"
         ):
             raise ProfileError("schema v2 LibRPA Sternheimer task must select the dedicated Coulomb v1 metric")
+    if profile.get("profile_id") == V4_PROFILE_ID:
+        periodic_capability = profile["capabilities"]["periodic_3d_gw"]
+        if (
+            periodic_capability.get("status") != "EXPERIMENTAL"
+            or periodic_capability.get("admission_level") != "L3"
+        ):
+            raise ProfileError("current periodic 3D GW capability must remain EXPERIMENTAL at L3")
+        unsupported = _require_mapping(librpa, "unsupported_oml_keys", "contract.librpa")
+        if unsupported != {
+            "tfgrid_type": "tfgrids_type",
+            "use_input_exx_symmetry": "use_symmetry_exx",
+            "use_input_gw_symmetry": "use_symmetry_gw",
+            "use_input_rpa_symmetry": "use_symmetry_rpa",
+        }:
+            raise ProfileError("current LibRPA unsupported-key mapping has drifted")
+        artifacts = _require_mapping(contract, "artifacts", "contract")
+        if not artifacts.get("v1_prefixes") or not artifacts.get("legacy_prefixes"):
+            raise ProfileError("current reader artifact family contract is incomplete")
+        pyatb = contract["pyatb_adapter"]
+        if (
+            pyatb.get("directory") != "pyatb_librpa_df"
+            or pyatb.get("required_text") != ["k_path_info", "band_out"]
+        ):
+            raise ProfileError("current PyATB adapter contract is incomplete")
+        periodic_gw = _require_mapping(contract, "periodic_3d_gw", "contract")
+        continuation = _require_mapping(
+            periodic_gw,
+            "analytic_continuation",
+            "contract.periodic_3d_gw",
+        )
+        expected_continuation = {
+            "tfgrids_type": "minimax",
+            "n_params_anacon": 6,
+            "option_qpe_solver": 0,
+            "use_qpe_adaptive_damp": False,
+        }
+        if continuation != expected_continuation:
+            raise ProfileError("current periodic 3D GW continuation contract has drifted")
+        if (
+            periodic_gw.get("accepted_frequency_pair") != [24, 32]
+            or periodic_gw.get("low_energy_window") != "VBM-3_through_CBM+3"
+            or periodic_gw.get("max_state_delta_ev") != 0.05
+            or periodic_gw.get("high_unoccupied_policy") != "report_separately"
+            or periodic_gw.get("screening_kgrid_status") != "FAIL"
+        ):
+            raise ProfileError("current periodic 3D GW acceptance boundary has drifted")
     symmetry = _require_mapping(contract, "symmetry", "contract")
     if symmetry.get("source") != "stru_out":
         raise ProfileError("contract.symmetry.source must be stru_out")

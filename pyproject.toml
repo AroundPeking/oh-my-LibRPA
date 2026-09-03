@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oh-my-librpa-mcp"
-version = "0.4.6"
+version = "0.4.7"
 description = "Deterministic validation and controlled execution for ABACUS, LibRPA, and PyATB"
 readme = "README.md"
 requires-python = ">=3.11"

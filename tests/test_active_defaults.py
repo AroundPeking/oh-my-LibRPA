@@ -25,7 +25,7 @@ def active_files():
 
 
 class ActiveDefaultsTest(unittest.TestCase):
-    def test_version_guard_distinguishes_production_v2_and_v3_profiles(self):
+    def test_version_guard_distinguishes_historical_and_current_profiles(self):
         text = (ROOT / "skills" / "abacus-librpa-version-guard" / "SKILL.md").read_text(
             encoding="utf-8"
         )
@@ -35,6 +35,9 @@ class ActiveDefaultsTest(unittest.TestCase):
         self.assertIn("641caa554b44c4db2743603e9c75c96379901d7c", text)
         self.assertIn("abacus-librpa-2026-08-30-v3", text)
         self.assertIn("81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a", text)
+        self.assertIn("abacus-librpa-2026-09-03-v4", text)
+        self.assertIn("1648a8a344427ae1b6394912bf677c4a20e053f2", text)
+        self.assertIn("current default", text)
         self.assertIn("v1_sternheimer_coulomb_iq_", text)
         self.assertIn("diagnostic only", text)
         self.assertIn("7e40c5bbf735a78aa15fa589ca2468fec2e2427b", text)
@@ -86,6 +89,59 @@ class ActiveDefaultsTest(unittest.TestCase):
         self.assertTrue(template_paths)
         self.assertEqual(failures, [], "\n".join(failures))
 
+    def test_periodic_gw_templates_pin_the_current_continuation_baseline(self):
+        template_paths = (
+            ROOT / "templates" / "abacus-librpa-gw" / "minimal" / "librpa.in.template",
+            ROOT / "templates" / "abacus-librpa-gw" / "template" / "librpa.in",
+            ROOT
+            / "skills"
+            / "oh-my-librpa"
+            / "templates"
+            / "abacus-librpa-gw"
+            / "minimal"
+            / "librpa.in.template",
+            ROOT
+            / "skills"
+            / "oh-my-librpa"
+            / "templates"
+            / "abacus-librpa-gw"
+            / "template"
+            / "librpa.in",
+        )
+        required = (
+            "tfgrids_type = minimax",
+            "nfreq = 24",
+            "n_params_anacon = 6",
+            "option_qpe_solver = 0",
+            "use_qpe_adaptive_damp = f",
+        )
+
+        for path in template_paths:
+            with self.subTest(path=path):
+                text = path.read_text(encoding="utf-8")
+                self.assertTrue(all(item in text for item in required))
+
+    def test_molecular_gw_template_does_not_inherit_the_bn_pade_order(self):
+        paths = (
+            ROOT
+            / "templates"
+            / "abacus-librpa-gw"
+            / "routes"
+            / "molecule-gw-no-nscf-no-pyatb-no-shrink"
+            / "librpa.in.template",
+            ROOT
+            / "skills"
+            / "oh-my-librpa"
+            / "templates"
+            / "abacus-librpa-gw"
+            / "routes"
+            / "molecule-gw-no-nscf-no-pyatb-no-shrink"
+            / "librpa.in.template",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertNotIn("n_params_anacon", path.read_text(encoding="utf-8"))
+
     def test_active_defaults_do_not_enable_full_coulomb_exx_implicitly(self):
         failures = []
         enabled = re.compile(r"use_fullcoul_exx\s*=\s*t\b", re.IGNORECASE)
@@ -97,12 +153,18 @@ class ActiveDefaultsTest(unittest.TestCase):
 
     def test_shell_checker_accepts_current_task_and_keeps_deprecated_alias_detection(self):
         checker = (ROOT / "scripts" / "check_consistency.sh").read_text(encoding="utf-8")
+        skill_checker = (
+            ROOT / "skills" / "oh-my-librpa" / "scripts" / "check_consistency.sh"
+        ).read_text(encoding="utf-8")
         intake = (ROOT / "scripts" / "intake_preflight.sh").read_text(encoding="utf-8")
         runner = (ROOT / "scripts" / "run_gw_workflow.sh").read_text(encoding="utf-8")
         self.assertIn('g0w0|g0w0_band) resolved_mode="gw"', checker)
         self.assertIn('g0w0|g0w0_band) resolved_mode="gw"', intake)
         self.assertIn('task_name="g0w0"', runner)
         self.assertIn("deprecated", checker.lower())
+        for text in (checker, skill_checker):
+            self.assertIn('get_value "$librpa" "tfgrids_type"', text)
+            self.assertIn("obsolete singular key tfgrid_type", text)
 
 
 if __name__ == "__main__":

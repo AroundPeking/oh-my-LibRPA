@@ -5,6 +5,7 @@ import unittest
 
 
 from oml_mcp.validators import validate_case
+from oml_mcp.profiles import LEGACY_PROFILE_ID, V4_PROFILE_ID
 from tests.test_artifacts import (
     write_eigenvector_v1,
     write_headwing_metadata,
@@ -113,6 +114,11 @@ class WorkflowValidatorTest(unittest.TestCase):
 
         librpa_lines = [
             f"task = {task}",
+            "tfgrids_type = minimax",
+            "nfreq = 24",
+            "n_params_anacon = 6",
+            "option_qpe_solver = 0",
+            "use_qpe_adaptive_damp = f",
             "input_dir = dataset",
             "prefix_coul_full = v1_coulomb_full_iq_",
             "prefix_coul_cut = v1_coulomb_cut_iq_",
@@ -363,6 +369,28 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertIn("use_symmetry_exx", gate.repair)
         self.assertIn("use_symmetry_gw", gate.repair)
 
+    def test_obsolete_frequency_grid_key_fails_with_exact_replacement(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            path = root / "librpa.in"
+            text = path.read_text(encoding="utf-8")
+            path.write_text(
+                text.replace("tfgrids_type", "tfgrid_type"),
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                profile_id=V4_PROFILE_ID,
+            )
+
+        gate = self.gate(report, "librpa.unsupported_keys")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertIn("tfgrid_type with tfgrids_type", gate.repair)
+
     def test_deprecated_g0w0_band_is_a_warning_with_g0w0_replacement(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
@@ -463,6 +491,68 @@ class WorkflowValidatorTest(unittest.TestCase):
             )
 
         self.assertEqual(self.gate(report, "librpa.frequency_grid").status, "PASS")
+
+    def test_v4_periodic_gw_continuation_contract_passes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+                profile_id=V4_PROFILE_ID,
+            )
+
+        gate = self.gate(report, "librpa.periodic_3d_gw_continuation")
+        self.assertEqual(gate.status, "PASS")
+
+    def test_v4_periodic_gw_rejects_all_point_pade_and_qpe_solver_drift(self):
+        for key, old, new in (
+            ("n_params_anacon", "6", "-1"),
+            ("option_qpe_solver", "0", "2"),
+            ("use_qpe_adaptive_damp", "f", "t"),
+        ):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as tmpdir:
+                root = pathlib.Path(tmpdir)
+                self.make_case(root)
+                path = root / "librpa.in"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        f"{key} = {old}", f"{key} = {new}"
+                    ),
+                    encoding="utf-8",
+                )
+                report = validate_case(
+                    root,
+                    task="gw",
+                    system_type="solid",
+                    use_symmetry=True,
+                    stage="input",
+                    profile_id=V4_PROFILE_ID,
+                )
+
+            gate = self.gate(report, "librpa.periodic_3d_gw_continuation")
+            self.assertEqual(gate.status, "FAIL")
+            self.assertFalse(report.accepted)
+
+    def test_v4_continuation_contract_does_not_leak_into_other_routes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root, task="rpa")
+            report = validate_case(
+                root,
+                task="rpa",
+                system_type="solid",
+                use_symmetry=True,
+                stage="input",
+                profile_id=V4_PROFILE_ID,
+                response_method="sternheimer",
+            )
+
+        gate = self.gate(report, "librpa.periodic_3d_gw_continuation")
+        self.assertEqual(gate.status, "SKIP")
 
     def test_frequency_only_grid_fails_before_rpa_chi0_build(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -631,6 +721,7 @@ class WorkflowValidatorTest(unittest.TestCase):
                 system_type="2d",
                 use_symmetry=True,
                 stage="input",
+                profile_id=LEGACY_PROFILE_ID,
             )
 
         gate = self.gate(report, "route.strict_2d_capability")

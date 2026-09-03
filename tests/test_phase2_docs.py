@@ -56,6 +56,8 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08",
             "abacus-librpa-2026-08-30-v2",
             "abacus-librpa-2026-08-30-v3",
+            "abacus-librpa-2026-09-03-v4",
+            "1648a8a344427ae1b6394912bf677c4a20e053f2",
             "v1_sternheimer_coulomb_iq_",
             "TESTABLE",
             "not promoted automatically",
@@ -138,12 +140,12 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.4.6")
-        self.assertIn('version = "0.4.6"', pyproject)
+        self.assertEqual(plugin["version"], "0.4.7")
+        self.assertIn('version = "0.4.7"', pyproject)
         self.assertIn('"benchmark_suites/*.json"', pyproject)
         self.assertIn('"route_benchmarks/*.json"', pyproject)
-        self.assertIn('__version__ = "0.4.6"', package)
-        self.assertIn('version="0.4.6"', server)
+        self.assertIn('__version__ = "0.4.7"', package)
+        self.assertIn('version="0.4.7"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (
@@ -169,6 +171,7 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
             for phrase in (
                 "abacus-librpa-2026-08-30-v2",
                 "abacus-librpa-2026-08-30-v3",
+                "abacus-librpa-2026-09-03-v4",
                 "periodic 3D GW",
                 "strict-2D GW",
                 "molecular Delta-Sternheimer RPA",

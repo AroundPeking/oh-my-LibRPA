@@ -38,8 +38,12 @@ frozen dataset exactly and reproduces current results across `1x48` and `4x1`
 layouts. The historical end-to-end band comparison is
 `BLOCKED_DEGENERATE_GAUGE_MISMATCH`: KS eigenvalues match exactly, but EXX/GW
 members of degenerate manifolds are not statewise comparable across the old
-and current producer gauges. Frequency and screening-grid convergence remain
-unaccepted, so this interface pass cannot promote a scientific reference.
+and current producer gauges. A subsequent current-stack `4x4x4` ladder fixes
+`n_params_anacon=6`: `nfreq 24 -> 32` passes the low-energy state and gap gates
+at `0.04440/0.00021 eV`, while `16 -> 24` fails at `0.51179 eV`. The matched
+`2x2x2 -> 4x4x4` screening-grid pair fails at `139.78139 eV`; a finer current
+grid and basis ladders remain missing. This partial convergence evidence cannot
+promote a scientific reference.
 
 ## Material-Class Benchmarks
 
@@ -64,6 +68,8 @@ Every case records:
 - scheduler state, application exit, artifact completeness and parser results;
 - numerical residuals, finite/Hermitian checks and route-specific invariants;
 - scientific observables, reference deltas and convergence-axis receipts;
+- source frequency-grid, Padé/resampling, and QP-solver settings as part of the
+  definition for every GW convergence pair;
 - wall time, node-hour, MaxRSS and retained-disk cost.
 
 ## Harness Quality

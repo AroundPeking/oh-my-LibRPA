@@ -4,13 +4,21 @@ import tempfile
 import unittest
 
 
-from oml_mcp.profiles import ProfileError, list_profiles, load_profile
+from oml_mcp.profiles import (
+    DEFAULT_PROFILE_ID,
+    LEGACY_PROFILE_ID,
+    V4_PROFILE_ID,
+    ProfileError,
+    list_profiles,
+    load_profile,
+)
 
 
 REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / "abacus-librpa-pyatb-2026-08.json"
 PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / "abacus-librpa-pyatb-2026-08.json"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
+V4_PROFILE_NAME = "abacus-librpa-pyatb-2026-09-v4.json"
 V2_REPOSITORY_PROFILE = (
     pathlib.Path(__file__).resolve().parents[1]
     / "profiles"
@@ -33,6 +41,8 @@ V3_PACKAGED_PROFILE = (
     / "profiles"
     / "abacus-librpa-pyatb-2026-08-v3.json"
 )
+V4_REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / V4_PROFILE_NAME
+V4_PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / V4_PROFILE_NAME
 
 
 class CompatibilityProfileTest(unittest.TestCase):
@@ -42,7 +52,7 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(packaged, repository)
 
     def test_pinned_component_revisions_match_the_approved_baseline(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
 
         self.assertEqual(
             profile["components"]["abacus"]["revision"],
@@ -58,7 +68,7 @@ class CompatibilityProfileTest(unittest.TestCase):
         )
 
     def test_reader_v1_is_explicit_in_the_production_contract(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
         abacus = profile["contract"]["abacus"]
         librpa = profile["contract"]["librpa"]
 
@@ -73,7 +83,7 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(librpa["production"]["fn_vxc_scf"], "vxc_out")
 
     def test_librpa_070_uses_canonical_symmetry_keys(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
         librpa = profile["contract"]["librpa"]
 
         self.assertEqual(
@@ -100,7 +110,7 @@ class CompatibilityProfileTest(unittest.TestCase):
         )
 
     def test_librpa_070_blocks_strict_2d_until_a_corrected_profile_is_pinned(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
 
         self.assertEqual(profile["capabilities"]["periodic_3d_gw"]["status"], "ENABLED")
         blocked = profile["capabilities"]["strict_2d_gw"]
@@ -114,7 +124,7 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertGreaterEqual(len(blocked["enablement_requires"]), 4)
 
     def test_deprecated_task_and_binary_markers_are_recorded(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
 
         self.assertEqual(
             profile["contract"]["librpa"]["deprecated_values"]["task"]["g0w0_band"],
@@ -153,7 +163,7 @@ class CompatibilityProfileTest(unittest.TestCase):
         )
 
     def test_profile_validation_rejects_an_incomplete_component(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
         del profile["components"]["pyatb"]["revision"]
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -164,7 +174,7 @@ class CompatibilityProfileTest(unittest.TestCase):
                 load_profile(path)
 
     def test_profile_validation_rejects_missing_frequency_grid_contract(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
         del profile["contract"]["librpa"]["frequency_grids"]
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -175,7 +185,7 @@ class CompatibilityProfileTest(unittest.TestCase):
                 load_profile(path)
 
     def test_profile_validation_rejects_a_2d_block_for_another_librpa_revision(self):
-        profile = load_profile()
+        profile = load_profile(profile_id=LEGACY_PROFILE_ID)
         profile["capabilities"]["strict_2d_gw"]["component_revision"] = "0" * 40
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -265,6 +275,65 @@ class CompatibilityProfileTest(unittest.TestCase):
             contract["librpa"]["sternheimer_rpa"]["ordinary_reader_coulomb_role"],
             "diagnostic_only",
         )
+
+    def test_v4_current_stack_is_registered_packaged_and_default(self):
+        self.assertEqual(DEFAULT_PROFILE_ID, V4_PROFILE_ID)
+        self.assertIn(LEGACY_PROFILE_ID, list_profiles())
+        self.assertIn(V4_PROFILE_ID, list_profiles())
+        repository = json.loads(V4_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
+        packaged = json.loads(V4_PACKAGED_PROFILE.read_text(encoding="utf-8"))
+        profile = load_profile()
+
+        self.assertEqual(packaged, repository)
+        self.assertEqual(profile, repository)
+        self.assertEqual(profile["profile_id"], V4_PROFILE_ID)
+        self.assertEqual(
+            profile["components"]["abacus"]["revision"],
+            "1648a8a344427ae1b6394912bf677c4a20e053f2",
+        )
+        self.assertEqual(
+            profile["components"]["librpa"]["revision"],
+            "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+        )
+        self.assertEqual(
+            profile["components"]["pyatb"]["revision"],
+            "9fb9028c59b1dbaf9cf66965280961fc2225d9eb",
+        )
+
+    def test_v4_records_only_the_accepted_periodic_gw_frequency_contract(self):
+        profile = load_profile(profile_id=V4_PROFILE_ID)
+        route = profile["capabilities"]["periodic_3d_gw"]
+        contract = profile["contract"]["periodic_3d_gw"]
+
+        self.assertEqual(route["status"], "EXPERIMENTAL")
+        self.assertEqual(route["admission_level"], "L3")
+        self.assertEqual(
+            contract["analytic_continuation"],
+            {
+                "tfgrids_type": "minimax",
+                "n_params_anacon": 6,
+                "option_qpe_solver": 0,
+                "use_qpe_adaptive_damp": False,
+            },
+        )
+        self.assertEqual(contract["accepted_frequency_pair"], [24, 32])
+        self.assertEqual(contract["low_energy_window"], "VBM-3_through_CBM+3")
+        self.assertEqual(contract["max_state_delta_ev"], 0.05)
+        self.assertEqual(contract["high_unoccupied_policy"], "report_separately")
+        self.assertEqual(contract["screening_kgrid_status"], "FAIL")
+
+    def test_v4_validation_rejects_drift_in_the_periodic_gw_continuation_contract(self):
+        profile = load_profile(profile_id=V4_PROFILE_ID)
+        profile["contract"]["periodic_3d_gw"]["analytic_continuation"][
+            "n_params_anacon"
+        ] = -1
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "bad-profile.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+
+            with self.assertRaisesRegex(ProfileError, "periodic 3D GW continuation"):
+                load_profile(path)
 
     def test_unknown_profile_id_is_rejected(self):
         with self.assertRaisesRegex(ProfileError, "unknown profile_id"):
