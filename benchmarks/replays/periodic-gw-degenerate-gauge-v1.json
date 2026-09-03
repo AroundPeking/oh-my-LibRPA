@@ -1,0 +1,156 @@
+{
+  "schema": "oml.scientific-regression-replay.v1",
+  "replay_id": "periodic-gw-degenerate-gauge-v1",
+  "tolerance_ev": 0.001,
+  "reference": {
+    "definition": {
+      "schema_version": 1,
+      "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "profile_id": "pinned-stack",
+      "software": {
+        "revisions": {
+          "librpa": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "abacus": {
+        "nbands": 8
+      },
+      "librpa": {
+        "nfreq": 6
+      }
+    },
+    "window": {
+      "vbm_band": 4,
+      "cbm_band": 5,
+      "band_start": 3,
+      "band_stop": 5,
+      "state_count": 5,
+      "fundamental_gw_gap_ev": 1.6,
+      "states": [
+        {
+          "spin": 1,
+          "kpoint": [0.0, 0.0, 0.0],
+          "band": 3,
+          "occupation": 2.0,
+          "ks_ev": -2.0,
+          "exx_ev": -3.0,
+          "gw_ev": -4.0
+        },
+        {
+          "spin": 1,
+          "kpoint": [0.0, 0.0, 0.0],
+          "band": 4,
+          "occupation": 2.0,
+          "ks_ev": -2.0,
+          "exx_ev": -1.0,
+          "gw_ev": 0.0
+        },
+        {
+          "spin": 1,
+          "kpoint": [0.0, 0.0, 0.0],
+          "band": 5,
+          "occupation": 0.0,
+          "ks_ev": 0.5,
+          "exx_ev": 0.8,
+          "gw_ev": 1.0
+        },
+        {
+          "spin": 1,
+          "kpoint": [0.5, 0.0, 0.5],
+          "band": 4,
+          "occupation": 2.0,
+          "ks_ev": -1.8,
+          "exx_ev": -2.3,
+          "gw_ev": -1.2
+        },
+        {
+          "spin": 1,
+          "kpoint": [0.5, 0.0, 0.5],
+          "band": 5,
+          "occupation": 0.0,
+          "ks_ev": 0.2,
+          "exx_ev": 0.6,
+          "gw_ev": 0.4
+        }
+      ]
+    },
+    "diagnostics": {
+      "accepted": true,
+      "failure_count": 0,
+      "failures": []
+    }
+  },
+  "cases": [
+    {
+      "case_id": "exact-statewise-reference",
+      "candidate_replacements": [],
+      "expected_status": "PASS",
+      "expected_reason_code": "WITHIN_TOLERANCE",
+      "expect_degenerate_gauge_diagnostic": false
+    },
+    {
+      "case_id": "trace-preserving-two-state-rotation",
+      "candidate_replacements": [
+        {"path": ["window", "states", 0, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 0, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "gw_ev"], "value": -2.0}
+      ],
+      "expected_status": "FAIL",
+      "expected_reason_code": "BLOCKED_DEGENERATE_GAUGE_MISMATCH",
+      "expect_degenerate_gauge_diagnostic": true
+    },
+    {
+      "case_id": "rotation-plus-nondegenerate-drift",
+      "candidate_replacements": [
+        {"path": ["window", "states", 0, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 0, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 2, "gw_ev"], "value": 1.01}
+      ],
+      "expected_status": "FAIL",
+      "expected_reason_code": "REGRESSION_TOLERANCE_EXCEEDED",
+      "expect_degenerate_gauge_diagnostic": false
+    },
+    {
+      "case_id": "changed-ks-degenerate-partition",
+      "candidate_replacements": [
+        {"path": ["window", "states", 0, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 0, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "ks_ev"], "value": -1.99998}
+      ],
+      "expected_status": "FAIL",
+      "expected_reason_code": "REGRESSION_TOLERANCE_EXCEEDED",
+      "expect_degenerate_gauge_diagnostic": false
+    },
+    {
+      "case_id": "changed-degenerate-group-mean",
+      "candidate_replacements": [
+        {"path": ["window", "states", 0, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 0, "gw_ev"], "value": -1.99},
+        {"path": ["window", "states", 1, "gw_ev"], "value": -1.99}
+      ],
+      "expected_status": "FAIL",
+      "expected_reason_code": "REGRESSION_TOLERANCE_EXCEEDED",
+      "expect_degenerate_gauge_diagnostic": false
+    },
+    {
+      "case_id": "changed-occupation-manifold",
+      "candidate_replacements": [
+        {"path": ["window", "states", 0, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "exx_ev"], "value": -2.0},
+        {"path": ["window", "states", 0, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 1, "gw_ev"], "value": -2.0},
+        {"path": ["window", "states", 0, "occupation"], "value": 0.0},
+        {"path": ["window", "states", 1, "occupation"], "value": 0.0}
+      ],
+      "expected_status": "FAIL",
+      "expected_reason_code": "REGRESSION_TOLERANCE_EXCEEDED",
+      "expect_degenerate_gauge_diagnostic": false
+    }
+  ]
+}

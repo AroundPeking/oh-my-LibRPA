@@ -1,4 +1,6 @@
 import copy
+import json
+import pathlib
 import unittest
 
 
@@ -9,6 +11,9 @@ from oml_mcp.scientific_evaluation import (
     evaluate_convergence_axis,
     evaluate_regression,
 )
+
+
+REPOSITORY = pathlib.Path(__file__).resolve().parents[1]
 
 
 def definition(*, nfreq: int = 6, nbands: int = 8) -> dict:
@@ -69,6 +74,26 @@ def shifted(result: dict, *, quantity: str, delta: float) -> dict:
     changed = copy.deepcopy(result)
     changed["window"]["states"][0][f"{quantity}_ev"] += delta
     return changed
+
+
+def degenerate_rotation_pair() -> tuple[dict, dict]:
+    reference = scientific_result()
+    reference["window"]["states"].insert(
+        0,
+        state((0.0, 0.0, 0.0), 3, -2.0, -3.0, -4.0),
+    )
+    reference["window"]["states"][1].update(
+        {"ks_ev": -2.0, "exx_ev": -1.0, "gw_ev": 0.0}
+    )
+    reference["window"].update(
+        {"band_start": 3, "state_count": len(reference["window"]["states"])}
+    )
+
+    candidate = copy.deepcopy(reference)
+    for state_record in candidate["window"]["states"][:2]:
+        state_record["exx_ev"] = -2.0
+        state_record["gw_ev"] = -2.0
+    return candidate, reference
 
 
 class ScientificRegressionTest(unittest.TestCase):
@@ -152,6 +177,98 @@ class ScientificRegressionTest(unittest.TestCase):
 
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["reason_code"], "NONPOSITIVE_GW_GAP")
+
+    def test_unitary_rotation_pattern_is_blocked_not_accepted(self):
+        candidate, reference = degenerate_rotation_pair()
+
+        report = evaluate_regression(candidate, reference, tolerance_ev=0.001)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["reason_code"], "BLOCKED_DEGENERATE_GAUGE_MISMATCH")
+        diagnostic = report["degenerate_gauge"]
+        self.assertEqual(diagnostic["classification"], "CONSISTENT_WITH_GAUGE_ROTATION")
+        self.assertTrue(diagnostic["subspace_verification_required"])
+        self.assertFalse(diagnostic["gauge_invariant_acceptance"])
+        self.assertEqual(diagnostic["ks_degeneracy_tolerance_ev"], 1e-5)
+        self.assertEqual(diagnostic["affected_group_count"], 1)
+        group = diagnostic["affected_groups"][0]
+        self.assertEqual(group["bands"], [3, 4])
+        self.assertAlmostEqual(group["quantities"]["exx"]["candidate_mean_ev"], -2.0)
+        self.assertAlmostEqual(group["quantities"]["exx"]["reference_mean_ev"], -2.0)
+        self.assertAlmostEqual(group["quantities"]["gw"]["mean_abs_error_ev"], 0.0)
+
+    def test_nondegenerate_mismatch_keeps_normal_failure(self):
+        candidate, reference = degenerate_rotation_pair()
+        gamma_band_5 = next(
+            item
+            for item in candidate["window"]["states"]
+            if item["kpoint"] == [0.0, 0.0, 0.0] and item["band"] == 5
+        )
+        gamma_band_5["gw_ev"] += 0.01
+
+        report = evaluate_regression(candidate, reference, tolerance_ev=0.001)
+
+        self.assertEqual(report["reason_code"], "REGRESSION_TOLERANCE_EXCEEDED")
+        self.assertNotIn("degenerate_gauge", report)
+
+    def test_changed_degenerate_partition_keeps_normal_failure(self):
+        candidate, reference = degenerate_rotation_pair()
+        candidate["window"]["states"][1]["ks_ev"] += 2e-5
+
+        report = evaluate_regression(candidate, reference, tolerance_ev=0.001)
+
+        self.assertEqual(report["reason_code"], "REGRESSION_TOLERANCE_EXCEEDED")
+        self.assertNotIn("degenerate_gauge", report)
+
+    def test_changed_degenerate_group_mean_keeps_normal_failure(self):
+        candidate, reference = degenerate_rotation_pair()
+        for state_record in candidate["window"]["states"][:2]:
+            state_record["gw_ev"] += 0.01
+
+        report = evaluate_regression(candidate, reference, tolerance_ev=0.001)
+
+        self.assertEqual(report["reason_code"], "REGRESSION_TOLERANCE_EXCEEDED")
+        self.assertNotIn("degenerate_gauge", report)
+
+    def test_changed_occupations_cannot_receive_gauge_diagnostic(self):
+        candidate, reference = degenerate_rotation_pair()
+        for state_record in candidate["window"]["states"][:2]:
+            state_record["occupation"] = 0.0
+
+        report = evaluate_regression(candidate, reference, tolerance_ev=0.001)
+
+        self.assertEqual(report["reason_code"], "REGRESSION_TOLERANCE_EXCEEDED")
+        self.assertNotIn("degenerate_gauge", report)
+
+    def test_frozen_degenerate_gauge_replay_suite(self):
+        replay = json.loads(
+            (
+                REPOSITORY
+                / "benchmarks"
+                / "replays"
+                / "periodic-gw-degenerate-gauge-v1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(replay["schema"], "oml.scientific-regression-replay.v1")
+        for case in replay["cases"]:
+            candidate = copy.deepcopy(replay["reference"])
+            for operation in case["candidate_replacements"]:
+                current = candidate
+                for segment in operation["path"][:-1]:
+                    current = current[segment]
+                current[operation["path"][-1]] = operation["value"]
+            with self.subTest(case_id=case["case_id"]):
+                report = evaluate_regression(
+                    candidate,
+                    replay["reference"],
+                    tolerance_ev=float(replay["tolerance_ev"]),
+                )
+                self.assertEqual(report["status"], case["expected_status"])
+                self.assertEqual(report["reason_code"], case["expected_reason_code"])
+                self.assertEqual(
+                    "degenerate_gauge" in report,
+                    bool(case["expect_degenerate_gauge_diagnostic"]),
+                )
 
 
 class ScientificConvergenceTest(unittest.TestCase):

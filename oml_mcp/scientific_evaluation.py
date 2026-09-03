@@ -7,6 +7,9 @@ from .scientific_definition import ScientificDefinitionError, compare_definition
 
 
 QUANTITIES = ("ks", "exx", "gw")
+KS_DEGENERACY_TOLERANCE_EV = 1e-5
+OCCUPATION_TOLERANCE = 1e-8
+NUMERICAL_EPSILON_EV = 1e-12
 
 
 class ScientificEvaluationError(ValueError):
@@ -44,6 +47,136 @@ def _diagnostic_reason(result: dict[str, Any]) -> str:
 
 def _identity(key: tuple[Any, ...]) -> dict[str, Any]:
     return {"spin": key[0], "kpoint": list(key[1:4]), "band": key[4]}
+
+
+def _degenerate_partition(
+    states: dict[tuple[Any, ...], dict[str, Any]],
+    *,
+    tolerance_ev: float,
+) -> dict[tuple[Any, ...], tuple[tuple[Any, ...], ...]]:
+    buckets: dict[tuple[Any, ...], list[tuple[float, tuple[Any, ...]]]] = {}
+    for key, state in states.items():
+        bucket = (*key[:4], round(float(state["occupation"]), 8))
+        buckets.setdefault(bucket, []).append((float(state["ks_ev"]), key))
+
+    partition: dict[tuple[Any, ...], tuple[tuple[Any, ...], ...]] = {}
+    for bucket_states in buckets.values():
+        ordered = sorted(bucket_states, key=lambda item: (item[0], item[1]))
+        groups: list[list[tuple[float, tuple[Any, ...]]]] = []
+        for energy, key in ordered:
+            if (
+                not groups
+                or energy - groups[-1][0][0]
+                > tolerance_ev + NUMERICAL_EPSILON_EV
+            ):
+                groups.append([])
+            groups[-1].append((energy, key))
+        for group in groups:
+            identity = tuple(sorted(key for _, key in group))
+            for _, key in group:
+                partition[key] = identity
+    return partition
+
+
+def _degenerate_gauge_diagnostic(
+    candidate_states: dict[tuple[Any, ...], dict[str, Any]],
+    reference_states: dict[tuple[Any, ...], dict[str, Any]],
+    quantities: dict[str, Any],
+    *,
+    regression_tolerance_ev: float,
+    degeneracy_tolerance_ev: float,
+) -> dict[str, Any] | None:
+    if not quantities["ks"]["accepted"]:
+        return None
+    if any(
+        abs(
+            float(candidate_states[key]["occupation"])
+            - float(reference_states[key]["occupation"])
+        )
+        > OCCUPATION_TOLERANCE
+        for key in candidate_states
+    ):
+        return None
+
+    candidate_partition = _degenerate_partition(
+        candidate_states, tolerance_ev=degeneracy_tolerance_ev
+    )
+    reference_partition = _degenerate_partition(
+        reference_states, tolerance_ev=degeneracy_tolerance_ev
+    )
+    if candidate_partition != reference_partition:
+        return None
+
+    affected: dict[tuple[tuple[Any, ...], ...], set[str]] = {}
+    affected_states: set[tuple[Any, ...]] = set()
+    for quantity in ("exx", "gw"):
+        for key in sorted(candidate_states):
+            error = abs(
+                float(candidate_states[key][f"{quantity}_ev"])
+                - float(reference_states[key][f"{quantity}_ev"])
+            )
+            if error <= regression_tolerance_ev + NUMERICAL_EPSILON_EV:
+                continue
+            group = candidate_partition[key]
+            if len(group) < 2:
+                return None
+            affected.setdefault(group, set()).add(quantity)
+            affected_states.add(key)
+    if not affected:
+        return None
+
+    affected_groups = []
+    for group in sorted(affected):
+        group_quantities: dict[str, Any] = {}
+        for quantity in sorted(affected[group]):
+            candidate_values = [
+                float(candidate_states[key][f"{quantity}_ev"]) for key in group
+            ]
+            reference_values = [
+                float(reference_states[key][f"{quantity}_ev"]) for key in group
+            ]
+            candidate_mean = sum(candidate_values) / len(candidate_values)
+            reference_mean = sum(reference_values) / len(reference_values)
+            mean_error = abs(candidate_mean - reference_mean)
+            if mean_error > regression_tolerance_ev + NUMERICAL_EPSILON_EV:
+                return None
+            group_quantities[quantity] = {
+                "max_abs_statewise_error_ev": max(
+                    abs(candidate - reference)
+                    for candidate, reference in zip(
+                        candidate_values, reference_values, strict=True
+                    )
+                ),
+                "candidate_mean_ev": candidate_mean,
+                "reference_mean_ev": reference_mean,
+                "mean_abs_error_ev": mean_error,
+            }
+
+        first = group[0]
+        candidate_ks = [float(candidate_states[key]["ks_ev"]) for key in group]
+        reference_ks = [float(reference_states[key]["ks_ev"]) for key in group]
+        affected_groups.append(
+            {
+                "spin": first[0],
+                "kpoint": list(first[1:4]),
+                "bands": [key[4] for key in group],
+                "state_count": len(group),
+                "candidate_ks_spread_ev": max(candidate_ks) - min(candidate_ks),
+                "reference_ks_spread_ev": max(reference_ks) - min(reference_ks),
+                "quantities": group_quantities,
+            }
+        )
+
+    return {
+        "classification": "CONSISTENT_WITH_GAUGE_ROTATION",
+        "ks_degeneracy_tolerance_ev": degeneracy_tolerance_ev,
+        "group_mean_tolerance_ev": regression_tolerance_ev,
+        "affected_group_count": len(affected_groups),
+        "affected_state_count": len(affected_states),
+        "affected_groups": affected_groups,
+        "subspace_verification_required": True,
+        "gauge_invariant_acceptance": False,
+    }
 
 
 def evaluate_regression(
@@ -107,7 +240,7 @@ def evaluate_regression(
             errors.append((error, key))
         worst_error, worst_key = max(errors)
         rms_error = math.sqrt(sum(error * error for error, _ in errors) / len(errors))
-        quantity_accepted = worst_error <= tolerance_ev + 1e-12
+        quantity_accepted = worst_error <= tolerance_ev + NUMERICAL_EPSILON_EV
         accepted = accepted and quantity_accepted
         quantities[quantity] = {
             "accepted": quantity_accepted,
@@ -118,13 +251,25 @@ def evaluate_regression(
             "reference_ev": float(reference_states[worst_key][f"{quantity}_ev"]),
         }
 
-    return {
+    report = {
         "status": "PASS" if accepted else "FAIL",
         "reason_code": "WITHIN_TOLERANCE" if accepted else "REGRESSION_TOLERANCE_EXCEEDED",
         "tolerance_ev": tolerance_ev,
         "state_count": len(candidate_states),
         "quantities": quantities,
     }
+    if not accepted:
+        degenerate_gauge = _degenerate_gauge_diagnostic(
+            candidate_states,
+            reference_states,
+            quantities,
+            regression_tolerance_ev=tolerance_ev,
+            degeneracy_tolerance_ev=KS_DEGENERACY_TOLERANCE_EV,
+        )
+        if degenerate_gauge is not None:
+            report["reason_code"] = "BLOCKED_DEGENERATE_GAUGE_MISMATCH"
+            report["degenerate_gauge"] = degenerate_gauge
+    return report
 
 
 def evaluate_convergence_axis(

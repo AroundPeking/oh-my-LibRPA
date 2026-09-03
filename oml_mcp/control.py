@@ -46,7 +46,7 @@ from .parsers import ParseError, parse_band_out, parse_bz_sampling
 
 RUNTIME_CODE_SUFFIXES = frozenset({".py", ".pyc", ".sh", ".slurm", ".so", ".dylib"})
 SUBMISSION_ABSENCE_GRACE_SECONDS = 300
-SCIENTIFIC_EVALUATOR_VERSION = 6
+SCIENTIFIC_EVALUATOR_VERSION = 7
 
 
 def _parse_utc(value: str) -> datetime:

@@ -82,3 +82,10 @@ overclaim, and a stale fit receipt. Project-wide mixed-symmetry, stale-plan,
 duplicate-job, and wrong-state fixtures remain required for the corresponding
 route evaluators; this route-specific suite does not claim that broader
 coverage.
+
+Frozen replay `periodic-gw-degenerate-gauge-v1` adds one exact statewise pass,
+one trace-preserving two-state rotation that must remain blocked, and four
+counterexamples for nondegenerate drift, changed KS group membership, and a
+changed degenerate-group mean or occupation manifold. It tests diagnostic
+specificity; it does not provide wavefunction overlaps or scientific
+acceptance.

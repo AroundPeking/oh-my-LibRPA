@@ -312,6 +312,15 @@ When a current end-to-end band replay differs from a historical reference:
   scientific reference. Promotion requires a gauge-invariant observable or
   explicit self-energy treatment inside the protected degenerate subspace.
 
+OML's scientific evaluator emits that dedicated reason only when the KS
+statewise comparison passes, candidate and reference have identical
+`1e-5 eV` KS-degenerate groups, every failing EXX/GW state is inside one of
+those groups, and each affected group mean passes the normal regression
+tolerance. The result remains `FAIL` with
+`subspace_verification_required = true`. A changed group boundary,
+nondegenerate mismatch, or changed group mean remains
+`REGRESSION_TOLERANCE_EXCEEDED`.
+
 ## Reporting requirement
 
 For every recommendation or action, report:
