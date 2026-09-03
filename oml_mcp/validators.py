@@ -24,7 +24,7 @@ from .parsers import (
     parse_librpa_input,
     parse_vxc_out,
 )
-from .profiles import STRICT_2D_SOS_RPA_PROFILE_ID, load_profile
+from .profiles import is_strict_2d_sos_rpa_profile, load_profile
 
 
 VALID_STAGES = frozenset({"input", "pre_librpa"})
@@ -393,7 +393,7 @@ def _route_policy_gate(
     response_method: str,
 ) -> GateResult:
     normalized_system = system_type.strip().lower()
-    if profile["profile_id"] == STRICT_2D_SOS_RPA_PROFILE_ID:
+    if is_strict_2d_sos_rpa_profile(profile["profile_id"]):
         if (
             task != "rpa"
             or normalized_system not in {"2d", "two-dimensional"}
@@ -439,7 +439,7 @@ def _strict_2d_sos_rpa_input_gate(
     librpa: InputDocument,
     profile: dict[str, Any],
 ) -> GateResult:
-    if profile["profile_id"] != STRICT_2D_SOS_RPA_PROFILE_ID:
+    if not is_strict_2d_sos_rpa_profile(profile["profile_id"]):
         return _skip(
             "librpa.strict_2d_sos_rpa",
             "the selected profile is not the strict-2D SOS-RPA replay route",
@@ -834,7 +834,7 @@ def validate_case(
             normalized_task,
             system_type,
             headwing,
-            strict_2d_sos_rpa=selected_profile_id == STRICT_2D_SOS_RPA_PROFILE_ID,
+            strict_2d_sos_rpa=is_strict_2d_sos_rpa_profile(selected_profile_id),
         ),
         _strict_2d_sos_rpa_input_gate(librpa, profile),
         _value_gate(
@@ -922,7 +922,7 @@ def validate_case(
         production["fn_eigocc_scf"],
     )
     gates.append(_artifact_existence_gate(dataset, base_names, "dataset.artifacts", "base artifacts"))
-    if selected_profile_id == STRICT_2D_SOS_RPA_PROFILE_ID:
+    if is_strict_2d_sos_rpa_profile(selected_profile_id):
         gates.append(
             _strict2d_coulomb_head_gate(
                 dataset,

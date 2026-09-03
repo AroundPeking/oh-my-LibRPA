@@ -73,12 +73,24 @@ LibRPA reconstructs rotations, and legacy symmetry sidecars are never copied.
 Automatic evolution changes one registered parameter at a time and produces a
 `PROPOSAL_ONLY` record; it cannot submit a job or promote policy.
 
+The production benchmark scorecard is `oml-production-benchmark-v3`. It keeps
+material identity, scientific reference, convergence claim boundaries, and
+known false-pass fixtures as non-compensating hard gates; performance points
+cannot override a failed scientific gate.
+
 The separate profile `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` and
 manifest `df-dcu-strict2d-sos-rpa-2026-09-02-v1` register the
 `strict_2d_sos_rpa` LibRPA-only replay as `TESTABLE`. It fixes reader-v1,
 full 2D Ewald, `nfreq=16`, and qavg head/wing, forbids ABACUS/PyATB reruns, and
 records N=8/10/12/16 as functional and numerical validation only. The four
 meshes do not establish a stable asymptotic k-point convergence law.
+
+The reviewed profile `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` promotes
+that exact replay to `ENABLED` using benchmark
+`strict2d-sos-rpa-mos2-qavg-v1`. Its reference-bounded criterion accepts the
+documented four-mesh trend, Gamma area scaling, endpoint change, fit residual,
+extrapolation span, and finite-q control. It makes no asymptotic exponent claim
+and is not strict-2D GW acceptance.
 
 ---
 
@@ -115,7 +127,7 @@ Example prompts:
 The MCP-first skill uses `inspect_profile`, `inspect_admission_manifest`,
 `ingest_case`, `plan_case`, `validate_case`, `inspect_reader_v1`,
 `inspect_grid_coulomb_consistency`, `inspect_sternheimer_comparison`,
-`evaluate_admission`, and
+`inspect_route_benchmark`, `evaluate_route_benchmark`, `evaluate_admission`, and
 `propose_evolution_candidate` before the controlled
 write tools `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`,
 `finalize_case`, and `score_case`. Evolution candidates are proposal-only.
@@ -224,7 +236,7 @@ Molecule GW:      SCF -> LibRPA
 Periodic GW:      SCF -> pyatb -> NSCF -> preprocess -> LibRPA
 Periodic GW sym:  SCF(symmetry=1,rpa=1,no SOC, stru_out metadata) -> pyatb -> NSCF(symmetry=-1) -> preprocess -> LibRPA(symmetry flags)
 RPA:              SCF -> LibRPA
-Strict-2D SOS-RPA: validated ABACUS/PyATB producer -> LibRPA only (qavg, TESTABLE)
+Strict-2D SOS-RPA: validated ABACUS/PyATB producer -> LibRPA only (qavg, reference-bounded ENABLED)
 Strict-2D GW v2:  SCF -> pyatb -> NSCF -> preprocess -> LibRPA
 Molecular Delta:  ground state -> Sternheimer response -> LibRPA
 Solid Delta:      ground state -> Sternheimer response -> LibRPA
@@ -257,6 +269,7 @@ Useful supporting material:
 | `docs/live-benchmarks/2026-08-30-fisherd-v2-admission.md` | Current-stack Fisherd admission evidence for four v2 routes and the evolution scorecard |
 | `docs/live-benchmarks/2026-08-30-fisherd-v3-sternheimer-handoff.md` | Corrected solid and molecular Sternheimer Coulomb handoff evidence |
 | `docs/live-benchmarks/2026-09-02-df-dcu-strict2d-sos-rpa.md` | df_dcu strict-2D SOS-RPA N=8/10/12/16 validation and remaining asymptotic k-convergence boundary |
+| `docs/benchmarks/benchmark-matrix-v1.md` | Route and material-class benchmark coverage, hard evidence, and pending references |
 | `rules/cards/` | Structured experience: scene → symptom → root cause → fix → verify |
 | `templates/` | Workflow templates and plotting helpers |
 | `scripts/` | Preflight, consistency checks, stage reporting, and workflow runners |
@@ -293,6 +306,7 @@ This is the shape the project is aiming for: not just “some scripts,” but a 
 - MCP inspection plus bounded one-stage-at-a-time execution for non-SOC periodic GW
 - immutable plan, execution, manifest, attempt, observation, and stage-inspection receipts
 - versioned 100-point benchmark scorecard with non-compensating hard gates and frozen replays
+- route-specific reference benchmarks with machine-evaluated non-compensating scientific gates
 - approved helper-script hashes, executable fingerprints, and safe ambiguous-submission reconciliation
 - pinned compatibility profile: ABACUS `master_ghj`, LibRPA `v0.7.0`, PyATB `enable_head_wing`
 - separate v2 admission profile for current ABACUS/LibRPA/PyATB revisions and four testable routes

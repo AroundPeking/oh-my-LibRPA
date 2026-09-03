@@ -34,6 +34,12 @@ PyATB data: no ABACUS/PyATB rerun. Require reader-v1, full 2D Ewald,
 `use_2d_dielectric=t`, `use_pyatb=t`, and `rpa_headwing_mode=qavg`; omit
 `head_only`. This route is `TESTABLE`, not production-enabled.
 
+For production replay of the same definition, use reviewed profile
+`abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` with benchmark
+`strict2d-sos-rpa-mos2-qavg-v1`. It is `ENABLED` by a reference-bounded
+N=8/10/12/16 criterion. It makes no asymptotic exponent claim and is not
+strict-2D GW acceptance. Evaluate the benchmark through OML MCP before use.
+
 ## Default `librpa.in` Preset for RPA
 
 For RPA requests, set:

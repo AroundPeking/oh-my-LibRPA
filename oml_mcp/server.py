@@ -20,6 +20,10 @@ from .execution_profiles import load_execution_profile
 from .intake import ingest_case as ingest_case_data
 from .planner import plan_case as plan_case_data
 from .profiles import load_profile
+from .route_benchmark import (
+    evaluate_registered_route_benchmark,
+    load_route_benchmark,
+)
 from .sternheimer_diagnostics import (
     inspect_grid_coulomb_consistency as inspect_grid_coulomb_consistency_data,
     inspect_sternheimer_comparison as inspect_sternheimer_comparison_data,
@@ -90,7 +94,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.4.3",
+        version="0.4.4",
     )
     annotations = _read_only_annotations()
 
@@ -128,7 +132,7 @@ def build_server() -> MCPServer:
     )
     def evaluate_admission(
         evidence: dict[str, Any],
-        scorecard_version: Literal["v1", "v2"] = "v2",
+        scorecard_version: Literal["v1", "v2", "v3"] = "v3",
     ) -> dict[str, Any]:
         """Score evidence while preserving hard failures and missing evidence."""
         scorecard_path = (
@@ -137,6 +141,32 @@ def build_server() -> MCPServer:
             / f"scorecard-{scorecard_version}.json"
         )
         return evaluate_evidence(evidence, scorecard=load_scorecard(scorecard_path))
+
+    @server.tool(
+        name="inspect_route_benchmark",
+        description="Return one immutable route-specific scientific benchmark and its hard tolerances.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def inspect_route_benchmark(benchmark_id: str) -> dict[str, Any]:
+        """Inspect a registered route benchmark without changing evidence or policy."""
+        return load_route_benchmark(benchmark_id)
+
+    @server.tool(
+        name="evaluate_route_benchmark",
+        description="Recompute non-compensating scientific gates from a registered route benchmark and admission manifest.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def evaluate_route_benchmark(
+        benchmark_id: str,
+        manifest_id: str,
+    ) -> dict[str, Any]:
+        """Evaluate immutable registered evidence without submitting or promoting a route."""
+        return evaluate_registered_route_benchmark(
+            benchmark_id=benchmark_id,
+            manifest_id=manifest_id,
+        )
 
     @server.tool(
         name="propose_evolution_candidate",

@@ -7,20 +7,21 @@ description: Use when users ask to prepare, inspect, validate, run, debug, or re
 
 Use OML MCP first.
 
-Apply `librpa-openmp-mkl-threading` before LibRPA submission or diagnosis.
+Apply `librpa-openmp-mkl-threading` before LibRPA work.
 
-1. Run `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`; repair `FAIL` and report `WARN`. Inspect reader v1 with `inspect_reader_v1`, then use `inspect_grid_coulomb_consistency` before solid response and `inspect_sternheimer_comparison` afterward. Require `v1_sternheimer_coulomb_iq_*`: disagreement with its optional grid diagnostic blocks; ordinary `v1_coulomb_full_iq_*` differences are diagnostic only.
-2. Production supports approved non-SOC periodic GW only: `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, then `score_case`.
-3. `abacus-librpa-2026-08-30-v2` preserves the historical result; use `abacus-librpa-2026-08-30-v3` for the corrected handoff. periodic 3D GW, strict-2D GW, molecular Delta-Sternheimer RPA, and solid Delta-Sternheimer RPA remain admission-only. Use `inspect_admission_manifest` and `evaluate_admission`.
-4. `propose_evolution_candidate` changes one registered axis and returns `PROPOSAL_ONLY`; it never submits or promotes.
+1. Run `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`; repair `FAIL` and report `WARN`. Validate reader v1 with `inspect_reader_v1`; use `inspect_grid_coulomb_consistency` and `inspect_sternheimer_comparison` for their declared gates. Sternheimer requires `v1_sternheimer_coulomb_iq_*`; ordinary reader Coulomb is diagnostic.
+2. Controlled non-SOC periodic GW uses `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, then `score_case`.
+3. Keep `abacus-librpa-2026-08-30-v2` historical; use `abacus-librpa-2026-08-30-v3` for corrected Sternheimer. The periodic 3D GW, strict-2D GW, molecular Delta-Sternheimer RPA, and solid Delta-Sternheimer RPA routes remain admission-only. Use `inspect_admission_manifest` and v3-default `evaluate_admission`.
+4. `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` is `ENABLED` only for benchmark-bound `strict_2d_sos_rpa`. Call `inspect_route_benchmark` and `evaluate_route_benchmark` with `strict2d-sos-rpa-mos2-qavg-v1`. This reference-bounded result makes no asymptotic exponent claim and is not strict-2D GW acceptance.
+5. `propose_evolution_candidate` changes one registered axis and stays `PROPOSAL_ONLY`.
 
 Load `references/delta-st-route.md` only after MCP selects Delta-ST.
 
-Never bypass MCP with direct shell, SSH, Slurm, cleanup, overwrite, or retry. Never submit stale plans, changed manifests, unknown binaries, duplicates, or blocked stages.
+Never bypass MCP with shell, SSH, Slurm, cleanup, overwrite, or retry. Block stale plans, changed manifests, unknown binaries, duplicates, and blocked stages.
 
 Keep FHI-aims writes on existing reviewed routes and use their ownership gate.
 
-Symmetry comes from `stru_out`; LibRPA rebuilds rotations. Do not copy legacy sidecars. PyATB dimensions must match ABACUS and `bz_sampling_out`.
+Symmetry comes from `stru_out`; copy no sidecars. PyATB dimensions must match ABACUS and `bz_sampling_out`.
 
 For FHI-aims, keep `periodic_gw_optimize_kgrid_symmetry` q-point reduction
 separate from LibRPA `use_symmetry_exx`, `use_symmetry_rpa`, and

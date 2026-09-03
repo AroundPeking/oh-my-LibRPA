@@ -17,6 +17,7 @@ revisions and executable hashes on the server.
 | `abacus-librpa-2026-08-30-v2` | `641caa554b44c4db2743603e9c75c96379901d7c` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` | immutable historical admission |
 | `abacus-librpa-2026-08-30-v3` | `81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` | corrected Sternheimer admission |
 | `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` | `0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43` replay only | `c87103df00b772ddbfc21597884c2787cf685037` | `strict_2d_sos_rpa`, TESTABLE LibRPA-only qavg replay |
+| `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` | `0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43` replay only | `c87103df00b772ddbfc21597884c2787cf685037` | `strict_2d_sos_rpa`, ENABLED reference-bounded replay |
 
 All use PyATB `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` where required. V2/v3 register
 `periodic_3d_gw`, `strict_2d_gw`, `molecular_delta_st_rpa`, and
@@ -29,6 +30,11 @@ The strict-2D SOS-RPA profile requires executable SHA-256
 reader-v1 full 2D Ewald, `librpa_2d_coulomb_head.dat`, `nfreq=16`, and
 `rpa_headwing_mode=qavg` with no `head_only`. It permits no ABACUS/PyATB rerun;
 existing full-grid PyATB data are consumed read-only.
+
+The v2 strict-2D SOS-RPA profile is bound to benchmark
+`strict2d-sos-rpa-mos2-qavg-v1`. Its reference-bounded acceptance records
+operational k-mesh convergence for the exact MoS2 definition, makes no
+asymptotic exponent claim, and is not strict-2D GW acceptance.
 
 ## Hard Gates
 

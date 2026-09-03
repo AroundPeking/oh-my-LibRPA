@@ -1,0 +1,97 @@
+{
+  "schema": "oml.route-benchmark.v1",
+  "benchmark_id": "strict2d-sos-rpa-mos2-qavg-v1",
+  "route_id": "strict_2d_sos_rpa",
+  "profile_id": "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1",
+  "manifest_id": "df-dcu-strict2d-sos-rpa-2026-09-02-v1",
+  "acceptance_model": "reference_bounded_four_mesh",
+  "material": {
+    "formula": "MoS2",
+    "geometry": "monolayer_lz25",
+    "basis_family": "gth_siab_dzp77",
+    "identity_probe_host": "df_dcu",
+    "identity_probe_date": "2026-09-03",
+    "identity_sha256": {
+      "INPUT": "3ed451b73a9a24446bd947c2db298449161efdcc9afe236fdda38f9e070be386",
+      "STRU": "c7f5413abc4c450f2c879df296fa4e5ed37d0e57a2547c824f80ea87254630b8",
+      "stru_out": "f0cb04fe617cd4025000f3b7aa7ce5393246d9166955e8d3dee849ecbf20c0be",
+      "librpa_2d_coulomb_head.dat": "a8301b0b03fe486c430f12646fc18ed435963eff619470c3205c1713c2bca314",
+      "pseudopotentials": {
+        "Mo-GTH-PBE-q14-cp2k-default-grid.upf": "f8d99b6265c66b570a1da1bdf23f0f3c9ef7328819b250c5795c87208d24ba9a",
+        "S-GTH-PBE-q6-cp2k-default-grid.upf": "22ac946e64017b53d570c23378d6c367804c5da015cf83c8bce4648490ca1815"
+      },
+      "orbitals": {
+        "Mo_gga_10au_100Ry_4s2p2d1f.orb": "84542972564084dd3257ab17c0a8ba6c9d04e72829a0dabae705ffa7fbee2161",
+        "S_gga_10au_100Ry_2s2p2d1f.orb": "ea1f551bc6571657953e49fc477a7482f9b94c8eafa86cce1596f5359afb352b"
+      },
+      "auxiliary_bases": {
+        "Mo_GTH-PBE_foraux_1g_pca1e-4_256.abfs": "3f9f08c7e3efa7971c817e58db697f6bb687cab4aa936e81fcd272e1ab43b7c6",
+        "S_GTH-PBE_foraux_1g_pca1e-4_298.abfs": "5db18b7495ee618582722c165a861f08c0e3abddd48c55d47d9c2ac0950b5a9a"
+      }
+    }
+  },
+  "software_identity": {
+    "abacus_revision": "0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43",
+    "librpa_revision": "c87103df00b772ddbfc21597884c2787cf685037",
+    "librpa_executable_sha256": "0ca485dde5833dd190709c59d4689c263c2344041f2c71be4bc33c7e0b5da3c9",
+    "pyatb_revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "required_contract": {
+    "reader_format": "v1",
+    "task": "rpa",
+    "nfreq": 16,
+    "coulomb": "full_2d_ewald",
+    "coulomb_head_artifact": "librpa_2d_coulomb_head.dat",
+    "headwing": "qavg",
+    "head_only": false,
+    "allow_abacus_rerun": false,
+    "allow_pyatb_rerun": false
+  },
+  "required_meshes": [8, 10, 12, 16],
+  "fit_policy": {
+    "model": "least_squares_e_infinity_plus_a_n_minus_p",
+    "fixed_power": 3.0,
+    "free_power_bounds": [1.0, 6.0]
+  },
+  "mesh_identity_sha256": {
+    "8": {
+      "KPT": "82811c399f1f50931bd4122662df9d0760e738a853c62e3d480a56de7a5ec78c",
+      "bz_sampling_out": "d852e3fc67a0d97212445c61e9c3c29d289fe24c968f2d32f818578d8981e2ae"
+    },
+    "10": {
+      "KPT": "0188f9dae06c556dc0d1227ac9436c54370f59fe8d755af47e198b638a85f99d",
+      "bz_sampling_out": "02ed2dcfb18968143b9ca08306fba0ba9e40700526cd430f1f4b4746eaf7f002"
+    },
+    "12": {
+      "KPT": "05a733a9c1d13b4fe7c347c8db5c6d5b72ed5dbf37a24302e53d451562c01c1b",
+      "bz_sampling_out": "18be5f577d74aa63032d7dc31246e6ddbfe22473139e16125df803c540728d92"
+    },
+    "16": {
+      "KPT": "b20feb4a0f2d86014761755eb4a25faaaed6eeaf989850ab108065add11a9e73",
+      "bz_sampling_out": "5637774b0b3c1fe9a96f0759512833ae3a359105895d2ca3f111bc94b5b7ca2a"
+    }
+  },
+  "reference_series": [
+    {"mesh": 8, "gamma_hartree": -0.06924276799691, "total_hartree": -1.268385066102},
+    {"mesh": 10, "gamma_hartree": -0.04430281538195, "total_hartree": -1.250904354656},
+    {"mesh": 12, "gamma_hartree": -0.03075665041071, "total_hartree": -1.242737105060},
+    {"mesh": 16, "gamma_hartree": -0.01729559985264, "total_hartree": -1.235513727806}
+  ],
+  "tolerances": {
+    "reference_gamma_abs_hartree": 1.0e-9,
+    "reference_total_abs_hartree": 1.0e-9,
+    "gamma_area_scaled_relative_span_max": 1.0e-3,
+    "endpoint_total_delta_millihartree_max": 8.0,
+    "fixed_n_minus_3_rms_millihartree_max": 0.5,
+    "extrapolated_limit_span_millihartree_max": 2.5,
+    "finite_q_control_max_abs_delta_hartree": 1.0e-9,
+    "reported_free_power_abs": 1.0e-3,
+    "reported_fit_metric_millihartree_abs": 1.0e-3
+  },
+  "claim_boundary": {
+    "operational_k_mesh_convergence": true,
+    "forbid_asymptotic_exponent_claim": true,
+    "strict_2d_sos_rpa": true,
+    "strict_2d_gw": false
+  }
+}

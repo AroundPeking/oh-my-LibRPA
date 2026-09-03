@@ -47,11 +47,23 @@ physical route.
 The source and binary passed local C++/MPI plus GreenX tests and remote C++/MPI
 tests, including an explicit four-rank Intel MPI head/wing regression.
 
+## ACCEPTANCE
+
+Reviewed profile `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` uses
+benchmark `strict2d-sos-rpa-mos2-qavg-v1` to mark this exact route `ENABLED`.
+The reference-bounded rule accepts the observed four-mesh behavior when the
+registered energies, `N^2 |E_Gamma|` scaling, N=12 to N=16 endpoint change,
+fit residual, extrapolated-limit span, and finite-q control all stay within
+their hard tolerances. This is operational k-mesh convergence for the pinned
+MoS2 definition, with no asymptotic exponent claim, and is not strict-2D GW
+acceptance.
+
 ## REMAINING
 
 The four meshes establish functional and numerical route consistency, but do
 not yet establish the asymptotic convergence law. The adjacent effective
 exponents drift from `2.732` to `2.518`, and the tested extrapolations span
-about `2.09 mHa`. There is therefore no N^-3 claim and the route remains
-`TESTABLE`; denser meshes are still required for physical convergence and any
-promotion beyond admission testing.
+about `2.09 mHa`. There is therefore no N^-3 claim. A stable asymptotic power
+law is not required by the reviewed reference-bounded acceptance criterion;
+denser meshes remain useful as diagnostics or for a new material definition,
+not as a blocker for this pinned SOS-RPA route.

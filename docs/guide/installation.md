@@ -28,13 +28,15 @@ The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.js
 
 ### MCP tools
 
-OML exposes 16 MCP tools: ten case/admission inspection tools, two read-only
+OML exposes 18 MCP tools: twelve case/admission/benchmark inspection tools, two read-only
 status/scoring tools, and four bounded execution/finalization tools:
 
 | Tool | Purpose |
 | --- | --- |
 | `inspect_profile` | Report pinned source revisions and the exact workflow contract |
 | `inspect_admission_manifest` | Validate and report the registered v2 Fisherd admission campaign |
+| `inspect_route_benchmark` | Return an immutable route-specific scientific benchmark and its hard tolerances |
+| `evaluate_route_benchmark` | Recompute all non-compensating gates from a registered benchmark and manifest |
 | `evaluate_admission` | Apply the selected versioned scorecard without changing files or jobs |
 | `propose_evolution_candidate` | Propose one registered benchmark-axis change within an explicit budget |
 | `ingest_case` | Classify case ownership and fingerprint discovered files |
@@ -50,13 +52,18 @@ status/scoring tools, and four bounded execution/finalization tools:
 | `finalize_case` | Evaluate a passed 3D GW snapshot against registered scientific policy |
 | `score_case` | Apply the versioned scorecard and non-compensating hard gates |
 
-The ten inspection/admission tools plus `get_status` and `score_case` are
+The twelve inspection/admission/benchmark tools plus `get_status` and `score_case` are
 read-only. `propose_evolution_candidate` returns a proposal only; it never edits
 inputs or submits work. `prepare_run`, `submit_stage`, `inspect_stage`, and
 idempotent `finalize_case` are consequential but bounded. Controlled execution
 is disabled until an administrator installs an enabled execution profile. See
 [`controlled-execution.md`](controlled-execution.md) for the profile schema,
 fixed sequence, receipts, scorecard, and current exclusions.
+
+`evaluate_admission` defaults to scorecard v3. Its hard gates include exact
+material definition, route contract, scientific reference, convergence claim
+boundary, and no known false-pass regression. A failed hard gate forces the
+score to zero regardless of diagnostic points.
 
 For the pinned LibRPA source, production RPA/GW response calculations use the
 minimax time-frequency route. OML rejects unsupported GreenX counts, grids that
@@ -107,6 +114,14 @@ validated reader-v1/full-2D-Ewald producer, fixes `nfreq=16` and qavg
 head/wing, and prohibits ABACUS/PyATB reruns. Its N=8/10/12/16 series validates
 the function and numerics, but does not establish a stable asymptotic k-point
 convergence law.
+
+Profile `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` is the reviewed L4
+promotion for this exact replay. Benchmark `strict2d-sos-rpa-mos2-qavg-v1`
+marks it `ENABLED` under a reference-bounded four-mesh acceptance rule. The
+rule requires the documented energies, Gamma area scaling, N=12 to N=16
+endpoint change, fit residual, extrapolation span, and finite-q control within
+their registered tolerances. It makes no asymptotic exponent claim and is not
+strict-2D GW acceptance.
 
 All profiles explicitly use reader-v1 in OML workflows:
 

@@ -10,11 +10,18 @@ DEFAULT_PROFILE_ID = "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 STRICT_2D_SOS_RPA_PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
+STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID = (
+    "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
+)
+STRICT_2D_SOS_RPA_PROFILE_IDS = frozenset(
+    {STRICT_2D_SOS_RPA_PROFILE_ID, STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID}
+)
 PROFILE_NAMES = {
     DEFAULT_PROFILE_ID: "abacus-librpa-pyatb-2026-08.json",
     V2_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v2.json",
     V3_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v3.json",
     STRICT_2D_SOS_RPA_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json",
+    STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json",
 }
 PROFILE_NAME = PROFILE_NAMES[DEFAULT_PROFILE_ID]
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -48,6 +55,10 @@ def _repository_profile_dir() -> Path:
 
 def list_profiles() -> tuple[str, ...]:
     return tuple(PROFILE_NAMES)
+
+
+def is_strict_2d_sos_rpa_profile(profile_id: str) -> bool:
+    return profile_id in STRICT_2D_SOS_RPA_PROFILE_IDS
 
 
 def default_profile_path() -> Path:
@@ -225,7 +236,8 @@ def _validate_v1_capabilities(profile: dict[str, Any], components: dict[str, Any
 
 def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
     capabilities = _require_mapping(profile, "capabilities", "profile")
-    strict_2d_sos_rpa = profile.get("profile_id") == STRICT_2D_SOS_RPA_PROFILE_ID
+    profile_id = profile.get("profile_id")
+    strict_2d_sos_rpa = is_strict_2d_sos_rpa_profile(str(profile_id))
     expected_capabilities = (
         STRICT_2D_SOS_RPA_CAPABILITIES if strict_2d_sos_rpa else V2_CAPABILITIES
     )
@@ -254,12 +266,24 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
         raise ProfileError("admission.levels must be L0 through L4")
     if strict_2d_sos_rpa:
         route_capability = capabilities["strict_2d_sos_rpa"]
+        production_profile = profile_id == STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID
+        expected_status = "ENABLED" if production_profile else "TESTABLE"
+        expected_level = "L4" if production_profile else "L3"
         if (
-            route_capability.get("status") != "TESTABLE"
-            or route_capability.get("admission_level") != "L3"
+            route_capability.get("status") != expected_status
+            or route_capability.get("admission_level") != expected_level
+        ):
+            requirement = (
+                "ENABLED at L4" if production_profile else "remain TESTABLE at L3"
+            )
+            raise ProfileError(
+                f"capabilities.strict_2d_sos_rpa must {requirement}"
+            )
+        if production_profile and route_capability.get("benchmark_id") != (
+            "strict2d-sos-rpa-mos2-qavg-v1"
         ):
             raise ProfileError(
-                "capabilities.strict_2d_sos_rpa must remain TESTABLE at L3"
+                "capabilities.strict_2d_sos_rpa must bind the registered benchmark"
             )
         limits = _require_mapping(admission, "df_dcu_limits", "admission")
         required_limits = {
@@ -304,14 +328,26 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
             "rpa_headwing_body_start": 1,
         }:
             raise ProfileError("contract.strict_2d_sos_rpa qavg input contract has drifted")
-        if route_contract.get("k_mesh_acceptance") != {
-            "validated_scope": "four_mesh_functional_and_numerical_not_asymptotic",
-            "minimum_meshes_for_exponent_fit": 3,
-            "require_stable_asymptotic_fit": True,
-            "forbid_convergence_exponent_claim": True,
-        }:
+        expected_k_mesh_acceptance = (
+            {
+                "validated_scope": "reference_bounded_operational_convergence",
+                "acceptance_model": "reference_bounded_four_mesh",
+                "benchmark_id": "strict2d-sos-rpa-mos2-qavg-v1",
+                "required_meshes": [8, 10, 12, 16],
+                "require_stable_asymptotic_fit": False,
+                "forbid_convergence_exponent_claim": True,
+            }
+            if production_profile
+            else {
+                "validated_scope": "four_mesh_functional_and_numerical_not_asymptotic",
+                "minimum_meshes_for_exponent_fit": 3,
+                "require_stable_asymptotic_fit": True,
+                "forbid_convergence_exponent_claim": True,
+            }
+        )
+        if route_contract.get("k_mesh_acceptance") != expected_k_mesh_acceptance:
             raise ProfileError(
-                "contract.strict_2d_sos_rpa must keep the four-mesh series below convergence promotion"
+                "contract.strict_2d_sos_rpa benchmark acceptance has drifted"
             )
         librpa = profile["components"]["librpa"]
         if not SHA256_PATTERN.fullmatch(str(librpa.get("executable_sha256", ""))):
@@ -323,12 +359,20 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
     promotion = _require_mapping(admission, "promotion", "admission")
     if promotion.get("automatic") is not False or promotion.get("reviewed_commit") is not True:
         raise ProfileError("admission promotion must require a reviewed commit")
-    if strict_2d_sos_rpa and promotion.get(
-        "mesh_series_is_convergence_evidence_without_stable_fit"
-    ) is not False:
-        raise ProfileError(
-            "strict-2D SOS-RPA promotion must require a stable asymptotic fit"
+    if strict_2d_sos_rpa:
+        accepts_reference_bound = promotion.get(
+            "mesh_series_is_convergence_evidence_without_stable_fit"
         )
+        expected_reference_bound = (
+            profile_id == STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID
+        )
+        if accepts_reference_bound is not expected_reference_bound:
+            message = (
+                "strict-2D SOS-RPA production promotion must match its benchmark acceptance model"
+                if expected_reference_bound
+                else "strict-2D SOS-RPA admission must require a stable asymptotic fit"
+            )
+            raise ProfileError(message)
 
 
 def validate_profile(profile: dict[str, Any]) -> None:

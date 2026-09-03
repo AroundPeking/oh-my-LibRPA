@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scorecard_id": "oml-production-benchmark-v3",
+  "total_points": 100,
+  "pass_threshold": 90,
+  "dimensions": [
+    {"dimension_id": "reproducibility", "weight": 15},
+    {"dimension_id": "prevention", "weight": 15},
+    {"dimension_id": "stage_evidence", "weight": 15},
+    {"dimension_id": "numerical_evaluation", "weight": 15},
+    {"dimension_id": "scientific_evaluation", "weight": 20},
+    {"dimension_id": "convergence_coverage", "weight": 10},
+    {"dimension_id": "diagnosis_quality", "weight": 5},
+    {"dimension_id": "compute_efficiency", "weight": 5}
+  ],
+  "hard_gates": [
+    "stack_identity",
+    "material_definition",
+    "route_contract",
+    "artifact_completeness",
+    "finite_output",
+    "numerical_invariants",
+    "scientific_reference",
+    "convergence_claim_boundary",
+    "no_known_false_pass"
+  ],
+  "penalties": {
+    "failed_attempts": 2,
+    "ambiguous_attempts": 5,
+    "maximum_deduction": 20
+  }
+}

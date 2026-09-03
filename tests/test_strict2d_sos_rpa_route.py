@@ -19,6 +19,9 @@ from oml_mcp.admission_manifest import (
 
 PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 PROFILE_NAME = "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json"
+PRODUCTION_PROFILE_ID = "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
+PRODUCTION_PROFILE_NAME = "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json"
+BENCHMARK_ID = "strict2d-sos-rpa-mos2-qavg-v1"
 MANIFEST_ID = "df-dcu-strict2d-sos-rpa-2026-09-02-v1"
 
 
@@ -66,6 +69,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
 
     def test_profile_is_registered_without_mutating_historical_profiles(self):
         self.assertIn(PROFILE_ID, list_profiles())
+        self.assertIn(PRODUCTION_PROFILE_ID, list_profiles())
 
     def test_profile_pins_the_validated_librpa_and_replay_only_contract(self):
         profile = load_profile(profile_id=PROFILE_ID)
@@ -99,6 +103,35 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
             path = pathlib.Path(tmpdir) / "promoted.json"
             path.write_text(json.dumps(profile), encoding="utf-8")
             with self.assertRaisesRegex(ProfileError, "TESTABLE"):
+                load_profile(path)
+
+    def test_reviewed_l4_profile_enables_only_the_benchmark_bound_route(self):
+        historical = load_profile(profile_id=PROFILE_ID)
+        production = load_profile(profile_id=PRODUCTION_PROFILE_ID)
+        route = production["capabilities"]["strict_2d_sos_rpa"]
+        acceptance = production["contract"]["strict_2d_sos_rpa"]["k_mesh_acceptance"]
+
+        self.assertEqual(historical["capabilities"]["strict_2d_sos_rpa"]["status"], "TESTABLE")
+        self.assertEqual(historical["capabilities"]["strict_2d_sos_rpa"]["admission_level"], "L3")
+        self.assertEqual(route["status"], "ENABLED")
+        self.assertEqual(route["admission_level"], "L4")
+        self.assertEqual(route["benchmark_id"], BENCHMARK_ID)
+        self.assertEqual(acceptance["acceptance_model"], "reference_bounded_four_mesh")
+        self.assertEqual(acceptance["benchmark_id"], BENCHMARK_ID)
+        self.assertEqual(acceptance["required_meshes"], [8, 10, 12, 16])
+        self.assertFalse(acceptance["require_stable_asymptotic_fit"])
+        self.assertTrue(acceptance["forbid_convergence_exponent_claim"])
+        self.assertEqual(production["components"], historical["components"])
+
+    def test_production_profile_rejects_a_missing_or_relaxed_benchmark_binding(self):
+        profile = load_profile(profile_id=PRODUCTION_PROFILE_ID)
+        profile["contract"]["strict_2d_sos_rpa"]["k_mesh_acceptance"][
+            "benchmark_id"
+        ] = "unregistered"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "drifted-production.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+            with self.assertRaisesRegex(ProfileError, "benchmark"):
                 load_profile(path)
 
     def test_profile_requires_a_stable_asymptotic_fit_before_promotion(self):
@@ -135,6 +168,16 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         packaged = json.loads((root / "oml_mcp" / "profiles" / PROFILE_NAME).read_text(encoding="utf-8"))
 
         self.assertEqual(packaged, repository)
+
+        production_repository = json.loads(
+            (root / "profiles" / PRODUCTION_PROFILE_NAME).read_text(encoding="utf-8")
+        )
+        production_packaged = json.loads(
+            (root / "oml_mcp" / "profiles" / PRODUCTION_PROFILE_NAME).read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(production_packaged, production_repository)
 
     def test_user_facing_rpa_guidance_names_the_strict2d_replay_exception(self):
         root = pathlib.Path(__file__).resolve().parents[1]
@@ -217,6 +260,47 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         self.assertFalse(plan.options["allow_pyatb_rerun"])
         self.assertEqual(plan.gates[0].status, "WARN")
         self.assertTrue(any("stable asymptotic regime" in item for item in plan.assumptions))
+
+    def test_plan_case_selects_the_l4_reference_bounded_route(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            plan = plan_case(
+                root,
+                task="rpa",
+                system_type="2d",
+                response_method="sos",
+                headwing=True,
+                use_symmetry=True,
+                profile_id=PRODUCTION_PROFILE_ID,
+            )
+
+        self.assertEqual(plan.route, "strict_2d_sos_rpa")
+        self.assertEqual(plan.options["capability"]["status"], "ENABLED")
+        self.assertEqual(plan.options["benchmark_id"], BENCHMARK_ID)
+        self.assertEqual(plan.gates[0].status, "PASS")
+        self.assertTrue(any("reference-bounded" in item for item in plan.assumptions))
+        self.assertTrue(any("does not establish an asymptotic exponent" in item for item in plan.assumptions))
+
+    def test_validate_case_accepts_the_l4_profile_input_contract(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            report = validate_case(
+                root,
+                task="rpa",
+                system_type="2d",
+                response_method="sos",
+                use_symmetry=True,
+                headwing=True,
+                profile_id=PRODUCTION_PROFILE_ID,
+                stage="input",
+            )
+
+        self.assertTrue(report.accepted, report.to_dict())
+        gates = {gate.gate_id: gate for gate in report.gates}
+        self.assertEqual(gates["route.strict_2d_sos_rpa"].status, "PASS")
+        self.assertEqual(gates["librpa.strict_2d_sos_rpa"].status, "PASS")
 
     def test_plan_case_rejects_headwing_off_and_non_sos_response(self):
         with tempfile.TemporaryDirectory() as tmpdir:

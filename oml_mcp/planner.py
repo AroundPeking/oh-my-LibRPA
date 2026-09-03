@@ -5,7 +5,11 @@ from typing import Any
 
 from .intake import ingest_case
 from .models import CasePlan, GateResult
-from .profiles import STRICT_2D_SOS_RPA_PROFILE_ID, load_profile
+from .profiles import (
+    STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID,
+    is_strict_2d_sos_rpa_profile,
+    load_profile,
+)
 from .provenance import digest_json, execution_input_manifest, source_manifest_digest
 
 
@@ -56,7 +60,7 @@ def _plan_rpa_route(
     headwing: bool | None,
     assumptions: list[str],
 ) -> str:
-    strict_2d_sos_rpa = profile_id == STRICT_2D_SOS_RPA_PROFILE_ID
+    strict_2d_sos_rpa = is_strict_2d_sos_rpa_profile(profile_id)
     if strict_2d_sos_rpa:
         if normalized_system not in {"2d", "two-dimensional"}:
             raise PlanError("strict-2D SOS-RPA requires system_type=2d")
@@ -68,13 +72,21 @@ def _plan_rpa_route(
             (
                 "reuse the validated reader-v1 ABACUS and PyATB producer without rerunning either producer",
                 "use full 2D Ewald Coulomb with analytic Gamma head/wing q averaging",
-                (
-                    "the N=8, N=10, N=12, and N=16 mesh series validates function "
-                    "and numerics only; a stable asymptotic regime is still required "
-                    "for a convergence claim"
-                ),
             )
         )
+        if profile_id == STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID:
+            assumptions.extend(
+                (
+                    "operational k-mesh convergence uses the accepted reference-bounded N=8/10/12/16 benchmark",
+                    "the accepted benchmark does not establish an asymptotic exponent or strict-2D GW",
+                )
+            )
+        else:
+            assumptions.append(
+                "the N=8, N=10, N=12, and N=16 mesh series validates function "
+                "and numerics only; a stable asymptotic regime is still required "
+                "for a convergence claim"
+            )
         return "strict_2d_sos_rpa"
     if response_method == "sternheimer":
         if not is_v2:
@@ -209,7 +221,7 @@ def plan_case(
     normalized_response = response_method.strip().lower()
     assumptions: list[str] = []
     if (
-        profile["profile_id"] == STRICT_2D_SOS_RPA_PROFILE_ID
+        is_strict_2d_sos_rpa_profile(profile["profile_id"])
         and normalized_task != "rpa"
     ):
         raise PlanError("the selected profile only admits strict-2D SOS-RPA")
@@ -275,6 +287,9 @@ def plan_case(
                     "execution": profile["admission"]["df_dcu_limits"],
                 }
             )
+            benchmark_id = capability.get("benchmark_id")
+            if benchmark_id is not None:
+                options["benchmark_id"] = benchmark_id
 
     plan_payload = {
         "schema_version": 2 if is_v2 else 1,

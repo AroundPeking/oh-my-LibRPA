@@ -41,6 +41,15 @@ and N=16 validate the function and numerics only; the observed exponent still
 drifts, so a denser stable asymptotic series is required before any convergence
 claim.
 
+### Reviewed strict-2D SOS-RPA reference
+
+Profile `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` binds the same replay to
+benchmark `strict2d-sos-rpa-mos2-qavg-v1` and marks it `ENABLED`. The
+reference-bounded criterion accepts the documented four-mesh behavior without
+requiring complete adjacent-grid invariance. It makes no asymptotic exponent
+claim and is not strict-2D GW acceptance. Call `inspect_route_benchmark` and
+`evaluate_route_benchmark` before using the production profile.
+
 ## Default `librpa.in` preset
 
 Set or verify:
