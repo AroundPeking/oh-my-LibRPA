@@ -110,6 +110,10 @@ class WorkflowValidatorTest(unittest.TestCase):
         if shrink:
             abacus_lines.extend(("shrink_abfs_pca_thr 1e-4", "shrink_lu_inv_thr 1e-3"))
         (root / "INPUT_scf").write_text("\n".join(abacus_lines) + "\n", encoding="utf-8")
+        (root / "KPT_scf").write_text(
+            "K_POINTS\n0\nGamma\n1 1 1 0 0 0\n",
+            encoding="utf-8",
+        )
         (root / "STRU").write_text("ATOMIC_SPECIES\n", encoding="utf-8")
 
         librpa_lines = [
@@ -352,6 +356,31 @@ class WorkflowValidatorTest(unittest.TestCase):
             )
 
         self.assertEqual(self.gate(report, "dataset.kpoints").status, "FAIL")
+
+    def test_scf_mesh_must_match_bz_sampling_full_grid_count(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "KPT_scf").write_text(
+                "K_POINTS\n0\nGamma\n2 2 2 0 0 0\n",
+                encoding="utf-8",
+            )
+
+            report = validate_case(
+                root,
+                task="gw",
+                system_type="solid",
+                use_symmetry=True,
+                stage="pre_librpa",
+            )
+
+        self.assertFalse(report.accepted, report.to_dict())
+        gate = self.gate(report, "dataset.screening_grid")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertTrue(any(item.startswith("KPT_scf=8") for item in gate.evidence))
+        self.assertTrue(
+            any(item.startswith("bz_sampling_out=1") for item in gate.evidence)
+        )
 
     def test_obsolete_symmetry_keys_fail_with_exact_replacements(self):
         with tempfile.TemporaryDirectory() as tmpdir:

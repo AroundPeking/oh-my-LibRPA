@@ -16,6 +16,7 @@ from .models import GateResult, InputDocument, ValidationReport
 from .parsers import (
     ParseError,
     parse_abacus_input,
+    parse_abacus_kpt,
     parse_band_out,
     parse_bool,
     parse_bz_sampling,
@@ -73,6 +74,51 @@ def _dataset_root(case_root: Path, librpa: InputDocument) -> Path:
     value = (librpa.value("input_dir", ".") or ".").strip().strip("'\"")
     path = Path(value).expanduser()
     return (path if path.is_absolute() else case_root / path).resolve()
+
+
+def _screening_grid_alignment_gate(
+    case_root: Path,
+    bz_sampling: dict[str, object],
+) -> GateResult:
+    kpt_path = case_root / "KPT_scf"
+    try:
+        kpt = parse_abacus_kpt(kpt_path)
+    except ParseError as exc:
+        return _fail(
+            "dataset.screening_grid",
+            str(exc),
+            (str(kpt_path),),
+            "provide the exact KPT_scf used by the ABACUS producer",
+        )
+    if kpt.get("mode") != "mesh":
+        return _fail(
+            "dataset.screening_grid",
+            "KPT_scf does not define a regular screening mesh",
+            (str(kpt_path),),
+            "use the exact regular-mesh KPT_scf from the ABACUS producer",
+        )
+
+    input_grid = tuple(int(value) for value in kpt["grid"])
+    producer_grid = tuple(int(value) for value in bz_sampling["grid"])
+    input_count = input_grid[0] * input_grid[1] * input_grid[2]
+    producer_count = int(bz_sampling["nk_full"])
+    if input_grid != producer_grid:
+        return _fail(
+            "dataset.screening_grid",
+            "KPT_scf mesh does not match the grid embedded in bz_sampling_out",
+            (
+                f"KPT_scf={input_count} ({'x'.join(map(str, input_grid))})",
+                f"bz_sampling_out={producer_count} ({'x'.join(map(str, producer_grid))})",
+            ),
+            "restore KPT_scf from the same ABACUS producer run as bz_sampling_out",
+        )
+    return GateResult(
+        gate_id="dataset.screening_grid",
+        status="PASS",
+        message="KPT_scf matches the screening grid embedded in bz_sampling_out",
+        evidence=(str(kpt_path),),
+        measurements={"grid": list(input_grid), "nk_full": input_count},
+    )
 
 
 def _find_by_prefix(root: Path, prefix: str) -> tuple[Path, ...]:
@@ -966,6 +1012,10 @@ def validate_case(
                 _skip("bz_sampling.format", "bz_sampling_out is not required at the input stage"),
                 _skip("band_out.format", "band_out is not required at the input stage"),
                 _skip("dataset.kpoints", "producer k-point metadata is not required at the input stage"),
+                _skip(
+                    "dataset.screening_grid",
+                    "producer screening-grid metadata is not required at the input stage",
+                ),
                 _skip("dataset.eigenvectors", "KS eigenvectors are not required at the input stage"),
                 _skip("gw.vxc", "vxc_out is not required at the input stage"),
                 _skip("stru_out.format", "stru_out is not required at the input stage"),
@@ -1045,6 +1095,16 @@ def validate_case(
                 str(exc),
                 (str(dataset / str(production["fn_bz_sampling"])),),
                 "regenerate bz_sampling_out with the pinned ABACUS producer",
+            )
+        )
+
+    if bz_sampling is not None:
+        gates.append(_screening_grid_alignment_gate(case_root, bz_sampling))
+    else:
+        gates.append(
+            _skip(
+                "dataset.screening_grid",
+                "KPT_scf cannot be compared until bz_sampling_out is valid",
             )
         )
 
