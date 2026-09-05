@@ -3,7 +3,7 @@
   "benchmark_id": "fisherd-periodic-3d-gw-current-20260903",
   "profile_id": "abacus-librpa-2026-09-03-v4",
   "date": "2026-09-03",
-  "last_verified": "2026-09-03",
+  "last_verified": "2026-09-06",
   "scope": "Current-stack BN reader-v1 symmetry, shrink, QP-grid, and band handoff replay",
   "host": {
     "alias": "Fisherd-Server100.96.1.64",
@@ -365,6 +365,145 @@
         "fine_ev": 17.10799
       },
       "status": "FAIL"
+    },
+    "screening_kgrid_campaign": {
+      "remote_root": "/home/ghj/oml-benchmarks/20260903-periodic-3d-gw/runs",
+      "profile_id": "abacus-librpa-2026-09-03-v4",
+      "harness_commit": "814169d54941170f105c55fe9c5601bc8653dfe4",
+      "fixed_definition": {
+        "nfreq": 24,
+        "tfgrids_type": "minimax",
+        "n_params_anacon": 6,
+        "option_qpe_solver": 0,
+        "use_qpe_adaptive_damp": false,
+        "state_window": "VBM-3 through CBM+3",
+        "max_state_and_gap_delta_ev": 0.05
+      },
+      "meshes": [
+        {
+          "grid": [4, 4, 4],
+          "full_kpoints": 64,
+          "irreducible_kpoints": 8,
+          "reader_v1_coulomb_file_pairs": 8,
+          "gap_ev": 6.27089,
+          "application_exit_code": 0,
+          "qpe_failure_count": 0,
+          "nonfinite_band_count": 0,
+          "wall_seconds": 21.23,
+          "maximum_rss_kib": 475020
+        },
+        {
+          "grid": [6, 6, 6],
+          "full_kpoints": 216,
+          "irreducible_kpoints": 16,
+          "reader_v1_coulomb_file_pairs": 16,
+          "gap_ev": 5.81879,
+          "application_exit_code": 0,
+          "qpe_failure_count": 0,
+          "nonfinite_band_count": 0,
+          "wall_seconds": 289.17,
+          "maximum_rss_kib": 1042024
+        },
+        {
+          "grid": [8, 8, 8],
+          "full_kpoints": 512,
+          "irreducible_kpoints": 29,
+          "reader_v1_coulomb_file_pairs": 29,
+          "gap_ev": 5.88019,
+          "application_exit_code": 0,
+          "qpe_failure_count": 0,
+          "nonfinite_band_count": 0,
+          "wall_seconds": 819.16,
+          "maximum_rss_kib": 2075008
+        },
+        {
+          "grid": [10, 10, 10],
+          "full_kpoints": 1000,
+          "irreducible_kpoints": 47,
+          "reader_v1_coulomb_file_pairs": 47,
+          "gap_ev": 5.84214,
+          "application_exit_code": 0,
+          "qpe_failure_count": 0,
+          "nonfinite_band_count": 0,
+          "wall_seconds": 1959.93,
+          "maximum_rss_kib": 3567996
+        },
+        {
+          "grid": [12, 12, 12],
+          "full_kpoints": 1728,
+          "irreducible_kpoints": 72,
+          "reader_v1_coulomb_file_pairs": 72,
+          "gap_ev": 5.89064,
+          "application_exit_code": 0,
+          "qpe_failure_count": 0,
+          "nonfinite_band_count": 0,
+          "wall_seconds": 4416.0,
+          "maximum_rss_kib": 5832964,
+          "validation_counts": {"PASS": 33, "WARN": 0, "FAIL": 0, "SKIP": 3},
+          "scientific_result_sha256": "e529ab760a119df95d984a10ea2d2b8d7acb77206d9b7d3253e6e876e523b953",
+          "validation_sha256": "b7f98b6a627bcff72a9dcf0530562767cd6384bbadc062c2514cb74a814ff6ab"
+        }
+      ],
+      "adjacent_comparisons": [
+        {
+          "coarse_grid": [4, 4, 4],
+          "fine_grid": [6, 6, 6],
+          "max_ks_window_change_ev": 0.03014,
+          "max_exx_window_change_ev": 0.22119,
+          "max_window_change_ev": 0.53403,
+          "gap_change_ev": 0.45210,
+          "worst_state": {"spin": 1, "kpoint": [0.0, 0.0, 0.0], "band": 1},
+          "report_sha256": "08900a63edfcd66af2e7fcc3984112821433c356ba025e3bb230d40c5717a82b",
+          "status": "FAIL"
+        },
+        {
+          "coarse_grid": [6, 6, 6],
+          "fine_grid": [8, 8, 8],
+          "max_ks_window_change_ev": 0.00240,
+          "max_exx_window_change_ev": 0.09553,
+          "max_window_change_ev": 0.05378,
+          "gap_change_ev": 0.06140,
+          "worst_state": {"spin": 1, "kpoint": [0.25, 0.0, 0.25], "band": 6},
+          "report_sha256": "55b390b0bf0de14a984482caea7f9975f986b8bd4ef96b6d9f733f12e5dcade9",
+          "status": "FAIL"
+        },
+        {
+          "coarse_grid": [8, 8, 8],
+          "fine_grid": [10, 10, 10],
+          "max_ks_window_change_ev": 0.00021,
+          "max_exx_window_change_ev": 0.00723,
+          "max_window_change_ev": 0.05357,
+          "gap_change_ev": 0.03805,
+          "worst_state": {"spin": 1, "kpoint": [0.25, 0.0, 0.25], "band": 8},
+          "report_sha256": "f676bf6a4d872d401c559e7e6d63f461255c672609f077249796622d17045201",
+          "status": "FAIL"
+        },
+        {
+          "coarse_grid": [10, 10, 10],
+          "fine_grid": [12, 12, 12],
+          "max_ks_window_change_ev": 0.00002,
+          "max_exx_window_change_ev": 0.00114,
+          "max_window_change_ev": 0.06091,
+          "gap_change_ev": 0.04850,
+          "worst_state": {"spin": 1, "kpoint": [0.5, 0.0, 0.5], "band": 2},
+          "report_sha256": "c4a2399618e3d2f94c1b0088a32696cb6b241964051d3400186d7ad26fa6f445",
+          "status": "FAIL"
+        }
+      ],
+      "screening_grid_provenance_gate": {
+        "gate_id": "dataset.screening_grid",
+        "introduced_by_commit": "814169d54941170f105c55fe9c5601bc8653dfe4",
+        "detected_case": "bn-k101010-current-20260903",
+        "recorded_grid_before_repair": [8, 8, 8],
+        "producer_grid": [10, 10, 10],
+        "repair": "replace audit KPT_scf with the actual producer input and regenerate receipts",
+        "numerical_outputs_modified": false,
+        "status": "PASS"
+      },
+      "current_endpoint": [12, 12, 12],
+      "accepted_pair": null,
+      "reason_code": "NO_ADJACENT_FINE_PAIR_WITHIN_TOLERANCE",
+      "status": "FAIL"
     }
   },
   "status": {
@@ -386,7 +525,7 @@
   },
   "next_required_work": [
     "define a gauge-invariant LibRPA band observable or explicitly diagonalize the self-energy in each protected degenerate subspace",
-    "extend the current screening grid beyond 4x4x4 and require an adjacent fine-grid pass",
+    "extend the current screening grid beyond 12x12x12 and require an adjacent fine-grid pass",
     "add a current-stack symmetry versus full-q control with the same continuation contract",
     "complete NAO and ABFS basis ladders before reference promotion"
   ]

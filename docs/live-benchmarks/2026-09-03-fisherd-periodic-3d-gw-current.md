@@ -2,6 +2,8 @@
 
 Date: 2026-09-03
 
+Last verified: 2026-09-06
+
 Route: `periodic_3d_gw`
 
 Verdict: `PASS_WITH_DEGENERATE_GAUGE_CAVEAT` for the L3 interface replay;
@@ -150,6 +152,32 @@ EXX value already changes from `-106.05359` to `22.28204 eV`. Therefore the
 coarse-grid anomaly is an interpolation/screening-grid failure, not a
 frequency or QP-solver failure.
 
+The same current-stack definition was then extended through `4x4x4`,
+`6x6x6`, `8x8x8`, `10x10x10`, and `12x12x12`. Every producer, reader-v1
+handoff, LibRPA run, and QP diagnostic completed without a non-finite value or
+an explicit QP-solver failure. The application cost rose from `21.23 s` and
+`475020 KiB` at `4x4x4` to `4416 s` and `5832964 KiB` at `12x12x12`.
+
+| Screening pair | Gap change | Maximum GW change in VBM-3 through CBM+3 | Result |
+| --- | ---: | ---: | --- |
+| `4x4x4 -> 6x6x6` | `0.45210 eV` | `0.53403 eV` | FAIL |
+| `6x6x6 -> 8x8x8` | `0.06140 eV` | `0.05378 eV` | FAIL |
+| `8x8x8 -> 10x10x10` | `0.03805 eV` | `0.05357 eV` | FAIL |
+| `10x10x10 -> 12x12x12` | `0.04850 eV` | `0.06091 eV` | FAIL |
+
+The latest pair passes the gap component but fails the statewise component.
+Its worst state is X band 2. At that state KS changes by only `0.00002 eV` and
+EXX by `0.00008 eV`; the `0.06091 eV` change is in the GW correction. The
+sequence is therefore a genuine screening-grid convergence issue under the
+declared definition, not a producer, basis, or degenerate-state-label drift.
+
+During this ladder, the `10x10x10` consumer audit copy of `KPT_scf` was found
+to contain the old `8x8x8` template even though `bz_sampling_out` and all
+numerical data came from the correct `10x10x10` producer. Commit `814169d`
+adds gate `dataset.screening_grid`, which rejects that mismatch. The old audit
+file and receipts remain preserved; replacing only the audit copy and
+regenerating receipts changed no numerical output.
+
 ## Acceptance Boundary
 
 | Gate | Result |
@@ -161,21 +189,22 @@ frequency or QP-solver failure.
 | current `1x48` versus `4x1` reproducibility | PASS |
 | current `nfreq 24 -> 32`, fixed six-parameter Padé | PASS |
 | current screening grid `2x2x2 -> 4x4x4` | FAIL |
+| current screening grid `10x10x10 -> 12x12x12` | FAIL (`0.06091 eV`) |
 | historical end-to-end band reference | `BLOCKED_DEGENERATE_GAUGE_MISMATCH` |
 | scientific convergence | `NOT_EVALUATED` |
 | reference promotion | BLOCKED |
 
-The current frequency axis now has a passing adjacent pair, but the current
-screening-grid axis does not. The earlier independent BN campaign also reports
-`0.70466 eV` for `4x4x4 -> 8x8x8`. Because no current finer-grid, basis, or
-definition-matched physical reference is accepted, the benchmark matrix
-remains `PARTIAL_REFERENCE` and scientific acceptance remains `NOT_EVALUATED`.
+The current frequency axis has a passing adjacent pair, but the screening-grid
+axis still has no adjacent pair below both `0.05 eV` gates through `12x12x12`.
+Because no current fine-grid pair, basis ladder, or definition-matched physical
+reference is accepted, the benchmark matrix remains `PARTIAL_REFERENCE` and
+scientific acceptance remains `NOT_EVALUATED`.
 
 ## Next Gates
 
 1. Require a gauge-invariant band observable, or diagonalize the self-energy
    within each protected degenerate subspace before assigning state energies.
-2. Extend the current screening grid beyond `4x4x4` and require an adjacent
+2. Extend the current screening grid beyond `12x12x12` and require an adjacent
    fine-grid pass under the same continuation contract.
 3. Add a current-stack symmetry/full-q comparison without changing any other
    physical or numerical setting.

@@ -178,6 +178,52 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         self.assertFalse(high["part_of_low_energy_gate"])
         self.assertAlmostEqual(high["max_abs_change_ev"], 1.44653)
 
+    def test_current_screening_grid_ladder_preserves_each_failed_pair(self):
+        campaign = self.data["current_scientific_followup"][
+            "screening_kgrid_campaign"
+        ]
+
+        self.assertEqual(
+            campaign["harness_commit"],
+            "814169d54941170f105c55fe9c5601bc8653dfe4",
+        )
+        self.assertEqual(
+            [item["grid"] for item in campaign["meshes"]],
+            [[4, 4, 4], [6, 6, 6], [8, 8, 8], [10, 10, 10], [12, 12, 12]],
+        )
+        self.assertEqual(
+            [item["irreducible_kpoints"] for item in campaign["meshes"]],
+            [8, 16, 29, 47, 72],
+        )
+        self.assertTrue(
+            all(item["application_exit_code"] == 0 for item in campaign["meshes"])
+        )
+        self.assertTrue(
+            all(item["qpe_failure_count"] == 0 for item in campaign["meshes"])
+        )
+
+        comparisons = campaign["adjacent_comparisons"]
+        self.assertEqual(
+            [(item["coarse_grid"][0], item["fine_grid"][0]) for item in comparisons],
+            [(4, 6), (6, 8), (8, 10), (10, 12)],
+        )
+        self.assertTrue(all(item["status"] == "FAIL" for item in comparisons))
+        self.assertAlmostEqual(comparisons[-1]["max_window_change_ev"], 0.06091)
+        self.assertAlmostEqual(comparisons[-1]["gap_change_ev"], 0.04850)
+        self.assertEqual(
+            comparisons[-1]["worst_state"],
+            {"spin": 1, "kpoint": [0.5, 0.0, 0.5], "band": 2},
+        )
+
+        provenance = campaign["screening_grid_provenance_gate"]
+        self.assertEqual(provenance["status"], "PASS")
+        self.assertEqual(provenance["gate_id"], "dataset.screening_grid")
+        self.assertFalse(provenance["numerical_outputs_modified"])
+        self.assertIsNone(campaign["accepted_pair"])
+        self.assertEqual(campaign["status"], "FAIL")
+        self.assertEqual(self.data["status"]["current_screening_kgrid_axis"], "FAIL")
+        self.assertEqual(self.data["status"]["scientific_convergence"], "NOT_EVALUATED")
+
     def test_report_matrix_and_route_guide_preserve_the_same_boundary(self):
         report = (
             REPOSITORY
@@ -203,11 +249,15 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
             "NOT_EVALUATED",
             "0.04440 eV",
             "139.78139 eV",
+            "0.06091 eV",
+            "10x10x10 -> 12x12x12",
             "n_params_anacon = 6",
         ):
             self.assertIn(phrase, report)
         self.assertIn("PARTIAL_REFERENCE", matrix)
         self.assertIn("BLOCKED_DEGENERATE_GAUGE_MISMATCH", matrix)
+        self.assertIn("10x10x10 -> 12x12x12", matrix)
+        self.assertIn("0.06091 eV", matrix)
         self.assertIn("degenerate gauge", route_guide)
         self.assertIn("must not promote", route_guide)
         self.assertIn("n_params_anacon = 6", route_guide)

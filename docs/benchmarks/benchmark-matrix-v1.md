@@ -41,9 +41,13 @@ members of degenerate manifolds are not statewise comparable across the old
 and current producer gauges. A subsequent current-stack `4x4x4` ladder fixes
 `n_params_anacon=6`: `nfreq 24 -> 32` passes the low-energy state and gap gates
 at `0.04440/0.00021 eV`, while `16 -> 24` fails at `0.51179 eV`. The matched
-`2x2x2 -> 4x4x4` screening-grid pair fails at `139.78139 eV`; a finer current
-grid and basis ladders remain missing. This partial convergence evidence cannot
-promote a scientific reference.
+`2x2x2 -> 4x4x4` screening-grid pair fails at `139.78139 eV`. The current
+ladder now extends through `12x12x12`: successive low-energy GW maxima are
+`0.53403`, `0.05378`, `0.05357`, and `0.06091 eV`, so even
+`10x10x10 -> 12x12x12` remains a FAIL at the fixed `0.05 eV` statewise gate,
+although its `0.04850 eV` gap component passes. No adjacent screening pair or
+basis ladder is accepted, so this partial convergence evidence cannot promote
+a scientific reference.
 
 ## Material-Class Benchmarks
 
