@@ -73,6 +73,8 @@ Time-frequency grid and analytic-continuation guardrails:
 - gate the declared low-energy window and gap, while reporting unstable high-unoccupied Padé roots separately; a stable gap alone is insufficient
 - the current BN screening ladder first passes at `12x12x12 -> 14x14x14`, with `0.03279 eV` maximum low-energy GW change and `0.02590 eV` gap change under the same six-parameter continuation contract
 - treat that pair as BN-specific evidence; it must not promote another material, a different basis, SOC, strict-2D, or a changed continuation definition without a matched ladder
+- the current BN `4x4x4`, no-head/wing `8-q symmetry -> 64-q full-q` control passes its separate `0.0001 eV` equivalence tolerance: all 24 low-energy KS/EXX/GW states and the gap agree exactly, and the complete 78-state maximum difference is `1e-5 eV`
+- classify that control as `PASS_REFERENCE_BOUNDED`, not generic symmetry convergence or material transfer; empty-state, NAO, ABFS, transfer, and physical-reference gates remain, and aggregate scientific acceptance stays `NOT_EVALUATED`
 
 Before selecting PP / NAO / ABFS assets for a GW case, enforce the matching rule from `references/pp-nao-abfs-library.md`: pseudopotential, atomic basis, and auxiliary basis must correspond to the same intended setup and must not be mixed casually across unrelated PP families.
 
@@ -192,6 +194,7 @@ Comparison rule:
 
 - for symmetry-vs-no-symmetry checks, keep `nbands`, k-meshes, shrink settings, thresholds, PP/NAO/ABFS files, helper scripts, and post-processing identical
 - only patch the symmetry-related keys and the `stru_out`-producing SCF stage
+- gate KS, EXX, GW, and the fundamental gap independently at the registered symmetry tolerance; a stable gap alone cannot accept the pair
 
 ## Shrink strategy
 

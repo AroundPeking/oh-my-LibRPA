@@ -557,6 +557,28 @@
       "accepted_pair": [[12, 12, 12], [14, 14, 14]],
       "reason_code": "ADJACENT_FINE_PAIR_WITHIN_TOLERANCE",
       "status": "PASS"
+    },
+    "symmetry_fullq_control": {
+      "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
+      "evidence_path": "benchmarks/live/fisherd-periodic-3d-gw-symmetry-fullq-2026-09-06.json",
+      "comparison_sha256": "472582f1dcc359c9d1177e3f161f7405247998a4baac781b35b1312604d95815",
+      "profile_id": "abacus-librpa-2026-09-06-v6",
+      "scientific_benchmark_id": "bn-reader-v1-3d-v2",
+      "run_ids": [
+        "run-20260905T214019Z-67f1998ae0",
+        "run-20260905T214049Z-94c0dd0446"
+      ],
+      "qpoint_pair": [8, 64],
+      "tolerance_ev": 0.0001,
+      "low_energy_state_count": 24,
+      "low_energy_max_change_ev": 0.0,
+      "complete_basis_state_count": 78,
+      "complete_basis_max_change_ev": 0.00001,
+      "gap_ev": 6.27089,
+      "gap_change_ev": 0.0,
+      "scientific_status": "NOT_EVALUATED",
+      "missing_axes": ["nfreq", "empty_states", "screening_kgrid"],
+      "status": "PASS_REFERENCE_BOUNDED"
     }
   },
   "status": {
@@ -567,6 +589,7 @@
     "current_parallel_reproducibility": "PASS",
     "current_frequency_axis": "PASS",
     "current_screening_kgrid_axis": "PASS",
+    "current_symmetry_fullq_control": "PASS_REFERENCE_BOUNDED",
     "historical_end_to_end_band_reference": "BLOCKED_DEGENERATE_GAUGE_MISMATCH",
     "scientific_convergence": "NOT_EVALUATED",
     "reference_promotion": "BLOCKED"
@@ -579,7 +602,6 @@
   "next_required_work": [
     "define a gauge-invariant LibRPA band observable or explicitly diagonalize the self-energy in each protected degenerate subspace",
     "test whether the accepted 12x12x12 to 14x14x14 screening pair transfers to Si and MgO",
-    "add a current-stack symmetry versus full-q control with the same continuation contract",
-    "complete NAO and ABFS basis ladders before reference promotion"
+    "complete empty-state, NAO, and ABFS basis ladders before reference promotion"
   ]
 }

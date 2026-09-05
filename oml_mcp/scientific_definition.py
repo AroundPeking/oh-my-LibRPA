@@ -23,6 +23,17 @@ CONVERGENCE_AXES = {
     ),
     "empty_states": (frozenset({"abacus.nbands"}),),
     "screening_kgrid": (frozenset({"kpoints.scf.grid"}),),
+    "symmetry": (
+        frozenset(
+            {
+                "abacus.scf_symmetry",
+                "librpa.use_symmetry_exx",
+                "librpa.use_symmetry_gw",
+                "route",
+                "symmetry",
+            }
+        ),
+    ),
 }
 WORKFLOW_HELPERS = (
     "perform.sh",
@@ -280,6 +291,8 @@ def build_definition_signature(run_root: str | Path) -> dict[str, object]:
             "use_fullcoul_exx": _optional_bool(librpa, "use_fullcoul_exx"),
             "use_shrink_abfs": _optional_bool(librpa, "use_shrink_abfs"),
             "use_shrink_chi": _optional_bool(librpa, "use_shrink_chi"),
+            "use_symmetry_exx": _optional_bool(librpa, "use_symmetry_exx"),
+            "use_symmetry_gw": _optional_bool(librpa, "use_symmetry_gw"),
             "use_soc": parse_int(librpa.value("use_soc", "0"), name="use_soc"),
             "version_coul_reader": parse_int(
                 librpa.value("version_coul_reader", "-1"), name="version_coul_reader"

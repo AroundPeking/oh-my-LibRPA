@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "bn-reader-v1-3d-v2",
+  "description": "Bulk BN reader-v1 three-dimensional GW acceptance policy with symmetry equivalence",
+  "system_type": "solid",
+  "state_window": {
+    "below_vbm": 3,
+    "above_cbm": 3
+  },
+  "regression_tolerance_ev": 0.001,
+  "convergence_tolerance_ev": 0.05,
+  "axis_tolerances_ev": {
+    "symmetry": 0.0001,
+    "nfreq": 0.05,
+    "empty_states": 0.05,
+    "screening_kgrid": 0.05
+  },
+  "require_positive_gw_gap": true,
+  "required_axes": [
+    "symmetry",
+    "nfreq",
+    "empty_states",
+    "screening_kgrid"
+  ],
+  "reference_status": "NOT_AVAILABLE",
+  "reference": null
+}

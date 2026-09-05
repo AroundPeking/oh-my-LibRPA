@@ -27,6 +27,25 @@ class ScientificRegistryTest(unittest.TestCase):
         self.assertEqual(policy["reference_status"], "NOT_AVAILABLE")
         self.assertTrue(policy["require_positive_gw_gap"])
 
+    def test_bn_v2_requires_symmetry_equivalence_without_claiming_a_reference(self):
+        policy = load_benchmark("bn-reader-v1-3d-v2")
+
+        self.assertEqual(
+            policy["required_axes"],
+            ["symmetry", "nfreq", "empty_states", "screening_kgrid"],
+        )
+        self.assertEqual(
+            policy["axis_tolerances_ev"],
+            {
+                "symmetry": 0.0001,
+                "nfreq": 0.05,
+                "empty_states": 0.05,
+                "screening_kgrid": 0.05,
+            },
+        )
+        self.assertEqual(policy["reference_status"], "NOT_AVAILABLE")
+        self.assertIsNone(policy["reference"])
+
     def test_registry_rejects_paths_and_unknown_identifiers(self):
         for identifier in ("../bn", "/tmp/bn", "nested/bn", "BN with spaces"):
             with self.subTest(identifier=identifier):

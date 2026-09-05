@@ -106,7 +106,7 @@ class ControlledExecutionTest(unittest.TestCase):
         self.assertEqual(finalized["scientific_status"], "NOT_EVALUATED")
         self.assertEqual(finalized["regression"]["reason_code"], "REFERENCE_NOT_AVAILABLE")
         self.assertEqual(finalized["final_attempt_id"], final_attempt["attempt_id"])
-        self.assertEqual(finalized["evaluator_version"], 8)
+        self.assertEqual(finalized["evaluator_version"], 9)
         self.assertTrue(report_file_exists)
         dimensions = {item["dimension_id"]: item for item in score["dimensions"]}
         self.assertEqual(dimensions["numerical_scientific_validity"]["status"], "NOT_EVALUATED")
@@ -152,6 +152,122 @@ class ControlledExecutionTest(unittest.TestCase):
             finalized["convergence"]["missing_axes"],
             ["nfreq", "empty_states", "screening_kgrid"],
         )
+
+    def test_finalize_case_uses_axis_specific_tolerance(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source, _, second_plan, service, first_run = self.prepare(root)
+            second_run = service.prepare_run(source, second_plan.digest)
+            for run in (first_run, second_run):
+                final_attempt = None
+                for stage in second_plan.stages:
+                    attempt = service.store.authorize_submission(
+                        run["run_id"], stage, second_plan.digest
+                    )
+                    service.store.mark_attempt_submitted(
+                        attempt["attempt_id"], str(700 + len(stage))
+                    )
+                    if stage == "librpa":
+                        service.store.finalize_inspection(
+                            attempt["attempt_id"],
+                            {
+                                "schema_version": 1,
+                                "stage": stage,
+                                "accepted": True,
+                                "gates": [],
+                            },
+                        )
+                    else:
+                        service.store.record_attempt_status(attempt["attempt_id"], "PASSED")
+                    final_attempt = attempt
+                assert final_attempt is not None
+                snapshot = (
+                    pathlib.Path(run["local_run_dir"])
+                    / ".oml"
+                    / "snapshots"
+                    / final_attempt["attempt_id"]
+                )
+                snapshot.mkdir(parents=True)
+            policy = {
+                "benchmark_id": "bn-reader-v1-3d-v2",
+                "reference": None,
+                "regression_tolerance_ev": 0.001,
+                "convergence_tolerance_ev": 0.05,
+                "axis_tolerances_ev": {"symmetry": 0.0001},
+                "required_axes": ["symmetry"],
+                "state_window": {"below_vbm": 3, "above_cbm": 3},
+                "require_positive_gw_gap": True,
+            }
+            bundle = {
+                "bundle_id": "bn-symmetry-v1",
+                "benchmark_id": "bn-reader-v1-3d-v2",
+                "axis": "symmetry",
+                "run_ids": [first_run["run_id"], second_run["run_id"]],
+            }
+            axis_report = {
+                "axis": "symmetry",
+                "status": "PASS",
+                "reason_code": "WITHIN_EQUIVALENCE_TOLERANCE",
+            }
+
+            with (
+                patch("oml_mcp.control.load_benchmark", return_value=policy),
+                patch("oml_mcp.control.load_convergence_bundle", return_value=bundle),
+                patch.object(
+                    service,
+                    "_load_scientific_result",
+                    return_value=synthetic_scientific_result(),
+                ),
+                patch(
+                    "oml_mcp.control.evaluate_convergence_axis",
+                    return_value=axis_report,
+                ) as evaluate_axis,
+            ):
+                finalized = service.finalize_case(
+                    second_run["run_id"],
+                    second_plan.digest,
+                    "bn-reader-v1-3d-v2",
+                    "bn-symmetry-v1",
+                )
+
+        self.assertEqual(finalized["convergence"]["status"], "PASS")
+        self.assertEqual(evaluate_axis.call_args.kwargs["axis"], "symmetry")
+        self.assertEqual(evaluate_axis.call_args.kwargs["tolerance_ev"], 0.0001)
+
+    def test_prepare_sync_failure_records_failed_run_status(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source_root = root / "sources"
+            source = source_root / "si"
+            make_periodic_source(source)
+            profile = make_profile(root, source_root)
+            plan = plan_case(source, task="gw", system_type="solid")
+            service = ControlledExecutionService(profile)
+            service.executor.verify_versions = lambda: {
+                "verdict": "match",
+                "components": {},
+            }
+
+            def fail_sync(*_args):
+                raise OMLError(
+                    "SYNC_FAILED",
+                    "controlled transfer failed",
+                    recovery="repair transport and prepare a fresh run",
+                )
+
+            service.executor.sync_run = fail_sync
+
+            with self.assertRaisesRegex(OMLError, "SYNC_FAILED"):
+                service.prepare_run(source, plan.digest)
+
+            run_dirs = tuple(path for path in profile.allowed_run_roots[0].iterdir())
+            self.assertEqual(len(run_dirs), 1)
+            failed = service.store.get_run(run_dirs[0].name)
+
+            with self.assertRaisesRegex(OMLError, "RUN_NOT_PREPARED"):
+                service.submit_stage(failed["run_id"], "scf", plan.digest)
+
+        self.assertEqual(failed["status"], "PREPARE_FAILED")
 
     def test_finalize_case_requires_every_stage_and_untampered_manifest(self):
         with tempfile.TemporaryDirectory() as tmpdir:

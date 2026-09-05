@@ -1,0 +1,241 @@
+{
+  "schema_version": 2,
+  "profile_id": "abacus-librpa-2026-09-06-v6",
+  "verified_at": "2026-09-06",
+  "components": {
+    "abacus": {
+      "repository": "https://github.com/AroundPeking/abacus-develop.git",
+      "ref": "master_ghj",
+      "revision": "1648a8a344427ae1b6394912bf677c4a20e053f2"
+    },
+    "librpa": {
+      "repository": "https://github.com/AroundPeking/LibRPA.git",
+      "ref": "master_ghj",
+      "revision": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+      "upstream_baseline_repository": "https://github.com/Srlive1201/LibRPA.git",
+      "upstream_baseline_tag": "v0.7.0",
+      "upstream_baseline_tag_object": "11fbfbda9d5eccf02480f9344aa9f4abe7be01fc",
+      "upstream_baseline_revision": "dd169fa11fa920d580d4f39dc11e218a7f17f7b5"
+    },
+    "pyatb": {
+      "repository": "https://github.com/AroundPeking/pyatb.git",
+      "ref": "enable_head_wing",
+      "revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+    }
+  },
+  "capabilities": {
+    "periodic_3d_gw": {
+      "status": "EXPERIMENTAL",
+      "admission_level": "L3",
+      "experimental_requires": ["L0", "L1", "L2", "L3"]
+    },
+    "strict_2d_gw": {
+      "status": "TESTABLE",
+      "admission_level": "L0",
+      "experimental_requires": ["L0", "L1", "L2", "L3"]
+    },
+    "molecular_delta_st_rpa": {
+      "status": "TESTABLE",
+      "admission_level": "L1",
+      "experimental_requires": ["L0", "L1", "L2", "L3"]
+    },
+    "solid_delta_st_rpa": {
+      "status": "TESTABLE",
+      "admission_level": "L0",
+      "experimental_requires": ["L0", "L1", "L2", "L3"]
+    }
+  },
+  "admission": {
+    "levels": ["L0", "L1", "L2", "L3", "L4"],
+    "fisherd_limits": {
+      "compile_jobs_max": 16,
+      "execution_threads_max": 48
+    },
+    "promotion": {
+      "automatic": false,
+      "reviewed_commit": true
+    }
+  },
+  "contract": {
+    "abacus": {
+      "source_default": {
+        "out_librpa_reader_version": 0
+      },
+      "allowed": {
+        "out_librpa_reader_version": [0, 1]
+      },
+      "production": {
+        "basis_type": "lcao",
+        "rpa": 1,
+        "out_librpa_reader_version": 1
+      },
+      "symmetry": {
+        "enabled": 1,
+        "disabled": -1,
+        "stru_out_convention": "row"
+      },
+      "shrink_enabled_when": "shrink_abfs_pca_thr >= 0",
+      "sternheimer": {
+        "output_requires_reader_version": 1,
+        "finite_difference_order": 8
+      }
+    },
+    "librpa": {
+      "source_default": {
+        "version_coul_reader": -1,
+        "version_lri_reader": -1
+      },
+      "production": {
+        "task": "g0w0",
+        "prefix_coul_full": "v1_coulomb_full_iq_",
+        "prefix_coul_cut": "v1_coulomb_cut_iq_",
+        "prefix_eigvecs_scf": "KS_eigenvector",
+        "prefix_lri_coeff": "v1_Cs_data_",
+        "prefix_lri_coeff_shrink": "v1_Cs_shrinked_data_",
+        "prefix_shrink_sinvS": "v1_shrink_sinvS_",
+        "fn_stru": "stru_out",
+        "fn_bz_sampling": "bz_sampling_out",
+        "fn_basis_wfc": "basis_wfc_out",
+        "fn_basis_aux": "basis_aux_out",
+        "fn_basis_aux_shrink": "basis_aux_shrink_out",
+        "fn_eigocc_scf": "band_out",
+        "fn_vxc_scf": "vxc_out",
+        "version_coul_reader": 1,
+        "version_lri_reader": 1
+      },
+      "canonical_symmetry_keys": [
+        "use_symmetry_exx",
+        "use_symmetry_gw",
+        "use_symmetry_rpa"
+      ],
+      "unsupported_oml_keys": {
+        "tfgrid_type": "tfgrids_type",
+        "use_input_exx_symmetry": "use_symmetry_exx",
+        "use_input_gw_symmetry": "use_symmetry_gw",
+        "use_input_rpa_symmetry": "use_symmetry_rpa"
+      },
+      "deprecated_values": {
+        "task": {
+          "g0w0_band": "g0w0"
+        }
+      },
+      "reader_versions": [-1, 0, 1],
+      "frequency_grids": {
+        "default": "minimax",
+        "default_nfreq": 6,
+        "recognized_types": ["GL", "split-GL", "GC-I", "GL-II", "minimax", "evenspaced", "evenspaced_tf"],
+        "production_types": ["minimax"],
+        "time_grid_types": ["minimax", "evenspaced_tf"],
+        "debug_only_types": ["evenspaced_tf"],
+        "minimax_nfreq_supported": [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+      }
+    },
+    "symmetry": {
+      "source": "stru_out",
+      "rotation_reconstruction": "librpa",
+      "copy_legacy_sidecars": []
+    },
+    "artifacts": {
+      "reader_default": "v1",
+      "legacy_requires_explicit_profile": true,
+      "required_base": [
+        "stru_out",
+        "bz_sampling_out",
+        "basis_wfc_out",
+        "basis_aux_out",
+        "band_out"
+      ],
+      "required_shrink": [
+        "basis_aux_shrink_out",
+        "v1_Cs_shrinked_data_",
+        "v1_shrink_sinvS_"
+      ],
+      "v1_prefixes": [
+        "v1_coulomb_full_iq_",
+        "v1_coulomb_cut_iq_",
+        "v1_Cs_data_",
+        "v1_Cs_shrinked_data_",
+        "v1_shrink_sinvS_"
+      ],
+      "legacy_prefixes": [
+        "coulomb_mat",
+        "coulomb_cut",
+        "Cs_data",
+        "Cs_shrinked_data",
+        "shrink_sinvS_"
+      ],
+      "legacy_symmetry_sidecars_not_required": [
+        "irreducible_sector.txt",
+        "symrot_R.txt",
+        "symrot_k.txt",
+        "symrot_abf_k.txt"
+      ]
+    },
+    "periodic_3d_gw": {
+      "analytic_continuation": {
+        "tfgrids_type": "minimax",
+        "n_params_anacon": 6,
+        "option_qpe_solver": 0,
+        "use_qpe_adaptive_damp": false
+      },
+      "accepted_frequency_pair": [24, 32],
+      "low_energy_window": "VBM-3_through_CBM+3",
+      "max_state_delta_ev": 0.05,
+      "high_unoccupied_policy": "report_separately",
+      "screening_kgrid_status": "PASS",
+      "accepted_screening_kgrid_pair": [
+        [12, 12, 12],
+        [14, 14, 14]
+      ],
+      "screening_kgrid_evidence": {
+        "benchmark_id": "fisherd-periodic-3d-gw-current-20260903",
+        "comparison_sha256": "523b0efeee0630aa78957cc3369fb7f6d3357f8c7f2d57d70795b110fa3bdeba"
+      },
+      "symmetry_fullq_status": "PASS",
+      "symmetry_fullq_tolerance_ev": 0.0001,
+      "symmetry_fullq_scope": {
+        "material": "bulk BN",
+        "screening_kgrid": [4, 4, 4],
+        "nbands": 26,
+        "basis_dimension": 26,
+        "nfreq": 24,
+        "tfgrids_type": "minimax",
+        "n_params_anacon": 6,
+        "option_qpe_solver": 0,
+        "use_shrink_abfs": true,
+        "headwing": false,
+        "reader_format": "v1"
+      },
+      "symmetry_fullq_evidence": {
+        "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
+        "comparison_sha256": "472582f1dcc359c9d1177e3f161f7405247998a4baac781b35b1312604d95815"
+      }
+    },
+    "workflow_helpers": {
+      "perform.sh": "b1c4e2327c996c0b03b4ec4a284f0710ea8b103d2237486a15414ca2af09e891",
+      "get_diel.py": "fea2d2e62a23aa86bd17b8a447dd58f078679fcf7b6db31b493fe2b13137e714",
+      "output_librpa.py": "10986012071d6bb1d235874c5136e79b5b2f137e6b71bbd78a7cecdc9060305a",
+      "preprocess_abacus_for_librpa_band.py": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
+    },
+    "pyatb_adapter": {
+      "producer_role": "PyATB computes eigenvectors and velocity matrices; OML validates and writes the LibRPA handoff files.",
+      "directory": "pyatb_librpa_df",
+      "location": "input_dir/pyatb_librpa_df",
+      "required_text": ["k_path_info", "band_out"],
+      "eigenvector_prefix": "KS_eigenvector_",
+      "velocity_prefix": "velocity_matrix",
+      "eigenvector_v1": {
+        "marker": -12345679,
+        "kind": 28
+      },
+      "velocity_v1": {
+        "marker": -12345680,
+        "kind": 29,
+        "nalpha": 3
+      },
+      "state_coverage": "pyatb_nstates_equal_abacus_nbands",
+      "kpoint_policy": "full_regular_grid",
+      "symmetry_mapping": "validated_against_stru_out_and_bz_sampling_out"
+    }
+  }
+}

@@ -27,6 +27,7 @@ def write_run(
     grid=(2, 2, 2),
     n_params_anacon: int = 6,
     option_qpe_solver: int = 0,
+    use_symmetry: bool = True,
 ) -> None:
     oml = root / ".oml"
     oml.mkdir(parents=True)
@@ -41,7 +42,7 @@ def write_run(
                 "ecutwfc 100",
                 "smearing_method gaussian",
                 "smearing_sigma 1e-4",
-                "symmetry 1",
+                f"symmetry {1 if use_symmetry else -1}",
                 "shrink_abfs_pca_thr 1e-1",
                 "shrink_lu_inv_thr 1e-3",
                 "exx_pca_threshold 1e-3",
@@ -96,6 +97,8 @@ def write_run(
                 "use_fullcoul_exx = f",
                 "use_shrink_abfs = t",
                 "use_shrink_chi = t",
+                f"use_symmetry_exx = {'t' if use_symmetry else 'f'}",
+                f"use_symmetry_gw = {'t' if use_symmetry else 'f'}",
                 "use_soc = 0",
                 "version_coul_reader = 1",
                 "version_lri_reader = 1",
@@ -133,11 +136,11 @@ def write_run(
             )
     plan = {
         "profile_id": "pinned-stack",
-        "route": "periodic_gw_symmetry",
+        "route": "periodic_gw_symmetry" if use_symmetry else "periodic_gw",
         "options": {
             "task": "gw",
             "system_type": "solid",
-            "use_symmetry": True,
+            "use_symmetry": use_symmetry,
             "soc": False,
             "headwing": True,
         },
@@ -242,6 +245,39 @@ class ScientificDefinitionTest(unittest.TestCase):
             [item["field"] for item in compare_definitions(base, grid)],
             ["kpoints.scf.grid"],
         )
+
+    def test_symmetry_axis_pins_abacus_and_librpa_switches(self):
+        with tempfile.TemporaryDirectory() as sym_tmp, tempfile.TemporaryDirectory() as full_tmp:
+            sym_root = pathlib.Path(sym_tmp)
+            full_root = pathlib.Path(full_tmp)
+            write_run(sym_root, use_symmetry=True)
+            write_run(full_root, use_symmetry=False)
+
+            symmetry = build_definition_signature(sym_root)
+            full_q = build_definition_signature(full_root)
+
+        self.assertTrue(symmetry["librpa"]["use_symmetry_exx"])
+        self.assertTrue(symmetry["librpa"]["use_symmetry_gw"])
+        self.assertFalse(full_q["librpa"]["use_symmetry_exx"])
+        self.assertFalse(full_q["librpa"]["use_symmetry_gw"])
+        self.assertEqual(
+            [item["field"] for item in compare_definitions(symmetry, full_q)],
+            [
+                "abacus.scf_symmetry",
+                "librpa.use_symmetry_exx",
+                "librpa.use_symmetry_gw",
+                "route",
+                "symmetry",
+            ],
+        )
+        self.assertEqual(
+            compare_definitions(symmetry, full_q, allowed_axis="symmetry"), []
+        )
+
+        full_q["librpa"]["use_shrink_abfs"] = False
+        with self.assertRaises(ScientificDefinitionError) as raised:
+            compare_definitions(symmetry, full_q, allowed_axis="symmetry")
+        self.assertEqual(raised.exception.code, "MULTIPLE_DEFINITION_CHANGES")
 
     def test_axis_comparison_rejects_simultaneous_asset_or_coulomb_change(self):
         with tempfile.TemporaryDirectory() as left_tmp, tempfile.TemporaryDirectory() as right_tmp:

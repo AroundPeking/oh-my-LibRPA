@@ -356,15 +356,27 @@ def evaluate_convergence_axis(
                 and fine_nbands == fine_basis
                 and fine_space.get("complete") is True
             )
-    accepted = complete_basis_state_space or (
-        gw_change <= tolerance_ev + 1e-12 and gap_change <= tolerance_ev + 1e-12
-    )
+    if axis == "symmetry":
+        accepted = all(
+            float(quantities[quantity]["max_abs_change_ev"])
+            <= tolerance_ev + NUMERICAL_EPSILON_EV
+            for quantity in QUANTITIES
+        ) and gap_change <= tolerance_ev + NUMERICAL_EPSILON_EV
+    else:
+        accepted = complete_basis_state_space or (
+            gw_change <= tolerance_ev + NUMERICAL_EPSILON_EV
+            and gap_change <= tolerance_ev + NUMERICAL_EPSILON_EV
+        )
     report = {
         "axis": axis,
         "status": "PASS" if accepted else "FAIL",
         "reason_code": (
             "COMPLETE_BASIS_STATE_SPACE"
             if complete_basis_state_space
+            else "WITHIN_EQUIVALENCE_TOLERANCE"
+            if axis == "symmetry" and accepted
+            else "EQUIVALENCE_TOLERANCE_EXCEEDED"
+            if axis == "symmetry"
             else "WITHIN_TOLERANCE"
             if accepted
             else "CONVERGENCE_TOLERANCE_EXCEEDED"

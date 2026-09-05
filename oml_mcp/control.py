@@ -46,7 +46,7 @@ from .parsers import ParseError, parse_band_out, parse_bz_sampling
 
 RUNTIME_CODE_SUFFIXES = frozenset({".py", ".pyc", ".sh", ".slurm", ".so", ".dylib"})
 SUBMISSION_ABSENCE_GRACE_SECONDS = 300
-SCIENTIFIC_EVALUATOR_VERSION = 8
+SCIENTIFIC_EVALUATOR_VERSION = 9
 
 
 def _parse_utc(value: str) -> datetime:
@@ -68,14 +68,25 @@ class ControlledExecutionService:
             self.profile,
             execution_receipt=execution_receipt,
         )
-        self.executor.sync_run(
-            Path(receipt["local_run_dir"]),
-            receipt["remote_run_dir"],
-        )
+        try:
+            self.executor.sync_run(
+                Path(receipt["local_run_dir"]),
+                receipt["remote_run_dir"],
+            )
+        except Exception:
+            self.store.mark_run_prepare_failed(receipt["run_id"])
+            raise
         return {**receipt, "version_evidence": version_evidence}
 
     def _load_receipts(self, run_id: str, plan_digest: str) -> tuple[dict[str, Any], dict[str, Any], Path]:
         run = self.store.get_run(run_id)
+        if run["status"] != "RUN_PREPARED":
+            raise OMLError(
+                "RUN_NOT_PREPARED",
+                "run preparation did not complete successfully",
+                evidence=(run_id, str(run["status"])),
+                recovery="preserve this run for diagnosis and prepare a fresh run",
+            )
         if run["execution_profile_id"] != self.profile.profile_id:
             raise OMLError(
                 "PROFILE_MISMATCH",
@@ -742,7 +753,11 @@ class ControlledExecutionService:
                     pair[0],
                     pair[1],
                     axis=bundle["axis"],
-                    tolerance_ev=float(policy["convergence_tolerance_ev"]),
+                    tolerance_ev=float(
+                        policy.get("axis_tolerances_ev", {}).get(
+                            bundle["axis"], policy["convergence_tolerance_ev"]
+                        )
+                    ),
                 )
             convergence = aggregate_convergence(
                 axis_reports,

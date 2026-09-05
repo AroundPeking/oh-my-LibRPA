@@ -46,11 +46,15 @@ ladder now extends through `14x14x14`: successive low-energy GW maxima are
 `0.53403`, `0.05378`, `0.05357`, `0.06091 eV`, and `0.03279 eV`.
 `10x10x10 -> 12x12x12` remains a recorded FAIL at the fixed `0.05 eV`
 statewise gate, while `12x12x12 -> 14x14x14` is the first adjacent screening
-PASS with a `0.02590 eV` gap change. Profile
-`abacus-librpa-2026-09-06-v5` records this BN-specific pair but remains L3
-`EXPERIMENTAL`. Missing symmetry/full-q, NAO, ABFS, transfer, and physical
-reference gates keep the row `PARTIAL_REFERENCE` and prevent scientific
-promotion.
+PASS with a `0.02590 eV` gap change. Immutable profile
+`abacus-librpa-2026-09-06-v5` records that BN-specific pair. The subsequent
+MCP-controlled `8-q symmetry -> 64-q full-q` comparison at BN `4x4x4` and no
+head/wing is `PASS_REFERENCE_BOUNDED`: all 24 low-energy KS/EXX/GW states and
+the gap agree exactly, while the complete 78-state audit differs by at most
+`1e-5 eV`. Profile `abacus-librpa-2026-09-06-v6` records this additional
+bounded result but remains L3 `EXPERIMENTAL`. Missing empty-state, NAO, ABFS,
+transfer, and physical-reference gates keep the row `PARTIAL_REFERENCE`; the
+aggregate scientific verdict remains `NOT_EVALUATED`.
 
 ## Material-Class Benchmarks
 

@@ -11,7 +11,8 @@ V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 V4_PROFILE_ID = "abacus-librpa-2026-09-03-v4"
 V5_PROFILE_ID = "abacus-librpa-2026-09-06-v5"
-DEFAULT_PROFILE_ID = V5_PROFILE_ID
+V6_PROFILE_ID = "abacus-librpa-2026-09-06-v6"
+DEFAULT_PROFILE_ID = V6_PROFILE_ID
 STRICT_2D_SOS_RPA_PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID = (
     "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
@@ -25,6 +26,7 @@ PROFILE_NAMES = {
     V3_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v3.json",
     V4_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v4.json",
     V5_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v5.json",
+    V6_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v6.json",
     STRICT_2D_SOS_RPA_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json",
     STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json",
 }
@@ -201,7 +203,7 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
             or sternheimer_librpa.get("ordinary_reader_coulomb_role") != "diagnostic_only"
         ):
             raise ProfileError("schema v2 LibRPA Sternheimer task must select the dedicated Coulomb v1 metric")
-    if profile.get("profile_id") in {V4_PROFILE_ID, V5_PROFILE_ID}:
+    if profile.get("profile_id") in {V4_PROFILE_ID, V5_PROFILE_ID, V6_PROFILE_ID}:
         periodic_capability = profile["capabilities"]["periodic_3d_gw"]
         if (
             periodic_capability.get("status") != "EXPERIMENTAL"
@@ -264,7 +266,7 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
                 or periodic_gw.get("screening_kgrid_evidence")
                 != expected_screening_evidence
             ):
-                raise ProfileError("v5 periodic 3D GW screening-grid acceptance has drifted")
+                raise ProfileError("current periodic 3D GW screening-grid acceptance has drifted")
             librpa_component = profile["components"]["librpa"]
             if (
                 librpa_component.get("upstream_baseline_tag_object")
@@ -272,7 +274,35 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
                 or librpa_component.get("upstream_baseline_revision")
                 != "dd169fa11fa920d580d4f39dc11e218a7f17f7b5"
             ):
-                raise ProfileError("v5 LibRPA upstream baseline identity has drifted")
+                raise ProfileError("current LibRPA upstream baseline identity has drifted")
+            if profile["profile_id"] == V6_PROFILE_ID:
+                expected_symmetry_scope = {
+                    "material": "bulk BN",
+                    "screening_kgrid": [4, 4, 4],
+                    "nbands": 26,
+                    "basis_dimension": 26,
+                    "nfreq": 24,
+                    "tfgrids_type": "minimax",
+                    "n_params_anacon": 6,
+                    "option_qpe_solver": 0,
+                    "use_shrink_abfs": True,
+                    "headwing": False,
+                    "reader_format": "v1",
+                }
+                expected_symmetry_evidence = {
+                    "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
+                    "comparison_sha256": "472582f1dcc359c9d1177e3f161f7405247998a4baac781b35b1312604d95815",
+                }
+                if (
+                    periodic_gw.get("symmetry_fullq_status") != "PASS"
+                    or periodic_gw.get("symmetry_fullq_tolerance_ev") != 0.0001
+                    or periodic_gw.get("symmetry_fullq_scope") != expected_symmetry_scope
+                    or periodic_gw.get("symmetry_fullq_evidence")
+                    != expected_symmetry_evidence
+                ):
+                    raise ProfileError(
+                        "v6 periodic 3D GW symmetry/full-q acceptance has drifted"
+                    )
     symmetry = _require_mapping(contract, "symmetry", "contract")
     if symmetry.get("source") != "stru_out":
         raise ProfileError("contract.symmetry.source must be stru_out")

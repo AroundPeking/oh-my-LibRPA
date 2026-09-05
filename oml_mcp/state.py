@@ -294,6 +294,35 @@ class StateStore:
             )
         return dict(row)
 
+    def mark_run_prepare_failed(self, run_id: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT status FROM runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+            if row is None:
+                connection.rollback()
+                raise OMLError(
+                    "RUN_NOT_FOUND",
+                    f"run not found: {run_id}",
+                    evidence=(run_id,),
+                    recovery="preserve the preparation error and inspect the state database",
+                )
+            if row["status"] != "RUN_PREPARED":
+                connection.rollback()
+                raise OMLError(
+                    "RUN_STATE_INVALID",
+                    "only a newly prepared run can be marked as a preparation failure",
+                    evidence=(run_id, str(row["status"])),
+                    recovery="preserve the existing run state and inspect the original failure",
+                )
+            connection.execute(
+                "UPDATE runs SET status = 'PREPARE_FAILED' WHERE run_id = ?",
+                (run_id,),
+            )
+            connection.commit()
+        return self.get_run(run_id)
+
     def authorize_submission(
         self,
         run_id: str,

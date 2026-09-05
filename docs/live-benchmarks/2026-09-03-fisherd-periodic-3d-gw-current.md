@@ -203,6 +203,46 @@ adds gate `dataset.screening_grid`, which rejects that mismatch. The old audit
 file and receipts remain preserved; replacing only the audit copy and
 regenerating receipts changed no numerical output.
 
+## Current Symmetry/Full-Q Control
+
+Two fresh Fisherd runs were prepared and executed through the bounded MCP
+sequence, one stage at a time. They share the same bulk-BN structure, PP, NAO,
+26-state complete basis, `4x4x4` screening grid, reader-v1 format, shrink
+settings, `nfreq = 24`, six-parameter continuation, and no head/wing
+replacement. The scientific-definition comparison permits only the route and
+symmetry fields to differ: ABACUS SCF `symmetry`, LibRPA
+`use_symmetry_exx`/`use_symmetry_gw`, and the two corresponding route labels.
+
+The resulting comparison is `8-q symmetry -> 64-q full-q`. The symmetry run
+contains 24 operations in `stru_out` and eight full plus eight cut Coulomb
+files; the full-q run contains 64 of each. Neither run contains legacy
+symmetry sidecars. All SCF, NSCF, preprocessing, and LibRPA stages passed their
+application and artifact gates. Fisherd jobs were `1537/1539/1541/1543` for
+the symmetry route and `1538/1540/1542/1544` for full-q.
+
+MCP scientific evaluator v9 applies a dedicated `0.0001 eV` symmetry
+tolerance to KS, EXX, GW, and the fundamental gap. Across all 24 states in the
+declared VBM-3 through CBM+3 window, every maximum difference and the gap
+change are `0.0 eV`; both gaps are `6.27089 eV`. An additional complete-basis
+audit compares all 78 path states: occupations and KS agree exactly, while
+the largest EXX and GW differences are both `1e-5 eV`, with no non-finite
+value or explicit QP failure.
+
+This control is `PASS_REFERENCE_BOUNDED` only for BN `4x4x4`, no head/wing,
+and the pinned current stack. The aggregate MCP report remains
+`NOT_EVALUATED`: regression has no physical reference and the same report
+lineage still lacks `nfreq`, empty-state, and screening-grid axes. Profile
+`abacus-librpa-2026-09-06-v6` records the bounded control while keeping
+periodic 3D GW at L3 `EXPERIMENTAL`; it does not claim transfer, basis
+convergence, or L4 acceptance.
+
+Two setup failures are preserved as operational evidence. SSH banners first
+corrupted binary transfer protocols; a marked noninteractive-session guard
+fixed transfer without changing interactive Fisherd shells. The first
+controlled preparation then found no administrator-created remote root. It
+created no scheduler job, and OML now records this class of retained run as
+`PREPARE_FAILED` rather than `RUN_PREPARED`.
+
 ## Acceptance Boundary
 
 | Gate | Result |
@@ -213,6 +253,7 @@ regenerating receipts changed no numerical output.
 | current LibRPA on official frozen dataset | PASS |
 | current `1x48` versus `4x1` reproducibility | PASS |
 | current `nfreq 24 -> 32`, fixed six-parameter Padé | PASS |
+| current BN `8-q symmetry -> 64-q full-q`, no head/wing | `PASS_REFERENCE_BOUNDED` (`1e-5 eV` complete-basis maximum) |
 | current screening grid `2x2x2 -> 4x4x4` | FAIL |
 | current screening grid `10x10x10 -> 12x12x12` | FAIL (`0.06091 eV`) |
 | current screening grid `12x12x12 -> 14x14x14` | PASS (`0.03279 eV`, gap `0.02590 eV`) |
@@ -221,11 +262,13 @@ regenerating receipts changed no numerical output.
 | reference promotion | BLOCKED |
 
 The current frequency and screening-grid axes each have one passing adjacent
-pair. Profile `abacus-librpa-2026-09-06-v5` records those two accepted BN
-contracts while keeping periodic 3D GW `EXPERIMENTAL` at L3. Because no NAO or
-ABFS ladder, symmetry/full-q control, transfer case, or definition-matched
-physical reference is accepted, the benchmark matrix remains
-`PARTIAL_REFERENCE` and scientific acceptance remains `NOT_EVALUATED`.
+pair. Profile `abacus-librpa-2026-09-06-v5` preserves those two accepted BN
+contracts. Profile `abacus-librpa-2026-09-06-v6` additionally records the
+bounded symmetry/full-q control while keeping periodic 3D GW `EXPERIMENTAL`
+at L3. Because no accepted empty-state, NAO or ABFS ladder, transfer case, or
+definition-matched physical reference is present in one complete lineage, the
+benchmark matrix remains `PARTIAL_REFERENCE` and scientific acceptance remains
+`NOT_EVALUATED`.
 
 ## Next Gates
 
@@ -233,9 +276,8 @@ physical reference is accepted, the benchmark matrix remains
    within each protected degenerate subspace before assigning state energies.
 2. Test the accepted `12x12x12 -> 14x14x14` screening rule on Si and MgO
    without inheriting BN-specific convergence as a universal default.
-3. Add a current-stack symmetry/full-q comparison without changing any other
-   physical or numerical setting.
-4. Complete empty-state, NAO, and ABFS ladders before reference review.
+3. Complete empty-state, NAO, and ABFS ladders before reference review.
 
-The machine-readable record is
-`benchmarks/live/fisherd-periodic-3d-gw-current-2026-09-03.json`.
+The machine-readable records are
+`benchmarks/live/fisherd-periodic-3d-gw-current-2026-09-03.json` and
+`benchmarks/live/fisherd-periodic-3d-gw-symmetry-fullq-2026-09-06.json`.

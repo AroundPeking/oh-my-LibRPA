@@ -307,6 +307,59 @@ class ScientificConvergenceTest(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["reason_code"], "CONVERGENCE_TOLERANCE_EXCEEDED")
 
+    def test_symmetry_equivalence_gates_ks_exx_gw_and_gap(self):
+        symmetry = scientific_result()
+        full_q = copy.deepcopy(symmetry)
+        symmetry["definition"].update(
+            {
+                "route": "periodic_gw_symmetry_no_headwing",
+                "symmetry": True,
+                "abacus": {"nbands": 8, "scf_symmetry": 1},
+                "librpa": {
+                    "nfreq": 6,
+                    "use_symmetry_exx": True,
+                    "use_symmetry_gw": True,
+                },
+            }
+        )
+        full_q["definition"].update(
+            {
+                "route": "periodic_gw_no_headwing",
+                "symmetry": False,
+                "abacus": {"nbands": 8, "scf_symmetry": -1},
+                "librpa": {
+                    "nfreq": 6,
+                    "use_symmetry_exx": False,
+                    "use_symmetry_gw": False,
+                },
+            }
+        )
+
+        for quantity in ("ks", "exx", "gw"):
+            with self.subTest(quantity=quantity):
+                changed = copy.deepcopy(full_q)
+                changed["window"]["states"][0][f"{quantity}_ev"] += 0.00011
+                report = evaluate_convergence_axis(
+                    symmetry,
+                    changed,
+                    axis="symmetry",
+                    tolerance_ev=0.0001,
+                )
+                self.assertEqual(report["status"], "FAIL")
+                self.assertEqual(
+                    report["reason_code"], "EQUIVALENCE_TOLERANCE_EXCEEDED"
+                )
+
+        changed_gap = copy.deepcopy(full_q)
+        changed_gap["window"]["fundamental_gw_gap_ev"] += 0.00011
+        gap_report = evaluate_convergence_axis(
+            symmetry,
+            changed_gap,
+            axis="symmetry",
+            tolerance_ev=0.0001,
+        )
+        self.assertEqual(gap_report["status"], "FAIL")
+
     def test_pair_may_change_only_the_declared_axis(self):
         coarse, fine = self.convergence_pair()
         fine["definition"]["profile_id"] = "other-profile"

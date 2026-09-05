@@ -252,6 +252,26 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         self.assertEqual(self.data["status"]["current_screening_kgrid_axis"], "PASS")
         self.assertEqual(self.data["status"]["scientific_convergence"], "NOT_EVALUATED")
 
+    def test_current_symmetry_fullq_control_is_linked_without_scientific_promotion(self):
+        control = self.data["current_scientific_followup"][
+            "symmetry_fullq_control"
+        ]
+
+        self.assertEqual(
+            control["benchmark_id"],
+            "fisherd-bn-k444-symmetry-fullq-20260906",
+        )
+        self.assertEqual(control["profile_id"], "abacus-librpa-2026-09-06-v6")
+        self.assertEqual(control["qpoint_pair"], [8, 64])
+        self.assertEqual(control["low_energy_max_change_ev"], 0.0)
+        self.assertEqual(control["complete_basis_max_change_ev"], 0.00001)
+        self.assertEqual(control["status"], "PASS_REFERENCE_BOUNDED")
+        self.assertEqual(
+            self.data["status"]["current_symmetry_fullq_control"],
+            "PASS_REFERENCE_BOUNDED",
+        )
+        self.assertEqual(self.data["status"]["scientific_convergence"], "NOT_EVALUATED")
+
     def test_report_matrix_and_route_guide_preserve_the_same_boundary(self):
         report = (
             REPOSITORY
@@ -291,6 +311,7 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         self.assertIn("12x12x12 -> 14x14x14", matrix)
         self.assertIn("0.03279 eV", matrix)
         self.assertIn("abacus-librpa-2026-09-06-v5", matrix)
+        self.assertIn("abacus-librpa-2026-09-06-v6", matrix)
         self.assertIn("degenerate gauge", route_guide)
         self.assertIn("must not promote", route_guide)
         self.assertIn("n_params_anacon = 6", route_guide)

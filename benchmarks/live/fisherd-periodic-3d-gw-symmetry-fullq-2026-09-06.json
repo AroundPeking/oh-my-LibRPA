@@ -1,0 +1,217 @@
+{
+  "schema": "oml.periodic-gw-symmetry-fullq.v1",
+  "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
+  "date": "2026-09-06",
+  "host": "Fisherd-Server100.96.1.64",
+  "base_profile_id": "abacus-librpa-2026-09-06-v5",
+  "promoted_profile_id": "abacus-librpa-2026-09-06-v6",
+  "scientific_benchmark_id": "bn-reader-v1-3d-v2",
+  "execution_profile_id": "fisherd-current-3d-gw-v1",
+  "software": {
+    "revisions": {
+      "abacus": "1648a8a344427ae1b6394912bf677c4a20e053f2",
+      "librpa": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+      "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+    },
+    "executable_sha256": {
+      "abacus": "7aba04e711e68bc654dc737ed5c1a330ddfe62a7ea2305c4d78b6edad5347b5a",
+      "librpa": "cefc8f33c2a99085db3dd07a0f7110c17fc5176270cc8a2157ac17e4c1aa8f60"
+    }
+  },
+  "contract": {
+    "material": "bulk BN",
+    "reader_format": "v1",
+    "screening_kgrid": [4, 4, 4],
+    "band_path": "Gamma-X with 3 points",
+    "nbands": 26,
+    "basis_dimension": 26,
+    "nfreq": 24,
+    "tfgrids_type": "minimax",
+    "n_params_anacon": 6,
+    "option_qpe_solver": 0,
+    "replace_w_head": false,
+    "use_shrink_abfs": true,
+    "symmetry_source": "stru_out",
+    "copy_legacy_symmetry_sidecars": [],
+    "low_energy_window": "VBM-3_through_CBM+3",
+    "equivalence_tolerance_ev": 0.0001
+  },
+  "shared_input_sha256": {
+    "INPUT_nscf": "591b5e04a45c7eabc58e78cb0e7da0172c2fa108fe89f1be3a01e0ef888f87e0",
+    "KPT_scf": "1ad281c0f88e2f4269b222db91fc59e3365188569a96e8629b57c8f65b0613e7",
+    "KPT_nscf": "2f9da2627f297de88053c0724be9882bbb054f782f748f8ea2117f07bca5f034",
+    "STRU": "52cf12d4a3b0e272ff9ef209685016c1b9153b81657368cb3ffcd23358b3f7e5",
+    "B_ONCV_PBE-1.0.upf": "0ea384402c92516dcca6032c1b249e6ced70770661b2acb930e34b5f230b401f",
+    "N_ONCV_PBE-1.0.upf": "b8b7334fbc55c79ced5bb9486c45ce5f0dcae1b7ea5e7523cfcd9814ca58f1c8",
+    "B_gga_8au_100Ry_2s2p1d.orb": "ad38bd9aeb0e47c950f58a3857318f29b85712dbc11c1cbf0846e3c510b223b1",
+    "N_gga_8au_100Ry_2s2p1d.orb": "91a13eefbf479e5784ef6a65978e815492aac67ab8a3ce1a30dbbc44effa7147"
+  },
+  "runs": {
+    "symmetry": {
+      "run_id": "run-20260905T214019Z-67f1998ae0",
+      "remote_run_dir": "/home/ghj/oml-controlled-runs/run-20260905T214019Z-67f1998ae0",
+      "plan_digest": "4024a9e5dbc6fe9082c5b3dad12391b3de513b35f2d925f8287df458a65c297f",
+      "source_digest": "6aa1a8420dcc610c8cfa0ea68536b01a6fd663e80693f1ddc7fdf8d43ab51b99",
+      "manifest_digest": "1aa42390fec550b128a7da3f450ac34d5116bfd4aedaf2693a2aaff3f4b4af3e",
+      "route": "periodic_gw_symmetry_no_headwing",
+      "abacus_scf_symmetry": 1,
+      "librpa_use_symmetry_exx": true,
+      "librpa_use_symmetry_gw": true,
+      "stru_out_symmetry_operations": 24,
+      "irreducible_qpoints": 8,
+      "full_grid_qpoints": 64,
+      "reader_v1_full_coulomb_files": 8,
+      "reader_v1_cut_coulomb_files": 8,
+      "legacy_symmetry_sidecars": [],
+      "input_validation_counts": {"PASS": 17, "WARN": 0, "FAIL": 0, "SKIP": 18},
+      "pre_librpa_validation_counts": {"PASS": 33, "WARN": 0, "FAIL": 0, "SKIP": 3},
+      "input_sha256": {
+        "INPUT_scf": "accb558d6025bf5d195a67e408c9f13704ee1b49159ead3a3fc723c4f298c89a",
+        "librpa.in": "af9f090a2ba90701e379b1f52617bf922a6d2816b081a803740cfe235f6f3266"
+      },
+      "artifact_sha256": {
+        "stru_out": "e9b77fb9f6b28a45585f26ff607ce33111edb8d8102477f6367a3513eeb130eb",
+        "bz_sampling_out": "00256c88562671f5c83740697df096b4d42d1e278fde42777392523ecb318444",
+        "dataset_manifest": "b629b5a427da599b6bdc1da52408f8560304668eb29a3f23354d02fb70e198e0",
+        "q_payload_manifest": "daae9d512e41724d37d261504a1b803dd68a811a7d7f00a50a7a263d56b50fb2",
+        "KS_band_spin_1.dat": "c7a54f6d5901440ef617157f52ee9563899d06151131082d6377a36c712420d2",
+        "EXX_band_spin_1.dat": "7ab47fa6e88ddbc8aa5d424a1b5c8592dcbcc0e376f8af7984906ba9d0effcac",
+        "GW_band_spin_1.dat": "52b8a6054e1a2756982df675b36d13ba398f7236baa1165a6c5ce0e81a7ff40f",
+        "plan_receipt": "175fdd9d98cc7b6e0ed1c86439433b149fc5f8f1d137f0dd43d578347e579e77",
+        "execution_receipt": "533ea0a551dd3cf5a4425ae8110c5151c74c3458e6e258fcbfcd4664f203290e",
+        "manifest_receipt": "bcc8e2a76bebecfaff02f7525633e3256aa01ba816a1c746a908ad17ef44d2bb"
+      },
+      "stages": [
+        {"stage": "scf", "attempt_id": "attempt-2b4b6bff134842939d32", "scheduler_id": "1537", "status": "PASSED", "elapsed_seconds": 59, "maximum_rss_kib": 2866620},
+        {"stage": "nscf", "attempt_id": "attempt-d61fbaef09644c9f96c5", "scheduler_id": "1539", "status": "PASSED", "elapsed_seconds": 4, "maximum_rss_kib": 207780},
+        {"stage": "preprocess", "attempt_id": "attempt-2b60a9eb3fa74f24b2b8", "scheduler_id": "1541", "status": "PASSED", "elapsed_seconds": 3, "maximum_rss_kib": 10156},
+        {"stage": "librpa", "attempt_id": "attempt-e3e4a3dd3bc04cf7b596", "scheduler_id": "1543", "status": "PASSED", "elapsed_seconds": 45, "maximum_rss_kib": 465328}
+      ]
+    },
+    "full_q": {
+      "run_id": "run-20260905T214049Z-94c0dd0446",
+      "remote_run_dir": "/home/ghj/oml-controlled-runs/run-20260905T214049Z-94c0dd0446",
+      "plan_digest": "05eed5afc1ea4ed16b8362715d576a20c85abcc14abb10db0b9cff149103d429",
+      "source_digest": "149413087a2c16e12fe6f111fb61528c0f6572a10a25cb85b363051b9337c917",
+      "manifest_digest": "36ac7dbeff3050abd2b5f662614dfbf90c4bdd7baa03ddb1cdd6547e3fcbdf7a",
+      "route": "periodic_gw_no_headwing",
+      "abacus_scf_symmetry": -1,
+      "librpa_use_symmetry_exx": false,
+      "librpa_use_symmetry_gw": false,
+      "stru_out_symmetry_operations": 0,
+      "irreducible_qpoints": 64,
+      "full_grid_qpoints": 64,
+      "reader_v1_full_coulomb_files": 64,
+      "reader_v1_cut_coulomb_files": 64,
+      "legacy_symmetry_sidecars": [],
+      "input_validation_counts": {"PASS": 17, "WARN": 0, "FAIL": 0, "SKIP": 18},
+      "pre_librpa_validation_counts": {"PASS": 33, "WARN": 0, "FAIL": 0, "SKIP": 3},
+      "input_sha256": {
+        "INPUT_scf": "80c5c89bb11ffc56dde07d0ea333ea161c3ebdcbf1b7d7cfc4c51e2e052d48b6",
+        "librpa.in": "113fd526c52796f02f59ab267a6c463e77d4ac8ef4ad7253e363ac539628c4e5"
+      },
+      "artifact_sha256": {
+        "stru_out": "a461bde072d93d58091c4f7a3a1db001c0f349f5cae8dd3043ab496545cf2152",
+        "bz_sampling_out": "be5e77ccdd18b43a7bdb791cfb04cd984c4fa8e981533c603aae1599d0e841f0",
+        "dataset_manifest": "2385f387cac59acd855e3b5f5ffba4e97f8c4e8a7055548efdc12e15dd26be27",
+        "q_payload_manifest": "ceebf328219a46f10951225c38309a907da032d2baf003beb04f1fe4684a088e",
+        "KS_band_spin_1.dat": "c7a54f6d5901440ef617157f52ee9563899d06151131082d6377a36c712420d2",
+        "EXX_band_spin_1.dat": "fd9ceb0da34f7e7e4e39f5e4ea5a61b7e229a1efbe1a81e5b161fecfcae9479f",
+        "GW_band_spin_1.dat": "3cac9193866244926ead56e6689ade20e1a12d3bf0d04d4d592e3b4ba65644d1",
+        "plan_receipt": "50d0dc5d7ebaa54343805316081606700d4769da585943358ebecf8761bd8cd6",
+        "execution_receipt": "533ea0a551dd3cf5a4425ae8110c5151c74c3458e6e258fcbfcd4664f203290e",
+        "manifest_receipt": "6cbd9fb7fa7d052394d548f5ddf4df031290d280e25f24e73fcc545d527a00e8"
+      },
+      "stages": [
+        {"stage": "scf", "attempt_id": "attempt-ee2a31b16f8d47c2b885", "scheduler_id": "1538", "status": "PASSED", "elapsed_seconds": 62, "maximum_rss_kib": 2995288},
+        {"stage": "nscf", "attempt_id": "attempt-872dcabde88e4f13a27b", "scheduler_id": "1540", "status": "PASSED", "elapsed_seconds": 4, "maximum_rss_kib": 210508},
+        {"stage": "preprocess", "attempt_id": "attempt-9d9a060a228444cc8a59", "scheduler_id": "1542", "status": "PASSED", "elapsed_seconds": 3, "maximum_rss_kib": 10200},
+        {"stage": "librpa", "attempt_id": "attempt-17884cbd30354db9b10f", "scheduler_id": "1544", "status": "PASSED", "elapsed_seconds": 111, "maximum_rss_kib": 687428}
+      ]
+    }
+  },
+  "definition_comparison": {
+    "axis": "symmetry",
+    "status": "PASS",
+    "symmetry_definition_digest": "52e601d589c3b6b1bb881af918b71dcf281c0db13d68ecd443949cc7c0df001f",
+    "full_q_definition_digest": "8460e06d37317d91d0cfd5473374c644db00a3fae84d4bead8acd7a5c1e4ae0b",
+    "differences": [
+      {"field": "abacus.scf_symmetry", "left": 1, "right": -1},
+      {"field": "librpa.use_symmetry_exx", "left": true, "right": false},
+      {"field": "librpa.use_symmetry_gw", "left": true, "right": false},
+      {"field": "route", "left": "periodic_gw_symmetry_no_headwing", "right": "periodic_gw_no_headwing"},
+      {"field": "symmetry", "left": true, "right": false}
+    ]
+  },
+  "mcp_scientific_report": {
+        "report_id": "science-11dcdb0dedee4b90ffee",
+        "report_sha256": "35b2faa5dc874359c64ed2cf8300a9135a68eabf5ceb062fbc56a69f83e7a714",
+        "evaluator_version": 9,
+    "scientific_status": "NOT_EVALUATED",
+    "regression_status": "NOT_EVALUATED",
+    "regression_reason_code": "REFERENCE_NOT_AVAILABLE",
+    "missing_axes": ["nfreq", "empty_states", "screening_kgrid"],
+    "symmetry_axis": {
+      "status": "PASS",
+      "reason_code": "WITHIN_EQUIVALENCE_TOLERANCE",
+      "tolerance_ev": 0.0001,
+      "state_count": 24,
+      "gap_change_ev": 0.0,
+      "quantities": {
+        "ks": {"max_abs_change_ev": 0.0, "rms_change_ev": 0.0},
+        "exx": {"max_abs_change_ev": 0.0, "rms_change_ev": 0.0},
+        "gw": {"max_abs_change_ev": 0.0, "rms_change_ev": 0.0}
+      }
+    }
+  },
+  "complete_basis_audit": {
+    "state_count": 78,
+    "state_sets_equal": true,
+    "occupation_max_abs_change": 0.0,
+    "tolerance_ev": 0.0001,
+    "quantities": {
+      "ks": {
+        "max_abs_change_ev": 0.0,
+        "rms_change_ev": 0.0,
+        "worst_state": {"spin": 1, "kpoint": [0.5, 0.0, 0.5], "band": 26}
+      },
+      "exx": {
+        "max_abs_change_ev": 0.00001,
+        "rms_change_ev": 0.000001132277,
+        "worst_state": {"spin": 1, "kpoint": [0.5, 0.0, 0.5], "band": 25}
+      },
+      "gw": {
+        "max_abs_change_ev": 0.00001,
+        "rms_change_ev": 0.000002773501,
+        "worst_state": {"spin": 1, "kpoint": [0.0, 0.0, 0.0], "band": 22}
+      }
+    },
+    "gap_ev": {"symmetry": 6.27089, "full_q": 6.27089, "abs_change": 0.0},
+    "qpe_failure_count": {"symmetry": 0, "full_q": 0},
+    "status": "PASS"
+  },
+  "preserved_setup_incidents": [
+    {
+      "incident": "remote shell banners corrupted rsync and scp protocols",
+      "resolution": "LC_OML_QUIET is accepted by sshd and now returns early only for marked noninteractive Fisherd sessions",
+      "remote_bashrc_backup": "/home/ghj/.bashrc.oml-backup-20260906-053413"
+    },
+    {
+            "incident": "the first controlled prepare found no administrator-created remote run root",
+            "preserved_run_id": "run-20260905T213859Z-3c83775e53",
+            "recorded_run_status": "PREPARE_FAILED",
+            "scheduler_job_created": false,
+      "resolution": "/home/ghj/oml-controlled-runs was created with mode 0700 before fresh runs were prepared"
+    }
+  ],
+  "claim_boundary": {
+    "bn_k444_no_headwing_symmetry_equivalence": true,
+    "physical_reference": false,
+    "material_transfer": false,
+    "nao_convergence": false,
+    "abfs_convergence": false,
+    "strict_2d_gw": false
+  },
+  "status": "PASS_REFERENCE_BOUNDED",
+  "automatic_promotion": false
+}

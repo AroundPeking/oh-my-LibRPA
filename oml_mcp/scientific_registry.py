@@ -79,6 +79,7 @@ def _positive_finite(value: Any) -> bool:
 
 def _validate_benchmark(value: dict[str, Any], benchmark_id: str) -> dict[str, Any]:
     required_axes = value.get("required_axes")
+    axis_tolerances = value.get("axis_tolerances_ev")
     window = value.get("state_window")
     reference_status = value.get("reference_status")
     valid = (
@@ -98,6 +99,14 @@ def _validate_benchmark(value: dict[str, Any], benchmark_id: str) -> dict[str, A
         and required_axes
         and len(required_axes) == len(set(required_axes))
         and all(axis in CONVERGENCE_AXES for axis in required_axes)
+        and (
+            axis_tolerances is None
+            or (
+                isinstance(axis_tolerances, dict)
+                and set(axis_tolerances) == set(required_axes)
+                and all(_positive_finite(tolerance) for tolerance in axis_tolerances.values())
+            )
+        )
         and reference_status in {"AVAILABLE", "NOT_AVAILABLE"}
         and isinstance(value.get("require_positive_gw_gap"), bool)
         and (

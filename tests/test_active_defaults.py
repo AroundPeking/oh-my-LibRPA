@@ -37,6 +37,7 @@ class ActiveDefaultsTest(unittest.TestCase):
         self.assertIn("81ff5f33995e7a545c2b9cb4f1a74490a74ecb4a", text)
         self.assertIn("abacus-librpa-2026-09-03-v4", text)
         self.assertIn("abacus-librpa-2026-09-06-v5", text)
+        self.assertIn("abacus-librpa-2026-09-06-v6", text)
         self.assertIn("1648a8a344427ae1b6394912bf677c4a20e053f2", text)
         self.assertIn("current default", text)
         self.assertIn("v1_sternheimer_coulomb_iq_", text)

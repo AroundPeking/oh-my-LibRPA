@@ -1,3 +1,4 @@
+import hashlib
 import json
 import pathlib
 import tempfile
@@ -9,6 +10,7 @@ from oml_mcp.profiles import (
     LEGACY_PROFILE_ID,
     V4_PROFILE_ID,
     V5_PROFILE_ID,
+    V6_PROFILE_ID,
     ProfileError,
     list_profiles,
     load_profile,
@@ -21,6 +23,7 @@ V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 V4_PROFILE_NAME = "abacus-librpa-pyatb-2026-09-v4.json"
 V5_PROFILE_NAME = "abacus-librpa-pyatb-2026-09-v5.json"
+V6_PROFILE_NAME = "abacus-librpa-pyatb-2026-09-v6.json"
 V2_REPOSITORY_PROFILE = (
     pathlib.Path(__file__).resolve().parents[1]
     / "profiles"
@@ -47,6 +50,8 @@ V4_REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles"
 V4_PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / V4_PROFILE_NAME
 V5_REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / V5_PROFILE_NAME
 V5_PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / V5_PROFILE_NAME
+V6_REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / V6_PROFILE_NAME
+V6_PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / V6_PROFILE_NAME
 
 
 class CompatibilityProfileTest(unittest.TestCase):
@@ -303,12 +308,11 @@ class CompatibilityProfileTest(unittest.TestCase):
             "9fb9028c59b1dbaf9cf66965280961fc2225d9eb",
         )
 
-    def test_v5_current_stack_is_registered_packaged_and_default(self):
-        self.assertEqual(DEFAULT_PROFILE_ID, V5_PROFILE_ID)
+    def test_v5_current_stack_remains_registered_and_packaged(self):
         self.assertIn(V5_PROFILE_ID, list_profiles())
         repository = json.loads(V5_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
         packaged = json.loads(V5_PACKAGED_PROFILE.read_text(encoding="utf-8"))
-        profile = load_profile()
+        profile = load_profile(profile_id=V5_PROFILE_ID)
 
         self.assertEqual(packaged, repository)
         self.assertEqual(profile, repository)
@@ -327,6 +331,57 @@ class CompatibilityProfileTest(unittest.TestCase):
         self.assertEqual(
             contract["accepted_screening_kgrid_pair"],
             [[12, 12, 12], [14, 14, 14]],
+        )
+        route = profile["capabilities"]["periodic_3d_gw"]
+        self.assertEqual(route["status"], "EXPERIMENTAL")
+        self.assertEqual(route["admission_level"], "L3")
+
+    def test_v6_current_stack_is_registered_packaged_and_default(self):
+        self.assertEqual(DEFAULT_PROFILE_ID, V6_PROFILE_ID)
+        self.assertIn(V6_PROFILE_ID, list_profiles())
+        repository = json.loads(V6_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
+        packaged = json.loads(V6_PACKAGED_PROFILE.read_text(encoding="utf-8"))
+        profile = load_profile()
+
+        self.assertEqual(packaged, repository)
+        self.assertEqual(profile, repository)
+        self.assertEqual(profile["profile_id"], V6_PROFILE_ID)
+        contract = profile["contract"]["periodic_3d_gw"]
+        self.assertEqual(contract["symmetry_fullq_status"], "PASS")
+        self.assertEqual(contract["symmetry_fullq_tolerance_ev"], 0.0001)
+        self.assertEqual(
+            contract["symmetry_fullq_scope"],
+            {
+                "material": "bulk BN",
+                "screening_kgrid": [4, 4, 4],
+                "nbands": 26,
+                "basis_dimension": 26,
+                "nfreq": 24,
+                "tfgrids_type": "minimax",
+                "n_params_anacon": 6,
+                "option_qpe_solver": 0,
+                "use_shrink_abfs": True,
+                "headwing": False,
+                "reader_format": "v1",
+            },
+        )
+        evidence = contract["symmetry_fullq_evidence"]
+        self.assertEqual(
+            evidence,
+            {
+                "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
+                "comparison_sha256": "472582f1dcc359c9d1177e3f161f7405247998a4baac781b35b1312604d95815",
+            },
+        )
+        evidence_path = (
+            pathlib.Path(__file__).resolve().parents[1]
+            / "benchmarks"
+            / "live"
+            / "fisherd-periodic-3d-gw-symmetry-fullq-2026-09-06.json"
+        )
+        self.assertEqual(
+            hashlib.sha256(evidence_path.read_bytes()).hexdigest(),
+            evidence["comparison_sha256"],
         )
         route = profile["capabilities"]["periodic_3d_gw"]
         self.assertEqual(route["status"], "EXPERIMENTAL")
@@ -379,6 +434,19 @@ class CompatibilityProfileTest(unittest.TestCase):
             path.write_text(json.dumps(profile), encoding="utf-8")
 
             with self.assertRaisesRegex(ProfileError, "screening-grid acceptance"):
+                load_profile(path)
+
+    def test_v6_validation_rejects_symmetry_fullq_evidence_drift(self):
+        profile = load_profile(profile_id=V6_PROFILE_ID)
+        profile["contract"]["periodic_3d_gw"]["symmetry_fullq_evidence"][
+            "comparison_sha256"
+        ] = "0" * 64
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "bad-profile.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+
+            with self.assertRaisesRegex(ProfileError, "symmetry/full-q acceptance"):
                 load_profile(path)
 
     def test_unknown_profile_id_is_rejected(self):
