@@ -478,6 +478,43 @@ class SlurmExecutorTest(unittest.TestCase):
                 with self.assertRaisesRegex(OMLError, "VERSION_MISMATCH"):
                     executor.verify_versions()
 
+    def test_version_evidence_ignores_remote_shell_banner_lines(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            profile = make_profile(root, root / "sources")
+            executor = SlurmExecutor(profile)
+            pinned = load_profile()["components"]
+            banner = "loading site environment\n"
+
+            with patch("oml_mcp.executor.subprocess.run") as run:
+                run.side_effect = tuple(
+                    subprocess.CompletedProcess(
+                        [],
+                        0,
+                        banner + pinned[name]["revision"] + "\nsite environment ready\n",
+                        "",
+                    )
+                    for name in ("abacus", "librpa", "pyatb")
+                ) + (
+                    subprocess.CompletedProcess(
+                        [],
+                        0,
+                        banner + '{"sha256":"' + "a" * 64 + '","size":100}\n',
+                        "",
+                    ),
+                    subprocess.CompletedProcess(
+                        [],
+                        0,
+                        banner + '{"sha256":"' + "b" * 64 + '","size":200}\n',
+                        "",
+                    ),
+                )
+                evidence = executor.verify_versions()
+
+        self.assertEqual(evidence["verdict"], "match")
+        self.assertEqual(evidence["executables"]["abacus"]["sha256"], "a" * 64)
+        self.assertEqual(evidence["executables"]["librpa"]["size"], 200)
+
     def test_remote_bundle_dry_run_blocks_changed_controlled_files(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

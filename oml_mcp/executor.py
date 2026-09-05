@@ -42,6 +42,7 @@ with open(path, "rb") as handle:
 print(json.dumps({"sha256": digest.hexdigest(), "size": os.path.getsize(path)}, sort_keys=True))
 """
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+REVISION_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 ATTEMPT_ID_PATTERN = re.compile(r"^attempt-[0-9a-f]{20}$")
 RUNTIME_CODE_SUFFIXES = (".py", ".pyc", ".sh", ".slurm", ".so", ".dylib")
 READ_ONLY_RETRY_ATTEMPTS = 3
@@ -58,6 +59,34 @@ def _utc_now() -> str:
 def _normalize_scheduler_state(raw_state: str) -> str:
     token = raw_state.strip().upper().split()[0].rstrip("+") if raw_state.strip() else ""
     return NORMALIZED_STATES.get(token, "UNKNOWN")
+
+
+def _unique_revision_line(stdout: str) -> str:
+    matches = [
+        line.strip()
+        for line in stdout.splitlines()
+        if REVISION_PATTERN.fullmatch(line.strip())
+    ]
+    return matches[0] if len(matches) == 1 else ""
+
+
+def _unique_fingerprint_line(stdout: str) -> dict[str, Any] | None:
+    matches = []
+    for line in stdout.splitlines():
+        try:
+            payload = json.loads(line.strip())
+        except json.JSONDecodeError:
+            continue
+        if (
+            isinstance(payload, dict)
+            and isinstance(payload.get("sha256"), str)
+            and SHA256_PATTERN.fullmatch(payload["sha256"])
+            and isinstance(payload.get("size"), int)
+            and not isinstance(payload.get("size"), bool)
+            and payload["size"] > 0
+        ):
+            matches.append(payload)
+    return matches[0] if len(matches) == 1 else None
 
 
 class SlurmExecutor:
@@ -258,7 +287,7 @@ class SlurmExecutor:
                 assert self.profile.ssh is not None
                 arguments = [self.profile.ssh["ssh_program"], self.profile.ssh["host"], *arguments]
             result = self._run_read_only(arguments)
-            actual = result.stdout.strip().splitlines()[0] if result.returncode == 0 and result.stdout.strip() else ""
+            actual = _unique_revision_line(result.stdout) if result.returncode == 0 else ""
             expected = pinned[name]["revision"]
             components[name] = {
                 "source_path": self.profile.sources[name],
@@ -295,10 +324,7 @@ class SlurmExecutor:
                 remote_command,
             ]
         result = self._run_read_only(arguments)
-        try:
-            payload = json.loads(result.stdout.strip()) if result.returncode == 0 else None
-        except json.JSONDecodeError:
-            payload = None
+        payload = _unique_fingerprint_line(result.stdout) if result.returncode == 0 else None
         if (
             not isinstance(payload, dict)
             or not isinstance(payload.get("sha256"), str)
