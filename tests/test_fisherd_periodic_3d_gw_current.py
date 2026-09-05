@@ -178,7 +178,7 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         self.assertFalse(high["part_of_low_energy_gate"])
         self.assertAlmostEqual(high["max_abs_change_ev"], 1.44653)
 
-    def test_current_screening_grid_ladder_preserves_each_failed_pair(self):
+    def test_current_screening_grid_ladder_preserves_failures_and_accepts_fine_pair(self):
         campaign = self.data["current_scientific_followup"][
             "screening_kgrid_campaign"
         ]
@@ -189,11 +189,18 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         )
         self.assertEqual(
             [item["grid"] for item in campaign["meshes"]],
-            [[4, 4, 4], [6, 6, 6], [8, 8, 8], [10, 10, 10], [12, 12, 12]],
+            [
+                [4, 4, 4],
+                [6, 6, 6],
+                [8, 8, 8],
+                [10, 10, 10],
+                [12, 12, 12],
+                [14, 14, 14],
+            ],
         )
         self.assertEqual(
             [item["irreducible_kpoints"] for item in campaign["meshes"]],
-            [8, 16, 29, 47, 72],
+            [8, 16, 29, 47, 72, 104],
         )
         self.assertTrue(
             all(item["application_exit_code"] == 0 for item in campaign["meshes"])
@@ -205,23 +212,44 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         comparisons = campaign["adjacent_comparisons"]
         self.assertEqual(
             [(item["coarse_grid"][0], item["fine_grid"][0]) for item in comparisons],
-            [(4, 6), (6, 8), (8, 10), (10, 12)],
+            [(4, 6), (6, 8), (8, 10), (10, 12), (12, 14)],
         )
-        self.assertTrue(all(item["status"] == "FAIL" for item in comparisons))
-        self.assertAlmostEqual(comparisons[-1]["max_window_change_ev"], 0.06091)
-        self.assertAlmostEqual(comparisons[-1]["gap_change_ev"], 0.04850)
+        self.assertEqual(
+            [item["status"] for item in comparisons],
+            ["FAIL", "FAIL", "FAIL", "FAIL", "PASS"],
+        )
+        self.assertAlmostEqual(comparisons[-1]["max_window_change_ev"], 0.03279)
+        self.assertAlmostEqual(comparisons[-1]["gap_change_ev"], 0.02590)
         self.assertEqual(
             comparisons[-1]["worst_state"],
-            {"spin": 1, "kpoint": [0.5, 0.0, 0.5], "band": 2},
+            {"spin": 1, "kpoint": [0.25, 0.0, 0.25], "band": 1},
+        )
+
+        latest = campaign["meshes"][-1]
+        self.assertAlmostEqual(latest["gap_ev"], 5.86474)
+        self.assertEqual(latest["reader_v1_coulomb_file_pairs"], 104)
+        self.assertEqual(
+            latest["validation_counts"],
+            {"PASS": 33, "WARN": 0, "FAIL": 0, "SKIP": 3},
+        )
+        self.assertEqual(
+            latest["scientific_result_sha256"],
+            "fc02cf21ee12736dbd840a33d76a8e63fb3c5db2b405aa213e53082a822b74e4",
         )
 
         provenance = campaign["screening_grid_provenance_gate"]
         self.assertEqual(provenance["status"], "PASS")
         self.assertEqual(provenance["gate_id"], "dataset.screening_grid")
         self.assertFalse(provenance["numerical_outputs_modified"])
-        self.assertIsNone(campaign["accepted_pair"])
-        self.assertEqual(campaign["status"], "FAIL")
-        self.assertEqual(self.data["status"]["current_screening_kgrid_axis"], "FAIL")
+        self.assertEqual(campaign["current_endpoint"], [14, 14, 14])
+        self.assertEqual(campaign["accepted_pair"], [[12, 12, 12], [14, 14, 14]])
+        self.assertEqual(campaign["status"], "PASS")
+        incidents = campaign["preserved_prelaunch_incidents"]
+        self.assertEqual(len(incidents), 3)
+        self.assertIn("without rerun", incidents[0]["resolution"])
+        self.assertIn("vxc_out.dat", incidents[1]["symptom"])
+        self.assertIn("pgrep -x", incidents[2]["resolution"])
+        self.assertEqual(self.data["status"]["current_screening_kgrid_axis"], "PASS")
         self.assertEqual(self.data["status"]["scientific_convergence"], "NOT_EVALUATED")
 
     def test_report_matrix_and_route_guide_preserve_the_same_boundary(self):
@@ -251,6 +279,8 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
             "139.78139 eV",
             "0.06091 eV",
             "10x10x10 -> 12x12x12",
+            "0.03279 eV",
+            "12x12x12 -> 14x14x14",
             "n_params_anacon = 6",
         ):
             self.assertIn(phrase, report)
@@ -258,6 +288,9 @@ class FisherdPeriodic3dGwCurrentTest(unittest.TestCase):
         self.assertIn("BLOCKED_DEGENERATE_GAUGE_MISMATCH", matrix)
         self.assertIn("10x10x10 -> 12x12x12", matrix)
         self.assertIn("0.06091 eV", matrix)
+        self.assertIn("12x12x12 -> 14x14x14", matrix)
+        self.assertIn("0.03279 eV", matrix)
+        self.assertIn("abacus-librpa-2026-09-06-v5", matrix)
         self.assertIn("degenerate gauge", route_guide)
         self.assertIn("must not promote", route_guide)
         self.assertIn("n_params_anacon = 6", route_guide)

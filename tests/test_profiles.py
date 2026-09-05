@@ -8,6 +8,7 @@ from oml_mcp.profiles import (
     DEFAULT_PROFILE_ID,
     LEGACY_PROFILE_ID,
     V4_PROFILE_ID,
+    V5_PROFILE_ID,
     ProfileError,
     list_profiles,
     load_profile,
@@ -19,6 +20,7 @@ PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "pr
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 V4_PROFILE_NAME = "abacus-librpa-pyatb-2026-09-v4.json"
+V5_PROFILE_NAME = "abacus-librpa-pyatb-2026-09-v5.json"
 V2_REPOSITORY_PROFILE = (
     pathlib.Path(__file__).resolve().parents[1]
     / "profiles"
@@ -43,6 +45,8 @@ V3_PACKAGED_PROFILE = (
 )
 V4_REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / V4_PROFILE_NAME
 V4_PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / V4_PROFILE_NAME
+V5_REPOSITORY_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "profiles" / V5_PROFILE_NAME
+V5_PACKAGED_PROFILE = pathlib.Path(__file__).resolve().parents[1] / "oml_mcp" / "profiles" / V5_PROFILE_NAME
 
 
 class CompatibilityProfileTest(unittest.TestCase):
@@ -276,13 +280,12 @@ class CompatibilityProfileTest(unittest.TestCase):
             "diagnostic_only",
         )
 
-    def test_v4_current_stack_is_registered_packaged_and_default(self):
-        self.assertEqual(DEFAULT_PROFILE_ID, V4_PROFILE_ID)
+    def test_v4_current_stack_remains_registered_and_packaged(self):
         self.assertIn(LEGACY_PROFILE_ID, list_profiles())
         self.assertIn(V4_PROFILE_ID, list_profiles())
         repository = json.loads(V4_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
         packaged = json.loads(V4_PACKAGED_PROFILE.read_text(encoding="utf-8"))
-        profile = load_profile()
+        profile = load_profile(profile_id=V4_PROFILE_ID)
 
         self.assertEqual(packaged, repository)
         self.assertEqual(profile, repository)
@@ -299,6 +302,35 @@ class CompatibilityProfileTest(unittest.TestCase):
             profile["components"]["pyatb"]["revision"],
             "9fb9028c59b1dbaf9cf66965280961fc2225d9eb",
         )
+
+    def test_v5_current_stack_is_registered_packaged_and_default(self):
+        self.assertEqual(DEFAULT_PROFILE_ID, V5_PROFILE_ID)
+        self.assertIn(V5_PROFILE_ID, list_profiles())
+        repository = json.loads(V5_REPOSITORY_PROFILE.read_text(encoding="utf-8"))
+        packaged = json.loads(V5_PACKAGED_PROFILE.read_text(encoding="utf-8"))
+        profile = load_profile()
+
+        self.assertEqual(packaged, repository)
+        self.assertEqual(profile, repository)
+        self.assertEqual(profile["profile_id"], V5_PROFILE_ID)
+        baseline = profile["components"]["librpa"]
+        self.assertEqual(
+            baseline["upstream_baseline_tag_object"],
+            "11fbfbda9d5eccf02480f9344aa9f4abe7be01fc",
+        )
+        self.assertEqual(
+            baseline["upstream_baseline_revision"],
+            "dd169fa11fa920d580d4f39dc11e218a7f17f7b5",
+        )
+        contract = profile["contract"]["periodic_3d_gw"]
+        self.assertEqual(contract["screening_kgrid_status"], "PASS")
+        self.assertEqual(
+            contract["accepted_screening_kgrid_pair"],
+            [[12, 12, 12], [14, 14, 14]],
+        )
+        route = profile["capabilities"]["periodic_3d_gw"]
+        self.assertEqual(route["status"], "EXPERIMENTAL")
+        self.assertEqual(route["admission_level"], "L3")
 
     def test_v4_records_only_the_accepted_periodic_gw_frequency_contract(self):
         profile = load_profile(profile_id=V4_PROFILE_ID)
@@ -333,6 +365,20 @@ class CompatibilityProfileTest(unittest.TestCase):
             path.write_text(json.dumps(profile), encoding="utf-8")
 
             with self.assertRaisesRegex(ProfileError, "periodic 3D GW continuation"):
+                load_profile(path)
+
+    def test_v5_validation_rejects_screening_pair_drift(self):
+        profile = load_profile(profile_id=V5_PROFILE_ID)
+        profile["contract"]["periodic_3d_gw"]["accepted_screening_kgrid_pair"] = [
+            [10, 10, 10],
+            [12, 12, 12],
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "bad-profile.json"
+            path.write_text(json.dumps(profile), encoding="utf-8")
+
+            with self.assertRaisesRegex(ProfileError, "screening-grid acceptance"):
                 load_profile(path)
 
     def test_unknown_profile_id_is_rejected(self):

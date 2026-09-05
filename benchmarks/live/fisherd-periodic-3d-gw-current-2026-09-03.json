@@ -442,6 +442,31 @@
           "validation_counts": {"PASS": 33, "WARN": 0, "FAIL": 0, "SKIP": 3},
           "scientific_result_sha256": "e529ab760a119df95d984a10ea2d2b8d7acb77206d9b7d3253e6e876e523b953",
           "validation_sha256": "b7f98b6a627bcff72a9dcf0530562767cd6384bbadc062c2514cb74a814ff6ab"
+        },
+        {
+          "grid": [14, 14, 14],
+          "run_root": "/home/ghj/oml-benchmarks/20260903-periodic-3d-gw/runs/bn-k141414-current-20260906",
+          "full_kpoints": 2744,
+          "irreducible_kpoints": 104,
+          "reader_v1_coulomb_file_pairs": 104,
+          "gap_ev": 5.86474,
+          "application_exit_code": 0,
+          "finished_successfully": true,
+          "qpe_failure_count": 0,
+          "nonfinite_band_count": 0,
+          "wall_seconds": 9657.0,
+          "maximum_rss_kib": 8785672,
+          "validation_counts": {"PASS": 33, "WARN": 0, "FAIL": 0, "SKIP": 3},
+          "scientific_result_sha256": "fc02cf21ee12736dbd840a33d76a8e63fb3c5db2b405aa213e53082a822b74e4",
+          "validation_sha256": "0c34a0a14d6a811308b4b31c218bd2bb1be846d7ce56e1dd60c18d2d2f88e08a",
+          "band_sha256": {
+            "KS_band_spin_1.dat": "2768b0713c06a655642a44f0420744644f5dc81cc295db19d3b9a626e7df3977",
+            "EXX_band_spin_1.dat": "62b2df83605a69734e223b0f34b82d974de98aa4fe0b49e3a8d421d07f822456",
+            "GW_band_spin_1.dat": "9838f9fa7f4ce8bbecff5403ee94d89f6faefc270ac346445557d8475b0b981b"
+          },
+          "posthoc_receipt_origin": "posthoc_current-stack_benchmark_reconstruction",
+          "plan_receipt_sha256": "442b13d5100ecafbdd172082300eafe2e0eb7744c14a72ba5840931d8bcc2dbd",
+          "execution_receipt_sha256": "122aad4cfe21c5513e970fbd101a73729c04360f2c9b388e3f52b3a75e33998c"
         }
       ],
       "adjacent_comparisons": [
@@ -488,6 +513,34 @@
           "worst_state": {"spin": 1, "kpoint": [0.5, 0.0, 0.5], "band": 2},
           "report_sha256": "c4a2399618e3d2f94c1b0088a32696cb6b241964051d3400186d7ad26fa6f445",
           "status": "FAIL"
+        },
+        {
+          "coarse_grid": [12, 12, 12],
+          "fine_grid": [14, 14, 14],
+          "max_ks_window_change_ev": 0.00001,
+          "max_exx_window_change_ev": 0.00007,
+          "max_window_change_ev": 0.03279,
+          "gap_change_ev": 0.02590,
+          "worst_state": {"spin": 1, "kpoint": [0.25, 0.0, 0.25], "band": 1},
+          "report_sha256": "523b0efeee0630aa78957cc3369fb7f6d3357f8c7f2d57d70795b110fa3bdeba",
+          "status": "PASS"
+        }
+      ],
+      "preserved_prelaunch_incidents": [
+        {
+          "stage": "scf-observation",
+          "symptom": "local SSH command returned 255 while the remote SCF process continued",
+          "resolution": "observed the existing process and accepted its independent exit-0 completion without rerun"
+        },
+        {
+          "stage": "dataset-assembly",
+          "symptom": "expected scf/vxc_out but the producer wrote scf/OUT.ABACUS/vxc_out.dat",
+          "resolution": "preserved the failed preparation directories and explicitly copied the producer artifact as dataset/vxc_out"
+        },
+        {
+          "stage": "librpa-prelaunch",
+          "symptom": "pgrep -f matched the duplicate guard command itself",
+          "resolution": "preserved the false-positive note and relaunched once with exact pgrep -x chi0_main.exe"
         }
       ],
       "screening_grid_provenance_gate": {
@@ -500,10 +553,10 @@
         "numerical_outputs_modified": false,
         "status": "PASS"
       },
-      "current_endpoint": [12, 12, 12],
-      "accepted_pair": null,
-      "reason_code": "NO_ADJACENT_FINE_PAIR_WITHIN_TOLERANCE",
-      "status": "FAIL"
+      "current_endpoint": [14, 14, 14],
+      "accepted_pair": [[12, 12, 12], [14, 14, 14]],
+      "reason_code": "ADJACENT_FINE_PAIR_WITHIN_TOLERANCE",
+      "status": "PASS"
     }
   },
   "status": {
@@ -513,7 +566,7 @@
     "librpa_frozen_input_regression": "PASS",
     "current_parallel_reproducibility": "PASS",
     "current_frequency_axis": "PASS",
-    "current_screening_kgrid_axis": "FAIL",
+    "current_screening_kgrid_axis": "PASS",
     "historical_end_to_end_band_reference": "BLOCKED_DEGENERATE_GAUGE_MISMATCH",
     "scientific_convergence": "NOT_EVALUATED",
     "reference_promotion": "BLOCKED"
@@ -525,7 +578,7 @@
   },
   "next_required_work": [
     "define a gauge-invariant LibRPA band observable or explicitly diagonalize the self-energy in each protected degenerate subspace",
-    "extend the current screening grid beyond 12x12x12 and require an adjacent fine-grid pass",
+    "test whether the accepted 12x12x12 to 14x14x14 screening pair transfers to Si and MgO",
     "add a current-stack symmetry versus full-q control with the same continuation contract",
     "complete NAO and ABFS basis ladders before reference promotion"
   ]

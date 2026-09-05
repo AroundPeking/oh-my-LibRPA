@@ -71,6 +71,8 @@ Time-frequency grid and analytic-continuation guardrails:
 - an `nfreq` convergence pair may change only `nfreq`; changing the Padé order, resampling grid, or QP solver invalidates the pair
 - LibRPA's source default `n_params_anacon = -1` uses all `nfreq` points. The current BN `4x4x4` benchmark found that setting unstable across `24 -> 32`; the six-parameter setting passed the declared VBM-3 through CBM+3 gate. Treat `6` as the current periodic 3D OML baseline, not a universal molecule, strict-2D, SOC, or material-class result
 - gate the declared low-energy window and gap, while reporting unstable high-unoccupied Padé roots separately; a stable gap alone is insufficient
+- the current BN screening ladder first passes at `12x12x12 -> 14x14x14`, with `0.03279 eV` maximum low-energy GW change and `0.02590 eV` gap change under the same six-parameter continuation contract
+- treat that pair as BN-specific evidence; it must not promote another material, a different basis, SOC, strict-2D, or a changed continuation definition without a matched ladder
 
 Before selecting PP / NAO / ABFS assets for a GW case, enforce the matching rule from `references/pp-nao-abfs-library.md`: pseudopotential, atomic basis, and auxiliary basis must correspond to the same intended setup and must not be mixed casually across unrelated PP families.
 

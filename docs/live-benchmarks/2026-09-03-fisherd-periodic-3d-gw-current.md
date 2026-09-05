@@ -153,10 +153,10 @@ coarse-grid anomaly is an interpolation/screening-grid failure, not a
 frequency or QP-solver failure.
 
 The same current-stack definition was then extended through `4x4x4`,
-`6x6x6`, `8x8x8`, `10x10x10`, and `12x12x12`. Every producer, reader-v1
+`6x6x6`, `8x8x8`, `10x10x10`, `12x12x12`, and `14x14x14`. Every producer, reader-v1
 handoff, LibRPA run, and QP diagnostic completed without a non-finite value or
 an explicit QP-solver failure. The application cost rose from `21.23 s` and
-`475020 KiB` at `4x4x4` to `4416 s` and `5832964 KiB` at `12x12x12`.
+`475020 KiB` at `4x4x4` to `9657 s` and `8785672 KiB` at `14x14x14`.
 
 | Screening pair | Gap change | Maximum GW change in VBM-3 through CBM+3 | Result |
 | --- | ---: | ---: | --- |
@@ -164,12 +164,37 @@ an explicit QP-solver failure. The application cost rose from `21.23 s` and
 | `6x6x6 -> 8x8x8` | `0.06140 eV` | `0.05378 eV` | FAIL |
 | `8x8x8 -> 10x10x10` | `0.03805 eV` | `0.05357 eV` | FAIL |
 | `10x10x10 -> 12x12x12` | `0.04850 eV` | `0.06091 eV` | FAIL |
+| `12x12x12 -> 14x14x14` | `0.02590 eV` | `0.03279 eV` | PASS |
 
-The latest pair passes the gap component but fails the statewise component.
-Its worst state is X band 2. At that state KS changes by only `0.00002 eV` and
-EXX by `0.00008 eV`; the `0.06091 eV` change is in the GW correction. The
-sequence is therefore a genuine screening-grid convergence issue under the
-declared definition, not a producer, basis, or degenerate-state-label drift.
+The `10x10x10 -> 12x12x12` pair passes the gap component but fails the
+statewise component at `0.06091 eV`. The next `12x12x12 -> 14x14x14` pair is
+the first adjacent fine-grid pass: its gap changes from `5.89064` to
+`5.86474 eV`, and the largest low-energy GW change is `0.03279 eV` at the
+Gamma-X midpoint band 1. Across that pair KS and EXX change by at most
+`0.00001` and `0.00007 eV`. This accepts the BN screening-grid axis under the
+declared continuation and state-window definition; it does not establish
+transferability to another material or complete the missing basis and
+physical-reference gates.
+
+The `14x14x14` LibRPA application completed with exit code 0 and an explicit
+success marker in `2:40:57`, using at most `8785672 KiB`. All 33 applicable
+validation gates pass, three are explicitly skipped, stderr is empty, and the
+three band tables contain no non-finite value or QP failure. The comparison
+report SHA-256 is
+`523b0efeee0630aa78957cc3369fb7f6d3357f8c7f2d57d70795b110fa3bdeba`.
+Its `.oml` plan and execution receipts were reconstructed after completion and
+are explicitly marked `posthoc_current-stack_benchmark_reconstruction`; they
+are audit evidence, not proof that this run was launched by the MCP execution
+service.
+
+Three setup incidents remain recorded rather than discarded. The first SCF
+SSH observation returned 255 while the existing remote process continued and
+finished, so it was not rerun. The first dataset assembly expected `vxc_out`
+at the wrong path; its failed directories were preserved before the producer's
+`OUT.ABACUS/vxc_out.dat` was staged explicitly as `vxc_out`. The first LibRPA
+duplicate guard matched its own broad process query; no application was
+launched by that attempt, and the corrected exact-name guard launched one
+process.
 
 During this ladder, the `10x10x10` consumer audit copy of `KPT_scf` was found
 to contain the old `8x8x8` template even though `bz_sampling_out` and all
@@ -190,22 +215,24 @@ regenerating receipts changed no numerical output.
 | current `nfreq 24 -> 32`, fixed six-parameter Padé | PASS |
 | current screening grid `2x2x2 -> 4x4x4` | FAIL |
 | current screening grid `10x10x10 -> 12x12x12` | FAIL (`0.06091 eV`) |
+| current screening grid `12x12x12 -> 14x14x14` | PASS (`0.03279 eV`, gap `0.02590 eV`) |
 | historical end-to-end band reference | `BLOCKED_DEGENERATE_GAUGE_MISMATCH` |
 | scientific convergence | `NOT_EVALUATED` |
 | reference promotion | BLOCKED |
 
-The current frequency axis has a passing adjacent pair, but the screening-grid
-axis still has no adjacent pair below both `0.05 eV` gates through `12x12x12`.
-Because no current fine-grid pair, basis ladder, or definition-matched physical
-reference is accepted, the benchmark matrix remains `PARTIAL_REFERENCE` and
-scientific acceptance remains `NOT_EVALUATED`.
+The current frequency and screening-grid axes each have one passing adjacent
+pair. Profile `abacus-librpa-2026-09-06-v5` records those two accepted BN
+contracts while keeping periodic 3D GW `EXPERIMENTAL` at L3. Because no NAO or
+ABFS ladder, symmetry/full-q control, transfer case, or definition-matched
+physical reference is accepted, the benchmark matrix remains
+`PARTIAL_REFERENCE` and scientific acceptance remains `NOT_EVALUATED`.
 
 ## Next Gates
 
 1. Require a gauge-invariant band observable, or diagonalize the self-energy
    within each protected degenerate subspace before assigning state energies.
-2. Extend the current screening grid beyond `12x12x12` and require an adjacent
-   fine-grid pass under the same continuation contract.
+2. Test the accepted `12x12x12 -> 14x14x14` screening rule on Si and MgO
+   without inheriting BN-specific convergence as a universal default.
 3. Add a current-stack symmetry/full-q comparison without changing any other
    physical or numerical setting.
 4. Complete empty-state, NAO, and ABFS ladders before reference review.

@@ -10,7 +10,8 @@ LEGACY_PROFILE_ID = "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08"
 V2_PROFILE_ID = "abacus-librpa-2026-08-30-v2"
 V3_PROFILE_ID = "abacus-librpa-2026-08-30-v3"
 V4_PROFILE_ID = "abacus-librpa-2026-09-03-v4"
-DEFAULT_PROFILE_ID = V4_PROFILE_ID
+V5_PROFILE_ID = "abacus-librpa-2026-09-06-v5"
+DEFAULT_PROFILE_ID = V5_PROFILE_ID
 STRICT_2D_SOS_RPA_PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID = (
     "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
@@ -23,6 +24,7 @@ PROFILE_NAMES = {
     V2_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v2.json",
     V3_PROFILE_ID: "abacus-librpa-pyatb-2026-08-v3.json",
     V4_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v4.json",
+    V5_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v5.json",
     STRICT_2D_SOS_RPA_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json",
     STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json",
 }
@@ -199,7 +201,7 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
             or sternheimer_librpa.get("ordinary_reader_coulomb_role") != "diagnostic_only"
         ):
             raise ProfileError("schema v2 LibRPA Sternheimer task must select the dedicated Coulomb v1 metric")
-    if profile.get("profile_id") == V4_PROFILE_ID:
+    if profile.get("profile_id") in {V4_PROFILE_ID, V5_PROFILE_ID}:
         periodic_capability = profile["capabilities"]["periodic_3d_gw"]
         if (
             periodic_capability.get("status") != "EXPERIMENTAL"
@@ -242,9 +244,35 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
             or periodic_gw.get("low_energy_window") != "VBM-3_through_CBM+3"
             or periodic_gw.get("max_state_delta_ev") != 0.05
             or periodic_gw.get("high_unoccupied_policy") != "report_separately"
-            or periodic_gw.get("screening_kgrid_status") != "FAIL"
         ):
             raise ProfileError("current periodic 3D GW acceptance boundary has drifted")
+        if profile["profile_id"] == V4_PROFILE_ID:
+            if (
+                periodic_gw.get("screening_kgrid_status") != "FAIL"
+                or periodic_gw.get("accepted_screening_kgrid_pair") is not None
+            ):
+                raise ProfileError("v4 periodic 3D GW screening-grid boundary has drifted")
+        else:
+            expected_screening_evidence = {
+                "benchmark_id": "fisherd-periodic-3d-gw-current-20260903",
+                "comparison_sha256": "523b0efeee0630aa78957cc3369fb7f6d3357f8c7f2d57d70795b110fa3bdeba",
+            }
+            if (
+                periodic_gw.get("screening_kgrid_status") != "PASS"
+                or periodic_gw.get("accepted_screening_kgrid_pair")
+                != [[12, 12, 12], [14, 14, 14]]
+                or periodic_gw.get("screening_kgrid_evidence")
+                != expected_screening_evidence
+            ):
+                raise ProfileError("v5 periodic 3D GW screening-grid acceptance has drifted")
+            librpa_component = profile["components"]["librpa"]
+            if (
+                librpa_component.get("upstream_baseline_tag_object")
+                != "11fbfbda9d5eccf02480f9344aa9f4abe7be01fc"
+                or librpa_component.get("upstream_baseline_revision")
+                != "dd169fa11fa920d580d4f39dc11e218a7f17f7b5"
+            ):
+                raise ProfileError("v5 LibRPA upstream baseline identity has drifted")
     symmetry = _require_mapping(contract, "symmetry", "contract")
     if symmetry.get("source") != "stru_out":
         raise ProfileError("contract.symmetry.source must be stru_out")

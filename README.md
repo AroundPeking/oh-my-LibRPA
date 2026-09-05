@@ -52,14 +52,15 @@ In practice, that means the agent can help with:
 - producing a final scientific artifact such as a **paper-style GW band plot**
 
 > [!TIP]
-> The current default is admission profile `abacus-librpa-2026-09-03-v4`; it does not authorize unattended production. The old 0.3.1 profile remains available only by explicit ID. The immutable v2 profile records the original Fisherd result, while v3 reproduces the corrected Sternheimer Coulomb handoff that is absent from current ABACUS master.
+> The current default is admission profile `abacus-librpa-2026-09-06-v5`; it does not authorize unattended production. The old 0.3.1, v2, and v4 profiles remain immutable reproductions, while v3 reproduces the corrected Sternheimer Coulomb handoff that is absent from current ABACUS master.
 
 ### Compatibility generations
 
 OML keeps historical profiles
 `abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08`,
-`abacus-librpa-2026-08-30-v2`, and `abacus-librpa-2026-08-30-v3` unchanged for
-explicit reproduction. Current default `abacus-librpa-2026-09-03-v4` pins ABACUS
+`abacus-librpa-2026-08-30-v2`, `abacus-librpa-2026-08-30-v3`, and
+`abacus-librpa-2026-09-03-v4` unchanged for explicit reproduction. Current
+default `abacus-librpa-2026-09-06-v5` pins ABACUS
 `1648a8a344427ae1b6394912bf677c4a20e053f2`, LibRPA
 `7e40c5bbf735a78aa15fa589ca2468fec2e2427b`, and PyATB
 `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` for four admission routes:
@@ -69,9 +70,11 @@ explicit reproduction. Current default `abacus-librpa-2026-09-03-v4` pins ABACUS
 - molecular Delta-Sternheimer RPA;
 - solid Delta-Sternheimer RPA.
 
-Periodic 3D GW is `EXPERIMENTAL` at L3, including its
-accepted fixed-continuation `nfreq=24 -> 32` axis; the failed screening k-grid
-axis prevents L4 acceptance. The other v4 routes remain `TESTABLE`. Current Delta-Sternheimer remains blocked at the
+Periodic 3D GW is `EXPERIMENTAL` at L3. The fixed-continuation
+`nfreq=24 -> 32` pair and BN screening `12x12x12 -> 14x14x14` pair pass their
+declared `0.05 eV` gates, but symmetry/full-q, basis, transfer, and physical
+reference gates still prevent L4 acceptance. The other v5 routes remain
+`TESTABLE`. Current Delta-Sternheimer remains blocked at the
 dedicated response-Coulomb handoff. Routes become `EXPERIMENTAL` only after reviewed
 L0-L3 receipts, and `ENABLED` only after L4 scientific acceptance and a reviewed
 profile commit. OML explicitly selects reader v1. Symmetry comes from `stru_out`,

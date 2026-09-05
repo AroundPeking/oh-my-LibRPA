@@ -1,6 +1,6 @@
 # Controlled Execution
 
-OML 0.4.7 provides bounded MCP execution and scientific finalization for one route: **non-SOC periodic GW** with ABACUS reader-v1, PyATB head/wing, and LibRPA 0.7.0. It does not expose arbitrary shell, SSH, Slurm options, cleanup, repair, or retry commands.
+OML 0.4.8 provides bounded MCP execution and scientific finalization for one route: **non-SOC periodic GW** with ABACUS reader-v1, PyATB head/wing, and LibRPA 0.7.0. It does not expose arbitrary shell, SSH, Slurm options, cleanup, repair, or retry commands.
 
 ## Scope
 
@@ -44,7 +44,7 @@ At preparation and before every submission, OML checks the pinned source SHAs an
 
 If `sbatch` times out after a submission may have reached Slurm, the attempt remains `UNKNOWN`. A later explicit `submit_stage` call queries both `squeue` and `sacct` using the unique full `run_id + stage` job name. One matching job is attached to the original attempt and multiple matches remain blocked. Absence is accepted only after two complete `squeue+sacct` observations at least five minutes apart. The attempt then becomes `FAILED`, but OML still preserves that run directory: a retry requires a new `prepare_run` receipt and fresh run directory.
 
-OML 0.4.7 never reruns a terminal stage in the same run directory. Failed logs and artifacts remain available for diagnosis; no controlled retry cleans or silently reuses them.
+OML 0.4.8 never reruns a terminal stage in the same run directory. Failed logs and artifacts remain available for diagnosis; no controlled retry cleans or silently reuses them.
 
 An interrupted controller process can leave an attempt in `SUBMITTING`. After the process lock is released, the same bounded reconciliation loop moves it to `UNKNOWN`, attaches a discovered scheduler ID, or eventually establishes separated absence evidence. It never submits a second job during reconciliation.
 
