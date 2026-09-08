@@ -1,0 +1,59 @@
+{
+  "schema": "oml.material-class.v1",
+  "material_class_id": "soc_2d_gw",
+  "description": "SOC 2D material-class GW reference identity: monolayer WSe2 in the CP2K GTH + SIAB matched basis.",
+  "material": {
+    "formula": "WSe2",
+    "structure": {
+      "prototype": "1H-MX2",
+      "space_group": "P-6m2",
+      "is_2d": true
+    },
+    "magnetic_order": {
+      "type": "soc",
+      "nspin": 2,
+      "note": "scalar-relativistic ground state with SOC turned on; WSe2 is a 2D semiconductor, non-magnetic but SOC splits the valence bands"
+    },
+    "basis_family": "cp2k_gth_siab",
+    "asset_probe_host": "df_iopcas_ghj",
+    "asset_probe_date": "2026-09-08",
+    "pseudopotentials": {
+      "Se-GTH-PBE-q6-cp2k-default-grid.upf": "b690504954bbf59c8868d074c19ff07176c865fdc86878ab25f97ffa920f8b4e",
+      "W-GTH-PBE-q14-cp2k-default-grid.upf": "d55564c7fbacdc7f787e8dcbc009596c462ffb66648623b006f6741fe16a29d1"
+    },
+    "orbitals": {
+      "Se_gga_10au_110Ry_3s3p2d.orb": "dcc3511eda6e111a54762d2884ee77b174ef0044edde8f3a520aeda879dd8c8a",
+      "W_gga_10au_100Ry_6s3p3d2f.orb": "ffea5e804a889fe75dc95b1d1431b1f25a3ebddffb81ed9f63d4c921c1050825"
+    },
+    "auxiliary_bases": {
+      "Se_10au_4s4p3d2f2g_1e-6.abfs": "5ca90c7c40d9b3a2cd0b45c681f58aeb06c3e0303822a25c263fa0fb946a374e",
+      "W_6s3p3d2f1g_1e-6.abfs": "bfa1a46ace6624387fcb5a225199f965b85e3688970902d86a2ceffd8c983f52"
+    }
+  },
+  "software_identity": {
+    "abacus_revision": "d98ba1ad",
+    "abacus_executable_sha256": null,
+    "librpa_revision": null,
+    "librpa_executable_sha256": null,
+    "pyatb_revision": null
+  },
+  "required_contract": {
+    "reader_format": "v1",
+    "task": "gw",
+    "spin": "soc",
+    "nspin": 2,
+    "symmetry": true,
+    "coulomb": "strict-2d-direct_mixed_fourier",
+    "kz_order": 64,
+    "gamma_order": 8
+  },
+  "observables": [
+    "state identity",
+    "SOC spin-split state identity",
+    "symmetry/full-q",
+    "gap"
+  ],
+  "reference_status": "REFERENCE_PENDING",
+  "reference": null,
+  "note": "Only no-SOC runs exist for this geometry (2026-08-31 nosoc, Lz=25, 12x12x1 Gamma, nbands=143, ecutwfc=110). The frozen reference requires an SOC run on the same geometry; software revisions will be pinned at that point. ABFS asset hashes above come from the no-SOC manifest and are shared between the no-SOC and SOC runs."
+}

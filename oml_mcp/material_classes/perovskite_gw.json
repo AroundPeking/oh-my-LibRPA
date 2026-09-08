@@ -1,0 +1,53 @@
+{
+  "schema": "oml.material-class.v1",
+  "material_class_id": "perovskite_gw",
+  "description": "Perovskite material-class GW reference identity: cubic SrTiO3 in the Dojo-NC-SR + matched TZDP basis.",
+  "material": {
+    "formula": "SrTiO3",
+    "structure": {
+      "prototype": "perovskite-ABO3",
+      "space_group": "Pm-3m"
+    },
+    "magnetic_order": {
+      "type": "none",
+      "nspin": 1,
+      "note": "non-magnetic perovskite insulator"
+    },
+    "basis_family": "dojo_nc_sr_tzdp",
+    "asset_probe_host": "df_iopcas_ghj",
+    "asset_probe_date": "2026-09-08",
+    "pseudopotentials": {
+      "Sr.upf": "1c3bc7a8bcda41b8d18dd308015102e6c96aedf3c90af7cfad2ef2d3087b70ef",
+      "Ti.upf": "c33e68554a687043cdd03f175f0c482b4ba30c41b93cb5f75ee46da96fcc4506",
+      "O.upf": "2a543889f6522e2a1f94e2c2ff1477e61cb89f25c67b27c54940e8263ec6fb11"
+    },
+    "orbitals": {
+      "Sr_gga_10au_100Ry_6s3p2d.orb": "50dcca7713720aaf1ec1e4c849dd2794892a6ec48df45af45e0ed95eb50256ce",
+      "Ti_gga_10au_100Ry_6s3p3d2f.orb": "9c756a056d24ef27460283525f678b2e050cfe5e81dd8635baf9e8799ae85c0b",
+      "O_gga_10au_100Ry_3s3p2d.orb": "b3b513a19280916a2230f4699c54e5ec1f22a705d735b3a4ac772f637c9bd29f"
+    },
+    "auxiliary_bases": null
+  },
+  "software_identity": {
+    "abacus_revision": null,
+    "abacus_executable_sha256": null,
+    "librpa_revision": null,
+    "librpa_executable_sha256": null,
+    "pyatb_revision": null
+  },
+  "required_contract": {
+    "reader_format": "v1",
+    "task": "gw",
+    "spin": "none",
+    "nspin": 1,
+    "symmetry": true
+  },
+  "observables": [
+    "state identity",
+    "symmetry/full-q",
+    "gap"
+  ],
+  "reference_status": "REFERENCE_PENDING",
+  "reference": null,
+  "note": "No runs exist yet. PP and NAO orbital assets are frozen (Dojo-NC-SR + matched TZDP). The ABFS auxiliary basis must be generated on the remote host before a GW reference can be produced; software identity and the input-file hash tree will be frozen with that run."
+}

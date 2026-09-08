@@ -1,0 +1,57 @@
+{
+  "schema": "oml.material-class.v1",
+  "material_class_id": "altermagnet_gw",
+  "description": "Altermagnet material-class GW reference identity: alpha-MnTe in the GTH TZDP matched basis.",
+  "material": {
+    "formula": "alpha-MnTe",
+    "structure": {
+      "prototype": "NiAs",
+      "space_group": "P6_3/mmc"
+    },
+    "magnetic_order": {
+      "type": "collinear",
+      "nspin": 2,
+      "magnetic_configuration": "compensated-altermagnet",
+      "note": "alpha-MnTe is a compensated collinear altermagnet: spin-split valence bands with zero net magnetisation"
+    },
+    "basis_family": "gth_tzdp10",
+    "asset_probe_host": "df_iopcas_ghj",
+    "asset_probe_date": "2026-09-08",
+    "pseudopotentials": {
+      "Mn.upf": "b10dafc764626a02dc590b2e9789989f480d866f65c4974692422d8cd07da7c0",
+      "Te.upf": "3bbcefd1a5d6ff89c1d4d94f27abec6f1702bb5fc2d7fda701369d4fbda53116"
+    },
+    "orbitals": {
+      "Mn_gga_10au_100Ry_6s3p3d2f.orb": "4ce1a91eef11dd95f5f17a9ecb07bdcef2eddde7dc6f1caeda5c5b50137b0539",
+      "Te_gga_10au_100Ry_3s3p3d2f.orb": "da8b64515933d34464497dcbf4c84e1484d4cfc7a7a00045ce44aff6bc7bb4bc"
+    },
+    "auxiliary_bases": {
+      "Mn_gth_10au_6s3p3d2f1g_pca1e-4_naux356.abfs": "40cfb935e191483c8abdff494f02c0db46c1dfd029675ee83b47e829530b2e7f",
+      "Te_gth_10au_3s3p3d2f1g_pca1e-4_naux356.abfs": "6ac010348b31b3bba6eda1f9135a1969ed80d4e38f5abefd1b8e917c83687c30"
+    }
+  },
+  "software_identity": {
+    "abacus_revision": "99c4e9aa92f2405fdf80ffac96bbccf4295c60c5",
+    "abacus_executable_sha256": "2497422453351b9670afbcb28b993280e739b7b3cdf877fcebb2924a9579cfba",
+    "librpa_revision": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
+    "librpa_executable_sha256": "305be3a3b6bcafce3120b4444327bb6863c61cfd464baf0f0c71558d26ecba43",
+    "pyatb_revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+  },
+  "required_contract": {
+    "reader_format": "v1",
+    "task": "gw",
+    "spin": "collinear",
+    "nspin": 2,
+    "symmetry": true
+  },
+  "observables": [
+    "state identity",
+    "magnetic ground state",
+    "spin-resolved state identity",
+    "symmetry/full-q",
+    "gap"
+  ],
+  "reference_status": "REFERENCE_PENDING",
+  "reference": null,
+  "note": "The existing 2026-09-06 alpha-MnTe run set is diagnostic only: no converged reference (PBE0 Vxc jump ~200 eV, magnetic collapse, job 3186641 cancelled). A fresh nspin=2 reference must be produced before this row can move to REFERENCE_AVAILABLE; the input-file hash tree will be frozen at that point."
+}

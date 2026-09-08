@@ -19,6 +19,7 @@ from .errors import OMLError
 from .evolution import EvolutionBudget, EvolutionUsage, propose_candidate
 from .execution_profiles import load_execution_profile
 from .intake import ingest_case as ingest_case_data
+from .material_class import list_material_classes, load_material_class
 from .planner import plan_case as plan_case_data
 from .profiles import load_profile
 from .route_benchmark import (
@@ -152,6 +153,26 @@ def build_server() -> MCPServer:
     def inspect_route_benchmark(benchmark_id: str) -> dict[str, Any]:
         """Inspect a registered route benchmark without changing evidence or policy."""
         return load_route_benchmark(benchmark_id)
+
+    @server.tool(
+        name="list_material_classes",
+        description="Return the registered material-class benchmark identities.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def list_material_classes_tool() -> dict[str, Any]:
+        """List the registered material-class benchmark identities."""
+        return {"material_classes": list_material_classes()}
+
+    @server.tool(
+        name="inspect_material_class",
+        description="Return one immutable material-class identity and its frozen asset/software hashes.",
+        annotations=annotations,
+        structured_output=True,
+    )
+    def inspect_material_class(material_class_id: str) -> dict[str, Any]:
+        """Inspect a registered material-class identity without changing policy."""
+        return load_material_class(material_class_id)
 
     @server.tool(
         name="evaluate_route_benchmark",

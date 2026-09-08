@@ -1,0 +1,54 @@
+{
+  "schema": "oml.material-class.v1",
+  "material_class_id": "transition_metal_oxide_gw",
+  "description": "Transition-metal-oxide material-class GW reference identity: antiferromagnetic NiO in the Dojo-NC-SR + matched TZDP basis.",
+  "material": {
+    "formula": "NiO",
+    "structure": {
+      "prototype": "rock-salt",
+      "space_group": "Fm-3m"
+    },
+    "magnetic_order": {
+      "type": "antiferromagnetic",
+      "nspin": 2,
+      "magnetic_configuration": "type-II AFM",
+      "note": "NiO is a type-II antiferromagnetic Mott insulator; the reference freezes the AFM order and spin-resolved state identity"
+    },
+    "basis_family": "dojo_nc_sr_tzdp",
+    "asset_probe_host": "df_iopcas_ghj",
+    "asset_probe_date": "2026-09-08",
+    "pseudopotentials": {
+      "Ni.upf": "f83c9ee8062152d26e736c0ff9c0af7c86936f0642f3ab66ffb2eda42bd46a64",
+      "O.upf": "2a543889f6522e2a1f94e2c2ff1477e61cb89f25c67b27c54940e8263ec6fb11"
+    },
+    "orbitals": {
+      "Ni_gga_10au_100Ry_6s3p3d2f.orb": "4f3144562abc92a448cac1a80cef125cba64538d8d305577079cf1136df7594c",
+      "O_gga_10au_100Ry_3s3p2d.orb": "b3b513a19280916a2230f4699c54e5ec1f22a705d735b3a4ac772f637c9bd29f"
+    },
+    "auxiliary_bases": null
+  },
+  "software_identity": {
+    "abacus_revision": null,
+    "abacus_executable_sha256": null,
+    "librpa_revision": null,
+    "librpa_executable_sha256": null,
+    "pyatb_revision": null
+  },
+  "required_contract": {
+    "reader_format": "v1",
+    "task": "gw",
+    "spin": "antiferromagnetic",
+    "nspin": 2,
+    "symmetry": true
+  },
+  "observables": [
+    "state identity",
+    "magnetic ground state",
+    "spin-resolved state identity",
+    "symmetry/full-q",
+    "gap"
+  ],
+  "reference_status": "REFERENCE_PENDING",
+  "reference": null,
+  "note": "No runs exist yet. PP and NAO orbital assets are frozen (Dojo-NC-SR + matched TZDP). The ABFS auxiliary basis must be generated on the remote host before a GW reference can be produced; software identity and the input-file hash tree will be frozen with that run."
+}

@@ -65,9 +65,25 @@ aggregate scientific verdict remains `NOT_EVALUATED`.
 | `altermagnet_gw` | alpha-MnTe | magnetic symmetry and spin-split bands | magnetic ground state, symmetry/full-q, spin-resolved state identity | `REFERENCE_PENDING` |
 | `soc_2d_gw` | WSe2 | SOC, strict-2D screening and valley states | spinor dimensions, PyATB full grid, K-valley splitting and gap | `REFERENCE_PENDING` |
 
-These systems are proposed benchmark identities, not accepted numerical
-references. Their PP, NAO, ABFS, structure, magnetic order and executable
-hashes must be frozen before a result enters the table.
+These systems are registered material-class benchmark identities with a frozen
+asset basis, recorded in `benchmarks/materials/*.json` (packaged copy in
+`oml_mcp/material_classes/*.json`). Each identity freezes the PP, NAO and ABFS
+asset hashes, the structure prototype and space group, the magnetic order and
+nspin, and the reference status. They are proposed benchmark identities, not
+accepted numerical references.
+
+Asset and software identity is frozen now; the input-file hash tree, software
+revisions and executable hashes are frozen only when a reference run is
+produced (they are `REFERENCE_PENDING` until then):
+
+- `perovskite_gw` (SrTiO3, non-magnetic, Dojo-NC-SR + TZDP) and
+  `transition_metal_oxide_gw` (AFM NiO, Dojo-NC-SR + TZDP) freeze only the PP
+  and NAO assets. Their ABFS auxiliary bases must be generated on the remote
+  host before a GW reference can be produced.
+- `altermagnet_gw` (alpha-MnTe, collinear, GTH + TZDP) and `soc_2d_gw` (WSe2,
+  SOC, CP2K-GTH + SIAB) freeze PP, NAO and ABFS assets. Their existing run sets
+  are diagnostic only — no converged reference exists yet, so both remain
+  `REFERENCE_PENDING`.
 
 ## Evidence Per Case
 
