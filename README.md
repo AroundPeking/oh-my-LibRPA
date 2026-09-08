@@ -1,8 +1,8 @@
 <div align="center">
   <img src="docs/assets/brand/oh-my-librpa-wordmark.svg" alt="oh-my-LibRPA wordmark" width="760" />
   <p>
-    Describe the task in natural language. The MCP server inspects the case,
-    selects the route, and applies deterministic gates before any calculation is submitted.
+    Use the stable skill workflow for established calculations. Use the
+    separately named MCP test lane for deterministic admission experiments.
   </p>
 
   <p>
@@ -34,7 +34,8 @@
   <sub>Crystal/material inputs in, curated GW/RPA workflow, band-structure artifact out.</sub>
 </div>
 
-`oh-my-LibRPA` is a Codex plugin and deterministic MCP harness for `ABACUS + LibRPA`.
+`oh-my-LibRPA` provides a stable skills workflow and a separately named,
+deterministic MCP test harness for `ABACUS + LibRPA`.
 
 The idea is simple:
 
@@ -107,7 +108,17 @@ and is not strict-2D GW acceptance.
 
 ## Quick start
 
-### 1. Install the MCP environment
+### 1. Choose the lane
+
+- `oh-my-librpa`: stable skills lane for existing and reviewed workflows,
+  including magnetic `nspin=2`, SOC, molecular, 2D, and historical cases.
+- `oh-my-librpa-mcp-test`: opt-in experimental harness, currently limited to
+  nonmagnetic `nspin=1`, non-SOC, periodic 3D GW controlled execution.
+
+An MCP scope rejection does not invalidate a calculation supported by the
+stable lane.
+
+### 2. Install the MCP test environment
 
 ```bash
 git clone https://github.com/AroundPeking/oh-my-LibRPA.git
@@ -115,18 +126,22 @@ cd oh-my-LibRPA
 bash scripts/install_codex_plugin.sh
 ```
 
-### 2. Register the MCP server in Codex
+### 3. Register the MCP test server in Codex
 
 Run this from the repository root so Codex stores the absolute launcher path:
 
 ```bash
-codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
-codex mcp get oh-my-librpa
+codex mcp add oh-my-librpa-mcp-test -- "$PWD/bin/oh-my-librpa-mcp"
+codex mcp get oh-my-librpa-mcp-test
 ```
 
-Start a new Codex task after registration. The repository also contains a Codex plugin manifest at `.codex-plugin/plugin.json`; marketplace packaging can use the same MCP definition in `.mcp.json`.
+Start a new Codex task after registration and explicitly request the MCP test
+lane. Do not register it as `oh-my-librpa`, because that name is reserved for
+the stable skill workflow. The repository also contains a Codex plugin manifest
+at `.codex-plugin/plugin.json`; marketplace packaging can use the same MCP
+definition in `.mcp.json`.
 
-### 3. Start chatting
+### 4. Start chatting
 
 Example prompts:
 
@@ -135,7 +150,7 @@ Example prompts:
 - `Check whether these PyATB head/wing files match reader-v1.`
 - `Explain the minimal repair for this LibRPA input.`
 
-The MCP-first skill uses `inspect_profile`, `inspect_admission_manifest`,
+The opt-in MCP test skill uses `inspect_profile`, `inspect_admission_manifest`,
 `ingest_case`, `plan_case`, `validate_case`, `inspect_reader_v1`,
 `inspect_grid_coulomb_consistency`, `inspect_sternheimer_comparison`,
 `inspect_route_benchmark`, `evaluate_route_benchmark`,
@@ -160,7 +175,10 @@ integrands, reconstructed Delta components, and isolated generalized-eigenvalue
 outliers. All trace-log values use the dedicated Sternheimer metric. A passing
 numerical comparison still does not become scientific acceptance automatically.
 
-The current production write scope is deliberately narrower than inspection: nonmagnetic, non-SOC, three-dimensional periodic GW only. The v2 and v3 routes remain blocked from the production materializer.
+The current MCP test write scope is deliberately narrower than inspection:
+nonmagnetic `nspin=1`, non-SOC, three-dimensional periodic GW only. The v2 and
+v3 routes remain blocked from the controlled materializer. Stable skill
+workflows remain available for reviewed routes outside this scope.
 
 ### Legacy skills installation
 

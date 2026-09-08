@@ -1,28 +1,49 @@
 ---
 name: oh-my-librpa
-description: Use when users ask to prepare, inspect, validate, run, debug, or regression-test ABACUS or FHI-aims workflows that feed LibRPA GW/RPA calculations.
+description: Stable compatibility workflow for preparing, running, auditing, debugging, or regression-testing ABACUS and FHI-aims workflows that feed LibRPA GW/RPA calculations, including magnetic and historical cases outside the experimental MCP executor.
 ---
 
-# Oh-My-LibRPA
+# Oh-My-LibRPA Stable Workflow
 
-Use OML MCP first.
+This is the stable compatibility lane. Use it for existing calculations,
+historical reproductions, and routes that the experimental MCP does not yet
+execute. Do not invoke `oh-my-librpa-mcp-test` unless the user explicitly asks
+to test the MCP harness.
 
-Apply `librpa-openmp-mkl-threading`.
+Apply `abacus-librpa-version-guard` before execution or interpretation and
+`librpa-openmp-mkl-threading` when resource layout matters. Real ABACUS or
+LibRPA calculations run on a remote server; local work is limited to source
+inspection, input preparation, static checks, parsing, and plotting.
 
-1. Run `inspect_profile`, `ingest_case`, `plan_case`, and `validate_case`; repair `FAIL`, report `WARN`. Use `inspect_reader_v1`, `inspect_grid_coulomb_consistency`, and `inspect_sternheimer_comparison`. Sternheimer requires `v1_sternheimer_coulomb_iq_*`.
-2. Controlled non-SOC periodic GW uses `prepare_run`, `submit_stage`, `get_status`, `inspect_stage`, `finalize_case`, then `score_case`.
-3. Default `abacus-librpa-2026-09-06-v6` requires reader v1 and `stru_out`; periodic 3D GW is L3 `EXPERIMENTAL`. BN passes `nfreq=24 -> 32`, screening `12x12x12 -> 14x14x14`, and a `4x4x4` no-head/wing symmetry/full-q control. Empty-state, NAO, ABFS, transfer, and physical-reference gates remain; status is `NOT_EVALUATED`; molecular Delta-Sternheimer RPA and solid Delta-Sternheimer RPA await the metric. Keep `abacus-librpa-2026-09-06-v5`, `abacus-librpa-2026-09-03-v4`, and `abacus-librpa-2026-08-30-v2` historical; use `abacus-librpa-2026-08-30-v3` only for that metric.
-4. `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` is `ENABLED` only for reference-bounded `strict2d-sos-rpa-mos2-qavg-v1`. Use `inspect_route_benchmark`, `evaluate_route_benchmark`, and `evaluate_route_benchmark_suite`; this is not strict-2D GW acceptance and proves no asymptotic exponent.
-5. Use `inspect_admission_manifest` and `evaluate_admission`; `propose_evolution_candidate` stays `PROPOSAL_ONLY`.
+## Routing
 
-Load `references/delta-st-route.md` only after MCP selects Delta-ST.
+1. Preserve the user's existing case definition and use a fresh run directory.
+2. Route ABACUS inputs through `oh-my-librpa-abacus-librpa`, then use
+   `abacus-librpa-gw`, `abacus-librpa-rpa`, or `abacus-librpa-debug`.
+3. Route FHI-aims inputs through `oh-my-librpa-fhi-aims-g0w0-band` or
+   `oh-my-librpa-fhi-aims-qsgw` only when strong FHI-aims markers establish
+   ownership.
+4. Use reader v1 by default for current ABACUS and LibRPA, require `stru_out`
+   for current symmetry handoff, and copy no legacy symmetry sidecars.
+5. Keep PP, NAO, ABFS, k mesh, spin, symmetry, solver, and executable identity
+   fixed unless the requested test changes that variable.
+6. Before submission, run the existing static preflight and record executable
+   paths, hashes, source revisions, scheduler resources, and the duplicate-job
+   check.
 
-Never bypass MCP for execution. Block stale plans, manifests, unknown binaries, duplicates, and blocked stages.
+## Spin And SOC
 
-FHI-aims writes on existing reviewed routes; use their ownership gate.
+- Nonmagnetic collinear: `nspin = 1`, `lspinorb = 0`.
+- Magnetic collinear without SOC: `nspin = 2`, `lspinorb = 0`; keep both spin
+  channels consistent in ABACUS outputs, PyATB, preprocessing, and LibRPA.
+- Noncollinear or SOC: use the reviewed `nspin = 4` route, disable the periodic
+  spatial-symmetry lane unless that exact combination has separate evidence,
+  and keep PyATB's `use_soc` convention consistent.
 
-Symmetry comes from `stru_out`; copy no sidecars. PyATB dimensions must match ABACUS and `bz_sampling_out`.
+An MCP `ROUTE_NOT_EXECUTABLE` or unregistered historical profile means only
+that the experimental executor lacks coverage. It is not evidence that the
+underlying reviewed GW workflow or physical calculation is invalid.
 
-For FHI-aims, keep `periodic_gw_optimize_kgrid_symmetry` q-point reduction
-separate from LibRPA `use_symmetry_exx`, `use_symmetry_rpa`, and
-`use_symmetry_gw`.
+Never overwrite an existing calculation directory, cancel an unrelated job,
+or resubmit while a matching job or immutable receipt exists. Keep scheduler,
+numerical, and scientific conclusions separate.

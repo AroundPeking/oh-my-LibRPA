@@ -53,6 +53,7 @@ fail_count=0
 
 for path in \
   "$workspace/skills/oh-my-librpa/SKILL.md" \
+  "$workspace/skills/oh-my-librpa-mcp-test/SKILL.md" \
   "$workspace/skills/oh-my-librpa-abacus-librpa/SKILL.md" \
   "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md" \
   "$workspace/skills/abacus-librpa-gw/SKILL.md" \
@@ -79,11 +80,21 @@ for path in \
   fi
 done
 
-if grep -q 'FHI-aims.*existing reviewed routes' "$workspace/skills/oh-my-librpa/SKILL.md" \
-  && grep -q 'Do not use `geometry.in`, `librpa.d/`, or `self_energy/` alone' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md"; then
-  pass 'thin MCP router excludes FHI-aims writes and preserves the dedicated ownership gate'
+if grep -qi 'stable compatibility lane' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && grep -q 'nspin = 2' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && ! grep -q 'Use OML MCP first' "$workspace/skills/oh-my-librpa/SKILL.md" \
+  && ! grep -q 'Never bypass MCP' "$workspace/skills/oh-my-librpa/SKILL.md"; then
+  pass 'stable router keeps magnetic and historical workflows outside mandatory MCP admission'
 else
-  fail 'thin MCP router or dedicated FHI-aims ownership gate is incomplete'
+  fail 'stable router still forces established workflows through the experimental MCP'
+fi
+
+if grep -q 'FHI-aims writes on existing reviewed routes' "$workspace/skills/oh-my-librpa-mcp-test/SKILL.md" \
+  && grep -q 'nspin=1' "$workspace/skills/oh-my-librpa-mcp-test/SKILL.md" \
+  && grep -q 'Never bypass MCP' "$workspace/skills/oh-my-librpa-mcp-test/SKILL.md"; then
+  pass 'experimental MCP router is explicit and preserves its bounded execution scope'
+else
+  fail 'experimental MCP router does not preserve its opt-in bounded scope'
 fi
 
 if grep -q 'Do not use `geometry.in`, `librpa.d/`, or `self_energy/` alone' "$workspace/skills/oh-my-librpa-fhi-aims-qsgw/SKILL.md"; then

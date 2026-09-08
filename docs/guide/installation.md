@@ -1,6 +1,21 @@
 # Installation
 
-## Codex MCP (Recommended)
+## Isolated Codex Lanes
+
+OML keeps two execution lanes separate:
+
+- The **stable skills lane** is `oh-my-librpa`. It preserves the reviewed
+  workflows used by existing GW tasks, including collinear `nspin=2`, SOC,
+  molecular, 2D, and historical reproductions. It does not require MCP
+  admission before those established workflows can continue.
+- The experimental lane is `oh-my-librpa-mcp-test`. It is opt-in and currently
+  controls only nonmagnetic `nspin=1`, non-SOC, periodic 3D GW. An unsupported
+  route is missing MCP coverage, not a failure of ABACUS or LibRPA.
+
+The lanes do not share a submission entry point. Renaming or restarting the MCP
+must not cancel, resubmit, or modify existing scheduler jobs and run directories.
+
+## Codex MCP Test Lane
 
 Clone the repository and create its isolated Python environment:
 
@@ -13,16 +28,20 @@ bash scripts/install_codex_plugin.sh
 Register the MCP server from the repository root:
 
 ```bash
-codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
-codex mcp get oh-my-librpa
+codex mcp add oh-my-librpa-mcp-test -- "$PWD/bin/oh-my-librpa-mcp"
+codex mcp get oh-my-librpa-mcp-test
 ```
 
 Start a new Codex task after registration. To replace an existing registration after moving the repository, run:
 
 ```bash
-codex mcp remove oh-my-librpa
-codex mcp add oh-my-librpa -- "$PWD/bin/oh-my-librpa-mcp"
+codex mcp remove oh-my-librpa-mcp-test
+codex mcp add oh-my-librpa-mcp-test -- "$PWD/bin/oh-my-librpa-mcp"
 ```
+
+Do not register the experimental server as `oh-my-librpa`: that name belongs
+to the stable skill workflow and would make unsupported routes such as
+`nspin=2` appear globally blocked.
 
 The Codex plugin bundle is described by `.codex-plugin/plugin.json` and `.mcp.json`. Direct MCP registration is the development and local-install path; a marketplace entry is not required.
 

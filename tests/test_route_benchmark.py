@@ -160,7 +160,7 @@ class RouteBenchmarkTest(unittest.TestCase):
             root / "README.md",
             root / "docs" / "guide" / "installation.md",
             root / "docs" / "live-benchmarks" / "2026-09-02-df-dcu-strict2d-sos-rpa.md",
-            root / "skills" / "oh-my-librpa" / "SKILL.md",
+            root / "skills" / "oh-my-librpa-mcp-test" / "SKILL.md",
             root / "skills" / "abacus-librpa-rpa" / "SKILL.md",
             root / "skills" / "abacus-librpa-version-guard" / "SKILL.md",
             root / "skills" / "oh-my-librpa" / "references" / "rpa-route.md",
@@ -179,7 +179,7 @@ class RouteBenchmarkTest(unittest.TestCase):
         for path in (
             root / "README.md",
             root / "docs" / "guide" / "installation.md",
-            root / "skills" / "oh-my-librpa" / "SKILL.md",
+            root / "skills" / "oh-my-librpa-mcp-test" / "SKILL.md",
         ):
             self.assertIn("evaluate_route_benchmark_suite", path.read_text(encoding="utf-8"))
 

@@ -7,12 +7,25 @@ REPOSITORY = pathlib.Path(__file__).resolve().parents[1]
 
 
 class PhaseTwoDocumentationTest(unittest.TestCase):
-    def test_thin_skill_routes_controlled_execution_through_mcp(self):
+    def test_stable_skill_does_not_force_historical_routes_through_mcp(self):
         text = (REPOSITORY / "skills" / "oh-my-librpa" / "SKILL.md").read_text(
             encoding="utf-8"
         )
 
-        self.assertLessEqual(len(text.split()), 220)
+        self.assertIn("stable compatibility lane", text.lower())
+        self.assertIn("nspin = 2", text)
+        self.assertNotIn("Use OML MCP first", text)
+        self.assertNotIn("Never bypass MCP", text)
+
+    def test_experimental_skill_routes_controlled_execution_through_mcp(self):
+        text = (
+            REPOSITORY / "skills" / "oh-my-librpa-mcp-test" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertLessEqual(len(text.split()), 260)
+        self.assertIn("explicitly requests", text)
+        self.assertIn("nspin=1", text)
+        self.assertIn("experimental", text.lower())
         for tool in (
             "inspect_profile",
             "inspect_admission_manifest",
@@ -38,12 +51,24 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         self.assertIn("FHI-aims writes on existing reviewed routes", text)
         self.assertNotIn("run_gw_workflow.sh", text)
 
+    def test_plugin_registers_only_the_experimental_mcp_name(self):
+        manifest = json.loads((REPOSITORY / ".mcp.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(set(manifest["mcpServers"]), {"oh-my-librpa-mcp-test"})
+        self.assertEqual(
+            manifest["mcpServers"]["oh-my-librpa-mcp-test"]["command"],
+            "./bin/oh-my-librpa-mcp",
+        )
+
     def test_installation_guide_separates_production_and_admission_profiles(self):
         text = (REPOSITORY / "docs" / "guide" / "installation.md").read_text(
             encoding="utf-8"
         )
 
         for phrase in (
+            "oh-my-librpa-mcp-test",
+            "stable skills lane",
+            "nspin=2",
             "19 MCP tools",
             "inspect_admission_manifest",
             "inspect_route_benchmark",
@@ -140,12 +165,12 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.4.9")
-        self.assertIn('version = "0.4.9"', pyproject)
+        self.assertEqual(plugin["version"], "0.4.10")
+        self.assertIn('version = "0.4.10"', pyproject)
         self.assertIn('"benchmark_suites/*.json"', pyproject)
         self.assertIn('"route_benchmarks/*.json"', pyproject)
-        self.assertIn('__version__ = "0.4.9"', package)
-        self.assertIn('version="0.4.9"', server)
+        self.assertIn('__version__ = "0.4.10"', package)
+        self.assertIn('version="0.4.10"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (
@@ -163,9 +188,9 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
 
     def test_admission_scope_and_evolution_boundary_are_documented(self):
         readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
-        skill = (REPOSITORY / "skills" / "oh-my-librpa" / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
+        skill = (
+            REPOSITORY / "skills" / "oh-my-librpa-mcp-test" / "SKILL.md"
+        ).read_text(encoding="utf-8")
 
         for text in (readme, skill):
             for phrase in (
