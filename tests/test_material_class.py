@@ -39,7 +39,8 @@ class MaterialClassTest(unittest.TestCase):
             self.assertEqual(entry["material_class_id"], material_class_id)
 
     def test_pending_entries_need_no_input_hash_tree_or_software_identity(self):
-        for material_class_id in list_material_classes():
+        pending = ("perovskite_gw", "transition_metal_oxide_gw", "soc_2d_gw")
+        for material_class_id in pending:
             entry = load_material_class(material_class_id)
             self.assertEqual(entry["reference_status"], "REFERENCE_PENDING")
             self.assertIsNone(entry["reference"])
@@ -47,6 +48,21 @@ class MaterialClassTest(unittest.TestCase):
             # input-file hash tree or the software binaries.
             self.assertIn("pseudopotentials", entry["material"])
             self.assertIn("orbitals", entry["material"])
+
+    def test_available_entry_freezes_input_hash_tree_and_software_identity(self):
+        # A REFERENCE_AVAILABLE entry freezes the input-file hash tree and the
+        # software binaries, which is what the reference gate validates.
+        entry = load_material_class("altermagnet_gw")
+        self.assertEqual(entry["reference_status"], "REFERENCE_AVAILABLE")
+        self.assertIsNotNone(entry["reference"])
+        self.assertIn("identity_sha256", entry["material"])
+        self.assertIn("STRU", entry["material"]["identity_sha256"])
+        software = entry["software_identity"]
+        self.assertEqual(
+            len(software["abacus_revision"]), 40
+        )
+        self.assertEqual(len(software["abacus_executable_sha256"]), 64)
+        self.assertEqual(len(software["librpa_executable_sha256"]), 64)
 
     def test_material_class_identities_freeze_expected_formulas_and_magnetic_order(self):
         perovskite = load_material_class("perovskite_gw")
@@ -102,7 +118,7 @@ class MaterialClassTest(unittest.TestCase):
             validate_material_class(drifted)
 
     def test_schema_rejects_mismatched_reference_status(self):
-        entry = load_material_class("altermagnet_gw")
+        entry = load_material_class("perovskite_gw")
         drifted = copy.deepcopy(entry)
         # A frozen reference object with a REFERENCE_PENDING status is inconsistent.
         drifted["reference"] = {"source": "df"}
@@ -151,7 +167,7 @@ class MaterialClassServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("altermagnet_gw", listed.structured_content["material_classes"])
         self.assertFalse(inspected.is_error, inspected.content)
         self.assertEqual(inspected.structured_content["material_class_id"], "altermagnet_gw")
-        self.assertEqual(inspected.structured_content["reference_status"], "REFERENCE_PENDING")
+        self.assertEqual(inspected.structured_content["reference_status"], "REFERENCE_AVAILABLE")
 
     async def test_mcp_inspect_material_class_rejects_unknown_id(self):
         with self.assertRaises(Exception) as ctx:

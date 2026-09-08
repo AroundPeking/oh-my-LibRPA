@@ -17,6 +17,17 @@
     "basis_family": "gth_tzdp10",
     "asset_probe_host": "df_iopcas_ghj",
     "asset_probe_date": "2026-09-08",
+    "identity_sha256": {
+      "STRU": "632bebc13868935f909d44a0d907676742b38193f077439d90625730fac97614",
+      "INPUT_scf": "e8fcc313f60ce77bc20a69011618a1db8db62a61fda928f801484de4a689282f",
+      "INPUT_nscf": "4221f6e2a4b41e6129e9f88da9b7f4be04eef738b53c77eda62fd8d516c82fe3",
+      "KPT_scf": "109809520b985be1c11ea431401f5420916fbd8dc4ca81bdd6cad1215336f659",
+      "KPT_nscf": "e7bfb67e3ed4f288e2063e12b7daa068b1c99bf1586f20985514be92e2a532aa",
+      "librpa.in": "c19cd013d9a0f8b02931d55a7a05e76b9017cbe0e6da3bcb479fe35c7c6558ba",
+      "get_diel.py": "72c7445809f1af7bc59d54d37a15881b63558f79b51abc259c2c2b9e89d27a33",
+      "output_librpa.py": "84837f846967d08de8380639dcfe784d853fe08c1645e0c7816d706bf9a11545",
+      "preprocess_abacus_for_librpa_band.py": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
+    },
     "pseudopotentials": {
       "Mn.upf": "b10dafc764626a02dc590b2e9789989f480d866f65c4974692422d8cd07da7c0",
       "Te.upf": "3bbcefd1a5d6ff89c1d4d94f27abec6f1702bb5fc2d7fda701369d4fbda53116"
@@ -31,10 +42,10 @@
     }
   },
   "software_identity": {
-    "abacus_revision": "99c4e9aa92f2405fdf80ffac96bbccf4295c60c5",
-    "abacus_executable_sha256": "2497422453351b9670afbcb28b993280e739b7b3cdf877fcebb2924a9579cfba",
-    "librpa_revision": "7e40c5bbf735a78aa15fa589ca2468fec2e2427b",
-    "librpa_executable_sha256": "305be3a3b6bcafce3120b4444327bb6863c61cfd464baf0f0c71558d26ecba43",
+    "abacus_revision": "31ad8d2db354853249969e50a377881929eaf2fa",
+    "abacus_executable_sha256": "fbb85bd5a1d89fb20175b31713916df433cf5a2a0f1dce8f91f2204047e92841",
+    "librpa_revision": "0592816198c1e81742bf4555791588ac99785fc4",
+    "librpa_executable_sha256": "3f87296289f1fa4de663a2bf8be2660f8381a1090ab46d4b1f3e8df1b081a8a0",
     "pyatb_revision": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
   },
   "required_contract": {
@@ -51,7 +62,28 @@
     "symmetry/full-q",
     "gap"
   ],
-  "reference_status": "REFERENCE_PENDING",
-  "reference": null,
-  "note": "The existing 2026-09-06 alpha-MnTe run set is diagnostic only: no converged reference (PBE0 Vxc jump ~200 eV, magnetic collapse, job 3186641 cancelled). A fresh nspin=2 reference must be produced before this row can move to REFERENCE_AVAILABLE; the input-file hash tree will be frozen at that point."
+  "reference_status": "REFERENCE_AVAILABLE",
+  "reference": {
+    "source": "df_iopcas_ghj",
+    "produced": "2026-08-02",
+    "job": 2485499,
+    "artifact": "altermagnet_gw_reference.json",
+    "artifact_sha256": "8ab9e74f9cb06e68b85fb310c07f41f1e47a3431245d7c75ca7b0454c44c1f83",
+    "definition_digest": "4f836fd381e33d42b644934b4d6bac71e82d9d3a94ce7cbb85c92c188788e132",
+    "window": {
+      "spins": [1, 2],
+      "vbm_band_by_spin": { "1": 21, "2": 21 },
+      "cbm_band_by_spin": { "1": 22, "2": 22 },
+      "band_start": 18,
+      "band_stop": 25,
+      "state_count": 2576,
+      "fundamental_gw_gap_ev": 1.52786
+    },
+    "diagnostics": {
+      "accepted": true,
+      "failure_count": 0,
+      "failures": []
+    }
+  },
+  "note": "Frozen numerical reference from the completed 2026-08-02 alpha-MnTe G0W0 band run (job 2485499). The reference stack is ABACUS 31ad8d2 + LibRPA 05928161 + pyatb 9fb9028c; the frozen compatibility stack (99c4e9aa / 7e40c5bb) cannot reproduce it because the standard-Ewald path in that LibRPA build crashes (Inverse_Matrix.hpp:117) and the direct_reciprocal Coulomb matrix is not positive-definite."
 }

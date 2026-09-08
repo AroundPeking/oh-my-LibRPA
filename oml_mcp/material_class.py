@@ -207,7 +207,11 @@ def validate_material_class(entry: dict[str, Any]) -> None:
             )
 
 
-def load_material_class(material_class_id: str) -> dict[str, Any]:
+def load_material_class(
+    material_class_id: str,
+    *,
+    hydrate_reference: bool = False,
+) -> dict[str, Any]:
     path = _material_class_path(material_class_id)
     try:
         entry = json.loads(path.read_text(encoding="utf-8"))
@@ -218,4 +222,40 @@ def load_material_class(material_class_id: str) -> dict[str, Any]:
     if not isinstance(entry, dict):
         raise MaterialClassError("material-class root must be an object")
     validate_material_class(entry)
+    if hydrate_reference and entry.get("reference_status") == "REFERENCE_AVAILABLE":
+        _hydrate_reference_candidate(entry, path)
     return entry
+
+
+def _hydrate_reference_candidate(entry: dict[str, Any], identity_path: Path) -> None:
+    """Attach the frozen numerical reference candidate to a REFERENCE_AVAILABLE entry.
+
+    The identity JSON stores only reference metadata (source, produced date, a
+    compact window summary and the artifact digest) so that inspecting an identity
+    stays lightweight. The full candidate (window states) lives in a sibling
+    artifact file and is hydrated on demand, matching the route-benchmark pattern
+    of a small identity plus separately loaded evidence.
+    """
+    reference = entry.get("reference")
+    if not isinstance(reference, dict):
+        raise MaterialClassError(
+            "a REFERENCE_AVAILABLE entry must carry a reference object"
+        )
+    artifact_name = reference.get("artifact")
+    if not isinstance(artifact_name, str) or not artifact_name:
+        raise MaterialClassError(
+            "a REFERENCE_AVAILABLE entry must name its reference artifact"
+        )
+    artifact_path = identity_path.with_name(artifact_name)
+    try:
+        payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise MaterialClassError(
+            f"cannot read reference artifact {artifact_path}: {exc}"
+        ) from exc
+    candidate = payload.get("candidate")
+    if not isinstance(candidate, dict):
+        raise MaterialClassError(
+            "reference artifact must contain a candidate object"
+        )
+    reference["candidate"] = candidate

@@ -114,7 +114,7 @@ def evaluate_material_class(
       - reference.status  : regression vs the frozen reference, or REFERENCE_PENDING.
     """
     try:
-        identity = load_material_class(material_class_id)
+        identity = load_material_class(material_class_id, hydrate_reference=True)
         validate_material_class(identity)
     except MaterialClassError as exc:
         raise MaterialClassEvaluationError(
