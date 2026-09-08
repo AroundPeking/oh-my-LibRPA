@@ -20,6 +20,7 @@ from .evolution import EvolutionBudget, EvolutionUsage, propose_candidate
 from .execution_profiles import load_execution_profile
 from .intake import ingest_case as ingest_case_data
 from .material_class import list_material_classes, load_material_class
+from .material_class_evaluator import evaluate_material_class
 from .planner import plan_case as plan_case_data
 from .profiles import load_profile
 from .route_benchmark import (
@@ -173,6 +174,23 @@ def build_server() -> MCPServer:
     def inspect_material_class(material_class_id: str) -> dict[str, Any]:
         """Inspect a registered material-class identity without changing policy."""
         return load_material_class(material_class_id)
+
+    @server.tool(
+        name="evaluate_material_class",
+        description=(
+            "Validate one produced GW run against a frozen material-class identity: "
+            "frozen PP/NAO/ABFS hashes, spin/SOC contract, spin-resolved insulating window, "
+            "and (when frozen) the numerical reference regression. Never submits or promotes."
+        ),
+        annotations=annotations,
+        structured_output=True,
+    )
+    def evaluate_material_class_tool(
+        material_class_id: str,
+        run: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Evaluate a run against an immutable material-class identity without side effects."""
+        return evaluate_material_class(material_class_id, run)
 
     @server.tool(
         name="evaluate_route_benchmark",

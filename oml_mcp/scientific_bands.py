@@ -308,6 +308,127 @@ def select_insulating_window(
     }
 
 
+def _occupied_count_pattern(
+    states: list[dict[str, object]],
+    *,
+    occupied_value: float,
+) -> tuple[int, list[bool]]:
+    ordered = sorted(states, key=lambda item: int(item["band"]))
+    occupied_flags: list[bool] = []
+    for state in ordered:
+        occupation = float(state["occupation"])
+        if abs(occupation - occupied_value) <= OCCUPATION_TOLERANCE:
+            occupied_flags.append(True)
+        elif abs(occupation) <= OCCUPATION_TOLERANCE:
+            occupied_flags.append(False)
+        else:
+            raise ScientificBandError(
+                "UNSUPPORTED_OCCUPATION_PATTERN",
+                "partial occupations are outside the spin-resolved scientific scope",
+                details={"kpoint": state["kpoint"], "band": state["band"], "occupation": occupation},
+            )
+    count = sum(occupied_flags)
+    if count <= 0 or count >= len(occupied_flags) or occupied_flags != [True] * count + [False] * (
+        len(occupied_flags) - count
+    ):
+        raise ScientificBandError(
+            "UNSUPPORTED_OCCUPATION_PATTERN",
+            "occupied states must precede unoccupied states at every k-point",
+            details={"occupations": occupied_flags},
+        )
+    return count, occupied_flags
+
+
+def select_spin_resolved_window(
+    bundle: dict[str, object],
+    *,
+    occupied_value: float = 2.0,
+    padding: int = 3,
+) -> dict[str, object]:
+    """Select an insulating state window across one or more spin channels.
+
+    Unlike :func:`select_insulating_window`, this supports nspin>=1 and SOC. Each
+    spin channel is validated independently: the occupied-band count must be
+    constant along the evaluated k path within that channel. The window is then
+    built per spin, and the fundamental GW gap is taken across the whole spin
+    manifold (highest occupied VBM minus lowest unoccupied CBM over all spins),
+    which is the correct definition for a magnetic or spin-split insulator.
+    """
+    spins = bundle.get("spins")
+    if not isinstance(spins, list) or not spins or any(int(spin) < 1 for spin in spins):
+        raise ScientificBandError(
+            "STATE_SET_MISMATCH", "spin-resolved window requires a non-empty spin set"
+        )
+    if padding < 0:
+        raise ScientificBandError("WINDOW_INVALID", "state-window padding cannot be negative")
+
+    # group by (spin, kpoint)
+    grouped: dict[tuple[int, tuple[float, float, float]], list[dict[str, object]]] = {}
+    for state in bundle["states"]:  # type: ignore[union-attr]
+        key = (int(state["spin"]), tuple(state["kpoint"]))  # type: ignore[index]
+        grouped.setdefault(key, []).append(state)
+
+    spin_occupied_counts: dict[int, set[int]] = {spin: set() for spin in spins}
+    for (spin, _kpoint), states in grouped.items():
+        count, _flags = _occupied_count_pattern(states, occupied_value=occupied_value)
+        spin_occupied_counts[spin].add(count)
+    for spin in spins:
+        counts = spin_occupied_counts[spin]
+        if len(counts) != 1:
+            raise ScientificBandError(
+                "UNSUPPORTED_OCCUPATION_PATTERN",
+                "occupied-band count changes along the evaluated k path",
+                details={"spin": spin, "occupied_counts": sorted(counts)},
+            )
+    spin_vbm: dict[int, int] = {spin: next(iter(counts)) for spin, counts in spin_occupied_counts.items()}
+    spin_cbm: dict[int, int] = {spin: spin_vbm[spin] + 1 for spin in spins}
+
+    nbands = int(bundle["nbands"])
+    spin_windows: dict[int, dict[str, object]] = {}
+    selected: list[dict[str, object]] = []
+    vbm_candidates: list[dict[str, object]] = []
+    cbm_candidates: list[dict[str, object]] = []
+    for spin in spins:
+        band_start = max(1, spin_vbm[spin] - padding)
+        band_stop = min(nbands, spin_cbm[spin] + padding)
+        spin_states = [
+            state
+            for state in bundle["states"]  # type: ignore[union-attr]
+            if int(state["spin"]) == spin and band_start <= int(state["band"]) <= band_stop
+        ]
+        spin_valence = [state for state in spin_states if int(state["band"]) == spin_vbm[spin]]
+        spin_conduction = [state for state in spin_states if int(state["band"]) == spin_cbm[spin]]
+        vbm_state = max(spin_valence, key=lambda item: float(item["gw_ev"]))
+        cbm_state = min(spin_conduction, key=lambda item: float(item["gw_ev"]))
+        selected.extend(spin_states)
+        vbm_candidates.append(vbm_state)
+        cbm_candidates.append(cbm_state)
+        spin_windows[spin] = {
+            "vbm_band": spin_vbm[spin],
+            "cbm_band": spin_cbm[spin],
+            "band_start": band_start,
+            "band_stop": band_stop,
+            "state_count": len(spin_states),
+            "vbm_state": vbm_state,
+            "cbm_state": cbm_state,
+            "gw_gap_ev": float(cbm_state["gw_ev"]) - float(vbm_state["gw_ev"]),
+        }
+
+    global_vbm = max(vbm_candidates, key=lambda item: float(item["gw_ev"]))
+    global_cbm = min(cbm_candidates, key=lambda item: float(item["gw_ev"]))
+    return {
+        "spins": [int(spin) for spin in spins],
+        "vbm_band_by_spin": spin_vbm,
+        "cbm_band_by_spin": spin_cbm,
+        "state_count": len(selected),
+        "states": selected,
+        "spin_windows": spin_windows,
+        "vbm_state": global_vbm,
+        "cbm_state": global_cbm,
+        "fundamental_gw_gap_ev": float(global_cbm["gw_ev"]) - float(global_vbm["gw_ev"]),
+    }
+
+
 def inspect_qpe_diagnostics(root: str | Path) -> dict[str, object]:
     run_root = Path(root).expanduser().resolve()
     logs = tuple(

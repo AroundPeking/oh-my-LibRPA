@@ -85,6 +85,34 @@ produced (they are `REFERENCE_PENDING` until then):
   are diagnostic only — no converged reference exists yet, so both remain
   `REFERENCE_PENDING`.
 
+### Material-Class Evaluator
+
+A produced run is validated against a frozen identity by
+`evaluate_material_class` (MCP tool `evaluate_material_class`). It computes
+non-compensating gates and never submits or promotes:
+
+- `identity.assets.{pseudopotentials,orbitals,auxiliary_bases}` — every frozen
+  asset must be present in the run with a matching SHA-256; extra run assets are
+  allowed (e.g. a freshly generated ABFS).
+- `identity.assets.present` — at least one asset group must be frozen.
+- `identity.software` — enforced only once a reference is frozen
+  (`REFERENCE_AVAILABLE`); for a pending identity it is auto-PASS.
+- `contract.spin` — run nspin/SOC must match the identity magnetic order. The
+  default occupation value is derived from the identity (2.0 for nspin=1, 1.0
+  for nspin>=2) so a run cannot relabel a metallic state as an insulator.
+- `window.valid` — the spin-resolved insulating window is re-derived from the
+  raw states by `select_spin_resolved_window`, which supports nspin>=1 and SOC.
+- `reference.status` — for `REFERENCE_PENDING` the gate FAILs and the verdict is
+  `REFERENCE_PENDING`/`BLOCKED`; for `REFERENCE_AVAILABLE` it runs the statewise
+  regression against the frozen reference.
+
+`select_spin_resolved_window` extends `select_insulating_window` (which remains
+nspin=1 only) to magnetic and SOC materials. It validates each spin channel
+independently (constant occupied-band count along the k path), builds a per-spin
+window, and takes the fundamental GW gap across the whole spin manifold (max VBM
+minus min CBM over all spins) — the correct definition for a spin-split
+insulator.
+
 ## Evidence Per Case
 
 Every case records:
