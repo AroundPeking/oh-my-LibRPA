@@ -62,28 +62,7 @@
     "symmetry/full-q",
     "gap"
   ],
-  "reference_status": "REFERENCE_AVAILABLE",
-  "reference": {
-    "source": "df_iopcas_ghj",
-    "produced": "2026-08-02",
-    "job": 2485499,
-    "artifact": "altermagnet_gw_reference.json",
-    "artifact_sha256": "8ab9e74f9cb06e68b85fb310c07f41f1e47a3431245d7c75ca7b0454c44c1f83",
-    "definition_digest": "4f836fd381e33d42b644934b4d6bac71e82d9d3a94ce7cbb85c92c188788e132",
-    "window": {
-      "spins": [1, 2],
-      "vbm_band_by_spin": { "1": 21, "2": 21 },
-      "cbm_band_by_spin": { "1": 22, "2": 22 },
-      "band_start": 18,
-      "band_stop": 25,
-      "state_count": 2576,
-      "fundamental_gw_gap_ev": 1.52786
-    },
-    "diagnostics": {
-      "accepted": true,
-      "failure_count": 0,
-      "failures": []
-    }
-  },
-  "note": "Frozen numerical reference from the completed 2026-08-02 alpha-MnTe G0W0 band run (job 2485499). The reference stack is ABACUS 31ad8d2 + LibRPA 05928161 + pyatb 9fb9028c; the frozen compatibility stack (99c4e9aa / 7e40c5bb) cannot reproduce it because the standard-Ewald path in that LibRPA build crashes (Inverse_Matrix.hpp:117) and the direct_reciprocal Coulomb matrix is not positive-definite."
+  "reference_status": "REFERENCE_PENDING",
+  "reference": null,
+  "note": "Demoted from REFERENCE_AVAILABLE on 2026-08-20. The single numeric gap from job 2485499 (alpha-MnTe, 1.52786 eV) is NOT a valid GW convergence reference: it was produced on a non-reproducible stack (ABACUS 31ad8d2 + LibRPA 05928161 + pyatb 9fb9028c) that the frozen compatibility stack (99c4e9aa / 7e40c5bb) cannot reproduce — the standard-Ewald path in that LibRPA build crashes (Inverse_Matrix.hpp:117) and the direct_reciprocal Coulomb matrix is not positive-definite. It is a single number with no convergence series. This is not a converged full-GW reference; use the LibRPA regression validated cases (see scientific_benchmarks/bn-reader-v1-3d-sym-shrink-v1.json) as the correct GW convergence reference source."
 }

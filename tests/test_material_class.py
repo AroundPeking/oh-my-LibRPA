@@ -49,12 +49,15 @@ class MaterialClassTest(unittest.TestCase):
             self.assertIn("pseudopotentials", entry["material"])
             self.assertIn("orbitals", entry["material"])
 
-    def test_available_entry_freezes_input_hash_tree_and_software_identity(self):
-        # A REFERENCE_AVAILABLE entry freezes the input-file hash tree and the
-        # software binaries, which is what the reference gate validates.
+    def test_altermagnet_freezes_identity_but_reference_is_pending(self):
+        # The altermagnet identity freezes the input-file hash tree and the
+        # software binaries (reproducible identity/asset data). But the single
+        # numeric gap (job 2485499) is a non-reproducible number on a stack the
+        # frozen compatibility build cannot run, so the reference is PENDING:
+        # it is not a valid GW convergence reference.
         entry = load_material_class("altermagnet_gw")
-        self.assertEqual(entry["reference_status"], "REFERENCE_AVAILABLE")
-        self.assertIsNotNone(entry["reference"])
+        self.assertEqual(entry["reference_status"], "REFERENCE_PENDING")
+        self.assertIsNone(entry["reference"])
         self.assertIn("identity_sha256", entry["material"])
         self.assertIn("STRU", entry["material"]["identity_sha256"])
         software = entry["software_identity"]
@@ -167,7 +170,7 @@ class MaterialClassServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("altermagnet_gw", listed.structured_content["material_classes"])
         self.assertFalse(inspected.is_error, inspected.content)
         self.assertEqual(inspected.structured_content["material_class_id"], "altermagnet_gw")
-        self.assertEqual(inspected.structured_content["reference_status"], "REFERENCE_AVAILABLE")
+        self.assertEqual(inspected.structured_content["reference_status"], "REFERENCE_PENDING")
 
     async def test_mcp_inspect_material_class_rejects_unknown_id(self):
         with self.assertRaises(Exception) as ctx:

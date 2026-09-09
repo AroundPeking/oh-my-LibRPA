@@ -1,0 +1,527 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "bn-reader-v1-3d-sym-shrink-v1",
+  "description": "Bulk BN reader-v1 three-dimensional GW acceptance policy grounded in the LibRPA BN symmetry-shrink regression family (converged OML run, positive 6.14 eV gap).",
+  "system_type": "solid",
+  "state_window": {
+    "below_vbm": 3,
+    "above_cbm": 3
+  },
+  "regression_tolerance_ev": 0.001,
+  "convergence_tolerance_ev": 0.05,
+  "axis_tolerances_ev": {
+    "symmetry": 0.0001,
+    "nfreq": 0.05,
+    "empty_states": 0.05,
+    "screening_kgrid": 0.05
+  },
+  "require_positive_gw_gap": true,
+  "required_axes": [
+    "symmetry",
+    "nfreq",
+    "empty_states",
+    "screening_kgrid"
+  ],
+  "reference_status": "AVAILABLE",
+  "reference": {
+    "definition": {
+      "schema_version": 2,
+      "digest": "ca045a79b1a2e748b5dafc7f9090040b6a6c40fcdb54e97cc17683ff8115ce42",
+      "profile_id": "abacus-master-ghj-librpa-0.7.0-pyatb-headwing-2026-08",
+      "route": "periodic_gw_symmetry",
+      "task": "gw",
+      "system_type": "solid",
+      "soc": false,
+      "symmetry": true,
+      "software": {
+        "revisions": {
+          "abacus": "3efad9ed5ca066aee1d1b2214e43f92a2d2a567e",
+          "librpa": "dd169fa11fa920d580d4f39dc11e218a7f17f7b5",
+          "pyatb": "9fb9028c59b1dbaf9cf66965280961fc2225d9eb"
+        },
+        "executables": {
+          "abacus": "56f445affd67756cea21381b05a45b4de5d9cbe8b0a061cdc80d91e37228fa6e",
+          "librpa": "7af5e426933283a2aa08b8771692bc770506ce3b6f00ccf8545108cb8e58d3bc"
+        }
+      },
+      "structure": {
+        "stru_sha256": "dea222ceb7627e4eb73d1416c01a0abb3625f9cb9459362ee589b510a526502d"
+      },
+      "assets": {
+        "pseudopotentials": {
+          "B_ONCV_PBE-1.0.upf": "0ea384402c92516dcca6032c1b249e6ced70770661b2acb930e34b5f230b401f",
+          "N_ONCV_PBE-1.0.upf": "b8b7334fbc55c79ced5bb9486c45ce5f0dcae1b7ea5e7523cfcd9814ca58f1c8"
+        },
+        "orbitals": {
+          "B_gga_8au_100Ry_2s2p1d.orb": "ad38bd9aeb0e47c950f58a3857318f29b85712dbc11c1cbf0846e3c510b223b1",
+          "N_gga_8au_100Ry_2s2p1d.orb": "91a13eefbf479e5784ef6a65978e815492aac67ab8a3ce1a30dbbc44effa7147"
+        },
+        "auxiliary_bases": {}
+      },
+      "workflow_helpers": {
+        "perform.sh": "b1c4e2327c996c0b03b4ec4a284f0710ea8b103d2237486a15414ca2af09e891",
+        "get_diel.py": "fea2d2e62a23aa86bd17b8a447dd58f078679fcf7b6db31b493fe2b13137e714",
+        "output_librpa.py": "10986012071d6bb1d235874c5136e79b5b2f137e6b71bbd78a7cecdc9060305a",
+        "preprocess_abacus_for_librpa_band.py": "c8b9ed860c9e47752632425d87ffe6eb7df6473a69edaaccb08a4d516fd3cec5"
+      },
+      "abacus": {
+        "basis_type": "lcao",
+        "nspin": 1,
+        "nbands": 25,
+        "ecutwfc": 100.0,
+        "smearing_method": "gaussian",
+        "smearing_sigma": 0.0001,
+        "scf_symmetry": 1,
+        "nscf_symmetry": -1,
+        "out_librpa_reader_version": 1,
+        "exx_pca_threshold": 0.001,
+        "shrink_abfs_pca_thr": 0.1,
+        "shrink_lu_inv_thr": 0.001
+      },
+      "kpoints": {
+        "scf": {
+          "mode": "mesh",
+          "scheme": "gamma",
+          "grid": [
+            4,
+            4,
+            4
+          ],
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "band_path": {
+          "mode": "path",
+          "coordinate_system": "direct",
+          "points": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.5,
+              0.0,
+              0.5
+            ]
+          ],
+          "segments": [
+            2,
+            1
+          ]
+        }
+      },
+      "librpa": {
+        "task": "g0w0",
+        "frequency_grid": {
+          "type": "minimax",
+          "nfreq": 16,
+          "frequency_min": 0.005,
+          "frequency_interval": 0.0,
+          "frequency_max": 1000.0,
+          "time_min": 0.005,
+          "time_interval": 0.0,
+          "minimax_emin": -1.0,
+          "minimax_emax": -1.0,
+          "minimax_regulation": 0.0
+        },
+        "analytic_continuation": {
+          "n_params": -1,
+          "source_n_params": -1,
+          "grid_type": "unset",
+          "nfreq": -1
+        },
+        "qpe_solver": {
+          "option": 0,
+          "threshold_hartree": 1e-06,
+          "max_iterations": 10000,
+          "damping_factor": 0.1,
+          "adaptive_damping": false,
+          "legacy_update": false,
+          "override_failure_with_last_iterate": false,
+          "use_hedin_shift": false,
+          "hedin_reference_state": -1
+        },
+        "n_bands_chi0": -1,
+        "n_bands_sigc": -1,
+        "option_dielect_func": 3,
+        "replace_w_head": true,
+        "use_fullcoul_exx": false,
+        "use_shrink_abfs": true,
+        "use_shrink_chi": true,
+        "use_symmetry_exx": true,
+        "use_symmetry_gw": true,
+        "use_soc": 0,
+        "version_coul_reader": 1,
+        "version_lri_reader": 1,
+        "sqrt_coulomb_threshold": 0.0,
+        "libri_chi0_threshold_C": 0.0001,
+        "libri_chi0_threshold_G": 1e-05,
+        "libri_g0w0_threshold_C": 1e-05,
+        "libri_g0w0_threshold_G": 1e-05,
+        "libri_g0w0_threshold_Wc": 1e-06
+      }
+    },
+    "state_space": {
+      "nbands": 25,
+      "basis_dimension": 0,
+      "complete": false
+    },
+    "window": {
+      "vbm_band": 4,
+      "cbm_band": 5,
+      "band_start": 1,
+      "band_stop": 8,
+      "state_count": 24,
+      "states": [
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 1,
+          "occupation": 2.0,
+          "ks_ev": -9.02755,
+          "exx_ev": -18.54529,
+          "gw_ev": -11.81984
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 2,
+          "occupation": 2.0,
+          "ks_ev": 11.17843,
+          "exx_ev": 8.1138,
+          "gw_ev": 11.00994
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 3,
+          "occupation": 2.0,
+          "ks_ev": 11.17843,
+          "exx_ev": 8.11379,
+          "gw_ev": 11.00992
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 4,
+          "occupation": 2.0,
+          "ks_ev": 11.17843,
+          "exx_ev": 8.1138,
+          "gw_ev": 11.00993
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 5,
+          "occupation": 0.0,
+          "ks_ev": 20.0079,
+          "exx_ev": 24.76492,
+          "gw_ev": 19.879
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 6,
+          "occupation": 0.0,
+          "ks_ev": 20.0079,
+          "exx_ev": 24.76492,
+          "gw_ev": 19.87899
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 7,
+          "occupation": 0.0,
+          "ks_ev": 20.0079,
+          "exx_ev": 24.76492,
+          "gw_ev": 19.879
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "band": 8,
+          "occupation": 0.0,
+          "ks_ev": 21.88977,
+          "exx_ev": 22.73589,
+          "gw_ev": 17.81741
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 1,
+          "occupation": 2.0,
+          "ks_ev": -7.06396,
+          "exx_ev": -16.14697,
+          "gw_ev": -9.5463
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 2,
+          "occupation": 2.0,
+          "ks_ev": 7.19986,
+          "exx_ev": 2.65021,
+          "gw_ev": 6.4097
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 3,
+          "occupation": 2.0,
+          "ks_ev": 8.14594,
+          "exx_ev": 4.30908,
+          "gw_ev": 7.7254
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 4,
+          "occupation": 2.0,
+          "ks_ev": 8.14594,
+          "exx_ev": 4.30908,
+          "gw_ev": 7.72539
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 5,
+          "occupation": 0.0,
+          "ks_ev": 18.09618,
+          "exx_ev": 22.28209,
+          "gw_ev": 17.14992
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 6,
+          "occupation": 0.0,
+          "ks_ev": 23.58679,
+          "exx_ev": 23.40223,
+          "gw_ev": 18.28971
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 7,
+          "occupation": 0.0,
+          "ks_ev": 24.72166,
+          "exx_ev": 30.42039,
+          "gw_ev": 24.3697
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.25,
+            0.0,
+            0.25
+          ],
+          "band": 8,
+          "occupation": 0.0,
+          "ks_ev": 24.72166,
+          "exx_ev": 30.42038,
+          "gw_ev": 24.36969
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 1,
+          "occupation": 2.0,
+          "ks_ev": -3.43636,
+          "exx_ev": -12.01698,
+          "gw_ev": -5.45522
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 2,
+          "occupation": 2.0,
+          "ks_ev": 2.24739,
+          "exx_ev": -3.72959,
+          "gw_ev": 0.96883
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 3,
+          "occupation": 2.0,
+          "ks_ev": 6.24468,
+          "exx_ev": 1.72278,
+          "gw_ev": 5.57978
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 4,
+          "occupation": 2.0,
+          "ks_ev": 6.24468,
+          "exx_ev": 1.72278,
+          "gw_ev": 5.57978
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 5,
+          "occupation": 0.0,
+          "ks_ev": 15.84226,
+          "exx_ev": 20.94474,
+          "gw_ev": 17.43445
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 6,
+          "occupation": 0.0,
+          "ks_ev": 21.28931,
+          "exx_ev": 21.59841,
+          "gw_ev": 17.53218
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 7,
+          "occupation": 0.0,
+          "ks_ev": 29.09899,
+          "exx_ev": 36.46565,
+          "gw_ev": 28.94095
+        },
+        {
+          "spin": 1,
+          "kpoint": [
+            0.5,
+            0.0,
+            0.5
+          ],
+          "band": 8,
+          "occupation": 0.0,
+          "ks_ev": 29.09899,
+          "exx_ev": 36.46563,
+          "gw_ev": 28.94094
+        }
+      ],
+      "vbm_state": {
+        "spin": 1,
+        "kpoint": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "band": 4,
+        "occupation": 2.0,
+        "ks_ev": 11.17843,
+        "exx_ev": 8.1138,
+        "gw_ev": 11.00993
+      },
+      "cbm_state": {
+        "spin": 1,
+        "kpoint": [
+          0.25,
+          0.0,
+          0.25
+        ],
+        "band": 5,
+        "occupation": 0.0,
+        "ks_ev": 18.09618,
+        "exx_ev": 22.28209,
+        "gw_ev": 17.14992
+      },
+      "fundamental_gw_gap_ev": 6.139990000000001
+    },
+    "diagnostics": {
+      "accepted": true,
+      "failure_count": 0,
+      "failures": []
+    }
+  }
+}

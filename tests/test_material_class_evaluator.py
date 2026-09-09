@@ -48,34 +48,6 @@ PERO_ASSETS = {
 }
 
 
-def _altermagnet_candidate():
-    """Load the frozen altermagnet_gw reference candidate (hydrated from artifact).
-
-    The reference regression compares ``run["candidate"]`` against the frozen
-    candidate, so a reproducing run must carry the reference candidate itself.
-    """
-    entry = load_material_class("altermagnet_gw", hydrate_reference=True)
-    return entry["reference"]["candidate"]
-
-
-def _altermagnet_software(entry=None):
-    """Identity-style software block matching the frozen altermagnet_gw stack."""
-    if entry is None:
-        entry = load_material_class("altermagnet_gw")
-    identity = entry["software_identity"]
-    return {
-        "revisions": {
-            "abacus_revision": identity["abacus_revision"],
-            "librpa_revision": identity["librpa_revision"],
-            "pyatb_revision": identity["pyatb_revision"],
-        },
-        "executables": {
-            "abacus_executable_sha256": identity["abacus_executable_sha256"],
-            "librpa_executable_sha256": identity["librpa_executable_sha256"],
-        },
-    }
-
-
 def _make_run(material_class_id: str, *, nspin: int, soc: bool, states):
     if material_class_id == "altermagnet_gw":
         assets = copy.deepcopy(ALTE_ASSETS)
@@ -83,7 +55,7 @@ def _make_run(material_class_id: str, *, nspin: int, soc: bool, states):
         assets = copy.deepcopy(PERO_ASSETS)
     else:
         raise AssertionError(f"unhandled class in fixture: {material_class_id}")
-    run = {
+    return {
         "assets": assets,
         "nspin": nspin,
         "soc": soc,
@@ -95,12 +67,6 @@ def _make_run(material_class_id: str, *, nspin: int, soc: bool, states):
             "states": states,
         },
     }
-    if material_class_id == "altermagnet_gw":
-        # The frozen identity is REFERENCE_AVAILABLE, so the evaluator reaches the
-        # regression path; a run must carry the reference candidate and software.
-        run["candidate"] = _altermagnet_candidate()
-        run["software"] = _altermagnet_software()
-    return run
 
 
 def _kpoint(k_index: int) -> list[float]:
@@ -248,169 +214,44 @@ class MaterialClassEvaluatorTest(unittest.TestCase):
         self.assertEqual(gates["reference.status"], "FAIL")
         self.assertEqual(result["window"]["spins"], [1])
 
-    def test_reference_available_identity_hydrates_candidate_from_artifact(self):
-        # The frozen altermagnet_gw reference is stored as a separate artifact; it
-        # must be hydrated on demand and match the compact summary in the identity.
+    def test_altermagnet_identity_is_pending_but_freezes_identity_data(self):
+        # The altermagnet identity freezes reproducible identity/asset/software data
+        # (input hash tree, ABFS, revisions, executable hashes). But the single
+        # numeric gap from job 2485499 is a non-reproducible number on a stack the
+        # frozen compatibility build cannot run, so the numeric reference is PENDING.
         entry = load_material_class("altermagnet_gw", hydrate_reference=True)
-        self.assertEqual(entry["reference_status"], "REFERENCE_AVAILABLE")
-        reference = entry["reference"]
-        self.assertIn("candidate", reference)
-        candidate = reference["candidate"]
-        window = candidate["window"]
-        self.assertEqual(window["state_count"], reference["window"]["state_count"])
-        self.assertAlmostEqual(
-            window["fundamental_gw_gap_ev"],
-            reference["window"]["fundamental_gw_gap_ev"],
-            places=5,
-        )
-        self.assertEqual(candidate["diagnostics"]["accepted"], True)
-        self.assertEqual(candidate["diagnostics"]["failure_count"], 0)
-        # The hydrated definition digest must match the frozen summary.
-        self.assertEqual(
-            candidate["definition"]["digest"],
-            reference["definition_digest"],
-        )
+        self.assertEqual(entry["reference_status"], "REFERENCE_PENDING")
+        # No reference object is frozen, so hydration is a no-op.
+        self.assertIsNone(entry["reference"])
+        # Identity data is still frozen.
+        self.assertIn("identity_sha256", entry["material"])
+        self.assertIn("STRU", entry["material"]["identity_sha256"])
+        self.assertEqual(len(entry["software_identity"]["abacus_revision"]), 40)
+        self.assertEqual(len(entry["software_identity"]["abacus_executable_sha256"]), 64)
+        self.assertEqual(len(entry["material"]["auxiliary_bases"]), 2)
 
-    def test_reference_available_run_within_tolerance_passes(self):
-        # A reproducing run (same definition, window, and software) must pass all
-        # non-compensating gates and be promoted to ENABLED.
-        entry = load_material_class("altermagnet_gw", hydrate_reference=True)
-        reference = entry["reference"]["candidate"]
-        states = reference["window"]["states"]
-
-        # The evaluator re-derives VBM/CBM from the submitted run window, so it
-        # needs the full occupation pattern (bands 1..25, 21 occupied per spin).
-        full_states = []
-        for spin in (1, 2):
-            for k_index in range(161):
-                kpoint = [0.375, 0.0, 0.1667 * (k_index + 1)]
-                for band in range(1, 26):
-                    occupation = 1.0 if band <= 21 else 0.0
-                    full_states.append({
-                        "spin": spin,
-                        "kpoint": kpoint,
-                        "band": band,
-                        "occupation": occupation,
-                        "ks_ev": 5.0 + band,
-                        "exx_ev": 5.0 + band,
-                        "gw_ev": 5.0 + band,
-                    })
-
-        run = {
-            "assets": {
-                "pseudopotentials": entry["material"]["pseudopotentials"],
-                "orbitals": entry["material"]["orbitals"],
-                "auxiliary_bases": entry["material"]["auxiliary_bases"],
-            },
-            "nspin": 2,
-            "soc": False,
-            "occupied_value": 1.0,
-            "padding": 3,
-            "window": {
-                "spins": [1, 2],
-                "nbands": 170,
-                "states": full_states,
-            },
-            "software": {
-                "revisions": {
-                    "abacus_revision": entry["software_identity"]["abacus_revision"],
-                    "librpa_revision": entry["software_identity"]["librpa_revision"],
-                    "pyatb_revision": entry["software_identity"]["pyatb_revision"],
-                },
-                "executables": {
-                    "abacus_executable_sha256": entry["software_identity"]["abacus_executable_sha256"],
-                    "librpa_executable_sha256": entry["software_identity"]["librpa_executable_sha256"],
-                },
-            },
-            "candidate": reference,
-        }
+    def test_altermagnet_pending_run_passes_identity_gates_but_blocks_reference(self):
+        # A correct altermagnet run (matching assets, software contract, nspin=2)
+        # passes all identity/contract/window gates but is blocked at the missing
+        # numeric reference: the PENDING status must not be a silent pass.
+        run = _altermagnet_run()
 
         result = evaluate_material_class("altermagnet_gw", run)
 
-        self.assertEqual(result["reference_status"], "REFERENCE_AVAILABLE")
-        self.assertEqual(result["status"], "PASS")
-        self.assertEqual(result["scientific_status"], "PASS")
-        self.assertEqual(result["promotion_eligibility"], "ENABLED")
-        gates = {gate["gate_id"]: gate["status"] for gate in result["gates"]}
-        self.assertTrue(all(status == "PASS" for status in gates.values()))
-        # The submitted run re-derives its own window from the synthetic full
-        # occupation pattern (gw_ev = 5 + band, VBM=21/CBM=22) -> gap = 1.0 eV.
-        # The regression compares the submitted candidate against the frozen
-        # reference separately; both are the same object here, so it passes.
-        self.assertAlmostEqual(
-            result["window"]["fundamental_gw_gap_ev"],
-            1.0,
-            places=5,
-        )
-        self.assertEqual(result["window"]["vbm_band_by_spin"], {1: 21, 2: 21})
-        self.assertEqual(result["window"]["cbm_band_by_spin"], {1: 22, 2: 22})
-
-    def test_reference_available_rejects_definition_mismatch(self):
-        # A run whose definition differs from the frozen reference must be
-        # NOT_EVALUATED (DEFINITION_MISMATCH), not a silent pass.
-        entry = load_material_class("altermagnet_gw", hydrate_reference=True)
-        reference = entry["reference"]["candidate"]
-        drifted = copy.deepcopy(reference)
-        drifted["definition"]["abacus"]["nbands"] = 200
-
-        full_states = []
-        for spin in (1, 2):
-            for k_index in range(161):
-                kpoint = [0.375, 0.0, 0.1667 * (k_index + 1)]
-                for band in range(1, 26):
-                    occupation = 1.0 if band <= 21 else 0.0
-                    full_states.append({
-                        "spin": spin,
-                        "kpoint": kpoint,
-                        "band": band,
-                        "occupation": occupation,
-                        "ks_ev": 5.0 + band,
-                        "exx_ev": 5.0 + band,
-                        "gw_ev": 5.0 + band,
-                    })
-        run = {
-            "assets": {
-                "pseudopotentials": entry["material"]["pseudopotentials"],
-                "orbitals": entry["material"]["orbitals"],
-                "auxiliary_bases": entry["material"]["auxiliary_bases"],
-            },
-            "nspin": 2,
-            "soc": False,
-            "occupied_value": 1.0,
-            "padding": 3,
-            "window": {
-                "spins": [1, 2],
-                "nbands": 170,
-                "states": full_states,
-            },
-            "software": {
-                "revisions": {
-                    "abacus_revision": entry["software_identity"]["abacus_revision"],
-                    "librpa_revision": entry["software_identity"]["librpa_revision"],
-                    "pyatb_revision": entry["software_identity"]["pyatb_revision"],
-                },
-                "executables": {
-                    "abacus_executable_sha256": entry["software_identity"]["abacus_executable_sha256"],
-                    "librpa_executable_sha256": entry["software_identity"]["librpa_executable_sha256"],
-                },
-            },
-            "candidate": drifted,
-        }
-
-        result = evaluate_material_class("altermagnet_gw", run)
-
-        self.assertEqual(result["status"], "FAIL")
-        self.assertEqual(result["scientific_status"], "FAIL")
+        self.assertEqual(result["reference_status"], "REFERENCE_PENDING")
+        self.assertEqual(result["status"], "REFERENCE_PENDING")
+        self.assertEqual(result["scientific_status"], "NOT_EVALUATED")
         self.assertEqual(result["promotion_eligibility"], "BLOCKED")
-        regression = {
-            gate["gate_id"]: gate
-            for gate in result["gates"]
-            if gate["gate_id"] == "reference.status"
-        }["reference.status"]
-        self.assertEqual(
-            regression["measured"]["reason_code"],
-            "DEFINITION_MISMATCH",
-        )
+        gates = {gate["gate_id"]: gate["status"] for gate in result["gates"]}
+        self.assertEqual(gates["identity.assets.pseudopotentials"], "PASS")
+        self.assertEqual(gates["identity.assets.orbitals"], "PASS")
+        self.assertEqual(gates["identity.assets.auxiliary_bases"], "PASS")
+        self.assertEqual(gates["identity.assets.present"], "PASS")
+        self.assertEqual(gates["identity.software"], "PASS")
+        self.assertEqual(gates["contract.spin"], "PASS")
+        self.assertEqual(gates["window.valid"], "PASS")
+        self.assertEqual(gates["reference.status"], "FAIL")
+        self.assertEqual(result["window"]["spins"], [1, 2])
 
     def test_asset_hash_mismatch_fails_identity_gate(self):
         run = _altermagnet_run()
@@ -498,7 +339,7 @@ class MaterialClassServerTest(unittest.IsolatedAsyncioTestCase):
             "inspect_material_class", {"material_class_id": "altermagnet_gw"}
         )
         self.assertFalse(inspected.is_error, inspected.content)
-        self.assertEqual(inspected.structured_content["reference_status"], "REFERENCE_AVAILABLE")
+        self.assertEqual(inspected.structured_content["reference_status"], "REFERENCE_PENDING")
 
     async def test_mcp_lists_material_classes(self):
         server = build_server()
@@ -515,9 +356,9 @@ class MaterialClassServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.is_error, result.content)
         payload = result.structured_content
         self.assertEqual(payload["material_class_id"], "altermagnet_gw")
-        self.assertEqual(payload["reference_status"], "REFERENCE_AVAILABLE")
-        self.assertEqual(payload["status"], "PASS")
-        self.assertEqual(payload["promotion_eligibility"], "ENABLED")
+        self.assertEqual(payload["reference_status"], "REFERENCE_PENDING")
+        self.assertEqual(payload["status"], "REFERENCE_PENDING")
+        self.assertEqual(payload["promotion_eligibility"], "BLOCKED")
 
 
 if __name__ == "__main__":

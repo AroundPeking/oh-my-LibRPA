@@ -62,7 +62,7 @@ aggregate scientific verdict remains `NOT_EVALUATED`.
 | --- | --- | --- | --- | --- |
 | `perovskite_gw` | cubic SrTiO3 | d-character conduction bands and multiple near-edge states | state identity, gap, semicore/basis and k-grid convergence | `REFERENCE_PENDING` |
 | `transition_metal_oxide_gw` | AFM NiO | spin, DFT+U starting point, localized d states | magnetic moments, occupations, state-resolved QPE, U definition | `REFERENCE_PENDING` |
-| `altermagnet_gw` | alpha-MnTe | magnetic symmetry and spin-split bands | magnetic ground state, symmetry/full-q, spin-resolved state identity | `REFERENCE_AVAILABLE` |
+| `altermagnet_gw` | alpha-MnTe | magnetic symmetry and spin-split bands | magnetic ground state, symmetry/full-q, spin-resolved state identity | `REFERENCE_PENDING` |
 | `soc_2d_gw` | WSe2 | scalar-relativistic (no-SOC) strict-2D screening and states | PyATB full grid, strict-2D Coulomb, state identity and gap | `REFERENCE_PENDING` |
 
 These systems are registered material-class benchmark identities with a frozen
@@ -82,14 +82,25 @@ produced (they are `REFERENCE_PENDING` until then):
   host before a GW reference can be produced.
 - `altermagnet_gw` (alpha-MnTe, collinear, GTH + TZDP) and `soc_2d_gw` (WSe2,
   scalar-relativistic/no-SOC, CP2K-GTH + SIAB) freeze PP, NAO and ABFS assets.
-  `altermagnet_gw` now has
-  a frozen numerical reference from the completed 2026-08-02 G0W0 band run (see
-  the `reference` block and the sibling `altermagnet_gw_reference.json` artifact);
-  its input-file hash tree and software stack are frozen as `REFERENCE_AVAILABLE`.
   `soc_2d_gw`'s run set is still diagnostic only — no converged reference exists
   yet, so it remains `REFERENCE_PENDING`. (A separate SOC lane would need nspin=4
   with noncolin/lspinorb and matched SOC UPFs, which are not yet available on the
-  probe host.)
+  probe host.) `altermagnet_gw` previously claimed `REFERENCE_AVAILABLE`, but the
+  single numeric gap from the 2026-08-02 G0W0 band run (job 2485499, 1.52786 eV)
+  is a non-reproducible number: it was produced on a stack (ABACUS 31ad8d2 +
+  LibRPA 05928161 + pyatb 9fb9028c) that the frozen compatibility build
+  (99c4e9aa / 7e40c5bb) cannot run, because the standard-Ewald path in that
+  LibRPA build crashes (`Inverse_Matrix.hpp:117`) and the direct_reciprocal
+  Coulomb matrix is not positive-definite. A single gap with no convergence
+  series is not a valid GW convergence reference, so `altermagnet_gw` is demoted
+  to `REFERENCE_PENDING`: its identity/asset/software data is still frozen, but
+  it carries no accepted numerical reference. The correct GW convergence
+  reference source is the LibRPA regression cases, which are validated against
+  frozen datasets; the BN material-class scientific benchmark
+  (`scientific_benchmarks/bn-reader-v1-3d-sym-shrink-v1.json`) is derived from a
+  converged production run of the LibRPA
+  `g0w0_band_abacus_BN_sym_shrink_libri` regression material and is the honest
+  reference for the `periodic_3d_gw` route.
 
 ### Material-Class Evaluator
 

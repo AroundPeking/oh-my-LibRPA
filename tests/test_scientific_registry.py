@@ -1,9 +1,11 @@
+import copy
 import json
 import pathlib
 import tempfile
 import unittest
 
 
+from oml_mcp.scientific_evaluation import evaluate_regression
 from oml_mcp.scientific_registry import (
     ScientificRegistryError,
     load_benchmark,
@@ -119,6 +121,104 @@ class ScientificRegistryTest(unittest.TestCase):
             loaded = load_convergence_bundle("bn-live-nfreq-v1", roots=(root,))
 
         self.assertEqual(loaded["run_ids"], bundle["run_ids"])
+
+
+class LibRpaGroundedBenchmarkTest(unittest.TestCase):
+    """The LibRPA regression family is the correct source of GW convergence references.
+
+    ``bn-reader-v1-3d-sym-shrink-v1`` freezes a converged reference candidate from
+    the OML production BN run, which is the converged version of the LibRPA
+    ``g0w0_band_abacus_BN_sym_shrink_libri`` regression material. Unlike the
+    material-class identities (SrTiO3/NiO/alpha-MnTe/WSe2) which freeze a single
+    numeric gap without a convergence series, this benchmark carries a full
+    KS/EXX/GW state window with a positive converged gap, so it can gate real
+    convergence work without a false pass.
+    """
+
+    def test_packaged_librpa_grounded_policy_carries_a_real_reference(self):
+        policy = load_benchmark("bn-reader-v1-3d-sym-shrink-v1")
+
+        self.assertEqual(policy["benchmark_id"], "bn-reader-v1-3d-sym-shrink-v1")
+        self.assertEqual(policy["reference_status"], "AVAILABLE")
+        self.assertIsInstance(policy["reference"], dict)
+        reference = policy["reference"]
+        self.assertIn("definition", reference)
+        self.assertIn("window", reference)
+        self.assertEqual(reference["window"]["state_count"], 24)
+        self.assertGreater(reference["window"]["fundamental_gw_gap_ev"], 0.0)
+        self.assertEqual(
+            reference["definition"]["abacus"]["nspin"], 1
+        )
+        self.assertTrue(policy["require_positive_gw_gap"])
+        self.assertEqual(
+            policy["required_axes"],
+            ["symmetry", "nfreq", "empty_states", "screening_kgrid"],
+        )
+
+    def test_librpa_grounded_reference_self_match_passes(self):
+        policy = load_benchmark("bn-reader-v1-3d-sym-shrink-v1")
+        reference = policy["reference"]
+        result = evaluate_regression(
+            reference,
+            reference,
+            tolerance_ev=float(policy["regression_tolerance_ev"]),
+        )
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["reason_code"], "WITHIN_TOLERANCE")
+        self.assertEqual(result["state_count"], 24)
+
+    def test_librpa_grounded_reference_rejects_definition_drift(self):
+        policy = load_benchmark("bn-reader-v1-3d-sym-shrink-v1")
+        reference = policy["reference"]
+        drifted = copy.deepcopy(reference)
+        drifted["definition"]["abacus"]["nbands"] = 30
+        result = evaluate_regression(
+            drifted,
+            reference,
+            tolerance_ev=float(policy["regression_tolerance_ev"]),
+        )
+        self.assertEqual(result["status"], "NOT_EVALUATED")
+        self.assertEqual(result["reason_code"], "DEFINITION_MISMATCH")
+
+    def test_librpa_grounded_reference_rejects_software_drift(self):
+        policy = load_benchmark("bn-reader-v1-3d-sym-shrink-v1")
+        reference = policy["reference"]
+        drifted = copy.deepcopy(reference)
+        drifted["definition"]["software"]["revisions"]["librpa"] = "0" * 40
+        result = evaluate_regression(
+            drifted,
+            reference,
+            tolerance_ev=float(policy["regression_tolerance_ev"]),
+        )
+        self.assertEqual(result["status"], "NOT_EVALUATED")
+        self.assertEqual(result["reason_code"], "DEFINITION_MISMATCH")
+
+    def test_librpa_grounded_reference_rejects_numeric_drift(self):
+        policy = load_benchmark("bn-reader-v1-3d-sym-shrink-v1")
+        reference = policy["reference"]
+        drifted = copy.deepcopy(reference)
+        for state in drifted["window"]["states"]:
+            state["gw_ev"] = round(float(state["gw_ev"]) + 0.5, 5)
+        result = evaluate_regression(
+            drifted,
+            reference,
+            tolerance_ev=float(policy["regression_tolerance_ev"]),
+        )
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["reason_code"], "REGRESSION_TOLERANCE_EXCEEDED")
+
+    def test_librpa_grounded_reference_rejects_state_set_mismatch(self):
+        policy = load_benchmark("bn-reader-v1-3d-sym-shrink-v1")
+        reference = policy["reference"]
+        drifted = copy.deepcopy(reference)
+        drifted["window"]["states"] = drifted["window"]["states"][:10]
+        result = evaluate_regression(
+            drifted,
+            reference,
+            tolerance_ev=float(policy["regression_tolerance_ev"]),
+        )
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["reason_code"], "STATE_SET_MISMATCH")
 
 
 if __name__ == "__main__":
