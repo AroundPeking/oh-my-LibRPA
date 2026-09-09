@@ -1,7 +1,7 @@
 {
   "schema": "oml.material-class.v1",
   "material_class_id": "soc_2d_gw",
-  "description": "SOC 2D material-class GW reference identity: monolayer WSe2 in the CP2K GTH + SIAB matched basis.",
+  "description": "Scalar-relativistic (no-SOC) strict-2D material-class GW reference identity: monolayer WSe2 in the CP2K GTH + SIAB matched basis.",
   "material": {
     "formula": "WSe2",
     "structure": {
@@ -10,9 +10,9 @@
       "is_2d": true
     },
     "magnetic_order": {
-      "type": "soc",
-      "nspin": 2,
-      "note": "scalar-relativistic ground state with SOC turned on; WSe2 is a 2D semiconductor, non-magnetic but SOC splits the valence bands"
+      "type": "none",
+      "nspin": 1,
+      "note": "WSe2 is a non-magnetic 2D semiconductor; this class targets the scalar-relativistic (no-SOC) strict-2D lane. A separate SOC lane would need nspin=4 with noncolin/lspinorb and matched SOC UPFs, which are not yet available on the probe host."
     },
     "basis_family": "cp2k_gth_siab",
     "asset_probe_host": "df_iopcas_ghj",
@@ -40,8 +40,8 @@
   "required_contract": {
     "reader_format": "v1",
     "task": "gw",
-    "spin": "soc",
-    "nspin": 2,
+    "spin": "none",
+    "nspin": 1,
     "symmetry": true,
     "coulomb": "strict-2d-direct_mixed_fourier",
     "kz_order": 64,
@@ -49,11 +49,10 @@
   },
   "observables": [
     "state identity",
-    "SOC spin-split state identity",
     "symmetry/full-q",
     "gap"
   ],
   "reference_status": "REFERENCE_PENDING",
   "reference": null,
-  "note": "Only no-SOC runs exist for this geometry (2026-08-31 nosoc, Lz=25, 12x12x1 Gamma, nbands=143, ecutwfc=110). The frozen reference requires an SOC run on the same geometry; software revisions will be pinned at that point. ABFS asset hashes above come from the no-SOC manifest and are shared between the no-SOC and SOC runs."
+  "note": "Only no-SOC scalar-relativistic runs exist for this geometry (2026-08-31 nosoc, Lz=25, 12x12x1 Gamma, nbands=143, ecutwfc=110). That run is diagnostic-only: its closed-loop band path returns to Gamma (a duplicate periodic k-point that the band-table parser rejects), it uses a non-standard occupation convention, and its high-energy Pade branches are not accepted, so it is not frozen as a numerical reference. The strict-2D no-SOC GW reference requires a converged run with an open (non-closed-loop) k path and the standard occupation convention. ABFS asset hashes above come from the no-SOC manifest."
 }

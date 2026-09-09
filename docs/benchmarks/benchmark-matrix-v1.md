@@ -63,7 +63,7 @@ aggregate scientific verdict remains `NOT_EVALUATED`.
 | `perovskite_gw` | cubic SrTiO3 | d-character conduction bands and multiple near-edge states | state identity, gap, semicore/basis and k-grid convergence | `REFERENCE_PENDING` |
 | `transition_metal_oxide_gw` | AFM NiO | spin, DFT+U starting point, localized d states | magnetic moments, occupations, state-resolved QPE, U definition | `REFERENCE_PENDING` |
 | `altermagnet_gw` | alpha-MnTe | magnetic symmetry and spin-split bands | magnetic ground state, symmetry/full-q, spin-resolved state identity | `REFERENCE_AVAILABLE` |
-| `soc_2d_gw` | WSe2 | SOC, strict-2D screening and valley states | spinor dimensions, PyATB full grid, K-valley splitting and gap | `REFERENCE_PENDING` |
+| `soc_2d_gw` | WSe2 | scalar-relativistic (no-SOC) strict-2D screening and states | PyATB full grid, strict-2D Coulomb, state identity and gap | `REFERENCE_PENDING` |
 
 These systems are registered material-class benchmark identities with a frozen
 asset basis, recorded in `benchmarks/materials/*.json` (packaged copy in
@@ -81,12 +81,15 @@ produced (they are `REFERENCE_PENDING` until then):
   and NAO assets. Their ABFS auxiliary bases must be generated on the remote
   host before a GW reference can be produced.
 - `altermagnet_gw` (alpha-MnTe, collinear, GTH + TZDP) and `soc_2d_gw` (WSe2,
-  SOC, CP2K-GTH + SIAB) freeze PP, NAO and ABFS assets. `altermagnet_gw` now has
+  scalar-relativistic/no-SOC, CP2K-GTH + SIAB) freeze PP, NAO and ABFS assets.
+  `altermagnet_gw` now has
   a frozen numerical reference from the completed 2026-08-02 G0W0 band run (see
   the `reference` block and the sibling `altermagnet_gw_reference.json` artifact);
   its input-file hash tree and software stack are frozen as `REFERENCE_AVAILABLE`.
   `soc_2d_gw`'s run set is still diagnostic only — no converged reference exists
-  yet, so it remains `REFERENCE_PENDING`.
+  yet, so it remains `REFERENCE_PENDING`. (A separate SOC lane would need nspin=4
+  with noncolin/lspinorb and matched SOC UPFs, which are not yet available on the
+  probe host.)
 
 ### Material-Class Evaluator
 

@@ -83,8 +83,8 @@ class MaterialClassTest(unittest.TestCase):
         self.assertEqual(altermagnet["material"]["magnetic_order"]["nspin"], 2)
 
         self.assertEqual(soc["material"]["formula"], "WSe2")
-        self.assertEqual(soc["material"]["magnetic_order"]["type"], "soc")
-        self.assertEqual(soc["material"]["magnetic_order"]["nspin"], 2)
+        self.assertEqual(soc["material"]["magnetic_order"]["type"], "none")
+        self.assertEqual(soc["material"]["magnetic_order"]["nspin"], 1)
 
     def test_perovskite_and_tmo_require_abfs_before_reference(self):
         perovskite = load_material_class("perovskite_gw")
