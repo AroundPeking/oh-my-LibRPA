@@ -517,3 +517,82 @@ def load_profile(
         raise ProfileError("profile root must be an object")
     validate_profile(data)
     return data
+
+
+def evaluate_promotion_readiness(
+    *,
+    route_result: dict[str, Any],
+    scorecard_report: dict[str, Any],
+    manifest: dict[str, Any],
+    target_profile_id: str,
+) -> dict[str, Any]:
+    """Bridge a scored route benchmark into a capability promotion decision.
+
+    The decision is read-only: it never writes a profile. It combines the
+    route benchmark's scientific gates, the scorecard verdict, and the
+    admission manifest's promotion policy to determine whether the target
+    production profile's ENABLED state is warranted and aligned.
+
+    Promotion requires ALL of:
+      * the route benchmark passed every scientific gate (PASS status);
+      * the scorecard reported no hard-gate failure (no_known_false_pass);
+      * the admission manifest forbids automatic promotion and requires a
+        reviewed commit;
+      * the target profile already declares the capability as ENABLED at L4
+        (a reviewed commit has already landed the promotion).
+    Any unmet condition blocks promotion (BLOCKED / TESTABLE), so a
+    route that is not yet scientifically proven can never be promoted.
+    """
+    if route_result.get("schema") != "oml.route-benchmark-result.v1":
+        raise ProfileError("route_result must be an oml.route-benchmark-result.v1 object")
+
+    route_passed = route_result.get("status") == "PASS"
+    route_promotion_ready = route_result.get("promotion_eligibility") == "ENABLED"
+    scorecard_clean = not scorecard_report.get("hard_failures")
+    scorecard_verdict = scorecard_report.get("verdict")
+
+    target = load_profile(profile_id=target_profile_id)
+    capability = target.get("capabilities", {}).get("strict_2d_sos_rpa")
+    if capability is None:
+        raise ProfileError(
+            f"target profile {target_profile_id} has no strict_2d_sos_rpa capability"
+        )
+    target_status = capability.get("status")
+    target_level = capability.get("admission_level")
+
+    # Promotion policy lives on the reviewed production profile, not on the
+    # admission manifest: the manifest proves the run; the profile carries the
+    # reviewed-commit gate that governs promotion.
+    promotion_policy = target.get("admission", {}).get("promotion", {}) or {}
+    requires_reviewed_commit = promotion_policy.get("reviewed_commit") is True
+    automatic = promotion_policy.get("automatic", True)
+    manifest_id = route_result.get("manifest_id")
+
+    conditions = {
+        "route_scientific_pass": route_passed,
+        "route_promotion_eligible": route_promotion_ready,
+        "scorecard_no_hard_failure": scorecard_clean,
+        "promotion_requires_reviewed_commit": requires_reviewed_commit,
+        "promotion_not_automatic": automatic is False,
+        "target_capability_enabled": target_status == "ENABLED",
+        "target_capability_l4": target_level == "L4",
+    }
+    all_met = all(conditions.values())
+    promotion_state = "ENABLED" if all_met else "BLOCKED"
+
+    return {
+        "schema": "oml.promotion-readiness.v1",
+        "target_profile_id": target_profile_id,
+        "route_id": route_result.get("route_id"),
+        "benchmark_id": route_result.get("benchmark_id"),
+        "manifest_id": manifest_id,
+        "route_status": route_result.get("status"),
+        "scorecard_verdict": scorecard_verdict,
+        "scorecard_total_score": scorecard_report.get("total_score"),
+        "promotion_state": promotion_state,
+        "conditions": conditions,
+        "reviewed_commit_required": requires_reviewed_commit,
+        "target_capability_status": target_status,
+        "target_admission_level": target_level,
+        "aligned": all_met,
+    }

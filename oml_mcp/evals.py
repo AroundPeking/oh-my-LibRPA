@@ -48,6 +48,141 @@ def load_scorecard(path: str | Path | None = None) -> dict[str, Any]:
     return scorecard
 
 
+# Mapping from route-benchmark scientific gates to scorecard hard gates.
+# A scorecard hard gate is derived from the route gates listed for it:
+#   - all mapped route gates PASS  -> True
+#   - any mapped route gate FAIL   -> False
+#   - no mapping is declared       -> None (NOT_EVALUATED, never assumed True)
+#
+# This is deliberately conservative: a route benchmark cannot prove
+# material identity or artifact completeness, so those gates stay null
+# rather than being silently passed. This preserves no_known_false_pass.
+_ROUTE_GATE_TO_HARD_GATE: dict[str, tuple[str, ...]] = {
+    "stack_identity": ("identity.reference",),
+    "route_contract": ("identity.reference",),
+    "numerical_invariants": (
+        "mesh.completeness",
+        "evidence.status",
+        "control.finite_q_agreement",
+    ),
+    "scientific_reference": (
+        "reference.gamma_energy",
+        "reference.total_energy",
+    ),
+    "convergence_claim_boundary": (
+        "convergence.gamma_area_scaling",
+        "convergence.endpoint_delta",
+        "claim.boundary",
+        "convergence.fixed_n_minus_3_rms",
+        "convergence.extrapolated_limit_span",
+    ),
+    "no_known_false_pass": ("receipt.derived_metrics",),
+    # Route benchmarks carry no material identity or artifact manifest.
+    "material_definition": (),
+    "artifact_completeness": (),
+}
+
+# Route gates that carry numerical/compute-quality signals. A route
+# benchmark passes a scorecard dimension only when the corresponding
+# gates all pass; otherwise the dimension is marked NOT_EVALUATED so an
+# incomplete route never earns a full-score pass.
+_ROUTE_GATE_TO_DIMENSION: dict[str, tuple[str, ...]] = {
+    "reproducibility": ("identity.reference",),
+    "prevention": (
+        "mesh.completeness",
+        "evidence.status",
+        "claim.boundary",
+    ),
+    "stage_evidence": ("evidence.status",),
+    "numerical_evaluation": (
+        "reference.gamma_energy",
+        "reference.total_energy",
+        "control.finite_q_agreement",
+    ),
+    "scientific_evaluation": (
+        "convergence.gamma_area_scaling",
+        "convergence.endpoint_delta",
+        "convergence.fixed_n_minus_3_rms",
+        "convergence.extrapolated_limit_span",
+    ),
+    "convergence_coverage": (
+        "convergence.gamma_area_scaling",
+        "convergence.endpoint_delta",
+        "convergence.fixed_n_minus_3_rms",
+        "convergence.extrapolated_limit_span",
+    ),
+    "diagnosis_quality": ("receipt.derived_metrics",),
+    "compute_efficiency": (),
+}
+
+
+def _gate_status(result: dict[str, Any], gate_id: str) -> str:
+    """Return the status of a route-benchmark gate, or NOT_EVALUATED."""
+    for gate in result.get("gates", []):
+        if gate.get("gate_id") == gate_id:
+            return gate.get("status", "NOT_EVALUATED")
+    return "NOT_EVALUATED"
+
+
+def score_route_benchmark(
+    route_result: dict[str, Any],
+    *,
+    scorecard: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Bridge a route-benchmark result into scorecard evidence.
+
+    The route benchmark's scientific gates are mapped conservatively onto
+    the scorecard's hard gates and dimensions. A hard gate is True only
+    when every route gate mapped to it passes; a dimension is scored 1.0
+    only when every mapped route gate passes and 0.0 when any fails; any
+    scorecard entry with no route-gate provenance stays null so an
+    incomplete route never reaches a false PASS.
+    """
+    card = scorecard or load_scorecard()
+    if route_result.get("schema") != "oml.route-benchmark-result.v1":
+        raise ScorecardError("route_result must be an oml.route-benchmark-result.v1 object")
+
+    hard_values: dict[str, Any] = {}
+    for gate_id in card["hard_gates"]:
+        mapped = _ROUTE_GATE_TO_HARD_GATE.get(gate_id, ())
+        if not mapped:
+            hard_values[gate_id] = None
+            continue
+        statuses = [_gate_status(route_result, gid) for gid in mapped]
+        if any(status == "FAIL" for status in statuses):
+            hard_values[gate_id] = False
+        elif all(status == "PASS" for status in statuses):
+            hard_values[gate_id] = True
+        else:
+            hard_values[gate_id] = None
+
+    dimension_values: dict[str, float | None] = {}
+    for item in card["dimensions"]:
+        dimension_id = item["dimension_id"]
+        mapped = _ROUTE_GATE_TO_DIMENSION.get(dimension_id, ())
+        if not mapped:
+            dimension_values[dimension_id] = None
+            continue
+        statuses = [_gate_status(route_result, gid) for gid in mapped]
+        if any(status == "FAIL" for status in statuses):
+            dimension_values[dimension_id] = 0.0
+        elif all(status == "PASS" for status in statuses):
+            dimension_values[dimension_id] = 1.0
+        else:
+            dimension_values[dimension_id] = None
+
+    evidence = {
+        "dimensions": dimension_values,
+        "hard_gates": hard_values,
+        "penalties": {"failed_attempts": 0, "ambiguous_attempts": 0},
+    }
+    report = evaluate_evidence(evidence, scorecard=card)
+    report["route_benchmark_id"] = route_result.get("benchmark_id")
+    report["manifest_id"] = route_result.get("manifest_id")
+    report["route_id"] = route_result.get("route_id")
+    return report
+
+
 def _metric(value: Any, label: str) -> float | None:
     if value is None:
         return None

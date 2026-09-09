@@ -4,7 +4,12 @@ import tempfile
 import unittest
 
 
-from oml_mcp.evals import evaluate_evidence, load_scorecard, score_run
+from oml_mcp.evals import (
+    evaluate_evidence,
+    load_scorecard,
+    score_route_benchmark,
+    score_run,
+)
 from oml_mcp.control import ControlledExecutionService
 from oml_mcp.planner import plan_case
 from oml_mcp.state import StateStore
@@ -319,6 +324,96 @@ class ScorecardTest(unittest.TestCase):
         self.assertTrue(report["eligible"])
         self.assertIn("scientific_evaluation", report["not_evaluated"])
         self.assertIn("scientific_acceptance", report["not_evaluated"])
+
+
+def _route_result(*, failed_gates: set[str] | None = None) -> dict:
+    """Build a minimal oml.route-benchmark-result.v1 fixture."""
+    failed_gates = failed_gates or set()
+    all_gates = [
+        "identity.reference",
+        "mesh.completeness",
+        "evidence.status",
+        "reference.gamma_energy",
+        "reference.total_energy",
+        "convergence.gamma_area_scaling",
+        "convergence.endpoint_delta",
+        "claim.boundary",
+        "receipt.derived_metrics",
+        "convergence.fixed_n_minus_3_rms",
+        "convergence.extrapolated_limit_span",
+        "control.finite_q_agreement",
+    ]
+    return {
+        "schema": "oml.route-benchmark-result.v1",
+        "benchmark_id": "strict2d-sos-rpa-mos2-qavg-v1",
+        "manifest_id": "df-dcu-strict2d-sos-rpa-2026-09-02-v1",
+        "route_id": "strict_2d_sos_rpa",
+        "status": "PASS" if not failed_gates else "FAIL",
+        "gates": [
+            {
+                "gate_id": gate_id,
+                "status": "FAIL" if gate_id in failed_gates else "PASS",
+            }
+            for gate_id in all_gates
+        ],
+    }
+
+
+class RouteBenchmarkScorecardBridgeTest(unittest.TestCase):
+    def _card(self) -> dict:
+        return load_scorecard(REPOSITORY / "benchmarks" / "scorecard-v3.json")
+
+    def test_full_pass_route_scores_high_but_leaves_unproven_gates_null(self):
+        report = score_route_benchmark(_route_result(), scorecard=self._card())
+
+        self.assertEqual(report["verdict"], "INCOMPLETE")
+        self.assertTrue(report["eligible"])
+        # Material identity and artifact completeness are not provable from a
+        # route benchmark alone, so they must stay NOT_EVALUATED.
+        self.assertIn("material_definition", report["not_evaluated"])
+        self.assertIn("artifact_completeness", report["not_evaluated"])
+        self.assertIn("finite_output", report["not_evaluated"])
+        # But the scientifically provable hard gates pass.
+        hard = {g["gate_id"]: g["status"] for g in report["hard_gates"]}
+        self.assertEqual(hard["scientific_reference"], "PASS")
+        self.assertEqual(hard["convergence_claim_boundary"], "PASS")
+        self.assertEqual(hard["no_known_false_pass"], "PASS")
+
+    def test_energy_drift_route_fails_scientific_reference_gate(self):
+        report = score_route_benchmark(
+            _route_result(failed_gates={"reference.total_energy"}),
+            scorecard=self._card(),
+        )
+
+        self.assertEqual(report["verdict"], "FAIL")
+        self.assertFalse(report["eligible"])
+        self.assertEqual(report["total_score"], 0.0)
+        self.assertIn("scientific_reference", report["hard_failures"])
+        numerical = {
+            d["dimension_id"]: d
+            for d in report["dimensions"]
+        }["numerical_evaluation"]
+        self.assertEqual(numerical["status"], "EVALUATED")
+        self.assertEqual(numerical["value"], 0.0)
+
+    def test_overclaim_route_fails_convergence_claim_boundary_gate(self):
+        report = score_route_benchmark(
+            _route_result(failed_gates={"claim.boundary"}),
+            scorecard=self._card(),
+        )
+
+        self.assertEqual(report["verdict"], "FAIL")
+        self.assertFalse(report["eligible"])
+        self.assertIn("convergence_claim_boundary", report["hard_failures"])
+        prevention = {
+            d["dimension_id"]: d for d in report["dimensions"]
+        }["prevention"]
+        self.assertEqual(prevention["status"], "EVALUATED")
+        self.assertEqual(prevention["value"], 0.0)
+
+    def test_non_route_result_schema_is_rejected(self):
+        with self.assertRaises(ValueError):
+            score_route_benchmark({"schema": "something-else"}, scorecard=self._card())
 
 
 if __name__ == "__main__":

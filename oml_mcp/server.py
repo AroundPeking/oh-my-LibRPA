@@ -14,7 +14,7 @@ from .artifacts import (
 from .admission_manifest import load_admission_manifest
 from .benchmark_suite import evaluate_registered_route_benchmark_suite
 from .control import ControlledExecutionService
-from .evals import evaluate_evidence, load_scorecard
+from .evals import evaluate_evidence, load_scorecard, score_route_benchmark
 from .errors import OMLError
 from .evolution import EvolutionBudget, EvolutionUsage, propose_candidate
 from .execution_profiles import load_execution_profile
@@ -22,7 +22,7 @@ from .intake import ingest_case as ingest_case_data
 from .material_class import list_material_classes, load_material_class
 from .material_class_evaluator import evaluate_material_class
 from .planner import plan_case as plan_case_data
-from .profiles import load_profile
+from .profiles import evaluate_promotion_readiness, load_profile
 from .route_benchmark import (
     evaluate_registered_route_benchmark,
     load_route_benchmark,
@@ -206,6 +206,76 @@ def build_server() -> MCPServer:
         return evaluate_registered_route_benchmark(
             benchmark_id=benchmark_id,
             manifest_id=manifest_id,
+        )
+
+    @server.tool(
+        name="score_route_benchmark",
+        description=(
+            "Bridge a route-benchmark result onto the versioned scorecard, mapping scientific "
+            "gates to hard gates and dimensions. Unproven gates (material identity, artifact "
+            "completeness, finite output, compute efficiency) stay NOT_EVALUATED so an "
+            "incomplete route never receives a false PASS."
+        ),
+        annotations=annotations,
+        structured_output=True,
+    )
+    def score_route_benchmark_tool(
+        benchmark_id: str,
+        manifest_id: str,
+        scorecard_version: Literal["v1", "v2", "v3"] = "v3",
+    ) -> dict[str, Any]:
+        """Score a route benchmark against the versioned scorecard without side effects."""
+        route_result = evaluate_registered_route_benchmark(
+            benchmark_id=benchmark_id,
+            manifest_id=manifest_id,
+        )
+        scorecard_path = (
+            Path(__file__).resolve().parent
+            / "benchmarks"
+            / f"scorecard-{scorecard_version}.json"
+        )
+        return score_route_benchmark(
+            route_result,
+            scorecard=load_scorecard(scorecard_path),
+        )
+
+    @server.tool(
+        name="evaluate_promotion_readiness",
+        description=(
+            "Bridge a scored route benchmark and admission manifest into a read-only capability "
+            "promotion decision against a target profile. Promotion requires route scientific "
+            "PASS, no scorecard hard-gate failure, and a reviewed-commit profile policy; it never "
+            "writes or promotes a profile."
+        ),
+        annotations=annotations,
+        structured_output=True,
+    )
+    def evaluate_promotion_readiness_tool(
+        benchmark_id: str,
+        manifest_id: str,
+        target_profile_id: str,
+        scorecard_version: Literal["v1", "v2", "v3"] = "v3",
+    ) -> dict[str, Any]:
+        """Decide whether a scored route may be promoted, without side effects."""
+        route_result = evaluate_registered_route_benchmark(
+            benchmark_id=benchmark_id,
+            manifest_id=manifest_id,
+        )
+        scorecard_path = (
+            Path(__file__).resolve().parent
+            / "benchmarks"
+            / f"scorecard-{scorecard_version}.json"
+        )
+        scorecard_report = score_route_benchmark(
+            route_result,
+            scorecard=load_scorecard(scorecard_path),
+        )
+        manifest = load_admission_manifest(manifest_id=manifest_id)
+        return evaluate_promotion_readiness(
+            route_result=route_result,
+            scorecard_report=scorecard_report,
+            manifest=manifest,
+            target_profile_id=target_profile_id,
         )
 
     @server.tool(

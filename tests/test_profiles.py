@@ -12,6 +12,7 @@ from oml_mcp.profiles import (
     V5_PROFILE_ID,
     V6_PROFILE_ID,
     ProfileError,
+    evaluate_promotion_readiness,
     list_profiles,
     load_profile,
 )
@@ -452,6 +453,92 @@ class CompatibilityProfileTest(unittest.TestCase):
     def test_unknown_profile_id_is_rejected(self):
         with self.assertRaisesRegex(ProfileError, "unknown profile_id"):
             load_profile(profile_id="missing-profile")
+
+
+def _route_result(*, status: str = "PASS", promotion_eligibility: str = "ENABLED") -> dict:
+    all_gates = [
+        "identity.reference",
+        "mesh.completeness",
+        "evidence.status",
+        "reference.gamma_energy",
+        "reference.total_energy",
+        "convergence.gamma_area_scaling",
+        "convergence.endpoint_delta",
+        "claim.boundary",
+        "receipt.derived_metrics",
+        "convergence.fixed_n_minus_3_rms",
+        "convergence.extrapolated_limit_span",
+        "control.finite_q_agreement",
+    ]
+    return {
+        "schema": "oml.route-benchmark-result.v1",
+        "benchmark_id": "strict2d-sos-rpa-mos2-qavg-v1",
+        "manifest_id": "df-dcu-strict2d-sos-rpa-2026-09-02-v1",
+        "route_id": "strict_2d_sos_rpa",
+        "status": status,
+        "promotion_eligibility": promotion_eligibility,
+        "gates": [{"gate_id": g, "status": "PASS"} for g in all_gates],
+    }
+
+
+def _scorecard_report(*, hard_failures: list[str] | None = None) -> dict:
+    hard_failures = hard_failures or []
+    return {
+        "verdict": "FAIL" if hard_failures else "INCOMPLETE",
+        "total_score": 0.0 if hard_failures else 95.0,
+        "hard_failures": hard_failures,
+    }
+
+
+class PromotionReadinessTest(unittest.TestCase):
+    PRODUCTION = "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
+
+    def test_full_pass_route_aligns_with_production_profile(self):
+        report = evaluate_promotion_readiness(
+            route_result=_route_result(),
+            scorecard_report=_scorecard_report(),
+            manifest={},
+            target_profile_id=self.PRODUCTION,
+        )
+
+        self.assertEqual(report["promotion_state"], "ENABLED")
+        self.assertTrue(report["aligned"])
+        self.assertTrue(report["reviewed_commit_required"])
+        self.assertEqual(report["target_capability_status"], "ENABLED")
+        self.assertEqual(report["target_admission_level"], "L4")
+
+    def test_failed_route_blocks_promotion(self):
+        report = evaluate_promotion_readiness(
+            route_result=_route_result(status="FAIL", promotion_eligibility="BLOCKED"),
+            scorecard_report=_scorecard_report(),
+            manifest={},
+            target_profile_id=self.PRODUCTION,
+        )
+
+        self.assertEqual(report["promotion_state"], "BLOCKED")
+        self.assertFalse(report["aligned"])
+        self.assertFalse(report["conditions"]["route_scientific_pass"])
+
+    def test_scorecard_hard_failure_blocks_promotion(self):
+        report = evaluate_promotion_readiness(
+            route_result=_route_result(),
+            scorecard_report=_scorecard_report(hard_failures=["no_known_false_pass"]),
+            manifest={},
+            target_profile_id=self.PRODUCTION,
+        )
+
+        self.assertEqual(report["promotion_state"], "BLOCKED")
+        self.assertFalse(report["aligned"])
+        self.assertFalse(report["conditions"]["scorecard_no_hard_failure"])
+
+    def test_non_route_result_schema_is_rejected(self):
+        with self.assertRaises(ProfileError):
+            evaluate_promotion_readiness(
+                route_result={"schema": "something-else"},
+                scorecard_report=_scorecard_report(),
+                manifest={},
+                target_profile_id=self.PRODUCTION,
+            )
 
 
 if __name__ == "__main__":
