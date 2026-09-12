@@ -299,6 +299,39 @@ class ControlledExecutionService:
                 ),
                 recovery="wait at least five minutes, then call submit_stage again to collect a second squeue+sacct absence observation",
             )
+        # Cross-run duplicate protection with reconciliation: a stale
+        # SUBMITTED attempt left by an abandoned run (its scheduler job already
+        # terminal) must not block fresh submissions forever. Observe the
+        # scheduler; only a genuinely pending/running equivalent keeps the
+        # block, and truly terminal ones are recorded as CANCELLED.
+        for equivalent in self.store.find_active_equivalent_attempts(
+            plan_digest, stage, run_id
+        ):
+            scheduler_id = str(equivalent["scheduler_id"] or "")
+            if not scheduler_id.isdigit():
+                continue
+            observation = self.executor.status(scheduler_id)
+            normalized = observation["normalized_state"]
+            self.store.record_observation(
+                equivalent["attempt_id"],
+                normalized_state=normalized,
+                raw_state=observation["raw_state"],
+                source=observation["source"],
+            )
+            if normalized in {"COMPLETED", "FAILED", "CANCELLED"}:
+                self.store.record_attempt_status(equivalent["attempt_id"], "CANCELLED")
+                continue
+            raise OMLError(
+                "DUPLICATE_JOB",
+                "an equivalent plan stage is active in another run",
+                evidence=(
+                    equivalent["attempt_id"],
+                    equivalent["run_id"],
+                    scheduler_id,
+                    normalized,
+                ),
+                recovery="wait for the equivalent attempt to reach a terminal scheduler state",
+            )
         if active is not None:
             raise OMLError(
                 "DUPLICATE_JOB",

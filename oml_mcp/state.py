@@ -323,6 +323,24 @@ class StateStore:
             connection.commit()
         return self.get_run(run_id)
 
+    def find_active_equivalent_attempts(
+        self, plan_digest: str, stage: str, exclude_run_id: str
+    ) -> tuple[dict[str, Any], ...]:
+        """List other runs' active attempts for the same plan digest and stage."""
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT a.attempt_id, a.status, a.scheduler_id, a.run_id
+                FROM stage_attempts AS a
+                JOIN runs AS other ON other.run_id = a.run_id
+                WHERE other.plan_digest = ? AND a.run_id != ? AND a.stage = ?
+                  AND a.status IN ('SUBMITTING','SUBMITTED','PENDING','RUNNING','UNKNOWN')
+                ORDER BY a.updated_at DESC
+                """,
+                (plan_digest, exclude_run_id, stage),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def authorize_submission(
         self,
         run_id: str,
