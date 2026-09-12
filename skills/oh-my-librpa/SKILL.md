@@ -47,3 +47,15 @@ underlying reviewed GW workflow or physical calculation is invalid.
 Never overwrite an existing calculation directory, cancel an unrelated job,
 or resubmit while a matching job or immutable receipt exists. Keep scheduler,
 numerical, and scientific conclusions separate.
+
+## References
+
+- `references/delta-st-route.md` — Delta-Sternheimer RPA route: memory
+  fallbacks (`effective_workers=1` means a memory-limited outer-channel run),
+  global-equation MPI sizing (ranks must not be pinned to `nfreq`), and the
+  required same-matrix endpoint test.
+- `references/gw-route.md` — periodic and molecular G0W0 route contracts.
+- `references/rpa-route.md` — RPA total-energy route contracts.
+- `references/regression-route.md` — regression and reference comparison rules.
+- `references/server-profiles.md` — server and execution profile layout.
+- `references/abacus-merge-compat.md` — ABACUS merge compatibility notes.
