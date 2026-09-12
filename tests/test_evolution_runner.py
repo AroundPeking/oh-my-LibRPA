@@ -128,12 +128,31 @@ class AuditTest(unittest.TestCase):
 
         self.assertEqual(report["schema"], "oml.benchmark-audit.v1")
         self.assertEqual(report["total_cases"], 16)
-        self.assertGreaterEqual(report["ready_cases"], 12)
+        self.assertGreaterEqual(report["ready_cases"], 13)
         by_id = {row["case_id"]: row for row in report["cases"]}
         self.assertTrue(by_id["bn-3d-sym-shrink-g0w0"]["ready"])
         self.assertTrue(by_id["h2-molecule-aims-g0w0"]["ready"])
-        # The two registered pending-upstream cases must never claim readiness.
-        self.assertFalse(by_id["mos2-strict2d-sos-rpa-qavg"]["ready"])
+        # The MoS2 bundle lives in the local data cache, its refs in the repo.
+        self.assertTrue(by_id["mos2-strict2d-sos-rpa-qavg"]["ready"])
+        self.assertIn("upstream", by_id["mos2-strict2d-sos-rpa-qavg"]["upstream_root"])
+        # Si solid Delta-ST stays pending until the fisherd bundle is frozen.
         self.assertFalse(by_id["si-solid-delta-st-rpa"]["ready"])
         # Legacy-format cases stay excluded from the evolution loop by design.
         self.assertFalse(by_id["bn-3d-headwing-g0w0"]["ready"])
+
+    def test_resolve_upstream_roots_order_and_cache_fallback(self):
+        import os
+
+        from oml_mcp.evolution_runner import CACHE_UPSTREAM_ROOT, resolve_upstream_roots
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.environ["OML_FAST_UPSTREAM_ROOTS"] = tmpdir
+            try:
+                roots = resolve_upstream_roots("/custom/primary")
+            finally:
+                del os.environ["OML_FAST_UPSTREAM_ROOTS"]
+
+            self.assertEqual(
+                roots,
+                (pathlib.Path("/custom/primary"), pathlib.Path(tmpdir), CACHE_UPSTREAM_ROOT),
+            )

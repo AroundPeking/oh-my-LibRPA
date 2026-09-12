@@ -31,6 +31,7 @@ from .parameter_prescriptions import (
 from .remote_adapter import (
     ControlledExecutionBinding,
     ControlledRunAdapter,
+    RemoteAdapterError,
     locate_case_source,
     stage_case_bundle,
 )
@@ -39,6 +40,43 @@ from .control import ControlledExecutionService
 
 
 DEFAULT_UPSTREAM_ROOT = Path("/Users/ghj/code/LibRPA/regression_tests/testcases")
+
+# Heavy producer bundles (hundreds of MB) must not live in any git repository.
+# They are staged once into this local cache (or any directory listed in
+# OML_FAST_UPSTREAM_ROOTS) and every lookup falls back through the roots.
+CACHE_UPSTREAM_ROOT = Path.home() / ".local/share/oh-my-librpa/upstream"
+
+
+def resolve_upstream_roots(primary: str | Path = DEFAULT_UPSTREAM_ROOT) -> tuple[Path, ...]:
+    """Ordered upstream roots: explicit, env-listed, then the local data cache."""
+    import os
+
+    roots = [Path(primary).expanduser()]
+    env_roots = os.environ.get("OML_FAST_UPSTREAM_ROOTS", "")
+    for item in env_roots.split(":"):
+        if item.strip():
+            roots.append(Path(item.strip()).expanduser())
+    roots.append(CACHE_UPSTREAM_ROOT)
+    unique: list[Path] = []
+    for root in roots:
+        if root not in unique:
+            unique.append(root)
+    return tuple(unique)
+
+
+def _locate_case_in_roots(case, roots: tuple[Path, ...]):
+    """Locate a case across the upstream roots; first hit wins."""
+    from .remote_adapter import RemoteAdapterError, locate_case_source
+
+    errors: list[str] = []
+    for root in roots:
+        try:
+            return locate_case_source(case, root), root
+        except RemoteAdapterError as exc:
+            errors.append(str(exc))
+    raise RemoteAdapterError(
+        f"upstream case directory not found in any root: {'; '.join(errors)}"
+    )
 
 
 class _RefusingAdapter:
@@ -59,9 +97,22 @@ def load_reference_texts(case_id: str, upstream_root: str | Path) -> dict[str, s
     NOT_EVALUATED for the affected validators instead of guessing.
     """
     case = load_fast_case(case_id)
-    source = locate_case_source(case, upstream_root)
-    refs_root = Path(upstream_root).expanduser().parent / "refs" / source.directory.name
-    search_dirs = (refs_root, source.directory)
+    # Reference outputs live in a <root>/../refs/<case> directory next to each
+    # upstream root (the LibRPA regression convention), with the case directory
+    # itself as a fallback. Search every root so a case can keep its heavy
+    # producer bundle in the data cache while its refs stay in the repo.
+    search_dirs: list[Path] = []
+    roots = resolve_upstream_roots(upstream_root)
+    for root in roots:
+        # Refs live in a <root>/../refs/<case> directory next to each upstream
+        # root (the LibRPA regression convention). Search every root's refs
+        # regardless of where the heavy producer bundle itself was found.
+        search_dirs.append(root.parent / "refs" / case.upstream_directory)
+    try:
+        source, source_root = _locate_case_in_roots(case, roots)
+        search_dirs.append(source.directory)
+    except RemoteAdapterError:
+        pass
     reference: dict[str, str] = {}
     for name in case.output_files:
         for directory in search_dirs:
@@ -117,8 +168,9 @@ def stage_check(
     bundle = Path(staging_root).expanduser() / f"stagecheck-{case.case_id}"
     if bundle.exists():
         raise SelfIterationError(f"stage-check destination already exists: {bundle}")
+    source, source_root = _locate_case_in_roots(case, resolve_upstream_roots(upstream_root))
     staging = stage_case_bundle(
-        case, upstream_root=upstream_root, destination=bundle, candidate=candidate
+        case, upstream_root=source_root, destination=bundle, candidate=candidate
     )
     reference = load_reference_texts(case_id, upstream_root)
     missing_reference = sorted(set(case.output_files) - set(reference))
@@ -378,12 +430,13 @@ def audit_benchmarks(upstream_root: str | Path = DEFAULT_UPSTREAM_ROOT) -> dict[
             "stages": list(case.stages),
         }
         try:
-            source = locate_case_source(case, upstream_root)
+            source, source_root = _locate_case_in_roots(case, resolve_upstream_roots(upstream_root))
             row["upstream_found"] = True
+            row["upstream_root"] = str(source_root)
             row["replayable_stages"] = list(source.replayable_stages)
         except RemoteAdapterError as exc:
             row["upstream_found"] = False
-            row["upstream_error"] = str(exc)
+            row["upstream_error"] = str(exc)[:160]
             row["replayable_stages"] = []
         try:
             reference = load_reference_texts(case.case_id, upstream_root)

@@ -11,7 +11,7 @@
     "librpa"
   ],
   "route": "strict_2d_sos_rpa",
-  "reference_status": "REFERENCE_PENDING",
+  "reference_status": "REFERENCE_AVAILABLE",
   "estimated_seconds": 120,
   "validators": [
     {
@@ -27,5 +27,5 @@
   "upstream_groups": [
     "Strict-2D SOS-RPA qavg"
   ],
-  "note": "PASS_REFERENCE_BOUNDED reference exists (route_benchmarks/strict2d-sos-rpa-mos2-qavg-v1.json, N=8/10/12/16 meshes) but the frozen producer bundle still lives on df-dcu; freeze it into the regression tree before this case becomes evaluable."
+  "note": "Strict-2D SOS-RPA MoS2, N=8 in-plane mesh: the frozen producer bundle (1.1 GB) lives in the local data cache ~/.local/share/oh-my-librpa/upstream/strict2d_sos_rpa_mos2_qavg (git-free by design) and the small reference output lives in the LibRPA regression refs tree. Frozen value: Total EcRPA -1.268385066 Ha (job 21833983, 4 MPI, LibRPA c87103df). The four-mesh N^-3 acceptance remains recorded in route_benchmarks/strict2d-sos-rpa-mos2-qavg-v1.json; convergence ladders stay parked. The route keeps nfreq fixed by design (four-mesh acceptance isolates physics); this case is the replay-verification anchor for the frozen configuration."
 }

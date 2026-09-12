@@ -34,6 +34,19 @@
       "rationale": "Insufficient vacuum breaks the 2D Ewald decoupling.",
       "gate_id": "coulomb.psd_hermitian",
       "confidence": "established"
+    },
+    "nfreq": {
+      "name": "nfreq",
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Replay the frozen N=8 qavg configuration at nfreq=16; this is the only axis a LibRPA-only replay can mutate.",
+      "rationale": "The frozen strict-2D SOS-RPA reference (job 21833983) used nfreq=16.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
     }
   }
 }

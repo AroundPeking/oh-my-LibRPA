@@ -41,20 +41,23 @@ SYSTEM_FAMILIES: dict[str, str] = {
 
 # Which family each fast benchmark case belongs to. Used to pick the right
 # prescription automatically from a case id.
-CASE_ID_TO_FAMILY: dict[str, str] = {
-    "bn-3d-sym-shrink-g0w0": "bulk_bn_gw",
-    "bn-3d-shrink-g0w0": "bulk_bn_gw",
-    "bn-3d-headwing-g0w0": "bulk_bn_gw",
-    "bn-3d-soc-g0w0": "bulk_bn_soc_gw",
-    "bn-3d-headwing-shrink-soc-g0w0": "bulk_bn_soc_gw",
-    "mno2-nspin2-shrink-wing-g0w0": "transition_metal_oxide_gw",
-    "si-3d-aims-g0w0": "simple_semiconductor_gw",
-    "gaas-3d-soc-wing-aims-g0w0": "soc_semiconductor_gw",
-    "mgo-3d-aims-g0w0": "wide_gap_oxide_gw",
-    "h2o-molecule-rpa": "isolated_molecule_rpa",
-    "h2o-molecule-aims-g0w0": "isolated_molecule_rpa",
-    "h2-molecule-aims-g0w0": "isolated_molecule_rpa",
-    "li-atom-aims-g0w0": "isolated_molecule_rpa",
+CASE_ID_TO_FAMILY: dict[str, tuple[str, str]] = {
+    "bn-3d-sym-shrink-g0w0": ("periodic_3d_gw", "bulk_bn_gw"),
+    "bn-3d-shrink-g0w0": ("periodic_3d_gw", "bulk_bn_gw"),
+    "bn-3d-headwing-g0w0": ("periodic_3d_gw", "bulk_bn_gw"),
+    "bn-3d-soc-g0w0": ("periodic_3d_gw", "bulk_bn_soc_gw"),
+    "bn-3d-headwing-shrink-soc-g0w0": ("periodic_3d_gw", "bulk_bn_soc_gw"),
+    "mno2-nspin2-shrink-wing-g0w0": ("periodic_3d_gw", "transition_metal_oxide_gw"),
+    "si-3d-aims-g0w0": ("periodic_3d_gw", "simple_semiconductor_gw"),
+    "si-band-aims-g0w0": ("periodic_3d_gw", "simple_semiconductor_gw"),
+    "gaas-3d-soc-wing-aims-g0w0": ("periodic_3d_gw", "soc_semiconductor_gw"),
+    "mgo-3d-aims-g0w0": ("periodic_3d_gw", "wide_gap_oxide_gw"),
+    "h2o-molecule-rpa": ("molecular_delta_st_rpa", "isolated_molecule_rpa"),
+    "h2o-molecule-aims-g0w0": ("molecular_delta_st_rpa", "isolated_molecule_rpa"),
+    "h2-molecule-aims-g0w0": ("molecular_delta_st_rpa", "isolated_molecule_rpa"),
+    "li-atom-aims-g0w0": ("molecular_delta_st_rpa", "isolated_molecule_rpa"),
+    "mos2-strict2d-sos-rpa-qavg": ("strict_2d_sos_rpa", "default"),
+    "si-solid-delta-st-rpa": ("solid_delta_st_rpa", "default"),
 }
 
 
@@ -338,10 +341,10 @@ def resolve_prescription_keys(case_id: str) -> tuple[str, str] | None:
     Returns ``None`` when the case is not classified into a family, so callers
     can fall back to the route default instead of guessing.
     """
-    family = CASE_ID_TO_FAMILY.get(case_id)
-    if family is None:
+    mapped = CASE_ID_TO_FAMILY.get(case_id)
+    if mapped is None:
         return None
-    return ("periodic_3d_gw", family)
+    return mapped
 
 
 def _default_budget() -> EvolutionBudget:
