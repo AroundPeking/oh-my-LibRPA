@@ -219,6 +219,83 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(self.gate(report, "pyatb.headwing").status, "PASS")
         self.assertEqual(self.gate(report, "pyatb.alignment").status, "PASS")
 
+    def test_nbands_consistency_gate_accepts_unpinned_and_uniformly_pinned_inputs(self):
+        with tempfile.TemporaryDirectory() as unpinned_tmp, tempfile.TemporaryDirectory() as pinned_tmp:
+            unpinned = pathlib.Path(unpinned_tmp)
+            self.make_case(unpinned)
+            unpinned_report = validate_case(
+                unpinned, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+            pinned = pathlib.Path(pinned_tmp)
+            self.make_case(pinned)
+            (pinned / "INPUT").write_text("INPUT_PARAMETERS\nnbands 170\n", encoding="utf-8")
+            (pinned / "INPUT_scf").write_text(
+                (pinned / "INPUT_scf").read_text(encoding="utf-8") + "nbands 170\n",
+                encoding="utf-8",
+            )
+            (pinned / "INPUT_nscf").write_text("INPUT_PARAMETERS\nnbands 170\n", encoding="utf-8")
+            pinned_report = validate_case(
+                pinned, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+        self.assertTrue(unpinned_report.accepted)
+        self.assertEqual(
+            self.gate(unpinned_report, "nbands.consistency").status, "PASS"
+        )
+        self.assertTrue(pinned_report.accepted, pinned_report.to_dict())
+        self.assertEqual(self.gate(pinned_report, "nbands.consistency").status, "PASS")
+
+    def test_nbands_consistency_gate_fails_on_disagreeing_inputs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "INPUT_scf").write_text(
+                (root / "INPUT_scf").read_text(encoding="utf-8") + "nbands 64\n",
+                encoding="utf-8",
+            )
+            (root / "INPUT_nscf").write_text("INPUT_PARAMETERS\nnbands 170\n", encoding="utf-8")
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+        gate = self.gate(report, "nbands.consistency")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertIn("INPUT_scf: nbands 64", gate.evidence)
+        self.assertIn("INPUT_nscf: nbands 170", gate.evidence)
+        self.assertIn("same exported basis dimension", gate.repair)
+
+    def test_nbands_consistency_gate_warns_when_only_some_inputs_pin_nbands(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "INPUT_scf").write_text(
+                (root / "INPUT_scf").read_text(encoding="utf-8") + "nbands 170\n",
+                encoding="utf-8",
+            )
+            (root / "INPUT_nscf").write_text("INPUT_PARAMETERS\nsymmetry -1\n", encoding="utf-8")
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+        gate = self.gate(report, "nbands.consistency")
+        self.assertEqual(gate.status, "WARN")
+        self.assertIn("INPUT_nscf: nbands omitted", gate.evidence)
+
+    def test_nbands_consistency_gate_fails_on_malformed_value(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "INPUT_scf").write_text(
+                (root / "INPUT_scf").read_text(encoding="utf-8") + "nbands auto\n",
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+        self.assertEqual(self.gate(report, "nbands.consistency").status, "FAIL")
+
     def test_reader_v1_dataset_marker_and_payload_bounds_are_required(self):
         with tempfile.TemporaryDirectory() as marker_tmp, tempfile.TemporaryDirectory() as truncated_tmp:
             marker_root = pathlib.Path(marker_tmp)

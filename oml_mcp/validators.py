@@ -166,6 +166,86 @@ def _duplicates_gate(abacus: InputDocument, librpa: InputDocument) -> GateResult
     return _pass("inputs.duplicates", "workflow inputs contain no duplicate assignments")
 
 
+_NBANDS_INPUT_FILES = ("INPUT", "INPUT_scf", "INPUT_nscf")
+
+
+def _nbands_consistency_gate(case_root: Path) -> GateResult:
+    """Pin nbands identically across every ABACUS input file that exists.
+
+    The MnTe regression showed that when INPUT/INPUT_scf/INPUT_nscf disagreed
+    on nbands (64 vs the exported NLOCAL 170), LibRPA re-solved the EXX bands
+    in a different subspace and flipped the EXX gap sign. A nbands value that
+    differs between input files is a definition error; a lone declaration
+    while sibling input files exist is a warn to pin it everywhere.
+    """
+    declared: list[tuple[str, str]] = []
+    existing: list[str] = []
+    for name in _NBANDS_INPUT_FILES:
+        path = case_root / name
+        if not path.is_file():
+            continue
+        existing.append(name)
+        try:
+            document = parse_abacus_input(path)
+        except ParseError as exc:
+            return _fail(
+                "nbands.consistency",
+                f"{name} is not a parseable ABACUS input",
+                (str(path), str(exc)),
+                f"fix the ABACUS input syntax in {name} before running the workflow",
+            )
+        value = document.value("nbands")
+        if value is not None and value.strip():
+            declared.append((name, value.strip()))
+
+    if not declared:
+        return _pass(
+            "nbands.consistency",
+            "no ABACUS input file pins nbands, so ABACUS defaults to the full basis dimension",
+            *existing,
+        )
+    for name, value in declared:
+        try:
+            count = parse_int(value, name=f"nbands in {name}")
+        except ParseError as exc:
+            return _fail(
+                "nbands.consistency",
+                "a declared nbands value is not a usable integer",
+                (f"{name}: nbands {value}", str(exc)),
+                "set nbands to the exported basis dimension (NLOCAL) as a plain positive integer",
+            )
+        if count <= 0:
+            return _fail(
+                "nbands.consistency",
+                "a declared nbands value is not positive",
+                (f"{name}: nbands {value}",),
+                "set nbands to the exported basis dimension (NLOCAL) as a positive integer",
+            )
+    values = {value for _, value in declared}
+    if len(values) > 1:
+        return _fail(
+            "nbands.consistency",
+            "ABACUS input files disagree on nbands, so the EXX/GW state space is inconsistent",
+            [f"{name}: nbands {value}" for name, value in declared],
+            "set nbands to the same exported basis dimension (NLOCAL) in every ABACUS input "
+            "file; a differing subspace re-solves the EXX bands and corrupts GW",
+        )
+    if len(declared) < len(existing):
+        omitted = [name for name in existing if name not in {n for n, _ in declared}]
+        return _warn(
+            "nbands.consistency",
+            "only some ABACUS input files pin nbands while the others default it",
+            [*(f"{name}: nbands {value}" for name, value in declared), *(f"{name}: nbands omitted" for name in omitted)],
+            "pin nbands identically in every ABACUS input file, or omit it everywhere, so "
+            "SCF/NSCF/LibRPA work in one state space",
+        )
+    return _pass(
+        "nbands.consistency",
+        "every ABACUS input file pins the same nbands value",
+        *(f"{name}: nbands {value}" for name, value in declared),
+    )
+
+
 def _task_gate(librpa: InputDocument, task: str) -> GateResult:
     actual = (librpa.value("task") or "").strip().lower()
     expected = "rpa" if task == "rpa" else "g0w0"
@@ -912,6 +992,7 @@ def validate_case(
 
     gates: list[GateResult] = [
         _duplicates_gate(abacus, librpa),
+        _nbands_consistency_gate(case_root),
         _value_gate(
             abacus,
             "abacus.producer",
