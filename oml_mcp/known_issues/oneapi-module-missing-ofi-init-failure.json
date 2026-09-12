@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "oneapi-module-missing-ofi-init-failure",
+  "title": "Missing 'module load oneapi' kills Intel MPI at PMPI_Init_thread within seconds",
+  "symptom": "Batch job dies ~2 s after start inside OFI provider initialization.",
+  "root_cause": "The batch script omitted the oneAPI module (e.g. oneapi/2024.2), so Intel MPI initializes with a broken OFI environment.",
+  "minimal_fix": "Load the oneAPI module in the batch script before the executable; keep the module list part of the pinned execution profile.",
+  "validation": "Job proceeds past MPI init.",
+  "avoid": "Retrying the same script on a different node to fix an environment bug.",
+  "source": "~/.codex session 01a07f2b (L18932).",
+  "confidence": "established",
+  "parameters": {
+    "module": "load oneapi (e.g. 2024.2) in batch script"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "low-energy-window-pass-not-full-band-acceptance",
+  "title": "A clean near-gap window does not validate the whole GW band set",
+  "symptom": "hBN: the K/Gamma conduction-valley order is inverted vs plane-wave reference and high states show GW-PBE up to ~416 eV; WSe2 high-energy branches off by ~262 eV; MnF2 keeps X/M conduction kinks after the Vxc fix; SrTiO3 fails the QP root at state 30; GeTe GW gap is +0.17 eV vs literature but the CBM valley order differs.",
+  "root_cause": "Near-gap acceptance criteria never exercised the full spectrum: valley order, root finding at high states, and band continuity are separate failure modes that a gap-only check cannot see.",
+  "minimal_fix": "Accept a GW band set only when (a) the near-gap window matches its reference, (b) band extrema ORDER (valley positions) matches the reference within the same starting functional, (c) every reported QP state has a converged root, and (d) high-state corrections are finite and smoothly decaying. Report per-window verdicts instead of one gap number.",
+  "validation": "Per-system numbers above define the bar; a figure that only crops the low-energy window must not be labelled as validated bands.",
+  "avoid": "Claiming literature-level agreement from the gap value alone, mixing HSE with GW references, or ignoring SOC settings when quoting external numbers.",
+  "source": "~/.codex sessions 01a07f2b + 2026-09-07 GW review + main thread (hBN/WSe2/MnF2/SrTiO3/GeTe).",
+  "confidence": "established",
+  "parameters": {
+    "acceptance": "near-gap window + valley order + converged roots + finite high states"
+  }
+}

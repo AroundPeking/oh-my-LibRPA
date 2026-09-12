@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coarse-screening-grid-corrupts-band-path-exx",
+  "title": "A coarse screening k-grid interpolates garbage EXX/GW at band-path points off the mesh",
+  "symptom": "BN 3D GW band path: EXX at a path midpoint ~ -106 eV, GW bandgap negative for nfreq=8/16, and a QPE iteration oscillating between two roots for 10000 iterations at nfreq=24 - while the uniform-mesh stage was clean.",
+  "root_cause": "A 2x2x2 screening mesh cannot interpolate midpoints between Gamma and X; the corruption is in the producer-side sampling, not the frequency grid or the continuation.",
+  "minimal_fix": "Raise the screening mesh (4x4x4 changed only KPT_scf: EXX recovered 22.28 eV, GW gap 6.24478 eV) and validate with a strict single-variable k control under identical protocol.",
+  "validation": "k222 -> k444 same-protocol control: gap -132.38 -> 6.27089 eV.",
+  "avoid": "Attributing path-stage failures to nfreq or Padé order before checking the k-grid; mixing protocol changes into the k control.",
+  "source": "~/.codex main thread L24192-L25434 (2026-09-03, BN).",
+  "confidence": "established",
+  "parameters": {
+    "screening_kgrid": "raise until path-midpoint EXX is physical (2x2x2 -> 4x4x4)"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "mnte-direct3d-sigc-gamma-anomaly-open",
+  "title": "MnTe direct-3D GW: Gamma ReSigc ~ -1390 eV despite a verified PSD Coulomb - OPEN",
+  "symptom": "On the direct-reciprocal 3D chain with a fresh, fully PSD Coulomb family (all 65 q positive), the regular-mesh self-energy at Gamma reaches ~ -1390 eV (state 21); path-frontier gaps of ~ -951 eV appear. Solver, auxiliary basis, compression, and frequency-count controls all leave it unchanged; LU makes the program finish but the numbers are garbage (-8400..-24000 eV).",
+  "root_cause": "Unresolved. Excluded so far: Coulomb definiteness (fresh direct-reciprocal), matrix solver choice (LU vs Cholesky), orbital/auxiliary basis variants, PBE0 references. A stale remote ABACUS missing the atom-mapping/Bloch-phase symmetry fix was also excluded by rebuild (see that entry).",
+  "minimal_fix": "Treat as the highest-priority open physical bug; reproduce on the current pinned stack with a fresh producer chain, then bisect the Sigc chain (chi0 -> W -> Wc(R,t) -> set_Ws -> cal_Sigmas) with same-dimension, same-U controls; compare against the FHI-aims+LibRPA route for the same system.",
+  "validation": "A fix must restore |Sigc| to eV-scale physics and recover the EXX gap invariance checks; the Dojo-NC-SR + TZDP 10au GTH route gives a healthy PBE start (gap 0.199/0.669 eV mesh/path, 170 states, no anomalous droop).",
+  "avoid": "Re-running expensive variants without a new hypothesis; using LU-completed runs as evidence; blaming the Coulomb matrix that already passes its PSD gate.",
+  "source": "~/.codex sessions 01a07f2b/01a07f2d (2026-04..09), 2026-09-07 GW review.",
+  "confidence": "established",
+  "parameters": {
+    "next": "bisect chi0 -> W -> Wc(R,t) -> set_Ws -> cal_Sigmas with same-U controls"
+  }
+}

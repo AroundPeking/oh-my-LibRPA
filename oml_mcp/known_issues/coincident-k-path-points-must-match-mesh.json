@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coincident-k-path-points-must-match-mesh",
+  "title": "Coincident-k hard criterion: band-path points on the mesh must equal the mesh values",
+  "symptom": "A band-path stage is suspected wrong, but Gamma agrees and the discussion stalls.",
+  "root_cause": "No cheap end-to-end invariant was being applied between the uniform-mesh QP stage and the band-path projection stage.",
+  "minimal_fix": "For every band-path k that coincides with a screening-mesh k, compare EXX and GW state by state against the mesh-stage values; any deviation beyond output precision localizes the bug to the band/projection stage (this criterion is what exposed the BvK collapse bug).",
+  "validation": "Documented pass: after the per-k fix, coincident GW states matched to 5.94 meV; EXX endpoints regained |Eexx| ~ 59.2 eV instead of 0.",
+  "avoid": "Using only the Gamma point, or a handful of low states, as the cross-stage check.",
+  "source": "~/.codex session 01a07f2b (alpha-MnTe BvK debugging).",
+  "confidence": "established",
+  "parameters": {
+    "check": "path k on mesh must equal mesh EXX/GW"
+  }
+}

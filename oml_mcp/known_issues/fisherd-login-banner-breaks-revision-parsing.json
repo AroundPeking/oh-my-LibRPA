@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "fisherd-login-banner-breaks-revision-parsing",
+  "title": "Login-shell banner contaminates stdout and breaks remote revision parsing (false VERSION_MISMATCH)",
+  "symptom": "Execution-profile structure checks pass but the version guard reports VERSION_MISMATCH although the remote git rev-parse is correct.",
+  "root_cause": "OML read the first stdout line, which was the Fisherd login banner, not the revision; unrelated: outer SSH exit codes also inherit login-environment noise, so judge by artifacts and the application's own exit code.",
+  "minimal_fix": "Parse remote revision output by accepting only a unique 40-hex-character line; TDD with a 'banner + SHA' fixture.",
+  "validation": "Guard passes on banner-contaminated sessions and still fails on genuine mismatches.",
+  "avoid": "Disabling the version guard, or trusting outer SSH exit codes over application exit codes and artifacts.",
+  "source": "~/.codex main thread L29538 (2026-09-05).",
+  "confidence": "established",
+  "parameters": {
+    "parse": "accept only a unique 40-hex revision line"
+  }
+}

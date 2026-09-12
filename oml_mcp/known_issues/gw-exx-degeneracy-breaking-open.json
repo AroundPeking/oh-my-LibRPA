@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "gw-exx-degeneracy-breaking-open",
+  "title": "EXX/GW lift band degeneracies (2,4,4 -> 2,8-like patterns) - OPEN",
+  "symptom": "Across independent chains (DZP/TZDP, with/without ABFS), EXX raises the top valence 4-fold degenerate states above the 2-fold ones; on the FHI-aims side the GW-occupied top becomes approximately 2,8 with a +0.529/+0.086 eV split pattern that nearly cancels the PBE splitting.",
+  "root_cause": "Not the orbital cutoff (aims rcut +1 bohr changed gaps by only 0.5-3.4 meV with the same basis count). Suspected: the correlated self-energy differentiates nominally degenerate states; the EXX-side mechanism is unresolved.",
+  "minimal_fix": "Next diagnostic: decompose Sigma_c/Z for the Gamma-point states 73-76 and check the degenerate-subspace rotation; do not keep tuning radial cutoffs (a second-tier basis run was cancelled and is not evidence).",
+  "validation": "A degenerate subspace must stay degenerate to output precision after EXX and after GW for equivalent states.",
+  "avoid": "Treating the lifted pattern as plotting artefact, or spending allocation on rcut scans.",
+  "source": "~/.codex session 01a07f2b (L16347, L29035); cross-checked with BLOCKED_DEGENERATE_GAUGE_MISMATCH handling in the main thread.",
+  "confidence": "tentative",
+  "parameters": {
+    "next": "Gamma Sigma_c/Z decomposition for the affected degenerate manifold"
+  }
+}

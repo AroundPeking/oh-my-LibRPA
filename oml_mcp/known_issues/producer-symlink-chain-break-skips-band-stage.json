@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "producer-symlink-chain-break-skips-band-stage",
+  "title": "Broken producer symlink chain makes LibRPA skip the band stage after expensive stages completed",
+  "symptom": "chi0/Wc/Sigc computed and saved, but the job ends FAILED because band-path input files (relative symlinks through a producer directory that is itself a symlink) no longer resolve.",
+  "root_cause": "Relative symlinks break when any link in the producer chain is recreated or moved; LibRPA then treats the band stage as not requested.",
+  "minimal_fix": "Repair the links, then rerun with band_continue=t to recompute only the band stage - the expensive chi0/W/Sigc are preserved.",
+  "validation": "MnTe case: band stage completed after link repair with band_continue=t and no recomputation of the expensive intermediates.",
+  "avoid": "Re-running the whole GW stage to 'fix' a broken link.",
+  "source": "~/.codex session 01a07f2b (MnTe 3D direct round).",
+  "confidence": "established",
+  "parameters": {
+    "band_continue": "t after repairing producer links"
+  }
+}

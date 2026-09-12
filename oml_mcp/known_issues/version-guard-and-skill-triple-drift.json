@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "version-guard-and-skill-triple-drift",
+  "title": "Repo skill, installed skill, and version guard drift apart and silently stale the AI's rules",
+  "symptom": "The repo skill points at v2/v3 while the standalone version guard still cites an old 0.3.1 SHA and the installed skill still marks current strict-2D as a legacy defect; the agent then overrides fresh MCP profile data with stale rules.",
+  "root_cause": "Three copies of the same knowledge (repo skill, installed skill, guard script) update at different times; nothing cross-checks them.",
+  "minimal_fix": "On every rule change, sync repo skill AND installed copies in the same commit; make the version guard judge by profile id (not a hardcoded SHA); self-test must verify installed/repo hash equality.",
+  "validation": "Self-test hashes installed vs repo skill bundles (74/74 includes these checks).",
+  "avoid": "Editing one copy only; treating an old defect list as current without checking the active profile.",
+  "source": "~/.codex main thread L15683, L20547 (2026-08-30).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "sync repo + installed skills in one commit; guard by profile id"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "compression-u-sign-flip-false-difference",
+  "title": "Sign-flipped rows of the compressed-basis U produce a false 7.89% matrix difference",
+  "symptom": "A new Coulomb matrix 'disagrees' with the old one by 7.89% at a consistency gate, blocking a GW submission.",
+  "root_cause": "Four compressed auxiliary functions (rows of U) flipped overall sign between runs; direct element comparison reports a large difference, but U'=DU, V'=DVD leaves U'^dag V' U = U^dag V U invariant (D diagonal +/-1), so the physics is unchanged.",
+  "minimal_fix": "Align signs (e.g. largest-magnitude element positive per row/column) before comparing, or compare the physically invariant U^dag V U. Never splice a new V with an old U across runs: use the matched U/V pair from the same ABACUS run.",
+  "validation": "After sign alignment the U relative error was 3.4e-13.",
+  "avoid": "Tuning shrink parameters to chase a sign-convention artefact, or mixing U and V from different runs to 'preserve the old electronic structure'.",
+  "source": "~/.codex session 01a07f2b (MnTe Coulomb consistency gate).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "use matched U/V from one ABACUS run; align signs before diff"
+  }
+}

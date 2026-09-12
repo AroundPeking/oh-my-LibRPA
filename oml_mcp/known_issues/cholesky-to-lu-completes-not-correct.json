@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "cholesky-to-lu-completes-not-correct",
+  "title": "Relaxing Cholesky to LU lets GW finish but the numbers stay garbage",
+  "symptom": "With use_cholesky_gw_wc=f (LU) MnTe completed in 8h47m yet produced GW energies of -8400..-24000 eV.",
+  "root_cause": "The solver relaxation only removes the positive-definiteness requirement; it does not repair an indefinite/broken W. 'The program completed' is not a correctness certificate.",
+  "minimal_fix": "Fix the upstream matrix (see 3d-full-ewald-coulomb-strongly-indefinite) and keep PSD gates mandatory; allow LU only as a diagnostic to see how far a non-PD matrix propagates.",
+  "validation": "Direct-reciprocal Coulomb: all q PSD and physical GW values on the same system.",
+  "avoid": "Reporting a completed-but-absurd run as partial success; or burning a big allocation on LU runs of a known-indefinite matrix.",
+  "source": "~/.codex session 01a07f2d (L759, L2139).",
+  "confidence": "established",
+  "parameters": {
+    "use_cholesky_gw_wc": "diagnostic only; fix the matrix instead"
+  }
+}

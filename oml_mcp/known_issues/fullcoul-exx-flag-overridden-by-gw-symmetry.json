@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "fullcoul-exx-flag-overridden-by-gw-symmetry",
+  "title": "use_fullcoul_exx=f is silently overridden when use_abacus_gw_symmetry=t",
+  "symptom": "Turning use_fullcoul_exx off appears accepted, but the EXX bands are byte-identical (same md5) with the flag on; the log line says the symmetry branch builds V(R) directly from the full IBZ operator and switches to read_Vq_full.",
+  "root_cause": "With GW symmetry enabled, LibRPA takes the IBZ full-Coulomb branch regardless of use_fullcoul_exx; the flag is not effective in that combination. Directly forcing the flag can also trip an exx.cpp assertion requiring parallel_routing=libri.",
+  "minimal_fix": "When the symmetry lane is on, do not claim cut-Coulomb EXX; if a cut-Coulomb definition is required, run it with the symmetry lane off and compare only against a definition-matched benchmark.",
+  "validation": "Compare EXX_band md5 with and without the flag under symmetry: identical outputs prove the flag was ignored.",
+  "avoid": "Reading 'flag accepted' as 'flag effective'; check the log line and the output hash.",
+  "source": "~/.codex session 01a07f2b (alpha-MnTe EXX chain).",
+  "confidence": "established",
+  "parameters": {
+    "use_fullcoul_exx": "ineffective while use_abacus_gw_symmetry=t"
+  }
+}

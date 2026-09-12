@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "generational-stack-change-needs-new-profile",
+  "title": "A stack generation change is not 'update two SHAs': old and new LibRPA lines are not even ancestors",
+  "symptom": "Swapping the pinned LibRPA SHA from an old profile onto a new source tree makes old benchmarks meaningless; remote binaries from June silently test the old chain.",
+  "root_cause": "The legacy profile (ABACUS 3efad9e / LibRPA dd169fa) and the new sources are different generations not on one ancestor chain; benchmark references do not transfer across generations.",
+  "minimal_fix": "Declare a new profile generation (new profile id, fresh frozen references, fresh regression bundle); keep old generations readable for forensics only.",
+  "validation": "Benchmark replay must run against the profile it was frozen with; cross-generation comparisons are reported as BLOCKED, never as failures.",
+  "avoid": "Patching SHAs in place; mixing frozen references from one generation with binaries of another.",
+  "source": "~/.codex main thread L13777 (2026-08-30).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "new profile id + fresh frozen references per stack generation"
+  }
+}

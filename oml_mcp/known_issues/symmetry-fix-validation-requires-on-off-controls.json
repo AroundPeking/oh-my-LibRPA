@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-fix-validation-requires-on-off-controls",
+  "title": "Symmetry fixes are only validated by symmetry-on/off end-to-end controls with old assertions retained",
+  "symptom": "A symmetry patch is declared fixed after a regression passes - but the regression ran with symmetry off, or the expected values were edited.",
+  "root_cause": "An edited expected value or a use_symmetry=false regression proves nothing about the symmetry path; symmetry changes the producer outputs, so single-ended toggles are confounded.",
+  "minimal_fix": "For every symmetry fix: keep all pre-existing assertions, add an independent-density check, and run end-to-end controls with symmetry on and off (fresh ABACUS+LibRPA both ends). Judge only the delta between the two full chains (e.g. EXX gap 9.1232 vs 9.1161 eV = 7.2 meV).",
+  "validation": "The two-lane comparison above; additionally verify the stru_out producer contract (same producer for stru_out, IBZ eigenvectors, Coulomb/LRI/shrink, PyATB).",
+  "avoid": "Editing expected values; switching symmetry only in LibRPA on IBZ-only inputs (crashes with vector::_M_range_check); forgetting that ABACUS symmetry output is two-layered (irreducible k + irreducible (I,J,R), no IJq layer).",
+  "source": "~/.codex session 01a07f2b (2026-09-07 review); main thread symmetry/full-q axis.",
+  "confidence": "established",
+  "parameters": {
+    "rule": "sym on/off end-to-end fresh controls + retained assertions + stru_out producer contract"
+  }
+}

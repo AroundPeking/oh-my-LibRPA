@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "pbe0-outer-loop-divergence-mixing-beta",
+  "title": "PBE0 outer EXX loop diverges with exx_separate_loop=1 and default exx_mixing_beta=1.0",
+  "symptom": "MnTe GW@PBE0 ran 12h46m: inner SCF converges to drho ~ 9e-9 but the outer energy difference stays ~ 206 eV with no trend; |m| collapses from ~8.9 to ~0.006 mu_B.",
+  "root_cause": "Suspected: the outer density-matrix update is too aggressive (exx_mixing_beta=1.0 with a separated EXX loop); not a Coulomb-method issue (the run never reached it).",
+  "minimal_fix": "Cancel the run; converge a symmetry-preserving PBE charge first, then restart PBE0 from PBE with a small EXX outer-loop mixing.",
+  "validation": "A restart from the converged PBE density with reduced mixing should show a decreasing outer energy difference.",
+  "avoid": "Letting a diverging PBE0 outer loop burn a large allocation, or judging the magnetic state from the collapsed run.",
+  "source": "~/.codex session 01a07f2b (L37625, 2026-04).",
+  "confidence": "tentative",
+  "parameters": {
+    "exx_mixing_beta": "small outer-loop value; restart PBE0 from converged PBE"
+  }
+}

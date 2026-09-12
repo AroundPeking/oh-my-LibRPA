@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-symmetry-restore-weight-star-factor",
+  "title": "Symmetry-restored EXX density matrix double-divides by |star| (IBZ weight applied twice)",
+  "symptom": "EXX bands from the symmetry path come out wrong in a state-dependent way; a naive constant-weight patch made the EXX gap explode 9.116 -> 57.54 eV.",
+  "root_cause": "band_out occupations already encode IBZ geometric weights (w_root/50 = |star|/384), librpa.cpp divides by N_IBZ again, and Exx::get_dmat_cplx_R_symmetry_restored() multiplies by 1/|star| a third time: large star groups are systematically suppressed.",
+  "minimal_fix": "Remove the 1/|star| factor in the symmetry-restored density matrix so the IBZ weight is applied exactly once; validate against a symmetry-off full-flow run of the same system.",
+  "validation": "sym off (fresh ABACUS+LibRPA both ends) EXX gap 9.1232 eV vs sym on 9.1161 eV: 7.2 meV agreement is the acceptance bar.",
+  "avoid": "Compensating with a constant N_IBZ/N_full rescale, or attributing the residual to symmetry itself.",
+  "source": "~/.codex session 01a07f2b (alpha-MnTe HF@HF chain).",
+  "confidence": "established",
+  "parameters": {
+    "librpa_fix": "remove 1/|star| in symmetry-restored dmat",
+    "check": "sym on/off full-flow delta <= ~10 meV EXX gap"
+  }
+}

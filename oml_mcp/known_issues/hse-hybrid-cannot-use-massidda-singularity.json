@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "hse-hybrid-cannot-use-massidda-singularity",
+  "title": "HSE-type hybrids must not reuse the RPA/GW massidda singularity correction or exx_hybrid_step=2",
+  "symptom": "'HSE never converges' on MnTe DZP nspin=2.",
+  "root_cause": "The massidda singularity correction and the debug-oriented exx_hybrid_step=2 belong to the RPA/GW chain; a hybrid self-consistent loop needs its own treatment.",
+  "minimal_fix": "Run HSE with exx_singularity_correction != massidda and a production exx_hybrid_step; encode the rule in the version-guard/merge-compat reference so new HSE inputs are checked before submission.",
+  "validation": "...-nomassidda-nodebugstep run converged with a physical near-gap (2.149 eV).",
+  "avoid": "Reusing GW/RPA defaults wholesale for hybrid SCF.",
+  "source": "~/.codex session 01a07f2b (L5709); oh-my-librpa references/abacus-merge-compat.md.",
+  "confidence": "established",
+  "parameters": {
+    "exx_singularity_correction": "not massidda for HSE",
+    "exx_hybrid_step": "production value, not 2"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "remote-binary-version-by-source-hash-not-timestamp",
+  "title": "Verify remote binaries by source-file SHA256, not mtime; an annotated tag is not a commit",
+  "symptom": "'The binary was built at 20:05:01, before the fix commit at 20:05:47' is contested; version checks report the wrong revision.",
+  "root_cause": "Remote app directories are often not git repositories (no .git), so neither git nor timestamps prove what is compiled; upstream release tags (v0.7.0) are tag objects pointing at the real commit.",
+  "minimal_fix": "For each file changed by the fix, compare SHA256 of the remote source against the local commit versions, and confirm the build log compiled them; record profiles as tag + resolved commit (e.g. v0.7.0 -> dd169f.., master_ghj 7e40c5bb).",
+  "validation": "Hash equality plus build-log evidence settled the stale-binary dispute.",
+  "avoid": "Resolving version disputes by rebuilding blindly or by trusting file mtimes.",
+  "source": "~/.codex session 01a07f2b (L27575) + main thread L25118.",
+  "confidence": "established",
+  "parameters": {
+    "check": "SHA256 of changed files vs commit; record tag + resolved commit"
+  }
+}

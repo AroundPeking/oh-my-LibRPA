@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "kpt-audit-copy-must-match-produced-grid",
+  "title": "The consumer-directory KPT_scf audit copy can drift from the grid that actually produced the data",
+  "symptom": "k=8->10 convergence comparisons are rejected with 'more than one definition changed' although only the mesh moved; the audit KPT_scf in the run directory was copied from the k=8 template while the dataset is k=10.",
+  "root_cause": "The audit copy is not regenerated with the producer; LibRPA does not read it, but signatures and gates do.",
+  "minimal_fix": "Regenerate the audit KPT_scf together with the dataset, keep the old signature/receipt, and add a hard gate comparing KPT_scf with the embedded bz_sampling grid (dataset.screening_grid, 37 tests).",
+  "validation": "A 2x2x2 KPT_scf vs 1x1x1 dataset fixture now fails instead of silently passing.",
+  "avoid": "Hand-copying template files into consumer directories.",
+  "source": "~/.codex main thread L26713-L27617 (2026-09-05).",
+  "confidence": "established",
+  "parameters": {
+    "gate": "dataset.screening_grid compares KPT_scf with bz_sampling_out grid"
+  }
+}

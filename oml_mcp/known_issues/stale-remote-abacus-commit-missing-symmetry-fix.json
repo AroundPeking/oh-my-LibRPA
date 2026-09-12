@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stale-remote-abacus-commit-missing-symmetry-fix",
+  "title": "Remote ABACUS was months behind master_ghj and missed the atom-mapping/Bloch-phase symmetry fix",
+  "symptom": "A remote MnTe run used ABACUS 7e40c5bb (Aug 23) while master_ghj was b6a432b9; the missing e0407be4 fixes atom-mapping direction and Bloch phase when restoring density/Green functions from irreducible k - and 6 of 12 MnTe symmetry operations swap the two Te atoms.",
+  "root_cause": "Remote build directories drift from the pinned baseline; the version guard must compare against the profile-pinned revision, not 'whatever is installed'.",
+  "minimal_fix": "Rebuild remote ABACUS at the pinned commit and rerun; treat the rebuild as necessary but not sufficient - after rebuilding to b6a432b9 the MnTe GW still showed -23964..-8351 eV states, so other causes (see mnte open entry) remained.",
+  "validation": "Rebuilt binary passes its test suite; rerun recorded under a new attempt id.",
+  "avoid": "Assuming the remote build is current because the path name says so.",
+  "source": "~/.codex session 01a07f2d (2026-09, MnTe).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "rebuild remote at profile-pinned commit; rebuild is necessary, not sufficient"
+  }
+}

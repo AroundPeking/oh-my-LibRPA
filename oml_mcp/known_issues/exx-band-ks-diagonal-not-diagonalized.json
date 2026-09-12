@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-band-ks-diagonal-not-diagonalized",
+  "title": "LibRPA task=exx_band prints the KS diagonal of Sigma_x, not a diagonalized EXX Hamiltonian",
+  "symptom": "ABACUS HF@PBE bands look physical while LibRPA exx_band 'EXX@DFT' bands look wrong (gap 10.74 eV vs HF@PBE); hf@hf exx_band still off by 1.32 eV (path gap 7.568 -> 9.116 eV).",
+  "root_cause": "task_exx_band.cpp writes eps_KS - <i|v_xc|i> + <i|Sigma_x|i> using only diagonal elements, although the full KS-representation exchange matrix (exx_is_ik_KS) is constructed internally; ABACUS HF@PBE instead re-diagonalizes the full Hamiltonian after updating EXX. The two are different physical quantities.",
+  "minimal_fix": "Never compare exx_band output to HF@PBE as if identical. For a diagonalized EXX band, diagonalize the KS+exchange matrix; for the published route, treat exx_band as the diagonal quasiparticle-style quantity and validate it against its own reference chain.",
+  "validation": "hf@hf control: LibRPA KS_band matches ABACUS HF to 1.2e-5 eV near the gap, isolating the remaining 1.32 eV to the exx_band treatment itself (open).",
+  "avoid": "Assuming exx_band and ABACUS HF@PBE must coincide, or patching hf_band with a diagonal vxc_out fallback.",
+  "source": "~/.codex session 01a07f2b (2026-04, alpha-MnTe).",
+  "confidence": "established",
+  "parameters": {
+    "check": "compare exx_band only to its own reference chain"
+  }
+}

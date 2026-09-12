@@ -1,0 +1,13 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "3d-full-ewald-coulomb-strongly-indefinite",
+  "title": "3D full-Ewald Coulomb matrices are strongly indefinite; use direct_reciprocal",
+  "symptom": "Gamma-block eigenvalues as negative as -641 Ha (alpha-MnTe) and -1186 Ha (MnF2) with tens of materially negative eigenvalues per q; GW built on them is meaningless.",
+  "root_cause": "A truncated Ewald decomposition does not preserve positive semidefiniteness: real/reciprocal cutoffs, eta, tail and singular terms cancel against each other. The direct reciprocal Gram construction V(q) = sum_G A_G A_G^dag with A = sqrt(4 pi alpha)/|q+G| * rho~(q+G) is positive by structure.",
+  "minimal_fix": "Set out_librpa_3d_coulomb_method = direct_reciprocal with out_librpa_3d_direct_ecut ~110 Ry (default remains ewald; no silent fallback). At q=0 the G=0 Massidda chi_3D charge-singular term is re-added; the direction-dependent dipole-dipole term inside the Gamma cell is not yet integrated (known incompleteness).",
+  "validation": "All 65 irreducible q positive for MnTe and MnF2 (lambda_min 2.63e-6 / 5.11e-6 Ha); Si k444 cross-check: direct 110/180 Ry lambda_min +3.2e-11, GW gap 1.02974/1.02975 eV, first 12 GW bands agree to 0.03 meV; the Coulomb stage costs the same as Ewald (~41-48 s).",
+  "avoid": "Eigenvalue clipping, substituting cut Coulomb silently, or assuming an Ewald matrix is PSD because its blocks look Hermitian.",
+  "source": "~/.codex session 01a07f2b; ABACUS master_ghj commits f0179aaa, 99c4e9aa9; known_issue coulomb-negative-eig-sqrt-threshold.",
+  "confidence": "established",
+  "gate_id": "coulomb.psd_hermitian"
+}

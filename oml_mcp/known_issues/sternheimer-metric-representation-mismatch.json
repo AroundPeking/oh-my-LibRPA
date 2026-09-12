@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "sternheimer-metric-representation-mismatch",
+  "title": "Sternheimer response uses grid-Poisson Coulomb but LibRPA whiten with the RI/Ewald metric",
+  "symptom": "Si Delta-Sternheimer RPA trace-log ~ -1.74e5 instead of ~ -3.1; Pi_min ~ -1.71e5 instead of ~ -2; the producer is provably healthy (62464/62464 equations, residual 1e-8).",
+  "root_cause": "Two different but individually positive-definite Coulomb representations were mixed: ABACUS solved the response with a real-space grid-Poisson metric while LibRPA whitened with the reader-v1 RI/Ewald metric inverse square root (relative error 81.3%, generalized eigenvalue spread 1.09e-5..9.21e4). The response metric and the perturbation must be the same representation.",
+  "minimal_fix": "ABACUS writes a dedicated v1_sternheimer_coulomb_iq_<iq> metric from the same grid/potential that produced the perturbation; LibRPA sternheimer_rpa reads that prefix (prefix_coul_full) strictly. OML enforces prefix equality and provides inspect_grid_coulomb_consistency (before) and inspect_sternheimer_comparison (after).",
+  "validation": "With the dedicated metric: trace-log -3.104148571, single-q weighted Ec -0.007719384 Ha; H2 EcRPA -0.011000660 Ha; independent LibRPA minimax nfreq=6 EcRPA -2.846971 Ha agrees with the LCAO-SOS grid route at 0.87% per trace-log.",
+  "avoid": "Tuning Coulomb eigenvalue thresholds (trace-log moved with threshold but showed no plateau), or trusting a healthy producer without checking the metric handshake.",
+  "source": "~/.codex main thread L16189-L20506 (2026-08-30, Si Sternheimer).",
+  "confidence": "established",
+  "parameters": {
+    "prefix_coul_full": "v1_sternheimer_coulomb_iq_",
+    "tools": "inspect_grid_coulomb_consistency / inspect_sternheimer_comparison"
+  }
+}

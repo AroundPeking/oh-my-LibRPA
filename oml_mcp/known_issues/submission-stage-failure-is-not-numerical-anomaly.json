@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "submission-stage-failure-is-not-numerical-anomaly",
+  "title": "A failed Slurm record with application_started=false means LibRPA never started",
+  "symptom": "Job 21836054 shows FAILED/0:53 and looks like a numerical failure; the real reason is 'incorrect nested WorkDir' at submission time.",
+  "root_cause": "Scheduler records conflate submission-stage failures with application failures.",
+  "minimal_fix": "Check application_started (and the earliest log lines) before diagnosing physics; fix the workdir layout and resubmit.",
+  "validation": "Corrected job 21836121 completed and produced the strict-2D qavg numbers.",
+  "avoid": "Burning debugging time on numerics for a job that never launched.",
+  "source": "~/.codex main thread L21276-L21864 (MoS2 strict-2D).",
+  "confidence": "established",
+  "parameters": {
+    "check": "application_started before diagnosing physics"
+  }
+}

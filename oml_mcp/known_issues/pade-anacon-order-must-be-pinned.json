@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "pade-anacon-order-must-be-pinned",
+  "title": "n_params_anacon=-1 makes the GW window hypersensitive to nfreq; pin n_params_anacon=6",
+  "symptom": "Frequency convergence runs non-monotonically: 16->24 window changes 0.177 eV, 24->32 changes 0.350 eV with ~90 eV root switches on high states; fixing nfreq=12 does not help.",
+  "root_cause": "The default n_params_anacon=-1 (use all frequencies for Pade) couples the continuation order to the frequency grid, so changing nfreq changes the continuation itself; two definition axes moved at once.",
+  "minimal_fix": "Pin n_params_anacon=6 (with minimax grids; OML v4+ contract) so frequency-grid convergence and continuation are decoupled; then measure 24->32 (window 0.04440 eV, gap 0.00021 eV PASS) and report deep-valence and high-state ranges separately.",
+  "validation": "Documented BN numbers above; v4+ profiles enforce minimax + n_params_anacon=6 + option_qpe_solver=0.",
+  "avoid": "Concluding 'nfreq converged' or 'not converged' from runs where the Pade order moved with nfreq; a converged gap is not a converged window.",
+  "source": "~/.codex main thread L24579-L25434 (2026-09-03, BN).",
+  "confidence": "established",
+  "parameters": {
+    "n_params_anacon": "6",
+    "tfgrids_type": "minimax"
+  }
+}

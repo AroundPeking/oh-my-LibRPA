@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "mno2-nspin2-regression-reference-was-wrong",
+  "title": "The MnO2 nspin=2 regression reference itself was wrong (fresh rerun diverges by 1106 eV)",
+  "symptom": "A fresh ABACUS+LibRPA rerun of the LibRPA shrink regression g0w0_band_abacus_MnO2_nspin2_shrink_wing_libri matches e_mf exactly but diverges on v_exx/ReSigc/e_qp with max |de_qp| = 1106.47 eV.",
+  "root_cause": "The stored reference for this nspin=2 case was generated from a faulty chain; the current code reproduces it only for nspin=1. A regression reference is an empirical artefact and can itself be wrong.",
+  "minimal_fix": "Localize with an nspin=1 sibling control (BN): if nspin=1 reproduces its reference to 1e-13 and nspin=2 does not, condemn the reference, not the code. Then modernize the case inputs, rerun fresh, and rewrite BOTH the input bundle and the refs (LibRPA commit 0c25309) through run_regression.py analyze.",
+  "validation": "Regression suite fully green after rewrite; the nspin=1 control unchanged.",
+  "avoid": "Silently relaxing tolerances to absorb a bad reference, or reverting code to match a frozen wrong reference.",
+  "source": "~/.codex session 01a07f2b (MnO2 regression, 2026-04).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "nspin=1 sibling control before condemning code"
+  }
+}

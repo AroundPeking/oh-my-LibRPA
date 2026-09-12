@@ -92,10 +92,18 @@ class KnownIssueStoreTest(unittest.TestCase):
             report = diagnose_run(root, stage="pyatb")
 
         self.assertGreaterEqual(report["matched_count"], 1)
-        # The top match must be a Coulomb PSD issue (same gate_id).
-        top = report["matches"][0]["issue"]
-        self.assertEqual(top["gate_id"], "coulomb.psd_hermitian")
-        self.assertEqual(top["title"], "Coulomb matrix not positive-definite (indefinite / non-Hermitian)")
+        # Every top match must be a Coulomb PSD issue (same gate_id), and the
+        # store must surface both the generic repair entry and the specific
+        # 3D full-Ewald root-cause entry for an indefinite matrix.
+        top_ids = [match["issue"]["issue_id"] for match in report["matches"][:5]]
+        for issue_id in (
+            "coulomb-matrix-not-positive-definite",
+            "3d-full-ewald-coulomb-strongly-indefinite",
+        ):
+            self.assertIn(issue_id, top_ids)
+        for match in report["matches"]:
+            if match["rank"] == report["matches"][0]["rank"]:
+                self.assertEqual(match["issue"]["gate_id"], "coulomb.psd_hermitian")
 
     def test_diagnose_run_returns_no_coulomb_match_for_clean_coulomb(self):
         with tempfile.TemporaryDirectory() as tmpdir:

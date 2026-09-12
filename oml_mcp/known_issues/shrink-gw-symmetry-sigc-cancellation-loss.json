@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "shrink-gw-symmetry-sigc-cancellation-loss",
+  "title": "shrink_abfs + GW symmetry: Sigc catastrophically wrong while PBE/EXX look normal",
+  "symptom": "With use_shrink_abfs=t and use_abacus_gw_symmetry=t the GW gap flips negative (-1.63 eV vs 2.17 eV no-shrink); ReSigc on the mesh is off by tens of eV while chi-projection errors stay at machine precision; same inputs without shrink are fine.",
+  "root_cause": "Sigc is a strongly cancelling residual (|Sigc| << sum of terms); a ~1% W error from the compressed representation destroys the cancellation and surfaces as an O(1) relative error in SigcRF (measured fro_rel ~1.03 while W_l ?= U^dag W_s U errors were 0.38-2.21%). Suspicion narrowed to Wc_tau_R -> set_Ws -> cal_Sigmas block bookkeeping (gw.cpp L1371 hand-patched <JI(R)>); shrink x symmetry coupling, not the symmetry route itself (no-shrink+sym control is clean).",
+  "minimal_fix": "For production GW do not combine shrink with the GW symmetry lane until the LibRPA block bookkeeping is fixed; run no-shrink (or no-symmetry) fresh full-flow controls to isolate. Any shrink on/off comparison must regenerate the whole ABACUS+LibRPA chain - never toggle use_shrink_abfs in LibRPA only on Coulomb matrices already built compressed.",
+  "validation": "BN nspin=1 regression reproduces its reference to 1e-13..1e-15 while the broken MnO2 nspin=2 case differs by 1106 eV, separating a broken reference from a broken code path; chi_s = U chi_l U^dag error 3.5e-8..3.0e-7 bounds the compression itself.",
+  "avoid": "Chasing Pade/analytic continuation (pre-continuation SigcRF is already wrong), comparing W matrices in different dimensions, or using V_s ?= U V_l U^dag (direction reversed; correct form is V_l ?= U^dag V_s U, giving 0.27-2.7%).",
+  "source": "~/.codex session 01a07f2b (alpha-MnTe shrink x symmetry chain, 2026-04).",
+  "confidence": "established",
+  "parameters": {
+    "use_shrink_abfs": "off for production GW with symmetry lane until fixed",
+    "comparison": "project via same U; V_l ?= U^dag V_s U"
+  }
+}

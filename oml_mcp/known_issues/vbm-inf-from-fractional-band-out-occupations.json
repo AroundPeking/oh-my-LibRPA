@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "vbm-inf-from-fractional-band-out-occupations",
+  "title": "VBM = -inf because plotting mixed band_out weighted occupations with an occ>0.5 rule",
+  "symptom": "plot_compare.py reports VBM = -inf while the underlying KS/EXX/GW files are finite.",
+  "root_cause": "KS_band_spin_*.dat carry binary 0/1 occupations; band_out carries weighted occupations (e.g. 0.130208) after overwriting; an occ > 0.5 band-edge rule then classifies every band as unoccupied.",
+  "minimal_fix": "Map occupations to binary (apply_band_out_occupations()) before any band-edge logic; assert finiteness of VBM/CBM in every comparison figure script.",
+  "validation": "vbm_librpa returns a finite 10.43977 eV after the fix.",
+  "avoid": "Reading -inf as a physics failure; it is an occupancy-representation mismatch.",
+  "source": "~/.codex session 01a07f2b (MnTe plotting).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "map band_out weighted occupations to binary before occ>0.5 band-edge logic"
+  }
+}

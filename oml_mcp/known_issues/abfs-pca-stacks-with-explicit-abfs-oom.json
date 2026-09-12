@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abfs-pca-stacks-with-explicit-abfs-oom",
+  "title": "A small exx_pca_threshold stacks PCA auxiliary functions on top of explicit ABFS and OOMs",
+  "symptom": "plus7-ABFS run: estimated chi0_q memory 18.7 GB/rank, free memory decays 165.9 -> 35.5 GB across ranks, then signal 9 (oom_kill) inside chi0 collect_Rs; a noABFS+pca1e-8 variant OOMs inside ABACUS LRI_CV::cal_datas, with a total expansion dimension of 2324 of which 1044 came from PCA, not the 1280 hand-added jle functions.",
+  "root_cause": "exx_pca_threshold generates additional PCA auxiliary functions ON TOP OF an explicit ABFS_ORBITAL set; a tight threshold (1e-8) therefore multiplies the auxiliary space instead of replacing it.",
+  "minimal_fix": "When explicit ABFS orbitals are provided, choose the PCA threshold so the two do not stack unintentionally (or disable PCA); budget chi0 memory as ~19 GB/rank times ranks and watch the per-rank free-memory ladder in logs.",
+  "validation": "Memory ladder plus oom_kill delta; a run that reaches chi0 without signal 9.",
+  "avoid": "Assuming 'PCA threshold tight = smaller basis'; it is the opposite when explicit ABFS coexists.",
+  "source": "~/.codex session 01a07f2b (L7790-L8378).",
+  "confidence": "established",
+  "parameters": {
+    "exx_pca_threshold": "do not let PCA stack on explicit ABFS_ORBITAL"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "librpa-only-rerun-minimum-input-set",
+  "title": "LibRPA-only reruns fail on a predictable minimum input file set",
+  "symptom": "Reruns die one missing family at a time: missing stru_out (std::invalid_argument: stod in read_stru), missing Cs_data_*/coulomb_mat_*, missing pyatb_librpa_df/ (use_pyatb=t), missing shrink_sinvS_*; each costs a queued job.",
+  "root_cause": "Disk cleanup deletes exactly the regeneratable large files that LibRPA-only reruns need as input; the rerun checklist lives in nobody's head.",
+  "minimal_fix": "Before any LibRPA-only (or exx_band-only) rerun, verify the minimum set: STRU/stru_out, vxc_out, band_out, KS_eigenvector_*, v1_Cs_data_*, v1_coulomb_full/cut_iq_*, shrink_sinvS_* (if shrink), pyatb_librpa_df/{velocity_matrix,band_out,k_path_info} (if use_pyatb), symmetry sidecars (irreducible_sector.txt, symrot_*, abf_k.txt), and librpa.in input_dir pointing at the dataset actually present.",
+  "validation": "Three consecutive failures (missing stru_out; missing Cs/coulomb; missing pyatb_librpa_df) all disappeared once the checklist was applied; a hard pre-submit check script caught a broken producer symlink before wasting a queue slot.",
+  "avoid": "Trusting directory names ('noabfs') instead of STRU contents; asserting on files that the current ABACUS writer no longer produces (e.g. hf_exchange_spin_*.csc).",
+  "source": "~/.codex sessions 01a07f2b + main thread (multiple reruns, 2026-04..09).",
+  "confidence": "established",
+  "parameters": {
+    "checklist": "stru_out, vxc_out, band_out, KS_eigenvector, Cs_data, coulomb_*, shrink_sinvS_*, pyatb_librpa_df/, symmetry sidecars, input_dir"
+  }
+}

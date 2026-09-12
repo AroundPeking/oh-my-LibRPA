@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "bvk-collapse-mixed-kpath-global-judgment",
+  "title": "LibRPA band-path BvK collapse judged globally over a mixed kpath (mesh points + off-grid points)",
+  "symptom": "On a kpath that mixes uniform-mesh points and off-grid points, kpath endpoints satisfy EXX_band = KS - vxc, i.e. Eexx silently zeroed; non-Gamma kpath points shared with the mesh show EXX too high by 11-21 eV; EXX bandgap flips 10.6904 -> -9.09 eV after merely raising nbands 64->170. GW QP on path points coinciding with the mesh deviates up to 16.58 eV.",
+  "root_cause": "LibRPA decided the BvK collapse branch once for the whole kpath list instead of per k point (src/exx.cpp L339/L1762, src/gw.cpp L42/L2183/L2282): mesh-listed endpoints took the off-grid branch, so their Eexx was cleared. The same global-vs-per-k mistake recurred in the Sigc(R)->Sigc(k) rotation.",
+  "minimal_fix": "Judge mesh membership per k point and keep both the raw R-block and the BvK-collapsed views, selecting per current k. After the LibRPA fix, coincident path/mesh GW states must agree to meV (measured 5.94 meV max, from 16.58 eV).",
+  "validation": "Hard criterion: every kpath point that coincides with a uniform-mesh point must reproduce the mesh EXX/GW values exactly (to output precision); EXX bandgap must return to the known 10.6904 eV.",
+  "avoid": "Debugging the band path with only Gamma-point agreement, or treating a 64-band window as the fix when the state space itself is correct.",
+  "source": "~/.codex session 01a07f2b (2026-04, alpha-MnTe nspin=2), LibRPA exx.cpp/gw.cpp; fixed in LibRPA master_ghj.",
+  "confidence": "established",
+  "parameters": {
+    "librpa_fix": "per-k BvK collapse + dual R/collapsed views",
+    "check": "coincident path/mesh states equal"
+  }
+}

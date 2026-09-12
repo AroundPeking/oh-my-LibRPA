@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "pbe0-integral-init-oom-and-walltime",
+  "title": "PBE0 exact-exchange integral init: OOM at 16 MPI x 3 threads; passes at 4 MPI x 12 threads; do not set a short walltime",
+  "symptom": "64-atom LCAO+PBE0 killed by SIGKILL in the integral-construction stage before SCF starts; a small Ni4 control run 'fails' at 22:20 into a 1-hour limit.",
+  "root_cause": "The EXX integral initialization is memory-heavy and slow; too many MPI ranks multiply per-rank buffers, and a short walltime kills a healthy initialization.",
+  "minimal_fix": "Reduce MPI replicas and raise threads (16x3 -> 4x12), keep physics inputs identical, sample memory (e.g. every 15 s into resource_samples.jsonl), and remove artificial walltime limits for the init stage.",
+  "validation": "Run passed integral init into PBE0 SCF with ~240 GiB peak and no new oom_kill events; Ni4 control (exit 0, drho 4.6e-8, gap 4.64 eV) reused, not rerun.",
+  "avoid": "Attributing the SIGKILL to the physics, or diagnosing 'failure' from a walltime kill.",
+  "source": "~/.codex session 01a08025 (NiO SQS PBE0, 2026-09-08).",
+  "confidence": "established",
+  "parameters": {
+    "mpi_threads": "reduce ranks, raise threads (16x3 -> 4x12)",
+    "walltime": "no artificial limit on integral init"
+  }
+}

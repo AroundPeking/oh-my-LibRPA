@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "mnf2-pbe0-exchange-coefficient-not-restored",
+  "title": "PBE0 RPA export used exchange coefficient 1 instead of 0.25 (not restored after RPA run)",
+  "symptom": "Uniform-grid vs band-path Vxc differ by ~27.77 eV on the same occupied state, and DeltaVxc ~ 0.75*Sigmax hints a missing 0.25 weight; PBE0+GW grid and path outputs disagree at shared k points.",
+  "root_cause": "ABACUS temporarily set the PBE0 exchange coefficient 0.25 to 1 while generating RPA data and never restored it; the band-path NSCF was unaffected.",
+  "minimal_fix": "Fix the export path to apply the 0.25 exchange coefficient (or restore it after the RPA export); regenerate the grid Vxc. After the fix the Gamma state-29 EXX contribution returned to -0.72365 eV from +27.04951 eV.",
+  "validation": "Si control: the RPA switch changed Vxc by 13.04 eV with the bug and by 0.0125 meV after the fix. Re-run GW and require mesh/path shared-k agreement (MnF2: max 1.18 meV).",
+  "avoid": "Declaring a PBE0+GW run correct from the near-gap window only; high-state discrepancies remained open after this fix.",
+  "source": "~/.codex session 01a07f2b (MnF2 GW@PBE0, 2026-04).",
+  "confidence": "established",
+  "parameters": {
+    "check": "grid vs path Vxc agree at shared k (0.25 coefficient)"
+  }
+}

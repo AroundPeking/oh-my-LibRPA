@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "duplicate-submission-same-output-directory",
+  "title": "Duplicate submissions write one output directory concurrently and poison it",
+  "symptom": "Two jobs (e.g. 1693231 and 1693233) run the same case simultaneously after a broken job-id extraction made the submitter think the first submission failed.",
+  "root_cause": "Fragile shell parsing of the scheduler output plus no duplicate-job check before submission.",
+  "minimal_fix": "Cancel all duplicates, clear the intermediate outputs (75G -> 294K observed), and resubmit once; OML's preflight duplicate check and immutable run directories exist for exactly this.",
+  "validation": "A clean single-job rerun reproduces a consistent dataset.",
+  "avoid": "Leaving one of the two jobs running 'to save time'; concurrent writers invalidate every downstream check.",
+  "source": "~/.codex session 01a07f2b (L24293).",
+  "confidence": "established",
+  "parameters": {
+    "rule": "cancel duplicates, clear intermediates, resubmit once"
+  }
+}

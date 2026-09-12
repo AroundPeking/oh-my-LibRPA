@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "ofi-transport-retry-exceeded-bad-node",
+  "title": "LibRPA dies with 'transport retry counter exceeded' on individual bad nodes",
+  "symptom": "Two runs lost to OFI/verbs communication errors on specific nodes (c21380, c21370, rank 8), log tail 'BAD TERMINATION'; a misleading 'Cosine transform duality error: 12722.3' appears nearby; a retry then hits OUT_OF_MEMORY.",
+  "root_cause": "Node-level fabric faults, not the physics input; shrinking nfreq does not address cross-node communication stability.",
+  "minimal_fix": "Identify the failing node from rank logs, exclude it (scheduler exclude list) and resubmit LibRPA-only; for memory pressure move to the large-memory partition (e.g. 9 nodes x 1 rank x 96 OMP threads, --mem=380000).",
+  "validation": "Runs complete after node exclusion / partition move.",
+  "avoid": "Cutting nfreq to 'fix' a communication fault; rerunning on the same bad node.",
+  "source": "~/.codex session 01a07f2b (MnTe LibRPA production, 2026-04).",
+  "confidence": "established",
+  "parameters": {
+    "scheduler": "exclude failing node; large-memory partition for OOM retries"
+  }
+}

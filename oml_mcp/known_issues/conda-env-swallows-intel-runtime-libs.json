@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "conda-env-swallows-intel-runtime-libs",
+  "title": "conda activation drops Intel runtime from LD_LIBRARY_PATH (exit code 127)",
+  "symptom": "Remote job exits 127 immediately; libifcore.so.5 / MKL runtime 'not found'.",
+  "root_cause": "Activating a conda environment rewrites LD_LIBRARY_PATH without the Intel Fortran/MKL runtime directories.",
+  "minimal_fix": "In the same shell, source Intel oneAPI setvars.sh AFTER conda activate; verify dynamic resolution (ldd) before submitting; run in a fresh -r1 directory.",
+  "validation": "Binary resolves all Intel libraries and the job starts.",
+  "avoid": "Copying library files around, or diagnosing 127 as an application crash.",
+  "source": "~/.codex main thread L25865 (2026-09-03).",
+  "confidence": "established",
+  "parameters": {
+    "order": "source oneAPI setvars.sh AFTER conda activate; verify with ldd"
+  }
+}

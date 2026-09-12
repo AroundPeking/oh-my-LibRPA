@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abacus-sph-bessel-recursive-cache-stale-row",
+  "title": "ABACUS HSE crashes in center2_orb: Sph_Bessel_Recursive cache keeps stale rows on reuse",
+  "symptom": "MnTe DZP HSE (nspin=2) SCF asserts inside center2_orb within tens of seconds.",
+  "root_cause": "Two layers: DZP orbitals use Mesh=1001 (odd) but Matrix_Orbs11/21/22 sized the table as kmesh*kmesh_times+1 (=1002, even) while change_orbs/construct_abfs paths force odd via |1; and Sph_Bessel_Recursive::D2 refreshed only the requested ix1_size rows on cache reuse, leaving larger-Rmesh rows with the old kmesh width, which asserts on later access.",
+  "minimal_fix": "Fix the cache refresh in sph_bessel_recursive-d2.cpp to invalidate/resize all cached rows, keep center2_orb call sites clean, and add a minimal reproduction unit test.",
+  "validation": "Rebuilt binary passed the previously fatal point and the job completed.",
+  "avoid": "Patching call sites to dodge the assert while the cache stays stale.",
+  "source": "~/.codex session 01a07f2b (L4917, 2026-04).",
+  "confidence": "established",
+  "parameters": {
+    "abacus_fix": "invalidate all cached Sph_Bessel_Recursive rows on reuse"
+  }
+}
