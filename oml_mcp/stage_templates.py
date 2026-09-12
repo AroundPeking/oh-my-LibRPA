@@ -48,6 +48,15 @@ def render_env(
     return "".join(f"export {key}={shlex.quote(str(value))}\n" for key, value in values.items())
 
 
+def stage_body(stage: str) -> str:
+    """Return the shell body that performs one controlled stage.
+
+    Public wrapper so login-node execution can reuse the exact same commands
+    the scheduled path runs; keeping one body avoids the two paths drifting.
+    """
+    return _stage_body(stage)
+
+
 def _stage_body(stage: str) -> str:
     bodies = {
         "scf": """

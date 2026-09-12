@@ -27,7 +27,9 @@ def _is_under(path: Path, roots: tuple[Path, ...]) -> bool:
     return any(path.is_relative_to(root) for root in roots)
 
 
-def _match_periodic_plan(source: Path, plan_digest: str):
+def _match_periodic_plan(
+    source: Path, plan_digest: str, profile_id: str | None = None
+):
     requests = [
         {
             "task": "gw",
@@ -68,7 +70,19 @@ def _match_periodic_plan(source: Path, plan_digest: str):
             },
         )
     )
-    candidates = tuple(plan_case(source, **request) for request in requests)
+    candidates = tuple(
+        plan_case(
+            source,
+            # A request that already names its own profile (the v2 Sternheimer
+            # probes above) must keep it, so the caller's profile is only a default.
+            **(
+                {"profile_id": profile_id, **request}
+                if profile_id is not None
+                else request
+            ),
+        )
+        for request in requests
+    )
     matches = tuple(plan for plan in candidates if plan.digest == plan_digest)
     if len(matches) != 1:
         raise OMLError(
@@ -209,8 +223,12 @@ def _verify_stru_assets(source: Path) -> None:
         )
 
 
-def _verify_workflow_helpers(source: Path) -> None:
-    approved = load_profile()["contract"]["workflow_helpers"]
+def _verify_workflow_helpers(source: Path, profile_id: str | None = None) -> None:
+    approved = (
+        load_profile(profile_id=profile_id)
+        if profile_id is not None
+        else load_profile()
+    )["contract"]["workflow_helpers"]
     failures = []
     for name, expected in approved.items():
         path = source / name
@@ -281,6 +299,7 @@ def prepare_run(
     profile: ExecutionProfile,
     *,
     execution_receipt: dict[str, Any],
+    profile_id: str | None = None,
 ) -> dict[str, Any]:
     source = Path(source_path).expanduser().resolve()
     if not source.is_dir() or not _is_under(source, profile.allowed_source_roots):
@@ -292,7 +311,7 @@ def prepare_run(
         )
 
     try:
-        plan = _match_periodic_plan(source, plan_digest)
+        plan = _match_periodic_plan(source, plan_digest, profile_id)
     except PlanError as exc:
         raise OMLError(
             "STALE_PLAN",
@@ -347,7 +366,7 @@ def prepare_run(
             recovery="keep this route on the existing workflow until a dedicated executor is approved",
         )
     _verify_controlled_scope(source, plan)
-    _verify_workflow_helpers(source)
+    _verify_workflow_helpers(source, profile_id)
     report = validate_case(
         source,
         task="gw",
@@ -356,6 +375,7 @@ def prepare_run(
         soc=False,
         headwing=bool(plan.options["headwing"]),
         stage="input",
+        profile_id=profile_id,
     )
     if not report.accepted:
         failed = tuple(gate.gate_id for gate in report.gates if gate.status == "FAIL")

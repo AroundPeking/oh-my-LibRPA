@@ -16,6 +16,8 @@ ROUTE_MUTATION_AXES = {
             "nao_family",
             "abfs_family",
             "shrink_threshold",
+            "exx_cs_inv_thr",
+            "basis_family",
         }
     ),
     "strict_2d_gw": frozenset(

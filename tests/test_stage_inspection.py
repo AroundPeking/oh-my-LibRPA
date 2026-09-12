@@ -1,10 +1,26 @@
 import pathlib
+import struct
 import tempfile
 import unittest
+
+import numpy as np
 
 
 from oml_mcp.stage_inspection import inspect_stage_outputs
 from tests.test_artifacts import write_eigenvector_v1, write_headwing_metadata, write_velocity_v1
+
+COULOMB_MARKER = -20129433
+
+
+def write_coulomb_block(path: pathlib.Path, matrix: np.ndarray, *, iq: int = 1) -> None:
+    """Write a single-atom reader-v1 Coulomb block used by the pyatb gates."""
+    naux = matrix.shape[0]
+    header_bytes = 24 + 4 + 12
+    data = struct.pack("=6i", COULOMB_MARKER, iq, naux, 1, 1, 1)
+    data += struct.pack("=i", naux)
+    data += struct.pack("=iq", 0, header_bytes)
+    data += np.asarray(matrix, dtype=np.complex128).tobytes(order="C")
+    path.write_bytes(data)
 
 
 def command_completed(
@@ -86,15 +102,22 @@ class StageInspectionTest(unittest.TestCase):
             write_headwing_metadata(headwing)
             write_eigenvector_v1(headwing / "KS_eigenvector_0.dat")
             write_velocity_v1(headwing / "velocity_matrix")
-            for name in ("band_out", "basis_wfc_out", "basis_aux_out"):
+            (root / "band_out").write_text(
+                "1 1 2 2\n0.0\n1 1 1 1.0 0.0 0.0\n1 1 2 1.0 0.0 0.0\n",
+                encoding="utf-8",
+            )
+            for name in ("basis_wfc_out", "basis_aux_out"):
                 (root / name).write_text("data\n")
             for name in (
                 "KS_eigenvector_0.dat",
                 "v1_Cs_data_0.dat",
-                "v1_coulomb_full_iq_1_rank0.dat",
                 "v1_coulomb_cut_iq_1_rank0.dat",
             ):
                 (root / name).write_bytes(b"data")
+            write_coulomb_block(
+                root / "v1_coulomb_full_iq_1_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
 
             accepted = inspect_stage_outputs(root, "pyatb")
             write_velocity_v1(headwing / "velocity_matrix", nbands=4)
@@ -103,6 +126,87 @@ class StageInspectionTest(unittest.TestCase):
         self.assertTrue(accepted["accepted"])
         self.assertFalse(rejected["accepted"])
         self.assertTrue(any(gate["gate_id"] == "pyatb.dimensions.velocity" for gate in rejected["gates"]))
+
+    def test_pyatb_rejects_indefinite_coulomb(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "pyatb")
+            headwing = root / "pyatb_librpa_df"
+            headwing.mkdir()
+            write_headwing_metadata(headwing)
+            write_eigenvector_v1(headwing / "KS_eigenvector_0.dat")
+            write_velocity_v1(headwing / "velocity_matrix")
+            (root / "band_out").write_text(
+                "1 1 2 2\n0.0\n1 1 1 1.0 0.0 0.0\n1 1 2 1.0 0.0 0.0\n",
+                encoding="utf-8",
+            )
+            for name in ("basis_wfc_out", "basis_aux_out"):
+                (root / name).write_text("data\n")
+            for name in (
+                "KS_eigenvector_0.dat",
+                "v1_Cs_data_0.dat",
+                "v1_coulomb_cut_iq_1_rank0.dat",
+            ):
+                (root / name).write_bytes(b"data")
+            write_coulomb_block(
+                root / "v1_coulomb_full_iq_1_rank0.dat",
+                np.diag([4.0, -9.0]).astype(np.complex128),
+            )
+
+            report = inspect_stage_outputs(root, "pyatb")
+
+        self.assertFalse(report["accepted"])
+        self.assertTrue(
+            any(gate["gate_id"] == "coulomb.psd_hermitian.iq_1" for gate in report["gates"])
+        )
+        coulomb = next(
+            gate
+            for gate in report["gates"]
+            if gate["gate_id"] == "coulomb.psd_hermitian.iq_1"
+        )
+        self.assertEqual(coulomb["status"], "FAIL")
+
+    def test_pyatb_rejects_incomplete_state_space(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "pyatb")
+            headwing = root / "pyatb_librpa_df"
+            headwing.mkdir()
+            write_headwing_metadata(headwing)
+            write_eigenvector_v1(headwing / "KS_eigenvector_0.dat")
+            write_velocity_v1(headwing / "velocity_matrix")
+            (root / "band_out").write_text(
+                "1 1 2 4\n0.0\n1 1 1 1.0 0.0 0.0\n1 1 2 1.0 0.0 0.0\n",
+                encoding="utf-8",
+            )
+            for name in ("basis_wfc_out", "basis_aux_out"):
+                (root / name).write_text("data\n")
+            for name in (
+                "KS_eigenvector_0.dat",
+                "v1_Cs_data_0.dat",
+                "v1_coulomb_cut_iq_1_rank0.dat",
+            ):
+                (root / name).write_bytes(b"data")
+            write_coulomb_block(
+                root / "v1_coulomb_full_iq_1_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
+
+            report = inspect_stage_outputs(root, "pyatb")
+
+        self.assertFalse(report["accepted"])
+        self.assertTrue(
+            any(
+                gate["gate_id"] == "stage.state_space.nbands_vs_nbasis"
+                for gate in report["gates"]
+            )
+        )
+        state = next(
+            gate
+            for gate in report["gates"]
+            if gate["gate_id"] == "stage.state_space.nbands_vs_nbasis"
+        )
+        self.assertEqual(state["status"], "FAIL")
 
     def test_preprocess_requires_finite_nonempty_band_inputs(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -176,6 +280,63 @@ class StageInspectionTest(unittest.TestCase):
 
         self.assertFalse(report["accepted"])
         self.assertTrue(any(gate["gate_id"] == "stage.librpa.gw_shape" for gate in report["gates"]))
+
+
+    def test_librpa_reported_nan_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "librpa")
+            log = root / "LibRPA.123.out"
+            log.write_text("Total EcRPA: -0.342512415\nTimer stop:  total.\n")
+            (root / "band_kpath_info").write_text("2 2 1 1\n0 0 0\n")
+            (root / "GW_band_spin_1.dat").write_text("1 0 0 0 0.0 5.0 0.0 6.0\n")
+
+            accepted = inspect_stage_outputs(root, "librpa")
+            log.write_text("Total EcRPA: nan\nTimer stop:  total.\n")
+            rejected = inspect_stage_outputs(root, "librpa")
+
+        self.assertTrue(accepted["accepted"])
+        self.assertFalse(rejected["accepted"])
+        self.assertTrue(
+            any(
+                gate["gate_id"] == "stage.librpa.reported_finite"
+                for gate in rejected["gates"]
+            )
+        )
+
+    def test_librpa_reported_infinity_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "librpa")
+            (root / "LibRPA.123.out").write_text(
+                "GW bandgap(eV): +inf\nTimer stop:  total.\n"
+            )
+            (root / "band_kpath_info").write_text("2 2 1 1\n0 0 0\n")
+            (root / "GW_band_spin_1.dat").write_text("1 0 0 0 0.0 5.0 0.0 6.0\n")
+
+            report = inspect_stage_outputs(root, "librpa")
+
+        self.assertFalse(report["accepted"])
+        gate = next(
+            g for g in report["gates"] if g["gate_id"] == "stage.librpa.reported_finite"
+        )
+        self.assertEqual(gate["status"], "FAIL")
+
+    def test_librpa_without_reported_scalars_skips_not_passes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            command_completed(root, "librpa")
+            (root / "LibRPA.123.out").write_text("Timer stop:  total.\n")
+            (root / "band_kpath_info").write_text("2 2 1 1\n0 0 0\n")
+            (root / "GW_band_spin_1.dat").write_text("1 0 0 0 0.0 5.0 0.0 6.0\n")
+
+            report = inspect_stage_outputs(root, "librpa")
+
+        gate = next(
+            g for g in report["gates"] if g["gate_id"] == "stage.librpa.reported_finite"
+        )
+        # A vacuous check must never be counted as evidence of correctness.
+        self.assertEqual(gate["status"], "SKIP")
 
 
 if __name__ == "__main__":

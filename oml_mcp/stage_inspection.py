@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 from typing import Iterable
 
 from .artifacts import inspect_headwing_directory
+from .coulomb_diagnostics import inspect_coulomb_psd_hermitian
 from .models import GateResult
+from .parsers import ParseError
 from .stage_templates import CONTROLLED_PERIODIC_STAGES
 
 
@@ -200,6 +203,87 @@ def _scf_gates(root: Path) -> list[GateResult]:
     ]
 
 
+def _state_space_gate(root: Path) -> list[GateResult]:
+    """Check band_out state count equals the physical LCAO basis dimension.
+
+    This is the fast, reference-free ``nbands == nbasis`` check the user
+    asked for: an incomplete state space (fewer states than the basis
+    dimension) is a definition error that corrupts EXX/GW and must be caught
+    before LibRPA.
+    """
+    band_out = root / "band_out"
+    if not _safe_nonempty(root, band_out):
+        return [
+            _fail(
+                "stage.state_space.band_out",
+                "band_out is missing, empty, linked, or escaped",
+                (str(band_out),),
+                "regenerate the reader-v1 dataset and rerun the PyATB adapter",
+            )
+        ]
+    try:
+        tokens: list[str] = []
+        for line in band_out.read_text(encoding="utf-8").splitlines():
+            content = line.split("#", 1)[0].strip()
+            if content:
+                tokens.extend(content.split())
+            if len(tokens) >= 4:
+                break
+        if len(tokens) < 4:
+            raise ParseError("band_out header must contain nkpoints nspin nstates nbasis")
+        nkpoints, nspin, nstates, nbasis = (int(token) for token in tokens[:4])
+        if nkpoints <= 0 or nspin <= 0 or nstates <= 0 or nbasis <= 0:
+            raise ParseError("band_out header dimensions must be positive")
+    except (OSError, ValueError, ParseError) as exc:
+        return [
+            _fail(
+                "stage.state_space.band_out",
+                "band_out header is unreadable",
+                (str(band_out), str(exc)),
+                "regenerate the reader-v1 dataset and rerun the PyATB adapter",
+            )
+        ]
+    complete = nstates == nbasis
+    if not complete:
+        return [
+            _fail(
+                "stage.state_space.nbands_vs_nbasis",
+                "band_out state count differs from the physical basis dimension",
+                (str(band_out), f"nstates={nstates}", f"nbasis={nbasis}"),
+                "raise ABACUS nbands to the full basis dimension (or verify the "
+                "basis definition) before running LibRPA; an incomplete state "
+                "space corrupts EXX/GW",
+            )
+        ]
+    return [
+        _pass(
+            "stage.state_space.nbands_vs_nbasis",
+            "band_out state count equals the physical basis dimension",
+            str(band_out),
+            f"nstates={nstates}",
+            f"nbasis={nbasis}",
+        )
+    ]
+
+
+def _coulomb_psd_gates(root: Path) -> list[GateResult]:
+    """Fuse the reference-free Coulomb PSD/Hermitian diagnostic into gates."""
+    report = inspect_coulomb_psd_hermitian(root)
+    result: list[GateResult] = []
+    for gate_dict in report["gates"]:
+        result.append(
+            GateResult(
+                gate_id=gate_dict["gate_id"],
+                status=gate_dict["status"],
+                message=gate_dict["message"],
+                evidence=tuple(gate_dict.get("evidence", ())),
+                repair=gate_dict.get("repair"),
+                measurements=gate_dict.get("measurements"),
+            )
+        )
+    return result
+
+
 def _pyatb_gates(root: Path) -> list[GateResult]:
     headwing = inspect_headwing_directory(root / "pyatb_librpa_df")
     gates = list(headwing.gates)
@@ -219,6 +303,8 @@ def _pyatb_gates(root: Path) -> list[GateResult]:
         repair="regenerate the main ABACUS reader-v1 dataset and rerun the PyATB adapter",
     )
     gates.append(main_gate)
+    gates.extend(_coulomb_psd_gates(root))
+    gates.extend(_state_space_gate(root))
     return gates
 
 
@@ -256,6 +342,82 @@ def _preprocess_gates(root: Path) -> list[GateResult]:
     return [
         required_gate,
         _finite_text_files(root, "preprocess", finite_paths, gate_id="stage.preprocess.finite"),
+    ]
+
+
+def _reported_quantity_gate(root: Path) -> list[GateResult]:
+    """Check that LibRPA's *reported* scalars are finite numbers.
+
+    The mining of the codex history found post-run gates accepting
+    ``EcRPA = nan``/``inf`` and truncated component matrices, i.e. the verifier
+    itself could pass on garbage. This gate reads the scalars LibRPA prints and
+    fails on any non-finite value, so a NaN can never ride through as success.
+    It is deliberately a SKIP (not a PASS) when a run reports no such scalar, so
+    a vacuous check is never counted as evidence.
+    """
+    logs = tuple(
+        dict.fromkeys(
+            (
+                *sorted(root.glob("librpa_para_nprocs_*_myid_0.out")),
+                *sorted(root.glob("LibRPA*.out")),
+            )
+        )
+    )
+    safe_logs = tuple(path for path in logs if _safe_nonempty(root, path))
+    if not safe_logs:
+        return []
+
+    # The value pattern must be able to MATCH the literal text "nan"/"inf".
+    # A numeric-only character class silently skips them, which is precisely the
+    # false-pass this gate exists to prevent.
+    value = r"([-+]?(?:nan|inf(?:inity)?)|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?)"
+    patterns = (
+        ("EcRPA", re.compile(rf"Total\s+EcRPA:\s*{value}", re.I)),
+        ("GW bandgap", re.compile(rf"GW\s+bandgap\(eV\):\s*{value}", re.I)),
+        ("EXX bandgap", re.compile(rf"EXX\s+bandgap\(eV\):\s*{value}", re.I)),
+        ("DFT bandgap", re.compile(rf"DFT\s+bandgap\(eV\):\s*{value}", re.I)),
+    )
+    non_finite: list[str] = []
+    observed: list[str] = []
+    for path in safe_logs:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for label, pattern in patterns:
+            for match in pattern.finditer(text):
+                raw = match.group(1)
+                try:
+                    value = float(raw)
+                except ValueError:
+                    non_finite.append(f"{label}={raw}")
+                    continue
+                observed.append(f"{label}={raw}")
+                if not math.isfinite(value):
+                    non_finite.append(f"{label}={raw}")
+
+    if non_finite:
+        return [
+            _fail(
+                "stage.librpa.reported_finite",
+                "LibRPA reported a non-finite scalar quantity",
+                non_finite,
+                "the reported value is not a usable number; repair the run that "
+                "produced it (check the auxiliary Coulomb, the state space, and "
+                "for stale intermediate files) before trusting any band output",
+            )
+        ]
+    if not observed:
+        return [
+            GateResult(
+                "stage.librpa.reported_finite",
+                "SKIP",
+                "no LibRPA scalar quantity was reported, so finiteness is not evaluated",
+            )
+        ]
+    return [
+        _pass(
+            "stage.librpa.reported_finite",
+            "every reported LibRPA scalar quantity is finite",
+            *observed,
+        )
     ]
 
 
@@ -369,7 +531,7 @@ def _librpa_gates(root: Path) -> list[GateResult]:
             str(kpath),
             *(str(path) for path in gw_paths),
         )
-    return [completion, gw_gate, shape_gate]
+    return [completion, gw_gate, shape_gate, *_reported_quantity_gate(root)]
 
 
 def inspect_stage_outputs(

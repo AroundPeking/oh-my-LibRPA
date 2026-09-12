@@ -54,10 +54,19 @@ def _parse_utc(value: str) -> datetime:
 
 
 class ControlledExecutionService:
-    def __init__(self, profile: ExecutionProfile, *, initialize_state: bool = True) -> None:
+    def __init__(
+        self,
+        profile: ExecutionProfile,
+        *,
+        initialize_state: bool = True,
+        profile_id: str | None = None,
+    ) -> None:
         self.profile = profile
+        # Pin the software profile the whole run is verified against, so a
+        # remote matching a non-default pinned stack can still be driven.
+        self.profile_id = profile_id
         self.store = StateStore(profile.state_db, initialize=initialize_state)
-        self.executor = SlurmExecutor(profile)
+        self.executor = SlurmExecutor(profile, profile_id=profile_id)
 
     def prepare_run(self, source_path: str | Path, plan_digest: str) -> dict[str, Any]:
         version_evidence = self.executor.verify_versions()
@@ -67,6 +76,7 @@ class ControlledExecutionService:
             plan_digest,
             self.profile,
             execution_receipt=execution_receipt,
+            profile_id=self.profile_id,
         )
         try:
             self.executor.sync_run(
@@ -360,6 +370,7 @@ class ControlledExecutionService:
                 soc=False,
                 headwing=bool(plan["options"]["headwing"]),
                 stage="pre_librpa",
+                profile_id=self.profile_id,
             )
             if not report.accepted:
                 failed = tuple(gate.gate_id for gate in report.gates if gate.status == "FAIL")
@@ -521,6 +532,7 @@ class ControlledExecutionService:
                 soc=False,
                 headwing=bool(plan["options"]["headwing"]),
                 stage="pre_librpa",
+                profile_id=self.profile_id,
             ).to_dict()
             gates = [*report["gates"], *cross_report["gates"]]
             counts = {

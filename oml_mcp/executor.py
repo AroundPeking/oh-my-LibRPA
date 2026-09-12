@@ -90,9 +90,18 @@ def _unique_fingerprint_line(stdout: str) -> dict[str, Any] | None:
 
 
 class SlurmExecutor:
-    def __init__(self, profile: ExecutionProfile, *, timeout_seconds: int = 20) -> None:
+    def __init__(
+        self,
+        profile: ExecutionProfile,
+        *,
+        timeout_seconds: int = 20,
+        profile_id: str | None = None,
+    ) -> None:
         self.profile = profile
         self.timeout_seconds = timeout_seconds
+        # The software profile this run is pinned to. When omitted, the global
+        # default is used, which preserves single-profile behaviour.
+        self.profile_id = profile_id
 
     def _run(
         self,
@@ -260,10 +269,11 @@ class SlurmExecutor:
             shutil.rmtree(temporary)
             raise
         if result.returncode != 0:
-            try:
-                temporary.rmdir()
-            except OSError:
-                pass
+            # A partial fetch must be removed entirely. ``rmdir`` only works on an
+            # empty directory, so a failed rsync would otherwise leave a non-empty
+            # ``.fetching`` tree behind and wedge every later inspection of this
+            # attempt with SNAPSHOT_CONFLICT.
+            shutil.rmtree(temporary, ignore_errors=True)
             raise OMLError(
                 "SNAPSHOT_FAILED",
                 "failed to create a bounded remote output snapshot",
@@ -273,7 +283,13 @@ class SlurmExecutor:
         temporary.rename(snapshot_dir)
 
     def verify_versions(self) -> dict[str, Any]:
-        pinned = load_profile()["components"]
+        # Verify against the profile this executor is pinned to, not a global
+        # default: a run must be checked against the stack that produced its plan.
+        pinned = (
+            load_profile(profile_id=self.profile_id)
+            if self.profile_id is not None
+            else load_profile()
+        )["components"]
         components: dict[str, dict[str, str]] = {}
         for name in ("abacus", "librpa", "pyatb"):
             arguments = [
