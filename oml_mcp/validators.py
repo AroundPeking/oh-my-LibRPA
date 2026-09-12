@@ -214,12 +214,13 @@ def _nbands_consistency_gate(case_root: Path) -> GateResult:
                 (f"{name}: nbands {value}", str(exc)),
                 "set nbands to the exported basis dimension (NLOCAL) as a plain positive integer",
             )
-        if count <= 0:
+        if count < 0:
             return _fail(
                 "nbands.consistency",
-                "a declared nbands value is not positive",
+                "a declared nbands value is negative",
                 (f"{name}: nbands {value}",),
-                "set nbands to the exported basis dimension (NLOCAL) as a positive integer",
+                "set nbands to the exported basis dimension (NLOCAL) as a positive integer, "
+                "or 0 for the ABACUS auto convention (full basis dimension)",
             )
     values = {value for _, value in declared}
     if len(values) > 1:

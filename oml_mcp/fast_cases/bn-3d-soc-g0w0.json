@@ -47,5 +47,6 @@
     "One-shot GW quasi-particle energies (QPE)",
     "One-shot GW quasi-particle energies (QPE MPI smoke)"
   ],
-  "note": "SOC bandgap family; uses noncollinear inputs and is the fastest SOC regression."
+  "note": "SOC bandgap family; uses noncollinear inputs and is the fastest SOC regression.",
+  "headwing": false
 }

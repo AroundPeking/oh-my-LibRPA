@@ -57,6 +57,7 @@ CASE_ID_TO_FAMILY: dict[str, tuple[str, str]] = {
     "h2-molecule-aims-g0w0": ("molecular_delta_st_rpa", "isolated_molecule_rpa"),
     "li-atom-aims-g0w0": ("molecular_delta_st_rpa", "isolated_molecule_rpa"),
     "mos2-strict2d-sos-rpa-qavg": ("strict_2d_sos_rpa", "default"),
+    "bn-k222-sym-v1-shrink-head-g0w0": ("periodic_3d_gw", "bulk_bn_gw"),
     "si-solid-delta-st-rpa": ("solid_delta_st_rpa", "default"),
 }
 

@@ -1,0 +1,54 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "bn-k222-sym-v1-shrink-head-g0w0",
+  "title": "G0W0 BN k222 screen, symmetry, shrink, head/wing (controlled v1 replay)",
+  "system": "BN",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "scf",
+    "pyatb",
+    "nscf",
+    "preprocess",
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": null,
+  "reference_status": "REFERENCE_AVAILABLE",
+  "estimated_seconds": 90,
+  "use_symmetry": true,
+  "headwing": true,
+  "validators": [
+    {
+      "name": "GW-band-full-sequence",
+      "file": "GW_band_spin_1.dat",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "EXX-band-full-sequence",
+      "file": "EXX_band_spin_1.dat",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "KS-band-full-sequence",
+      "file": "KS_band_spin_1.dat",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001
+    }
+  ],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "EXX_band_spin_1.dat",
+    "KS_band_spin_1.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "bn-k222-sym-v1-shrink-head-g0w0",
+  "upstream_groups": [
+    "Controlled 3D GW replay (df 2026-08-13)"
+  ],
+  "note": "Frozen from the completed controlled run run-20260813T075641Z-80efe676aa (df, job 3004835, 'libRPA finished successfully'): v1 reader, k222 screening, symmetry on, shrink, replace_w_head=t, nbands 26, nfreq 16. The heavy bundle is not needed - a replay regenerates the producer data through the full 5-stage pipeline; only the frozen band references live in the LibRPA refs tree. Upstream inputs staged into the local data cache."
+}

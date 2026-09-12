@@ -117,6 +117,8 @@ class FastCase:
     upstream_groups: tuple[str, ...] = ()
     reference_status: str = "REFERENCE_AVAILABLE"
     route: str = "periodic_3d_gw"
+    use_symmetry: bool = False
+    headwing: bool | None = None
     material_class: str | None = None
     estimated_seconds: int = 60
     note: str | None = None
@@ -193,6 +195,8 @@ def _case_from_json(value: dict[str, Any]) -> FastCase:
         upstream_groups=tuple(value.get("upstream_groups", ())),
         reference_status=value.get("reference_status", "REFERENCE_AVAILABLE"),
         route=value.get("route", "periodic_3d_gw"),
+        use_symmetry=bool(value.get("use_symmetry", False)),
+        headwing=(None if value.get("headwing") is None else bool(value.get("headwing"))),
         material_class=value.get("material_class"),
         estimated_seconds=int(value.get("estimated_seconds", 60)),
         note=value.get("note"),

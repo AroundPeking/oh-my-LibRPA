@@ -28,6 +28,7 @@ from .parameter_prescriptions import (
     apply_prescription,
     resolve_prescription_keys,
 )
+from .profiles import load_profile
 from .remote_adapter import (
     ControlledExecutionBinding,
     ControlledRunAdapter,
@@ -157,6 +158,7 @@ def stage_check(
     candidate: dict[str, Any],
     *,
     staging_root: str | Path,
+    axis_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Stage one candidate locally and report what actually applied.
 
@@ -170,7 +172,14 @@ def stage_check(
         raise SelfIterationError(f"stage-check destination already exists: {bundle}")
     source, source_root = _locate_case_in_roots(case, resolve_upstream_roots(upstream_root))
     staging = stage_case_bundle(
-        case, upstream_root=source_root, destination=bundle, candidate=candidate
+        case,
+        upstream_root=source_root,
+        destination=bundle,
+        candidate=candidate,
+        # Mirror the real loop semantics: only the axis overrides the caller
+        # passed are explicit mutations; prescription-baseline values must not
+        # clobber the case's own pinned keys.
+        explicit_axes=frozenset(axis_overrides or {}),
     )
     reference = load_reference_texts(case_id, upstream_root)
     missing_reference = sorted(set(case.output_files) - set(reference))
@@ -180,6 +189,8 @@ def stage_check(
         "stages": staging["stages"],
         "applied": staging["applied"],
         "unapplied": staging["unapplied"],
+        "preserved": staging.get("preserved", {}),
+        "axis_overrides": axis_overrides or {},
         "reference_files_found": sorted(reference),
         "reference_files_missing": missing_reference,
     }
@@ -193,6 +204,8 @@ def run_evolution(
     budget: EvolutionBudget,
     execute: bool = False,
     execution_profile_id: str | None = None,
+    software_profile_id: str | None = None,
+    helpers_dir: str | Path | None = None,
     upstream_root: str | Path = DEFAULT_UPSTREAM_ROOT,
     staging_root: str | Path | None = None,
     baseline: dict[str, Any] | None = None,
@@ -228,14 +241,71 @@ def run_evolution(
         raise SelfIterationError("execute=True requires an execution profile id")
     if staging_root is None:
         raise SelfIterationError("execute=True requires a staging root")
+    # Stale bundles from an earlier crashed attempt are derived data; set
+    # them aside (never silently deleted) so this attempt starts clean while
+    # the previous attempt's remains stay inspectable.
+    if staging_root is not None:
+        staging_dir = Path(staging_root).expanduser()
+        import time as _time
+
+        for stale in sorted(staging_dir.glob(f"{case.case_id}-iter*")):
+            if stale.is_dir():
+                stale.rename(staging_dir / f"{stale.name}.crashed-{int(_time.time())}")
     profile = load_execution_profile(execution_profile_id)
-    service = ControlledExecutionService(profile, profile_id=execution_profile_id)
-    binding = ControlledExecutionBinding(service=service)
+    service = ControlledExecutionService(profile, profile_id=software_profile_id)
+
+    # Controlled bundles must carry the workflow helpers approved by the
+    # pinned software profile. Stage them from --helpers-dir and verify every
+    # digest before anything is planned or submitted; a mismatch is refused.
+    approved_helpers = (
+        load_profile(profile_id=software_profile_id)["contract"]["workflow_helpers"]
+        if software_profile_id is not None
+        else load_profile()["contract"]["workflow_helpers"]
+    )
+
+    def materialize_with_helpers(bundle: Path, definition: dict[str, Any]) -> dict[str, Any]:
+        import hashlib
+        import shutil as _shutil
+
+        bundle_dir = Path(bundle)
+        for name, digest in approved_helpers.items():
+            source = Path(helpers_dir) / name if helpers_dir else None
+            destination = bundle_dir / name
+            if source is None or not source.is_file():
+                raise SelfIterationError(
+                    f"approved helper {name} not found in helpers dir; "
+                    "pass --helpers-dir pointing at the reviewed helper set"
+                )
+            _shutil.copy2(source, destination)
+            observed = hashlib.sha256(destination.read_bytes()).hexdigest()
+            if observed != digest:
+                destination.unlink()
+                raise SelfIterationError(
+                    f"helper {name} does not match the approved digest "
+                    f"({observed[:16]}... != {digest[:16]}...); refusing to submit"
+                )
+        return binding.materialize(bundle, definition)
+
+    binding = ControlledExecutionBinding(
+        service=service,
+        # The plan MUST be computed against the same pinned software profile
+        # the controlled service verifies with, or the materializer's digest
+        # replay produces STALE_PLAN by construction.
+        plan_options={
+            "task": case.task,
+            "system_type": case.system_type,
+            "soc": case.soc,
+            "use_symmetry": case.use_symmetry,
+            "headwing": case.headwing,
+            "profile_id": software_profile_id,
+        },
+    )
+    case_source, case_root = _locate_case_in_roots(case, resolve_upstream_roots(upstream_root))
     adapter = ControlledRunAdapter(
         case=case,
-        upstream_root=upstream_root,
+        upstream_root=case_root,
         staging_root=staging_root,
-        materialize=binding.materialize,
+        materialize=materialize_with_helpers,
         run_stages=binding.run_stages,
         collect_outputs=binding.collect_outputs,
     )
@@ -255,6 +325,7 @@ def run_evolution(
     )
     report["mode"] = "execute"
     report["execution_profile_id"] = execution_profile_id
+    report["software_profile_id"] = software_profile_id
     return report
 
 
@@ -310,6 +381,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--profile", help="execution profile id; required with --execute"
     )
     parser.add_argument(
+        "--helpers-dir",
+        help="directory holding the workflow helper scripts approved by the software profile",
+    )
+    parser.add_argument(
+        "--software-profile",
+        help="pinned software (ABACUS/LibRPA/PyATB) profile id; defaults to the global default",
+    )
+    parser.add_argument(
         "--baseline",
         action="append",
         default=[],
@@ -362,10 +441,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.stage_check:
         candidate = prescription_definition(args.case)
-        for name, values in axis_values.items():
-            candidate[name] = values[0]
+        axis_overrides = {name: values[0] for name, values in axis_values.items()}
+        candidate.update(axis_overrides)
         report = stage_check(
-            args.case, args.upstream_root, candidate, staging_root=args.staging_root or "."
+            args.case, args.upstream_root, candidate, staging_root=args.staging_root or ".",
+            axis_overrides=axis_overrides,
         )
     else:
         budget = EvolutionBudget(
@@ -390,6 +470,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             budget=budget,
             execute=args.execute,
             execution_profile_id=args.profile,
+            software_profile_id=args.software_profile,
+            helpers_dir=args.helpers_dir,
             upstream_root=args.upstream_root,
             staging_root=args.staging_root,
             baseline=baseline,

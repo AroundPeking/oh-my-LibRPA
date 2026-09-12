@@ -88,7 +88,8 @@ class StageCheckTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             report = stage_check(
-                "bn-3d-sym-shrink-g0w0", UPSTREAM_ROOT, candidate, staging_root=tmpdir
+                "bn-3d-sym-shrink-g0w0", UPSTREAM_ROOT, candidate,
+                staging_root=tmpdir, axis_overrides={"nfreq": 16},
             )
             self.assertTrue(pathlib.Path(report["bundle"]).is_dir())
 
@@ -127,8 +128,8 @@ class AuditTest(unittest.TestCase):
         report = audit_benchmarks(UPSTREAM_ROOT)
 
         self.assertEqual(report["schema"], "oml.benchmark-audit.v1")
-        self.assertEqual(report["total_cases"], 16)
-        self.assertGreaterEqual(report["ready_cases"], 13)
+        self.assertEqual(report["total_cases"], 17)
+        self.assertGreaterEqual(report["ready_cases"], 14)
         by_id = {row["case_id"]: row for row in report["cases"]}
         self.assertTrue(by_id["bn-3d-sym-shrink-g0w0"]["ready"])
         self.assertTrue(by_id["h2-molecule-aims-g0w0"]["ready"])

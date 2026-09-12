@@ -94,7 +94,10 @@ class StageBundleTest(unittest.TestCase):
             )
 
         staged = staging["staged_files"]
-        self.assertTrue(any(name.startswith("input_librpa/") for name in staged))
+        # The controlled flat layout normalizes the nested archive: nothing
+        # may remain under input_librpa/, and the bundle's librpa.in must
+        # point at the bundle root.
+        self.assertFalse(any(name.startswith("input_librpa/") for name in staged))
         self.assertIn("INPUT_scf", staged)
 
     def test_staging_refuses_to_overwrite(self):
@@ -524,3 +527,20 @@ class LibrpaLiveMonitorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UpsertSpacingTest(unittest.TestCase):
+    def test_long_keys_get_a_value_separator(self):
+        import tempfile
+
+        from oml_mcp.parsers import parse_abacus_input
+        from oml_mcp.remote_adapter import _upsert_abacus_key
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = pathlib.Path(tmpdir) / "INPUT_scf"
+            path.write_text("INPUT_PARAMETERS\nbasis_type lcao\n", encoding="utf-8")
+
+            _upsert_abacus_key(path, "shrink_lu_inv_thr", 0.001)
+
+            document = parse_abacus_input(path)
+            self.assertEqual(document.value("shrink_lu_inv_thr"), "0.001")

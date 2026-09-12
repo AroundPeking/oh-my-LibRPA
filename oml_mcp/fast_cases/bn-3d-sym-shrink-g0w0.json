@@ -47,5 +47,7 @@
     "One-shot GW quasi-particle energies (QPE)",
     "One-shot GW quasi-particle energies (QPE MPI smoke)"
   ],
-  "note": "2x2x2 SCF mesh + G-X band path; exercises reader-v1, symmetry and shrink in one fast case."
+  "note": "2x2x2 SCF mesh + G-X band path; exercises reader-v1, symmetry and shrink in one fast case.",
+  "use_symmetry": true,
+  "headwing": false
 }

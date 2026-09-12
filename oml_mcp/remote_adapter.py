@@ -94,13 +94,22 @@ def locate_case_source(case: FastCase, upstream_root: str | Path) -> CaseSource:
     )
 
 
-def _apply_definition_to_inputs(bundle: Path, candidate: dict[str, Any]) -> dict[str, Any]:
+def _apply_definition_to_inputs(
+    bundle: Path,
+    candidate: dict[str, Any],
+    explicit_axes: frozenset[str] | None = None,
+) -> dict[str, Any]:
     """Rewrite the staged ABACUS/LibRPA inputs to reflect a candidate definition.
 
     Only parameters that map onto real input keys are written; anything else is
     reported as unapplied so the ledger can show what the candidate actually
     changed on disk. This is intentionally conservative: an unmapped axis must
     not silently pretend to have been applied.
+
+    ``explicit_axes`` names the axes the candidate itself mutates. An axis the
+    candidate did not touch fills its key only when the staged inputs do not
+    already declare it; a case-pinned value (e.g. a deliberate nbands window)
+    is reported as ``preserved`` instead of being clobbered by a baseline.
     """
     applied: dict[str, Any] = {}
     unapplied: dict[str, Any] = {}
@@ -111,22 +120,39 @@ def _apply_definition_to_inputs(bundle: Path, candidate: dict[str, Any]) -> dict
         "exx_cs_inv_thr": "exx_cs_inv_thr",
         "shrink_threshold": "shrink_lu_inv_thr",
     }
+    explicit = explicit_axes if explicit_axes is not None else frozenset(candidate)
+    preserved: dict[str, Any] = {}
     for axis, key in abacus_keys.items():
         if axis not in candidate:
             continue
         value = candidate[axis]
         if value is None:
             continue
-        written = False
+        writable = False
+        seen = False
         for name in ("INPUT_scf", "INPUT_nscf"):
             path = bundle / name
             if not path.is_file():
                 continue
-            written = _upsert_abacus_key(path, key, value) or written
-        if written:
-            applied[axis] = value
-        else:
+            seen = True
+            declared = _declared_abacus_value(path, key)
+            if axis in explicit or declared is None:
+                writable = True
+        if not seen:
             unapplied[axis] = value
+        elif writable:
+            written = False
+            for name in ("INPUT_scf", "INPUT_nscf"):
+                path = bundle / name
+                if not path.is_file():
+                    continue
+                written = _upsert_abacus_key(path, key, value) or written
+            if written:
+                applied[axis] = value
+            else:
+                unapplied[axis] = value
+        else:
+            preserved[axis] = value
 
     # LibRPA librpa.in key mapping.
     librpa_keys = {
@@ -144,10 +170,14 @@ def _apply_definition_to_inputs(bundle: Path, candidate: dict[str, Any]) -> dict
             value = candidate[axis]
             if value is None:
                 continue
-            if _upsert_librpa_key(path, key, value):
-                applied[axis] = value
+            declared = _declared_librpa_value(path, key)
+            if axis in explicit or declared is None:
+                if _upsert_librpa_key(path, key, value):
+                    applied[axis] = value
+                else:
+                    unapplied[axis] = value
             else:
-                unapplied[axis] = value
+                preserved[axis] = value
 
     # Axes with no direct single-key representation are reported as unapplied
     # rather than silently ignored.
@@ -155,7 +185,36 @@ def _apply_definition_to_inputs(bundle: Path, candidate: dict[str, Any]) -> dict
         if axis not in applied and axis not in unapplied:
             unapplied[axis] = candidate[axis]
 
-    return {"applied": applied, "unapplied": unapplied}
+    return {"applied": applied, "unapplied": unapplied, "preserved": preserved}
+
+
+def _declared_abacus_value(path: Path, key: str) -> str | None:
+    """Return the currently declared ABACUS value for a key, or None."""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.split("#", 1)[0].strip()
+            if stripped.split()[:1] == [key]:
+                parts = stripped.split()
+                return parts[1] if len(parts) > 1 else None
+    except OSError:
+        return None
+    return None
+
+
+def _declared_librpa_value(path: Path, key: str) -> str | None:
+    """Return the currently declared librpa.in value for a key, or None."""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            content = line.split("#", 1)[0].strip()
+            if content.lower().startswith(f"{key.lower()} ") or content.lower().startswith(f"{key.lower()}="):
+                _, _, value = content.partition("=")
+                if not value:
+                    parts = content.split()
+                    return parts[1] if len(parts) > 1 else None
+                return value.strip().strip("'\"")
+    except OSError:
+        return None
+    return None
 
 
 def _upsert_abacus_key(path: Path, key: str, value: Any) -> bool:
@@ -164,7 +223,8 @@ def _upsert_abacus_key(path: Path, key: str, value: Any) -> bool:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return False
-    rendered = f"{key:<16}{value if not isinstance(value, list) else ' '.join(map(str, value))}"
+    value_text = value if not isinstance(value, list) else " ".join(map(str, value))
+    rendered = f"{key:<15} {value_text}"
     replaced = False
     out: list[str] = []
     for line in lines:
@@ -208,6 +268,46 @@ def _upsert_librpa_key(path: Path, key: str, value: Any) -> bool:
     return True
 
 
+def _flatten_input_dir(target: Path) -> None:
+    """Normalize the staged bundle to the controlled flat layout.
+
+    Regression archives nest the reader dataset under a directory that
+    ``librpa.in input_dir`` names (``./input_librpa/`` or ``dataset``). The
+    controlled executor requires every input and asset to sit at the bundle
+    root with ``input_dir = .`` (the layout of every approved run), so a
+    relative in-bundle dataset directory is flattened one level and the
+    pointer rewritten. Absolute or escaping directories are left untouched
+    for the controlled scope check to reject.
+    """
+    input_path = target / "librpa.in"
+    if not input_path.is_file():
+        return
+    declared = None
+    for line in input_path.read_text(encoding="utf-8").splitlines():
+        content = line.split("#", 1)[0].strip()
+        if content.lower().startswith("input_dir"):
+            _, _, value = content.partition("=")
+            declared = value.strip().strip("'\"")
+            break
+    if not declared or declared in {".", "./"}:
+        return
+    candidate = Path(declared)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return
+    source_dir = target / candidate
+    if not source_dir.is_dir():
+        return
+    for item in sorted(source_dir.iterdir()):
+        destination = target / item.name
+        if destination.exists():
+            raise RemoteAdapterError(
+                f"flattening {declared} collides with an existing bundle entry: {item.name}"
+            )
+        shutil.move(str(item), str(destination))
+    source_dir.rmdir()
+    _upsert_librpa_key(input_path, "input_dir", ".")
+
+
 def stage_case_bundle(
     case: FastCase,
     *,
@@ -215,6 +315,7 @@ def stage_case_bundle(
     destination: str | Path,
     candidate: dict[str, Any],
     upstream_extras: Iterable[str] = (),
+    explicit_axes: frozenset[str] | None = None,
 ) -> dict[str, Any]:
     """Build an immutable, self-contained source bundle for one candidate.
 
@@ -254,9 +355,11 @@ def stage_case_bundle(
             except TypeError:  # Python < 3.12 has no filter argument
                 archive.extractall(path=target)
 
-    # Upstream archives nest everything under input_librpa/; librpa.in points at
-    # that directory, so leave the layout as the upstream case expects.
-    report = _apply_definition_to_inputs(target, candidate)
+    # Controlled runs require the flat bundle layout (input_dir = .); the
+    # nested regression-archive layout is normalized before inputs are
+    # rewritten for the candidate.
+    _flatten_input_dir(target)
+    report = _apply_definition_to_inputs(target, candidate, explicit_axes)
     staged = sorted(str(path.relative_to(target)) for path in target.rglob("*") if path.is_file())
     return {
         "bundle": str(target),
@@ -264,6 +367,7 @@ def stage_case_bundle(
         "abacus_inputs": source.abacus_inputs,
         "applied": report["applied"],
         "unapplied": report["unapplied"],
+        "preserved": report.get("preserved", {}),
         "staged_files": staged,
     }
 
@@ -331,6 +435,7 @@ class ControlledRunAdapter:
             upstream_root=self.upstream_root,
             destination=bundle,
             candidate=definition,
+            explicit_axes=frozenset(candidate),
         )
         stages = tuple(staging["stages"])
 

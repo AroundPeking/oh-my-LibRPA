@@ -53,5 +53,6 @@
     "One-shot GW quasi-particle energies (QPE)",
     "One-shot GW quasi-particle energies (QPE MPI smoke)"
   ],
-  "note": "Spin-polarised transition-metal oxide; the heavy-element exx_cs_inv_thr case."
+  "note": "Spin-polarised transition-metal oxide; the heavy-element exx_cs_inv_thr case.",
+  "headwing": true
 }

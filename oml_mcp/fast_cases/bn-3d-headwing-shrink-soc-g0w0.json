@@ -47,5 +47,6 @@
     "One-shot GW quasi-particle energies (QPE)",
     "One-shot GW quasi-particle energies (QPE MPI smoke)"
   ],
-  "note": "Combined head/wing, shrink and SOC path; the most demanding small BN regression."
+  "note": "Combined head/wing, shrink and SOC path; the most demanding small BN regression.",
+  "headwing": true
 }
