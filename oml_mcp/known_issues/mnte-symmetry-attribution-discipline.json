@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "mnte-symmetry-attribution-discipline",
+  "title": "Do not attribute large MnTe GW discrepancies to symmetry without a program-only swap on frozen inputs",
+  "symptom": "MnTe GW results differ by a large amount from run to run; the working hypothesis was a symmetry bug ('是不是对称性的错误，最近master ghj又修复几个对称性的问题，怎么每次算MnTe差这么多？'). The runs were in fact using LibRPA commit 7e40c5bb (Aug 23) instead of the current master_ghj head b6a432b9, i.e. missing the `e0407be4` atom-mapping-direction/Bloch-phase fix, and MnTe has 12 symmetry operations of which 6 exchange the two Te atoms with a cell displacement - a case directly affected by that fix.",
+  "root_cause": "Several independent changes were mixed across the compared rounds (Coulomb construction/cutoff changes, re-matched SCF/NSCF/PyATB data, and Cholesky -> LU in the dielectric solve), so no single variable was isolated. Recomputation with the fixed program (53 tests passing) still gave absurd raw values for bands 19-24 (GW energies roughly -24000 to -8351 eV), showing the recent symmetry fixes neither explain nor resolve the anomaly.",
+  "minimal_fix": "Freeze the entire input set and swap ONLY the program version (record ABACUS and LibRPA commit SHAs plus binary hashes), compare density restoration and EXX first, and only then recompute chi0, W and the self-energy - do not reuse the old self-energy. Keep a written symmetry audit recording the binary/commit provenance of every compared run.",
+  "validation": "Same inputs, old vs new binary: density-matrix restore and EXX must be compared before any GW quantity; a claimed symmetry fix must move the density/EXX in the expected direction, and the anomalous raw bands must become finite and physically ordered. 53 program tests passing is regression evidence, not physical validation.",
+  "avoid": "Do not accept 'LU now converges' as a fix - LU only lets a non-positive-definite dielectric matrix continue to be solved and does not correct a wrong matrix. Do not reuse a previous self-energy after changing the program. Do not report run-to-run differences as a symmetry bug before the program-only swap and before checking whether the failing case even contains atom-exchanging symmetry operations.",
+  "source": "codex-sessions:rollout-2026-09-08T12-01-02-01a07f2d-2d21-71c0-ab9f-6af71e6b5fab.jsonl",
+  "confidence": "established",
+  "gate_id": null,
+  "parameters": {}
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "chi0-v1-reader-eof-truncation-nan",
+  "title": "STERNHEIMER_CHI0 v1 reader trusts EOF and uses zip(), so truncated or NaN payloads validate as success",
+  "symptom": "A run whose STERNHEIMER_CHI0 v1 files were cut off mid-payload or contained NaN is reported as successful: the on-disk checker can return success on a truncated binary tail or on NaN, so a partial/stale output is accepted instead of rejected.",
+  "root_cause": "The v1 parser (written against source/source_lcao/module_ri/sternheimer_rpa.cpp, write_chi0_v1_file, kChi0V1Marker, kChi0V1ComplexFlag, upper-triangular atom-pair blocks, offsets, atom_naux) trusts EOF as the terminator of the final block and pairs coupled arrays with zip(), which silently truncates to the shorter array. Neither the header table nor the exact file size is cross-checked, so a short final block, trailing bytes or a non-finite payload is never detected.",
+  "minimal_fix": "Validate v1 header/table invariants before consuming payload: marker == -41073291, complex_flag == 1, positive iq/ifrequency, positive naux/natom/block_count/atom_naux, sum(atom_naux) == naux, block_count == natom*(natom+1)/2, exact upper-triangular pair_index sequence, exact contiguous block offsets, per-block payload atom_naux[i]*atom_naux[j]*16 bytes, exact final file size with no trailing bytes, and finite omega/weight/payload. Replace zip() over length-coupled arrays with equal-length assertions.",
+  "validation": "A strict validator over the real fd6 N dataset (12 total + 36 component v1 files + 4 spin files) must parse and reconstruct total = sos + pulay + qspace per frequency with a finite exact LibRPA total; corruption tests must reject a tail-truncated file, a NaN payload and an extra trailing byte.",
+  "avoid": "Do not accept filename-plus-nonzero-size checks as proof of on-disk completeness, do not rely on the in-memory reconstruction threshold as evidence of file integrity, and do not keep the read-to-EOF zip() reader.",
+  "source": "codex-sessions:rollout-2026-08-10T18-19-40-019feb2f-6753-7b10-839a-c784a190bfa4.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:chi0-v1-binary-integrity",
+  "parameters": {
+    "v1_marker": "-41073291",
+    "complex_flag": "1",
+    "block_count_rule": "block_count == natom*(natom+1)/2",
+    "naux_rule": "sum(atom_naux) == naux",
+    "block_payload_bytes": "atom_naux[i]*atom_naux[j]*16",
+    "file_size_rule": "exact writer-computed size, no trailing bytes",
+    "finite_check": "omega, weight and payload must all be finite"
+  }
+}

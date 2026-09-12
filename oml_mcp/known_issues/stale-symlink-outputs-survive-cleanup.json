@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stale-symlink-outputs-survive-cleanup",
+  "title": "Stale KS_eigenvector_* / Cs_data_* leftovers are symlinks, so the cleanup script silently skips them",
+  "symptom": "After cleanup, 'residual' KS_eigenvector_* and Cs_data_* entries remain in GW directories (e.g. gw_inputs_k888_shrink and C_supercell_gw_512_1024_20260518/C1024), so old outputs keep appearing to belong to the current run.",
+  "root_cause": "Those leftovers are symbolic links, not regular files: the previous cleanup script skips symlinks by default as a safety measure, so they were never removed. Old outputs therefore remain visible in a directory that is supposed to have been cleaned.",
+  "minimal_fix": "Inspect the link targets first (ls -l / readlink -f), then remove the links themselves (unlink or rm on the link, never recursing into the target), and update the cleanup procedure to handle symlinks explicitly instead of skipping them silently.",
+  "validation": "Re-list the cleaned directories with `find <dir> -type l` plus ls -l and confirm no stale KS_eigenvector_*/Cs_data_* links remain while their targets still exist; disk usage should drop by the intended amount.",
+  "avoid": "Do not delete with a recursive follow-symlink operation (it risks wiping the real data the links point at), and do not conclude the cleanup failed for permission reasons before checking whether the leftovers are symlinks.",
+  "source": "codex-sessions:rollout-2026-04-06T22-59-35-019d634e-65e2-7830-9026-055f89d0a44d.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:stale-output-cleanup",
+  "parameters": {
+    "cleanup_symlink_rule": "detect symlinks (test -L / find -type l) and unlink them explicitly; never follow them recursively"
+  }
+}

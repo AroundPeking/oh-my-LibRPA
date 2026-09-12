@@ -34,4 +34,8 @@ oml_mcp = [
   "execution_profiles_registry/*.json",
   "route_benchmarks/*.json",
   "scientific_benchmarks/*.json",
+  "material_classes/*.json",
+  "known_issues/*.json",
+  "parameter_prescriptions/*.json",
+  "fast_cases/*.json",
 ]

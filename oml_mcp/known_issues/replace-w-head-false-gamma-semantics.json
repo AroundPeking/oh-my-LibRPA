@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "replace-w-head-false-gamma-semantics",
+  "title": "replace_w_head=false does not drop q=0: Gamma still enters Wc(q), only the head/wing overwrite is skipped",
+  "symptom": "Confusion about the Gamma (q=0) point when replace_w_head=false: whether q=0 is discarded or specially handled, and why the q=0 result then looks like an ordinary non-macroscopic Coulomb treatment.",
+  "root_cause": "With replace_w_head=false, epsmac_LF_imagfreq_re is never prepared (driver/task_gw.cpp:88) and an empty epsmac_LF_imagfreq is passed to compute_Wc_freq_q[_blacs] (driver/task_gw.cpp:204). The Gamma head/wing overwrite at epsilon.cpp:3812 requires epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q), so it is skipped and the ordinary branch runs (epsilon = 1 - sqrt(V) chi0 sqrt(V), invert, Wc = sqrt(Vcut)(eps^-1 - 1) sqrt(Vcut), epsilon.cpp:3895). The only Gamma-specific handling left is numerical: the ScaLAPACK path uses power_hemat_blacs_real (epsilon.cpp:3478) with sqrt_coulomb_threshold to filter singular/near-singular eigen-directions.",
+  "minimal_fix": "If the macroscopic head/wing correction is wanted at Gamma, set replace_w_head=true so epsmac_LF_imagfreq_re is prepared and the head/wing overwrite branch is taken. If replace_w_head=false is intended, expect plain matrix treatment at q=0 with no head/wing replacement - do not add a special q=0 skip.",
+  "validation": "Trace the run: with replace_w_head=true confirm epsmac_LF_imagfreq_re is prepared (task_gw.cpp:88) and that is_gamma_point(q) enters the head/wing overwrite at epsilon.cpp:3812; with false confirm the empty-epsmac branch (epsilon.cpp:3895) is taken while Gamma still appears in the Wc(q) list.",
+  "avoid": "Do not assume replace_w_head=false removes q=0 from the calculation, and do not 'fix' it by deleting the Gamma point from the k/q list by hand.",
+  "source": "codex-sessions:rollout-2026-05-03T12-02-23-019dec00-6b85-72a0-8173-98eedd38e910.jsonl",
+  "confidence": "established",
+  "gate_id": null,
+  "parameters": {
+    "replace_w_head": "true gives the macroscopic dielectric head/wing overwrite at Gamma; false keeps Gamma with ordinary matrix treatment",
+    "sqrt_coulomb_threshold": "filters singular/near-singular eigen-directions in the ScaLAPACK Gamma path (power_hemat_blacs_real, epsilon.cpp:3478)"
+  }
+}

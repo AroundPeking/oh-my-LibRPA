@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "gw-gap-pp-semicore-d-artifact",
+  "title": "小价电子赝势（13e/5e）造成 GaAs GW 带隙与 Ga 3d 定性错误：缺同壳层 3s/3p 交换，不只是屏蔽",
+  "symptom": "GaAs 两套 PP 的 Γ 点 G0W0 带隙与全电子差很多：21e/15e 约 1.375-1.378 eV（相对 AE 1.269 eV 误差约 0.11 eV），13e/5e 约 0.634 eV（误差约 0.64 eV）；k666 下 d 态在约 -14 eV 处出现差别，Ga 3d 修正定性错误（约 +7 eV 量级）。介电 head 指标：D_eps / D_low = 2.1% / 4.5%（21e/15e）与 13.2% / 28.0%（13e/5e）。",
+  "root_cause": "错误的 Ga 3d 修正主要涉及缺失的同壳层 3s/3p 交换，并不只是 screening 错误；semicore 分割通过势、波函数与能带结构间接影响低能跃迁。因此介电响应诊断必要但不充分，还必须同时检查 core-valence partition。另有一个记号/定义陷阱：稿中把宏观介电函数等同于 H=ε00，含局域场效应时应由逆介电矩阵 head 定义 ε_M = 1/[ε^-1]00 = H - w†B^-1 w = L，而图里实际是 LibRPA 输出的 dielectric head H。",
+  "minimal_fix": "用两套 PP 做受控对照（同晶格、同 PBE、同 k 网格），同时报告介电 head 的曲线误差与 Γ 点 G0W0 带隙误差，并单独检查 core-valence partition 与同壳层交换；文中把该指标降级为“低成本预筛查/排除明显不合格 PP”，不要宣称能预测给定精度。",
+  "validation": "三条曲线必须在相同频率节点输出（避免插值），并确认表中带隙来自完全一致的晶格/PBE/k 网格；若图来自 H 而非 L，必须改称“dielectric head”或重新输出 L。",
+  "avoid": "不要从一个 GaAs 案例宣布普适接受阈值（例如“偏差 <5% 就保证带隙误差 <0.1 eV”）；不要把宏观介电函数与 dielectric head 混称；不要只用 screening 解释 semicore 引起的带位错误。",
+  "source": "codex-sessions:rollout-2026-07-21T10-46-46-019f8291-95aa-77a1-8f77-0b888a2ac3bb.jsonl | codex-sessions:rollout-2026-07-30T19-21-54-019fb2c2-6ef9-7b93-a501-e086409c5c5f.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_pp_semicore_control",
+  "parameters": {
+    "D_eps / D_low": "21e/15e: 2.1% / 4.5%；13e/5e: 13.2% / 28.0%（omega <= 0.1 Ha，约 2.72 eV）",
+    "G0W0_gap_Gamma": "21e/15e 约 1.375-1.378 eV；13e/5e 约 0.634 eV；AE 1.269 eV",
+    "matching_requirement": "三条曲线使用相同频率节点、相同晶格/PBE/k 网格",
+    "macroscopic_dielectric": "ε_M = 1/[ε^-1]00 = H - w†B^-1 w（不要用 H 代替）"
+  }
+}

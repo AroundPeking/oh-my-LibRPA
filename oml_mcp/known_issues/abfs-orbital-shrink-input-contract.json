@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abfs-orbital-shrink-input-contract",
+  "title": "ABFS_ORBITAL 与 shrink 的输入契约：STRU 必须写 ABFS_ORBITAL，use_shrink_abfs 与缺 ABFS 互斥",
+  "symptom": "算例目录里没有 OUT.ABACUS/LibRPA 输出、STRU 里没有 ABFS_ORBITAL、librpa.in 的 use_shrink_abfs 仍被注释，看起来像普通 GW 模板却按 shrink 路线准备；一旦设置 `use_shrink_abfs=t` 又不写 ABFS_ORBITAL，preflight 会因一致性约束直接失败。",
+  "root_cause": "外部辅助基必须由 STRU 的 ABFS_ORBITAL 段指定（参考 /home/ghj/GW/debug/CdS 可跑通算例），shrink 路线的最小参数集是 `shrink_abfs_pca_thr + shrink_lu_inv_thr + use_shrink_abfs`；两者必须成套出现。另有一条实现级回退：paircorr_verify 只支持 ABACUS 内部生成 ABFs，一旦走外部 `.abfs/for_aux` 会直接回退成普通 cal_large_Cs，此时对照就不再是你想验证的那条修正路径。",
+  "minimal_fix": "按路线成对配置：走外部辅助基时在 STRU 写 ABFS_ORBITAL 并确保 use_shrink_abfs 与之一致；走内部生成/paircorr 验证时去掉 ABFS_ORBITAL 并把 use_shrink_abfs 设为 f（无 ABFS_ORBITAL 时二者冲突）。",
+  "validation": "preflight 无 FAIL；确认 `.abfs/for_aux` 文件与 STRU 条目、use_shrink_abfs、shrink_abfs_pca_thr/shrink_lu_inv_thr 成套；对 paircorr 路线额外确认代码确实走进修正分支而非回退到 cal_large_Cs（可用 paircorr_verify_report.txt 的坏对统计与补入轨道数确认）。",
+  "avoid": "不要在缺 ABFS_ORBITAL 的目录里开 use_shrink_abfs；不要把外部 ABFS_ORBITAL 与只能内部生成 ABFs 的验证路径混用；不要用“目录里有模板文件”当作输入已就绪。",
+  "source": "codex-sessions:rollout-2026-03-15T16-12-14-019cf08d-8d0e-7d61-a0be-2f6350a3d40d.jsonl | codex-sessions:rollout-2026-03-14T02-25-27-019ce872-4038-7601-bcad-655a2187ca56.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_abfs_shrink_contract",
+  "parameters": {
+    "shrink_minimal_set": "shrink_abfs_pca_thr + shrink_lu_inv_thr + use_shrink_abfs",
+    "validation_case_values": "shrink_abfs_pca_thr 1e-2, shrink_lu_inv_thr 1e-3",
+    "abfs_orbital": "必须写在 STRU 中；参考 /home/ghj/GW/debug/CdS",
+    "paircorr_verify": "只支持内部生成 ABFs；外部 .abfs/for_aux 会回退成普通 cal_large_Cs"
+  }
+}

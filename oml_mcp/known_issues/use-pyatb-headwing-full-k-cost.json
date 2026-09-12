@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "use-pyatb-headwing-full-k-cost",
+  "title": "use_pyatb head/wing still costs the full k mesh - the '35 -> 512' step only refills occupations",
+  "symptom": "Under use_pyatb the user expected the symmetry-reduced head/wing path (35 k), but head/wing is still computed over the complete 512 k set even though symmetry information is available ('对称性headwing还是用全部的k去算...为什么要展开？').",
+  "root_cause": "In the use_pyatb path the driver reads pyatb_librpa_df/band_out, KS_eigenvector_*, velocity_matrix and k_path_info (driver/driver_utils.cpp:343); with use_metal_drude_head it only calls overwrite_pyatb_occupations_from_meanfield once (driver_utils.cpp:364), i.e. the 35 -> 512 step restores occupations and does NOT symmetrize head/wing. df_headwing.set(pyatb_meanfield, kfrac_band, ...) still receives the full kfrac_band from k_path_info (driver_utils.cpp:368), and in dielecmodel.cpp nk = kfrac_band.size() (:108) with both the interband head (:160) and Drude head (:208) looping over every ik.",
+  "minimal_fix": "Treat use_pyatb head/wing as a full-k calculation: do not expect the 35 -> 512 occupation expansion to reduce head/wing cost. If symmetry reduction is really needed it must be implemented in dielecmodel (IBZ k plus weights) rather than assumed from the occupation fix-up; otherwise reduce the k mesh for the head/wing stage.",
+  "validation": "Confirm in the run that dielecmodel loops over nk = kfrac_band.size() = 512 (dielecmodel.cpp:108/160/208) and that df_headwing.set is called with the full kfrac_band (driver_utils.cpp:368); head/wing timing should scale with the full mesh, not with the 35-point set.",
+  "avoid": "Do not read the '35 -> 512' line as symmetry being applied to head/wing, and do not report a symmetry speedup for this path.",
+  "source": "codex-sessions:rollout-2026-03-21T15-34-27-019d0f51-1cca-72d1-9ab0-695c80b2d810.jsonl",
+  "confidence": "established",
+  "gate_id": null,
+  "parameters": {
+    "use_pyatb": "reads pyatb_librpa_df (band_out, KS_eigenvector_*, velocity_matrix, k_path_info); head/wing nk = kfrac_band.size() = full k",
+    "use_metal_drude_head": "only overwrites occupations; does not reduce the head/wing k sum"
+  }
+}

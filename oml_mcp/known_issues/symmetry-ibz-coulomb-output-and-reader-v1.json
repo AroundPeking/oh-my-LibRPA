@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-ibz-coulomb-output-and-reader-v1",
+  "title": "With symmetry=1 + rpa=1 the Coulomb blocks are written only on irreducible q; the symmetry-aware reader also needs the v1 producer files, not the legacy sidecars",
+  "symptom": "Users expect full-BZ coulomb_mat_* blocks for LibRPA and instead find only the reduced k/q set; separately, copying only the legacy sidecars (irreducible_sector.txt, symrot_R.txt, symrot_k.txt, symrot_abf_k.txt) is no longer sufficient for the symmetry-aware reader, which now prints 'legacy sidecars : ignored (symrot_R/symrot_k/irreducible_sector)'.",
+  "root_cause": "Under symmetry=1 ABACUS reduces k to the IBZ (docs/parameters.yaml:59) and band_out, KS_eigenvector_*.dat and coulomb_mat_*/coulomb_cut_* are all written with nks_tot = p_kv->get_nks() (RPA_LRI.hpp:1068, :935, :1163); LibRPA's docs/develop/dataset_format.md:110 likewise documents coulomb_mat as defined on irreducible k-points. Cs_data_* are real-space (I,J,R) blocks, so the 'irreducible only' notion does not apply to them. ABACUS restores the IBZ D(k) to the full BZ internally for EXX via symrot_k (module_exx_symmetry/symmetry_rotation.cpp:78) but does not export full-BZ Coulomb blocks. In the new reader the required inputs are stru_out (with the symmetry operations after the atom block and atom types), bz_sampling_out, basis_wfc_out / basis_aux_out (plus basis_aux_shrink_out when shrinking) and the v1 Cs / coulomb / shrink_sinvS files.",
+  "minimal_fix": "Choose the route explicitly: either keep symmetry=1 and let LibRPA restore from the IBZ data plus the v1 producer file set, or run without symmetry to obtain the full q set. When handing data to LibRPA, copy the v1 producer files (stru_out, bz_sampling_out, basis_*_out, v1 Cs/coulomb/shrink_sinvS) rather than the legacy sidecars.",
+  "validation": "Count the q blocks actually written against the IBZ size for the given KPT; then run LibRPA with use_symmetry_exx / use_symmetry_gw and confirm the 'legacy sidecars: ignored' line, a PASS on the symmetry regression dataset, and that the restored full-BZ Coulomb/chi0/Wc reproduce the no-symmetry run.",
+  "avoid": "Do not copy the legacy sidecars and assume symmetry works, and do not assume ABACUS exports full-BZ coulomb_mat_* when symmetry=1 — the IBZ reduction is by design.",
+  "source": "codex-sessions:rollout-2026-03-11T16-25-09-019cdbff-f1cd-7a02-a3aa-b9000ed80765.jsonl; codex-sessions:rollout-2026-06-22T17-50-33-019eeebd-2487-7e70-aeec-d02b2f490ff2.jsonl",
+  "confidence": "established",
+  "gate_id": "symmetry-reader-v1-handoff-gate",
+  "parameters": {}
+}

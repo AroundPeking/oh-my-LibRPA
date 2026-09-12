@@ -1,0 +1,21 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "ecrpa-nan-and-component-gate",
+  "title": "Post-run gates accept EcRPA=nan/inf and truncated or non-finite component matrices",
+  "symptom": "A completed run is declared successful even when EcRPA is nan or inf: the final gate (run_n_fd8_grid_diag_40_50_c93e0969a.slurm lines 311-313) accepted 'Total EcRPA:' as well as 'Total Sternheimer EcRPA: nan', since it only required an end marker plus one energy line. Corrupt or truncated SOS/Pulay/Q-space component matrices were also accepted because lines 270-277 only check that files exist, are non-empty and are the right count.",
+  "root_cause": "The Slurm gate greps a permissive pattern for the total energy and never requires a finite numeric value or an exact match count, so a different (non-Sternheimer) energy line or a NaN satisfies it. Separately, the reconstruction error quoted in the status file is computed in memory BEFORE the files are written, so it cannot prove the written v1 files are complete; and LibRPA reads only the total response, so a truncated or non-finite component file never stops the job.",
+  "minimal_fix": "Require exactly one occurrence of the literal 'Total Sternheimer EcRPA:' and parse the following token as a float with math.isfinite() == True; otherwise fail (non-zero exit, no success marker), and write STRICT_CASE_VALIDATION.txt only after all strict gates pass. Run strict v1 validation over all 12 total-response groups and all 36 component files: structure, length, metadata, finiteness, plus an independent reconstruction of each total from its components.",
+  "validation": "A log with only 'Total EcRPA:' must fail; 'Total Sternheimer EcRPA: nan' must fail; a real passing 40/50 Ry log with exactly one finite 'Total Sternheimer EcRPA:' must pass and record the finite value. Re-read the written v1 files from disk, independently rebuild each total from its components (observed max deviation 9.20855e-14 for the fd6 N dataset) and confirm agreement within tolerance; inject a truncated and a NaN file and confirm the gate now fails instead of reporting success.",
+  "avoid": "Do not widen the accepted label to cover 'Total EcRPA:', do not use a presence-only grep -q check, do not write the success flag before the finiteness check, and do not treat the in-memory reconstruction error, an end marker, or a non-empty-file/count check as evidence that the written matrices are usable. Note that assert()-based matrix-property checks are compiled out under NDEBUG in the default build and therefore cannot fail in release.",
+  "source": "codex-sessions:rollout-2026-08-10T22-57-46-019fec2e-0571-74e0-b8a8-a9f8ae1e9ccc.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:librpa-total-finite",
+  "parameters": {
+    "required_label": "Total Sternheimer EcRPA:",
+    "match_count": "exactly 1",
+    "finiteness": "math.isfinite(value) must be True",
+    "files_to_validate": "12 total-response groups + 36 component (SOS/Pulay/Q-space) files",
+    "checks": "v1 structure, length, metadata, finiteness, independent reconstruction",
+    "success_marker": "STRICT_CASE_VALIDATION.txt only after all strict gates pass"
+  }
+}

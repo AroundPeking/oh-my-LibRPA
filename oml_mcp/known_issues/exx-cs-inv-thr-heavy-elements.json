@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-cs-inv-thr-heavy-elements",
+  "title": "exx_cs_inv_thr needs tuning for heavy elements",
+  "symptom": "For systems with heavy elements (transition metals, large auxiliary-basis sets), the default exx_cs_inv_thr = -1 (LU inversion) is unstable: the Coulomb matrix is indefinite or EXX bands are garbage.",
+  "root_cause": "The LU-based inversion is numerically unstable when the auxiliary-basis Coulomb spectrum is large or near-singular, as with localised d/f states. The ABACUS docs state that when exx_cs_inv_thr > 0 the inversion switches to diagonalization, discarding eigenvalues below the threshold.",
+  "minimal_fix": "Set exx_cs_inv_thr to a positive value. 1e-5 is the documented 'safe and commonly recommended' value; for a strongly indefinite matrix move toward 1e-4. Do not raise above 1e-4 for an insulator.",
+  "validation": "Re-run the Coulomb PSD/Hermitian gate and the EXX band gate; the matrix must be Hermitian to roundoff and have no materially negative eigenvalue, and EXX bands must be continuous.",
+  "avoid": "Leaving exx_cs_inv_thr at -1 for heavy-element systems, or raising it so high that the Coulomb spectrum is over-truncated.",
+  "source": "ABACUS read_input_item_exx_dftu.cpp documentation; oh-my-librpa empirical-statistical-defaults card; ~/.codex sessions.",
+  "confidence": "established",
+  "gate_id": "coulomb.psd_hermitian",
+  "parameters": {"exx_cs_inv_thr": "1e-5 to 1e-4 for heavy elements"}
+}

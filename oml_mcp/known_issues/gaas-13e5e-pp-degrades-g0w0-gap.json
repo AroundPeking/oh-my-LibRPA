@@ -1,0 +1,21 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "gaas-13e5e-pp-degrades-g0w0-gap",
+  "title": "Lower-valence 13e/5e Ga/As pseudopotential wrecks the G0W0 gap (0.634 eV vs AE 1.269 eV)",
+  "symptom": "Same GaAs setup, two PP valence choices give very different G0W0 results: 13e/5e Ga/As -> gap ~0.634 eV with dielectric-head errors D_eps=13.2% / D_low=28.0%; 21e/15e -> gap ~1.375-1.378 eV with D_eps=2.1% / D_low=4.5%. All-electron reference gap is 1.269 eV (relative errors ~0.64 eV vs ~0.11 eV). The k101010 GW band structure with 21e/15e was reported 'wrong' and the user suspected ecutwfc differences between the PP sets.",
+  "root_cause": "The 13e/5e Ga/As PP set does not contain the Ga 3d semicore states, so it reproduces the all-electron screening badly; the discrepancy is concentrated below 0.1 Ha (~2.72 eV), exactly the low-energy interband region that dominates the RPA dielectric head H(iw)=eps_M(iw) and therefore the G0W0 self-energy. It is a frozen-core/valence-configuration effect, not an ecutwfc grid effect.",
+  "minimal_fix": "Use the 21e/15e Ga/As PP (semicore d included) for GaAs G0W0/GW production; keep 13e/5e only as a low-cost screening diagnostic. Always report the dielectric head H(iw)=eps_M(iw) curve against the all-electron curve before trusting a PP set.",
+  "validation": "Recompute the dielectric head and the G0W0 gap for both PP sets and for the all-electron reference with identical lattice, PBE functional, k/q mesh and smearing; accept a PP set only when D_eps <= ~2-3%, D_low (max relative error for omega<=0.1 Ha) <= ~4.5%, and the gap deviates by <= ~0.1 eV.",
+  "avoid": "Do not chase ecutwfc/ecutrho or G-vector export as the root cause; ecutwfc was the user's hypothesis and it was not the mechanism. Do not compare gaps from runs with different geometry, functional, smearing or k-mesh, and do not quantify the PP error from the head at omega=0 alone.",
+  "source": "codex-sessions:rollout-2026-07-21T10-46-46-019f8291-95aa-77a1-8f77-0b888a2ac3bb.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:pp-semicore-gw-gap",
+  "parameters": {
+    "gaas_pp_recommended": "21e/15e (semicore d)",
+    "gaas_pp_reject_for_gw": "13e/5e",
+    "D_eps_accept": "<= ~2-3%",
+    "D_low_accept": "<= ~4.5% below 0.1 Ha",
+    "gap_error_accept": "<= ~0.1 eV",
+    "head_definition": "H(iw)=eps_M(iw)"
+  }
+}

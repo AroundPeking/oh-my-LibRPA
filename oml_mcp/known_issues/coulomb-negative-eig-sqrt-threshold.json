@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coulomb-negative-eig-sqrt-threshold",
+  "title": "Negative/near-singular eigenvalues of the auxiliary Coulomb matrix are normal — the sqrt must be guarded by sqrt_coulomb_threshold, not clipped",
+  "symptom": "The auxiliary-basis (ABFS) Coulomb matrix carries small negative eigenvalues, e.g. the LibRPA printout 'The largest/smallest eigenvalue of Coulomb matrix(non-singular): ...' shows a negative smallest value and 'The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full)' shows the indefinite tail (observed in the master_ghj_ewald_20260608 build). User statement: 'mat coulomb有负的本征值是正常的，有误差。但是开根号前有阈值，会筛掉负本征值，默认应该是0'. If the non-positive directions reach sqrt(V) inside epsilon = 1 - sqrt(V) chi0 sqrt(V), the result is NaN in epsilon/Wc for that q.",
+  "root_cause": "The projected auxiliary Coulomb matrix is only positive semi-definite up to quadrature/truncation error; the negative eigen-directions are numerical, not physical. LibRPA therefore guards the square root with sqrt_coulomb_threshold; in the ScaLAPACK path the Gamma-point bare-Coulomb square root is taken by power_hemat_blacs_real (src/epsilon.cpp), which uses sqrt_coulomb_threshold to filter singular/near-singular eigen-directions (src/epsilon.cpp:3478). The distributed/ELPA branch applies the same threshold logic, so the filter is a numerical singular-subspace filter, not a physics switch.",
+  "minimal_fix": "Keep sqrt_coulomb_threshold at its default 0 (set it explicitly to 0 in librpa.in, as in the reference rxg preset) and confirm from the log that the run actually reaches the threshold-filtering branch (ELPA vs ScaLAPACK); let the code drop the non-positive directions instead of touching the matrix by hand.",
+  "validation": "Re-run and grep the LibRPA output for the full vs non-singular eigenvalue printout and for any unfiltered-negative-eigenvalue warning; assert the number of filtered (non-singular) directions equals the count of eigenvalues <= threshold and that no NaN appears in epsilon or Wc. When the auxiliary basis is rotated/recombined (moment workflow), dump the complete Coulomb eigenvalue list before and after the rotation and check the non-singular part is unchanged apart from the intended long-range prefix.",
+  "avoid": "Do not treat a negative eigenvalue as proof that the Coulomb matrix or the producer is broken, and do not 'fix' it by clipping eigenvalues in post-processing — the filter belongs inside the threshold-guarded sqrt.",
+  "source": "codex-sessions:rollout-2026-06-29T09-56-03-019f1117-3b57-7330-9fc7-c8cccfd332c2.jsonl",
+  "confidence": "established",
+  "gate_id": "coulomb-negative-eig-sqrt-threshold-gate",
+  "parameters": {}
+}

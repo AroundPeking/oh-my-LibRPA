@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abfs-orbital-count-oversized",
+  "title": "Swapping in a new ABFS_ORBITAL requires updating its 'Number of *orbital' count; count 100 was far too large",
+  "symptom": "Using /data/home/df_iopcas_ghj/basis_pp/jle-smooth as ABFS_ORBITAL requires editing the orbital count, and the count in use was 100, which the user rejected ('现在的100太大了，改成比之前的ABFS_ORBITAL大一点'). Context: '加了ABFS的结果平滑的多' - adding ABFS_ORBITAL visibly smoothed the result, so the auxiliary space is the variable under test.",
+  "root_cause": "The auxiliary-basis count recorded alongside ABFS_ORBITAL must match the .abfs file actually read. Adopting an auxiliary set whose count (100) is far larger than the previously validated ABFS_ORBITAL changes the auxiliary space wholesale instead of modestly enlarging it, so the comparison no longer isolates the intended effect (and a stale count paired with a new .abfs is a silent mismatch).",
+  "minimal_fix": "Copy/regenerate the jle-smooth .abfs as ABFS_ORBITAL, set its 'Number of ... orbital' count to match the file actually read, and choose a count only slightly larger than the previous validated ABFS_ORBITAL (not 100); rerun the same case for comparison.",
+  "validation": "Confirm the count written in STRU equals the number of auxiliary functions in the .abfs ABACUS actually reads, then compare the RPA/GW result against the previous ABFS_ORBITAL run: the smoothing should be kept without the large-count behaviour.",
+  "avoid": "Do not reuse the jle-smooth set with the old count (or with 100) unchanged, and do not judge the ABFS effect while mixing a new .abfs with a stale count in the same STRU.",
+  "source": "codex-sessions:rollout-2026-04-08T15-06-54-019d6bea-5e03-71c1-a341-bf978337f9f0.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:abfs-orbital-count-match",
+  "parameters": {
+    "ABFS_ORBITAL_count": "slightly larger than the previous validated ABFS_ORBITAL; 100 rejected as too large",
+    "abfs_source": "/data/home/df_iopcas_ghj/basis_pp/jle-smooth"
+  }
+}

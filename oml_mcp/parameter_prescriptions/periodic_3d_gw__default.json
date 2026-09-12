@@ -1,0 +1,123 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "default",
+  "description": "Baseline periodic 3D GW parameter prescription. Values mirror the LibRPA BN regression family.",
+  "extends": null,
+  "parameters": {
+    "nfreq": {
+      "default": 24,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 24,
+      "per_system_override_rule": "Raise for a denser imaginary-frequency grid when the heavy-element tail is slow; the fast benchmark uses 6-8.",
+      "rationale": "Frequency grid density controls the accuracy of the screened interaction; small fast cases converge with nfreq 6-8 while production uses ~24.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "nbands": {
+      "default": 0,
+      "allowed_range": [
+        0,
+        4096
+      ],
+      "target": null,
+      "per_system_override_rule": "Set nbands equal to the physical basis dimension (nbasis); never truncate the state space.",
+      "rationale": "An incomplete state space corrupts EXX/GW. nbands is system-dependent so it is never pinned by a prescription.",
+      "gate_id": "stage.state_space.nbands_vs_nbasis",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Use the SCF mesh; keep it regular and Gamma-centred for the screening sum.",
+      "rationale": "The screening k-mesh must match the ABACUS producer mesh so the Coulomb and bz_sampling definitions agree.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "dojo_nc_sr_tzdp",
+      "allowed_range": [
+        "dojo_nc_sr_tzdp",
+        "oncv_pbe_8au_100ry",
+        "oncv_pbe_10au_100ry",
+        "gth_soc_pbe"
+      ],
+      "target": "dojo_nc_sr_tzdp",
+      "per_system_override_rule": "Use a PP/basis pair that was generated together; mismatched PP and NAO corrupts EXX.",
+      "rationale": "PseudoDojo NC-SR with a matched TZDP orbital set is the validated default; PP/orbital mismatch is a known garbage-EXX cause.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp",
+        "dzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "Prefer a triple-zeta-plus-polarisation NAO family for GW; a double-zeta set underdescribes the empty states.",
+      "rationale": "GW needs a flexible empty-state manifold; TZDP is the validated family for the regression set.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "abfs_family": {
+      "default": "abfs_default",
+      "allowed_range": [
+        "abfs_default"
+      ],
+      "target": null,
+      "per_system_override_rule": "Generate ABFS on the remote host for the exact STRU; never reuse an ABFS set from another cell.",
+      "rationale": "The auxiliary basis must be generated for the actual structure; a stale ABFS silently changes the Coulomb metric.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "shrink_threshold": {
+      "default": 0.001,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.0001,
+      "per_system_override_rule": "Tighten the shrink threshold when the ABFS set is nearly linearly dependent for a heavy-element system.",
+      "rationale": "shrink_lu_inv_thr controls the LU inversion cutoff for the shrunk auxiliary basis; too loose a value corrupts the Coulomb metric.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": 1e-05,
+      "per_system_override_rule": "Default to the explicit safe threshold 1e-5 for an UNKNOWN system, because the automatic (-1.0) cutoff is what breaks heavy elements. Known light-element families may relax it back to -1.0 (automatic); heavy-element families tighten the allowed range to 1e-6..1e-4.",
+      "rationale": "The automatic Cs-inverse cutoff is too aggressive for heavy elements and produces completely wrong EXX bands, so an unclassified system gets the safe explicit threshold by default rather than the automatic value.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    }
+  }
+}

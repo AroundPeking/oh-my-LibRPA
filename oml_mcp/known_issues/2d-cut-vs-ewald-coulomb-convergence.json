@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "2d-cut-vs-ewald-coulomb-convergence",
+  "title": "For 2D supercells the cut Coulomb is not convergent in k-points and vacuum; use 2D Ewald (and only from a branch that has the Ewald fixes)",
+  "symptom": "For a 2D system built with the supercell method, the Ewald Coulomb matrix is converged with respect to k-point sampling and vacuum thickness while the cut Coulomb is not, so GW gaps built from the cut kernel keep drifting with the cell; analytic Gamma head/wing treatment is needed to reach a k/vacuum-converged gap. Running the 2D Ewald singularity on an older branch produced a run that could not be used as a production result and had to be stopped.",
+  "root_cause": "The cut (truncated) Coulomb omits the inter-layer image sum, so k/vacuum convergence is lost; only the 2D Ewald (massidda-type) auxiliary Coulomb plus an analytic treatment of the Gamma head/wing converges fast. Old commits (e.g. 94eeb3af cal_massidda_2d and its high-angular-momentum Gamma correction) are homologous with the current branch but lack 'Fix MPI ownership for Ewald Gaussian subtraction', the common-key subtraction, and the adjustable Ewald lambda — all of which affect the correctness of the full Coulomb block.",
+  "minimal_fix": "Run 2D systems on ABACUS master_ghj (which contains the correct 2D Ewald Coulomb singularity) rather than an older commit, and keep the cut Coulomb as a diagnostic only; for the dielectric head/wing reuse the existing librpa.in head/wing switches together with the ABACUS-produced librpa_2d_coulomb_head.dat (auxiliary-basis multipole moment norms plus area normalization) — ABACUS itself needs no change.",
+  "validation": "Scan the GW gap (and the Coulomb head/wing data) as a function of k mesh and vacuum thickness: the Ewald route must flatten while the cut route keeps drifting. Before trusting the numbers, verify the branch contains the Ewald Gaussian-subtraction MPI-ownership fix, the common-key subtraction, and the tunable Ewald lambda.",
+  "avoid": "Do not present results from a branch missing the Ewald fixes as production values, do not use the cut Coulomb for the converged 2D gap, and do not look for an ABACUS change for the 2D head/wing — it is a librpa.in setting on top of the ABACUS head file.",
+  "source": "codex-sessions:rollout-2026-03-26T18-27-27-019d29af-4b14-7830-846f-a41ec557e6ef.jsonl; codex-sessions:rollout-2026-04-11T15-35-08-019d7b77-4823-7ca0-9f31-512fc5d86ac6.jsonl; codex-sessions:rollout-2026-08-29T00-36-43-01a0493b-1523-7a01-a8c0-f76ebe45ee6a.jsonl",
+  "confidence": "established",
+  "gate_id": "strict-2d-ewald-branch-gate",
+  "parameters": {}
+}

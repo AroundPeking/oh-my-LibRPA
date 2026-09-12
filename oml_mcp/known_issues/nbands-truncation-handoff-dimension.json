@@ -1,0 +1,20 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "nbands-truncation-handoff-dimension",
+  "title": "截断 nbands 小于基组数时，SCF/NSCF/PyATB/GW 各阶段态数必须同步，否则维度不一致",
+  "symptom": "MnF2（GW@PBE0，完整对照 nbands=176）要测 nbands 对 GW 能带的影响，取 128/80/48/32 四个点（对应每自旋保留 99/51/19/3 条导带）。若只改 INPUT_scf 的 nbands，PyATB/NSCF 仍输出 176 态，会出现文件维度不一致（如 k-BLACS eigenvector reader 维度不一致），无法判断 nbands 的真实影响。",
+  "root_cause": "nbands < 基组数是允许的，但整条 handoff 链（ABACUS SCF/NSCF -> PyATB velocity/head-wing -> LibRPA）必须共用同一态数。PyATB 侧正确做法是保留全部 176 个原子轨道系数、只按 band index 截取能带与速度矩阵；此外 PBE0 的格点 Vxc 必须保留此前修正过的 0.25 交换系数，否则屏蔽与自能前提就变了。截断工具已用真实 MnF2 PyATB 数据验证：保留全部 176 个 AO 系数，176 态时输出与原文件逐字节一致。",
+  "minimal_fix": "对每个 nbands 点成套生成 INPUT_scf/INPUT_nscf/librpa.in 与 PyATB 截断产物，按 band index 截 velocity_matrix（保留全部 AO 系数），并显式确认 PBE0 交换系数 0.25 与完整对照一致；每点都重新计算屏蔽与自能（不能复用 176 态的 chi0）。",
+  "validation": "逐点核对 SCF/NSCF 日志与 PyATB 输出态数等于目标 nbands；176 态截断输出与原始文件逐字节一致作为工具自检；比较 128/80/48/32 与 176 的近隙 GW gap（完整对照已有 PBE0 5.66298 eV、GW 6.71815 eV）是否单调受控。",
+  "avoid": "不要只改 INPUT_scf 的 nbands 就提交；不要沿用完整对照的 chi0/Wc 直接对比；不要在同一批次里顺手改动原流程的运行环境参数——首轮 128/80/48/32 四点全部在 SCF 初始化、电子迭代之前就因辅助基矩阵特征值分解失败退出，原因是新脚本把 MKL_NUM_THREADS 设成 40，而原 MnF2 流程用 MKL_NUM_THREADS=1，该差异会污染“nbands 的影响”这一唯一变量。",
+  "source": "codex-sessions:rollout-2026-09-08T12-01-02-01a07f2d-2d21-71c0-ab9f-6af71e6b5fab.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_nbands_handoff_dimensions",
+  "parameters": {
+    "nbands_test_points": "176(完整参考) / 128 / 80 / 48 / 32",
+    "conduction_bands_per_spin": "99 / 51 / 19 / 3（对应 128/80/48/32）",
+    "pyatb_truncation_rule": "保留全部 176 个 AO 系数，仅按 band index 截能带与 velocity_matrix",
+    "pbe0_vxc": "保留修正后的 0.25 交换系数",
+    "MKL_NUM_THREADS": "1（沿用原 MnF2 流程；改成 40 会在辅助基矩阵特征值分解处失败）"
+  }
+}

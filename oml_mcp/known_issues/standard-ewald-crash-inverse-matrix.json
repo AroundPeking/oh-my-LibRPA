@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "standard-ewald-crash-inverse-matrix",
+  "title": "Standard-Ewald crash in Inverse_Matrix.hpp:117",
+  "symptom": "The strict-2D full-Ewald path crashes during the Coulomb-matrix inversion, reported at Inverse_Matrix.hpp:117, or produces an indefinite full matrix.",
+  "root_cause": "The legacy split-Ewald full-matrix assembly suffers large-number cancellation between the Ewald terms for an isolated 2D material, making the matrix strongly indefinite or singular and the inversion unstable.",
+  "minimal_fix": "Switch to the direct_mixed_fourier positive-Gram output by setting out_librpa_2d_coulomb_method direct_mixed_fourier (with out_librpa_reader_version 1, rpa 1, exx_ewald_dimension 2, and the direct ecut/kz/gamma order controls). Do not use eigenvalue clipping or cut Coulomb.",
+  "validation": "Verify librpa_2d_coulomb_method.dat says version 1 / direct_mixed_fourier, exactly one complete reader-v1 full matrix per IBZ q representative, finite entries, Hermitian to roundoff, no materially negative eigenvalue.",
+  "avoid": "Using the legacy Ewald route for an isolated 2D material when the matrix is strongly indefinite; masking the crash with clipping or a smooth inverse.",
+  "source": "abacus-librpa-strict2d-direct-coulomb skill; abacus-librpa-strict2d-ewald-headwing; ~/.codex sessions.",
+  "confidence": "established",
+  "gate_id": "coulomb.psd_hermitian",
+  "parameters": {"out_librpa_2d_coulomb_method": "direct_mixed_fourier", "exx_ewald_dimension": "2"}
+}

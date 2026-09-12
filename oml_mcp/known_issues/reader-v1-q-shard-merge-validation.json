@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "reader-v1-q-shard-merge-validation",
+  "title": "reader-v1 full-Coulomb multi-rank q-shard merge accepts illegal offsets and does not hard-fail on duplicate/missing blocks",
+  "symptom": "When one q point's reader-v1 full-Coulomb blocks are sharded over several ranks, the merged matrix can absorb duplicate/overlapping or missing atom-pair blocks without error. Code review of the merge in driver/reader_sternheimer.cpp concluded there are exactly two findings: an illegal-offset acceptance that '会静默污染科学结果' (silently corrupts scientific results), and a positive-matrix assertion that is disabled in default builds, so the tests cannot catch it.",
+  "root_cause": "The merge concatenates per-rank shards at their reported offsets without validating that the concatenated upper-triangle block offsets cover every block exactly once, and without treating metadata mismatch / duplicate block / missing block / illegal block as hard errors; the Hermitian/positive-matrix check exists but is compiled out under the default (NDEBUG) build. The intended contract is: every q merges all upper-triangle atom-pair blocks, then the complete Hermitian matrix is reconstructed.",
+  "minimal_fix": "In the reader, per q: require identical metadata across shards, reject duplicate/overlapping blocks, reject gaps and illegal offsets, and require the offsets to cover the upper triangle exactly once; rebuild the full matrix by explicit conjugate mirroring from the upper triangle and hard-fail otherwise. Keep the validity assertion active in default builds (never rely on assert()).",
+  "validation": "Run driver/test/test_reader_sternheimer_qpoints.cpp with three injected shard defects — duplicate block, missing block, wrong offset — and require a hard failure for each; additionally confirm the single-file (non-sharded) path is unchanged bit-for-bit before/after the fix.",
+  "avoid": "Do not trust a green test run from a build where the Hermitian/positive assertion is compiled out, and do not 'repair' a bad shard set by symmetrizing whatever was read — an accepted illegal offset must be an error, not a repair.",
+  "source": "codex-sessions:rollout-2026-07-30T20-26-43-019fb2fd-c72d-7bb0-9e33-8da2662516e6.jsonl",
+  "confidence": "tentative",
+  "gate_id": "reader-v1-q-shard-coverage-gate",
+  "parameters": {}
+}

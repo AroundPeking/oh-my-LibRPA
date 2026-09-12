@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry1-silently-disabled-lattice-mismatch",
+  "title": "ABACUS silently sets symmetry to 0 (`Automatically set symmetry to 0 and continue`) so symmetry=1 gives almost no speedup",
+  "symptom": "A graphene+H2O slab/delta-ST pilot with `symmetry = 1` in INPUT printed a warning that the optimised reciprocal/real-space lattice does not match and `Automatically set symmetry to 0 and continue`; the comparison of real vs reciprocal Bravais lattices was inconsistent. In the same family, ABACUS identified only 1 structural symmetry operation although k still dropped 16 -> 10, and `nks=10` was not divisible by `kpar=4` (load-balance warning only).",
+  "root_cause": "ABACUS derives its symmetry from the real-space lattice produced by the input; a hexagonal cell written with ~1e-5 Angstrom lattice-vector rounding gives a real/reciprocal Bravais determination mismatch, so ABACUS disables symmetry for safety, and a one-leg adsorbate slab or non-ideal C coordinates genuinely break the mirror symmetry anyway. Writing `symmetry 1` in INPUT therefore does not guarantee that the symmetry lane runs.",
+  "minimal_fix": "Before claiming symmetry acceleration, grep the ABACUS log for `Automatically set symmetry to 0` and for the number of symmetry operations actually found; if the message appears, fix the lattice-vector geometric rounding (1e-5 Angstrom level, without changing relative atomic positions) or accept a non-symmetry run. Choose `kpar` to divide the actual `nks` after symmetry reduction.",
+  "validation": "Confirm the log shows the warning absent and reports the expected symmetry operation count, and that nks/nq equals the expected irreducible count (e.g. 10 for a 4x4x1 slab with the real structure). Compare the number of written q files with the expected irreducible set before scheduling production jobs.",
+  "avoid": "Do not write `symmetry 1` and assume k/q reduction happened - inspect the log. Do not treat a `kpar` non-divisibility warning as the reason for a slow symmetry run; the real reason is usually that symmetry was auto-disabled.",
+  "source": "codex-sessions:rollout-2026-06-09T13-21-10-019eaad3-d5f6-7223-9d0c-51361b4d0028.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-symmetry-actually-enabled",
+  "parameters": {}
+}

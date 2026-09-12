@@ -1,0 +1,69 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "molecular_delta_st_rpa",
+  "material_class": "default",
+  "description": "Baseline molecular Delta-Sternheimer RPA prescription for an isolated molecule in a box.",
+  "extends": null,
+  "parameters": {
+    "box_size": {
+      "default": 15.0,
+      "allowed_range": [
+        5.0,
+        40.0
+      ],
+      "target": 15.0,
+      "per_system_override_rule": "Converge the vacuum box so periodic images do not interact; a molecule needs far more vacuum than a solid.",
+      "rationale": "Too small a box changes the correlation energy through image interaction.",
+      "gate_id": "stage.scf.artifacts",
+      "confidence": "established"
+    },
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Use a dense imaginary-frequency grid.",
+      "rationale": "The RPA correlation energy integral converges slowly in frequency.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "grid_cutoff": {
+      "default": 100.0,
+      "allowed_range": [
+        50.0,
+        400.0
+      ],
+      "target": 100.0,
+      "per_system_override_rule": "Keep the response real-space grid consistent with the ABACUS ecutwfc.",
+      "rationale": "The response grid must match the mean-field grid.",
+      "gate_id": "stage.preprocess.finite",
+      "confidence": "established"
+    },
+    "pca_threshold": {
+      "default": 0.01,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.01,
+      "per_system_override_rule": "Loosen the PCA threshold for molecular auxiliary bases, which are small and well conditioned.",
+      "rationale": "A tight threshold on a small molecular auxiliary basis is expensive without accuracy gain.",
+      "gate_id": "stage.pyatb.main_dataset",
+      "confidence": "established"
+    },
+    "occupied_basis": {
+      "default": 0,
+      "allowed_range": [
+        0,
+        0
+      ],
+      "target": null,
+      "per_system_override_rule": "Choose the occupied basis per molecule; a molecule's occupied manifold is system-dependent.",
+      "rationale": "The occupied basis depends on the element set, so it is never pinned globally.",
+      "gate_id": null,
+      "confidence": "established"
+    }
+  }
+}

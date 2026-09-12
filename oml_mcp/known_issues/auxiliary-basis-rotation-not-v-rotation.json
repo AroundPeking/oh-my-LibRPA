@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "auxiliary-basis-rotation-not-v-rotation",
+  "title": "Compressing the long-range Ewald Coulomb branch is done by rotating/recombining the auxiliary basis at initialization, not by rotating the Coulomb matrix",
+  "symptom": "Work on the moment/Ewald long-range compression was repeatedly described as 'rotating the Coulomb matrix' / 'rotate V'. The implementation actually performs an orthogonal rotation/recombination of the auxiliary basis during initialization and stores a reordered long-range prefix block; the matrix is only represented in the rotated auxiliary basis.",
+  "root_cause": "The long-range Ewald branch enters the auxiliary basis only through multipole moments, so the exact reformulation is: rotate/recombine the auxiliary basis inside each (type, L) subspace so the multipole moment lives in one representative channel, then reorder those channels to the prefix — giving full short-range + reduced-prefix long-range. There is no Coulomb-matrix rotation involved. The rotation must happen at the very beginning of EXX initialization so that the rest of the calculation is unchanged.",
+  "minimal_fix": "Implement the rotation on the auxiliary basis at EXX initialization (as in the RSH-functional Ewald rotation already merged into the ri-moment branch) and describe it as 'auxiliary-basis rotation and prefix reordering'; keep the downstream Coulomb/chi0/Wc code path untouched.",
+  "validation": "On a fixed case (e.g. the SiC sg15 shrink test) dump the complete Coulomb eigenvalue list — the LibRPA non-singular and full prints 'The largest/smallest eigenvalue of Coulomb matrix(non-singular)' and 'The 1st/2nd/3rd/-1th eigenvalue of Coulomb matrix(Full)' — before and after the rotation and require the non-singular spectrum to be unchanged apart from the intended long-range prefix compression; also confirm RPA/GW results are unchanged versus the unrotated run.",
+  "avoid": "Do not implement or describe the scheme as rotating the Coulomb matrix / the Coulomb potential itself, and do not combine the rotation with changes elsewhere in the Coulomb path — the reformulation is exact only if downstream stays identical.",
+  "source": "codex-sessions:rollout-2026-04-30T19-34-32-019dde2b-4af6-7882-9f12-a137cbaef6eb.jsonl; codex-sessions:rollout-2026-04-08T14-50-01-019d6bda-e84b-7630-80e0-eab9357a50fa.jsonl",
+  "confidence": "tentative",
+  "gate_id": "abfs-rotation-spectrum-invariance-gate",
+  "parameters": {}
+}

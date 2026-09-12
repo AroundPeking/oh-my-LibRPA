@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coulomb-metric-gram-conditioning",
+  "title": "Ill-conditioned Coulomb-metric Gram block was inverted silently; reject on min/max eigenvalue ratio < 1e-8",
+  "symptom": "Remote RED test 3267914 showed the old code did not raise for the nearly singular Gram/Coulomb-metric block B = [[1, 1], [0, 1e-7]] (7 pass / 1 fail): a rank-deficient Gram matrix was inverted without any warning, so the resulting local RI fitting coefficients were garbage.",
+  "root_cause": "The Coulomb-metric overlap (Gram) matrix used to obtain the local RI fitting coefficients becomes numerically singular for ill-conditioned auxiliary sets (heavy elements, high angular momentum, long atom-pair separations). A plain LU inverse guarded only by a relative pseudo-inverse threshold (exx_cs_inv_thr) hides the loss of accuracy instead of flagging it; the 1e-7 case passes the relative test but has an eigenvalue ratio far below anything invertible.",
+  "minimal_fix": "Keep the original LU arithmetic, copy the Gram matrix and run the reused Hermitian eigensolver on the copy, then reject when min/max eigenvalue ratio < 1e-8; add the ratio as an optional output/status line. Use this together with exx_cs_inv_thr, not as a replacement for it.",
+  "validation": "Re-run the RED case B = [[1, 1], [0, 1e-7]] and require a hard failure; add a well-conditioned control that must still pass; confirm the new status line reports the min/max ratio and that the archived v2 build turns the RED test green.",
+  "avoid": "Do not rely on the relative pseudo-inverse threshold alone (it did not throw for the 1e-7 case) and do not silently regularize the Gram matrix in place.",
+  "source": "codex-sessions:rollout-2026-09-06T23-21-37-01a0774f-8e33-7ab2-a7d6-f73e625c744b.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gram-condition-ratio-gate",
+  "parameters": {}
+}

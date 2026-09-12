@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abacus-printed-exx-energy-uses-active-cut-kernel",
+  "title": "ABACUS 打印的 EXX 总能走 active ABFS + Spencer 球形截断核，与 LibRPA full-direct 占据迹不是同一算符",
+  "symptom": "同一体系的 ABACUS 打印 EXX 总能与 LibRPA occupied-only trace 差到离谱，容易被当作 bug（Ha/胞）：GeTe `-95.32359552` vs `-92.60441917`；SnSe `-90.91615538` vs `-350.93993950`。",
+  "root_cause": "两条路径用的核与筛选阈值都不同，不能直接相减判错：(1) ABACUS 打印值来自 active ABFS + Spencer 球形截断核（`RPA_LRI.hpp:576`），不是后续 full-direct 核；(2) active 基组由物理 NAO 乘积按 1e-4 生成并旋转（`Exx_LRI.hpp:417`），外部 plus-g raw ABFS、raw Cs 与 shrink 映射都不参与该打印总能；(3) 该路径用普通 CVC、相对阈值 λ>λmax×1e-5 的伪逆。更关键的边界：空态占据为零，灾难性空带偏移可以不进入占据态迹，所以“总量有限”不能证明算符正确——ABACUS 总能未独立验证。",
+  "minimal_fix": "在 provenance 中固定并写明每条能量对应的“核 + 基组 + 逆阈值 + 对称/MPI 路径 + 单位与自旋权重”；比较时只用同核同基组的量，先导出 active 与 raw 的映射关系再谈差异。",
+  "validation": "逐项核对入口源码行与运行日志（RPA_LRI.hpp:576、Exx_LRI.hpp:417）、50 项远端来源哈希与 20 份精确提交源码匹配、标量提取可复现、清单 56/56 PASS；确认空带是否可能绕过占据迹这一检查点，并单独报告“未独立验证”这一状态。",
+  "avoid": "不要把 cut 与 full 的差直接判为错误；不要把 active 基组与 raw ABFS 混作一套；不要因为总能数值有限就认为算符与实现已经验证。",
+  "source": "codex-sessions:rollout-2026-09-06T23-10-46-01a07745-9e3d-7943-9019-06ace25cc21a.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_exx_energy_path_provenance",
+  "parameters": {
+    "kernel_pairing": "ABACUS 打印 = active ABFS + Spencer 球形截断核；LibRPA occupied trace = full-direct 核",
+    "active_basis_origin": "物理 NAO 乘积按 1e-4 生成并旋转（Exx_LRI.hpp:417）",
+    "pseudo_inverse": "λ > λmax × 1e-5（相对阈值，普通 CVC）",
+    "recorded_values_Ha_per_cell": "GeTe -95.32359552 (active-cut) vs -92.60441917 (full-direct occ trace)；SnSe -90.91615538 vs -350.93993950"
+  }
+}

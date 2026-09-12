@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "librpa-segfault-missing-librpa-in",
+  "title": "LibRPA segfault (app_rpa.cpp:115) because librpa.in is not staged in the per-iteration directory",
+  "symptom": "LibRPA segfaults at driver/app_rpa.cpp:115 during cOpt basis-optimization iterations that run ABACUS and LibRPA in per-iteration directories; the Slurm logs also show 'module: command not found' and the suspicion that ABACUS had not finished before LibRPA started. Fixing libstdc++ did not remove the segfault.",
+  "root_cause": "cp_files_rpa in cOpt/object/cal_exe.py copies ORBITAL_RESULTS, INPUT, KPT, STRU, pp and CHG into the iteration directory but NOT librpa.in, so LibRPA is launched with no input file to read and crashes in its reader rather than reporting a clean missing-input error.",
+  "minimal_fix": "Patch cp_files_rpa to also copy librpa.in from abacus_inputs when it exists, with a fallback lookup at abacus_inputs/../librpa.in or the chg staging location. Independently, enforce a real producer->consumer dependency (--dependency=afterok:<abacus_job_id>, or an explicit guard that aborts unless OUT.ABACUS/running_scf.log shows normal completion and every required LibRPA input exists) and source the module environment explicitly in the batch script (or use absolute paths).",
+  "validation": "After the patch every iteration directory must contain librpa.in next to the copied INPUT/KPT/STRU/pp/CHG, the Slurm log must show no 'module: command not found', the ABACUS log must finish before LibRPA starts, and app_rpa.cpp:115 must no longer segfault so LibRPA*.out completes.",
+  "avoid": "Do not treat the crash as purely a LibRPA code bug or a stale binary, do not rerun the same iteration hoping LibRPA picks its input up from a parent directory, do not treat it as an ABACUS or basis-set defect, and do not launch LibRPA from the same script line as ABACUS without a dependency or completion guard.",
+  "source": "codex-sessions:rollout-2026-02-28T23-19-08-019ca4d4-fff1-7c22-9018-3e514839e34f.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:librpa-input-staged",
+  "parameters": {
+    "librpa.in": "must be staged in every LibRPA working directory (copy from abacus_inputs, fallback abacus_inputs/../librpa.in)",
+    "submit_dependency": "--dependency=afterok:<abacus_job_id>",
+    "files_required_before_librpa": "OUT.ABACUS/running_scf.log, librpa.in, band_out",
+    "module_env": "source the module system explicitly in the Slurm batch script"
+  }
+}

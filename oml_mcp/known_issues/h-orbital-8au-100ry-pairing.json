@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "h-orbital-8au-100ry-pairing",
+  "title": "Shared basis library has no H orbital, so H must come from SG15_v1.0 at a matched 8 au / 100 Ry",
+  "symptom": "For the B/N/O/H TZDP run (PBE adsorption energy, DZP vs TZDP), the oh-my-librpa SG15 3s3p2d orbitals cover B/N/O but the library contains no H directory, so H cannot be taken from the same source.",
+  "root_cause": "The shared basis library is incomplete for H; silently omitting H or substituting an unmatched H orbital would break the PP/orbital pairing (different radial cutoff or PP family) inside the same 8 au TZDP calculation - one of the classic 'mismatched PP/orbital pair' failure modes.",
+  "minimal_fix": "Take H from the local SG15_v1.0 standard library as H_gga_8au_100Ry_3s2p.orb, keeping 8 au / 100 Ry consistent with the B/N/O SG15 3s3p2d orbitals, and state the supplementary source explicitly in the results and documentation.",
+  "validation": "All four elements B/N/O/H resolve to existing orbital files with the same 8 au cutoff and 100 Ry, and the PBE adsorption energy is produced for both DZP and TZDP and recorded in the documentation with the H source annotated.",
+  "avoid": "Do not silently substitute an H orbital with a different cutoff or PP family, and do not assume the shared basis library is complete for every element in the system - check each element before starting.",
+  "source": "codex-sessions:rollout-2026-06-09T13-21-10-019eaad3-d5f6-7223-9d0c-51361b4d0028.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:pp-orbital-match",
+  "parameters": {
+    "main_basis": "8 au TZDP",
+    "B_N_O_orbitals": "SG15 3s3p2d (oh-my-librpa library)",
+    "H_orbital": "H_gga_8au_100Ry_3s2p.orb (local SG15_v1.0)",
+    "cutoff_rule": "8 au / 100 Ry for every element in the same run"
+  }
+}

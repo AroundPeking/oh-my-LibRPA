@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "soc-and-molecule-symmetry-lane-off",
+  "title": "Never run the ABACUS/LibRPA symmetry lane with SOC, and keep it off for molecules and Gamma-only cases",
+  "symptom": "The periodic-GW symmetry lane was being applied to workflows where it is not valid: SOC (`nspin=4` spinor) calculations and molecular (Gamma-only) RPA calculations.",
+  "root_cause": "The symmetry consumption lane (ABACUS EXX symmetry sidecars plus LibRPA `use_abacus_exx_symmetry` / `use_abacus_gw_symmetry`, and the k-star/spinor rotation machinery) is only validated for non-SOC periodic solids; the molecular lane has no k-star structure to exploit and uses a different reference recipe.",
+  "minimal_fix": "SOC: keep ABACUS `symmetry = -1` and leave the LibRPA symmetry flags off - the rule was written into README.md, skills/oh-my-librpa/SKILL.md, skills/oh-my-librpa/references/gw-route.md and as comments in the INPUT_scf and librpa.in templates (commit `8f81db1 Clarify SOC symmetry and LibRI provenance`). Molecules (companion recipe, session rollout-2026-05-18T16-55-42-019e3a4c-5755-7560-b096-28f6b3b30034.jsonl): use `symmetry = 0`, set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times`, skip the NSCF and PyATB stages entirely, and write `librpa.in` without symmetry and without head/wing.",
+  "validation": "Read the ABACUS log for the actual `nspin` and nks before trusting any symmetry benchmark; for molecules confirm EXX and RPA use the same rmesh factor and that no symmetry/head-wing keys are present in `librpa.in`.",
+  "avoid": "Do not enable LibRPA symmetry merely because ABACUS accepted `symmetry=1`; the lane is version- and case-dependent (SOC, molecules, metals with Drude head, and head/wing each have separate rules), and the symmetry flags must be consistent between INPUT_scf and librpa.in.",
+  "source": "codex-sessions:rollout-2026-03-15T19-49-33-019cf154-848b-7193-8915-68a5d9b909aa.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-symmetry-lane-eligibility",
+  "parameters": {}
+}

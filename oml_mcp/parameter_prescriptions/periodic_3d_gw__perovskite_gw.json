@@ -1,0 +1,91 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "perovskite_gw",
+  "description": "Cubic SrTiO3 perovskite GW (Dojo-NC-SR + matched TZDP basis, nspin=1).",
+  "extends": null,
+  "parameters": {
+    "basis_family": {
+      "default": "dojo_nc_sr_tzdp",
+      "allowed_range": [
+        "dojo_nc_sr_tzdp",
+        "oncv_pbe_8au_100ry",
+        "gth_tzdp10"
+      ],
+      "target": "dojo_nc_sr_tzdp",
+      "per_system_override_rule": "Use the PseudoDojo NC-SR pseudopotential with the matched TZDP orbital set.",
+      "rationale": "The perovskite identity is frozen on the Dojo-NC-SR + matched TZDP basis; a mismatched PP/orbital pair corrupts EXX.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "Keep the TZDP NAO family.",
+      "rationale": "The frozen reference uses the matched TZDP set.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": -1.0,
+      "per_system_override_rule": "SrTiO3 is not heavy-element dominated, so the automatic Cs inverse cutoff is acceptable; tighten only if EXX looks wrong.",
+      "rationale": "No strongly localized heavy 3d shell is present in the valence.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        1,
+        1,
+        1
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Use a regular Gamma-centred mesh matching the SCF run.",
+      "rationale": "Screening definition must match the producer mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Use a moderately dense frequency grid for the oxide screening.",
+      "rationale": "Oxide screening converges more slowly than a simple semiconductor.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "nbands": {
+      "default": 0,
+      "allowed_range": [
+        0,
+        4096
+      ],
+      "target": null,
+      "per_system_override_rule": "Set nbands equal to nbasis.",
+      "rationale": "An incomplete state space corrupts EXX/GW.",
+      "gate_id": "stage.state_space.nbands_vs_nbasis",
+      "confidence": "established"
+    }
+  }
+}

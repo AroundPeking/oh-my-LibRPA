@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "headwing-wing-mu-cleared-empty-gamma",
+  "title": "LibRPA W fails at Gamma because dielectmodel.cpp clears wing_mu after the RPA basis conversion",
+  "symptom": "Run 1 completes RPA (-0.11826108037212188 Ha, imag 6e-15) and EXX, but W fails with 'W failed Gamma vector at 0 empty': the Gamma wing vector is empty even though the object still reports has_wing=true.",
+  "root_cause": "src/core/dielectmodel.cpp:3130 executes wing_mu.clear() immediately after the RPA basis conversion, so the retained head/wing object is already consumed; has_wing stays true while the raw mu (wing) data the Wc conversion needs is gone. has_wing is a flag, not a liveness guarantee.",
+  "minimal_fix": "Re-read the head/wing input freshly (read_headwing_input) immediately before the W/Wc conversion instead of reusing the consumed has_wing=true object; the prototype fix required no core change.",
+  "validation": "Rerun the same case: the RPA total must stay -0.11826108037212188 Ha with imag ~6e-15, EXX unchanged, and the Gamma wing vector must be non-empty so W completes; keep the added PSD/definiteness checks on the paired head/wing matrices.",
+  "avoid": "Do not treat has_wing=true as proof the wing data is still alive, and do not work around the empty Gamma vector by loosening tolerances or skipping Gamma.",
+  "source": "codex-sessions:rollout-2026-09-06T23-03-18-01a0773e-c96c-7e50-9415-c54f262bcf26.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:headwing-liveness",
+  "parameters": {
+    "has_wing_flag": "not a liveness flag; re-read head/wing input before the Wc conversion",
+    "rpa_total_ref_Ha": "-0.11826108037212188",
+    "imag_ref_Ha": "6e-15"
+  }
+}

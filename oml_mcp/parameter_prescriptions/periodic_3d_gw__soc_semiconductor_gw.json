@@ -1,0 +1,87 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "soc_semiconductor_gw",
+  "description": "Zinc-blende semiconductor G0W0 with spin-orbit coupling (GaAs with wing).",
+  "extends": "default",
+  "parameters": {
+    "nfreq": {
+      "default": 12,
+      "allowed_range": [
+        4,
+        64
+      ],
+      "target": 12,
+      "per_system_override_rule": "SOC doubles the state space so keep a moderately dense grid.",
+      "rationale": "SOC cases carry twice the states and need a slightly denser grid than non-SOC light systems.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Regular Gamma-centred mesh matching the SCF run.",
+      "rationale": "Screening definition must match the producer mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "gth_soc_pbe",
+      "allowed_range": [
+        "gth_soc_pbe",
+        "dojo_nc_sr_tzdp",
+        "oncv_pbe_8au_100ry"
+      ],
+      "target": "gth_soc_pbe",
+      "per_system_override_rule": "Use a scalar-relativistic-capable PP (GTH SOC) with a matched orbital set.",
+      "rationale": "SOC calculations need a PP and orbital set generated for the relativistic case.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp",
+        "dzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "Use a TZDP set for the empty states.",
+      "rationale": "GW needs flexible empty states.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": -1.0,
+      "per_system_override_rule": "Automatic default unless a heavy element is present.",
+      "rationale": "GaAs is not heavy-element dominated.",
+      "gate_id": null,
+      "confidence": "established"
+    }
+  }
+}

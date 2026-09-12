@@ -1,0 +1,75 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "strict_2d_gw",
+  "material_class": "default",
+  "description": "Baseline strict-2D GW prescription: 2D Ewald Coulomb with analytic Gamma head/wing.",
+  "extends": null,
+  "parameters": {
+    "in_plane_kgrid": {
+      "default": [
+        12,
+        12
+      ],
+      "allowed_range": [
+        4,
+        4
+      ],
+      "target": [
+        12,
+        12
+      ],
+      "per_system_override_rule": "Use a converged in-plane mesh; strict-2D needs a denser in-plane sampling than 3D because the vacuum truncates screening.",
+      "rationale": "The in-plane mesh controls the 2D screening convergence; too coarse a mesh biases the q->0 head.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "vacuum": {
+      "default": 20.0,
+      "allowed_range": [
+        10.0,
+        60.0
+      ],
+      "target": 20.0,
+      "per_system_override_rule": "Converge the vacuum thickness so the 2D Ewald slab does not interact with its image.",
+      "rationale": "Insufficient vacuum makes the 2D Ewald Coulomb non-convergent and can render the auxiliary Coulomb indefinite.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "ewald_precision": {
+      "default": 1e-08,
+      "allowed_range": [
+        1e-12,
+        0.0001
+      ],
+      "target": 1e-08,
+      "per_system_override_rule": "Tighten the Ewald precision until the full Coulomb is Hermitian and positive-semidefinite.",
+      "rationale": "A loose Ewald precision leaves a non-Hermitian or indefinite auxiliary Coulomb that corrupts EXX and GW.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Use a moderately dense imaginary-frequency grid for the 2D screening.",
+      "rationale": "2D screening converges more slowly in frequency than 3D.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "nbands": {
+      "default": 0,
+      "allowed_range": [
+        0,
+        4096
+      ],
+      "target": null,
+      "per_system_override_rule": "Set nbands equal to the physical basis dimension (nbasis); never truncate the state space.",
+      "rationale": "An incomplete state space corrupts EXX/GW; nbands is system-dependent and never pinned.",
+      "gate_id": "stage.state_space.nbands_vs_nbasis",
+      "confidence": "established"
+    }
+  }
+}

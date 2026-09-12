@@ -1,0 +1,88 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "wide_gap_oxide_gw",
+  "description": "Closed-shell ionic wide-gap oxide G0W0 (bulk MgO).",
+  "extends": "default",
+  "parameters": {
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        64
+      ],
+      "target": 16,
+      "per_system_override_rule": "Wide-gap oxides need a denser frequency grid than the smallest smoke cases.",
+      "rationale": "The large gap pushes spectral weight to higher frequencies, so a denser grid preserves accuracy.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Regular Gamma-centred mesh.",
+      "rationale": "Screening definition must match the producer mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "oncv_pbe_8au_100ry",
+      "allowed_range": [
+        "oncv_pbe_8au_100ry",
+        "oncv_pbe_10au_100ry",
+        "dojo_nc_sr_tzdp",
+        "gth_soc_pbe"
+      ],
+      "target": "oncv_pbe_8au_100ry",
+      "per_system_override_rule": "Matched PP/orbital pair.",
+      "rationale": "PP/orbital mismatch corrupts EXX.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp",
+        "dzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "TZDP for the empty-state manifold.",
+      "rationale": "GW needs flexible empty states.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": -1.0,
+      "per_system_override_rule": "Automatic default is fine for a closed-shell oxide.",
+      "rationale": "No open 3d shell is present.",
+      "gate_id": null,
+      "confidence": "established"
+    }
+  }
+}

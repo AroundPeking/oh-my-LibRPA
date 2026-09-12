@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "shrink-symmetry-atom-pair-rotation-closure",
+  "title": "shrink+symmetry GW gives bad bands and an unfinished LibRPA job because the direct-ABF atom-pair set is not closed under star-group rotations",
+  "symptom": "shrink+symmetry GW runs produced very bad band figures and the full LibRPA job could not finish (missing blocks). Nothing was obviously wrong earlier in the chain: the chi0 projection error was only 1e-8 to 1e-7 and the V/W_c differences about one percent; the amplification appeared later in the W_c(R,tau)/Sigma_c assembly in strongly cancelling channels.",
+  "root_cause": "In the direct-ABF path the intermediate atom-pair set was not closed under star-group rotations, so the source atom-pair blocks required by rotation were missing and a q point could not be assembled from all upper-triangle pair blocks.",
+  "minimal_fix": "Generate and expect a source atom-pair set closed under the star-group rotations (add the rotation-required source atom-pair blocks) so every q point yields all upper-triangle pair blocks, and make the reader fail loudly on metadata mismatch, duplicate block or missing block instead of continuing silently.",
+  "validation": "The full LibRPA job completes after the closure fix; then check matrix completeness, Hermiticity/PSD, k-star correspondence and the near-gap cross-spin mirror before comparing bands. Execution-level success alone is not a physics result.",
+  "avoid": "Do not treat 'the job finishes' as physics validation. Do not attribute the no-shrink/no-sym versus shrink/sym GW gap difference to shrink or symmetry - those runs also changed the ABFS and the binary (1.57345 eV vs 1.60117 eV, 27.7 meV, cannot be assigned to a single factor). Do not re-enable shrink before EXX itself passes.",
+  "source": "codex-sessions:rollout-2026-07-30T19-21-54-019fb2c2-6ef9-7b93-a501-e086409c5c5f.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:qblock-rotation-closure",
+  "parameters": {
+    "pair_block_rule": "every q point must receive all upper-triangle atom-pair blocks, with the source atom-pair set closed under star-group rotations",
+    "reader_behaviour": "fail on metadata mismatch, duplicate block, missing block, illegal offset",
+    "reintroduce_shrink_after": "no-shrink EXX passes the four-corner check (full-q/sym-off, IBZ/sym-on, Ewald full-Coulomb, direct-G Coulomb)"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "heavy-element-vetted-library-exx-control",
+  "title": "重元素 PBE 好但 EXX 灾难：改用 vetted Dojo-NC-SR 库基组组合做控制，不要顺手重新生成 NAO",
+  "symptom": "GeTe 老 stringent 路线（q22/q24 PP + NAO 6s6p3d2f + TZDP10）PBE 正常，但 EXX 灾难性错误；SnSe 老 stringent 路线 EXX 同样严重失败（失败路线不得作为 GW 放行依据）。",
+  "root_cause": "该类失败是整个表示链（PP + 物理 NAO + ABFS + 逆设置）共同决定的，而不是单点原因。改用库中已验证的 Dojo-NC-SR q14/q16 + NAO 3s3p3d2f + TZDP10，并在不设置 exx_cs_inv_thr 的条件下，EXX 数值检查通过。必须注意：换 PP、物理 NAO、匹配 ABFS、逆设置一起变，只能确立“新组合可用”，不能据此分离出是 SIAB 优化、径向冗余还是旧 PP 导致失败。",
+  "minimal_fix": "直接复用库中 exact-hash 匹配的 PP/物理 NAO（必要时只补缺失元素的 `for_aux +1g` 辅助基与匹配 PCA 1e-4 的 ABFS），不要因为“失败”就重新生成整套 NAO；生产参数按已验证的 GeTe 库路线设置。",
+  "validation": "PBE gate（收敛密度、目标磁态与电子数、有限占据/本征值、正的且近隙光滑的 gap）与 EXX 数值 gate 分别通过；需要时做单变量 PBE 基组控制，而不是靠组合替换来归因；库基组 EXX 通过只算候选，不算基组收敛或定量精度证明，也不等于 GW 可用（仍需同 producer 的全网格 PyATB/head-wing 与匹配的 band/vxc 维度）。",
+  "avoid": "不要把“EXX 通过”说成“SIAB/径向冗余/旧 PP 是根因”；不要从严格来源强行替换成用户指定的已验证库；不要把 GeTe 的初步 GW（文献 1.21 eV vs 本次 1.3807 eV，真实能谷顺序差 32.84 meV）写成 SnSe 的放行依据；不要复用旧 stringent 路线的 ABFS 与库轨道混配。",
+  "source": "codex-sessions:rollout-2026-09-09T08-50-25-01a083a5-059a-75f3-870e-63af61ca60d9.jsonl | codex-sessions:rollout-2026-09-06T23-00-25-01a0773c-2655-7df3-9baf-64128d2e06ee.jsonl | codex-sessions:rollout-2026-09-09T12-29-49-01a0846d-e432-7711-97c2-12f9d7f54d44.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_vetted_library_exx_control",
+  "parameters": {
+    "library": "ABACUS-orbitals/Dojo-NC-SR；物理 NAO 3s3p3d2f，额外 1g 仅辅助",
+    "abfs_generation_pca": "1e-4",
+    "production_inputs": "exx_pca_threshold 1e-10（外部 ABFS_ORBITAL）、shrink 1e-4 / LU 1e-3、OMIT 正的 exx_cs_inv_thr、symmetry on、direct 110 Ry / kz 64 / Gamma 8、no SOC",
+    "snse_reference": "41 轨道函数/元素，164 bands，60 价电子，30 占据带，12x12x1，400 点路径",
+    "old_route_status": "GeTe q22/q24 + 6s6p3d2f：PBE 好、EXX 灾难；SnSe stringent：EXX 严重失败，禁止提交 GW",
+    "control_condition": "库对照在“不设置 exx_cs_inv_thr”下通过数值 EXX"
+  }
+}

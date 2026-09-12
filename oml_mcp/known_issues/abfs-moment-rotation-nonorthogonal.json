@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abfs-moment-rotation-nonorthogonal",
+  "title": "ABFS 矩旋转用非正交 v_i 会引入额外数值噪声；应用 Householder + 去耦合 + 相对阈值截断",
+  "symptom": "用 bare 库伦定义矩方向、旋转辅助基后，库伦矩阵数值稳定性有所改善、GW 能带“稍微稳定了一点”，但不够稳定；构造 `v_i = e_i - (x_i/||x||^2)x` 时 v_i 彼此一般不正交，v_i·v_j = -x_i x_j/||x||^2 (i≠j)，会引入额外数值噪声。",
+  "root_cause": "bare 定义把最刚性的长程分量先抽出来，减少后续数值相消与病态耦合（Ewald 长程项本来就是 p_LN p_L'N' F_LL'(R) 形式的秩 1 外积，旋转后每个 l 只剩第一条径向通道非零）；但手写 Gram-Schmidt 型构造的非正交方向本身带来噪声，且 charged-neutral 交叉耦合未被消除。",
+  "minimal_fix": "每个 l 通道：(1) 用 bare 定义算矩向量 m_l；(2) 用 Householder 构造正交矩阵 Q_l 使 Q_l^T m_l = (||m_l||,0,...)^T；(3) 在 Q_l 基下写 bare 库伦块 J'_l = Q_l^T J_l Q_l = [[a, b^T],[b, J_n]]；(4) 去耦合 c = (J_n+ηI)^-1 b, S = [[1,0],[-c,I]]，使 S^T J'_l S 的 charged-neutral 交叉项被消掉；(5) 对 J_n 做特征分解并按相对阈值（1e-8 ~ 1e-6）截断小本征值；(6) 最终变换 T_l = Q_l S diag(1, U_keep)（更强预条件可再乘 Λ_keep^-1/2）。",
+  "validation": "把同一个 T_l 同步用于所有相关张量（Coulomb、三中心积分、投影等）；做符号/简并子空间对齐（对齐上一轮）以避免 GW 带结构抖动；诊断量：κ(J)、GW 带隙方差、残余矩大小。",
+  "avoid": "不要使用彼此不正交的 `v_i = e_i - (x_i/||x||^2)x` 作为旋转方向；不要手写 Gram-Schmidt 代替 Householder；不要把长程部分物化成完整 V(R) 张量后期待全局严格稀疏（Ewald 的 V_long 天然长程，不会对 R 稀疏）。",
+  "source": "codex-sessions:rollout-2026-03-02T12-00-52-019cacb4-c00a-7b71-a8d4-050e21124a02.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate_abfs_rotation_orthogonality",
+  "parameters": {
+    "rotation": "Householder Q_l，满足 Q_l^T m_l = (||m_l||,0,...)^T",
+    "eigen_truncation": "J_n 小本征值相对阈值 1e-8 ~ 1e-6",
+    "transform": "T_l = Q_l S diag(1, U_keep)（可选再乘 Λ_keep^-1/2）",
+    "consistency_rule": "同一 T_l 必须同步用于 Coulomb/三中心积分/投影，并做符号与简并子空间对齐"
+  }
+}

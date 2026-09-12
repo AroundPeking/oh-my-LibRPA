@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "band-argsort-destroys-continuity",
+  "title": "对每个 k 点独立 argsort 再按同一 band index 连线，会造出“掉带/折返”，且修不了 GW 的数值错误",
+  "symptom": "把 EXX 图改成逐 k 升序重排并画到 15 eV 后，用户看到“EXX 怎么有带落下来了，原来没有落下来的”。检查 EXX_band_spin_1.dat：141/141 个 k 点都被 argsort 改动，单个 k 点最多 45 处逆序，说明原始文件确实不是严格升序。",
+  "root_cause": "argsort 只保证同一 k 点内能量从低到高，不保证 k_i 与 k_{i+1} 上第 n 条线是同一个本征态；原始 band index 很可能已带某种连续性信息，逐 k 重排会把它打碎，于是把不同态硬连成一条线，出现掉带、折返、乱跳。这只影响画图，不改变数值：GW 本身的错误依然存在（重排前后都不修）。",
+  "minimal_fix": "不要做逐 k 能量排序后按 band index 连线；要做连续能带就在相邻 k 点之间用本征矢交叠做 band matching（或只在占据/导带两个流形内部排序，绝不跨占据边界）。诊断阶段可同时保留原序图与排序图作为对照。",
+  "validation": "比较原序与重排图是否出现跨 k 的虚假掉带；统计有多少 k 点的顺序被改动以及单点最大逆序数；用本征矢交叠匹配后，近隙带应连续且不跨占据边界。",
+  "avoid": "不要用重排后的图判断能带色散；不要用“图变光滑了”作为 GW 修好的证据；不要在修复数值问题的同时把排序当成解决方案。",
+  "source": "codex-sessions:rollout-2026-03-14T02-25-27-019ce872-4038-7601-bcad-655a2187ca56.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_band_manifold_indexing",
+  "parameters": {
+    "sort_rule": "禁止逐 k 全局 argsort 后按 band index 连线；仅允许在占据/导带流形内分别排序",
+    "matching_method": "相邻 k 点本征矢交叠匹配（eigenvector overlap），必要时保留 raw-index 诊断图",
+    "observed_stats": "141/141 个 k 点被改动，单点最多 45 处逆序"
+  }
+}

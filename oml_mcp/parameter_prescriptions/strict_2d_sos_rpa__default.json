@@ -1,0 +1,39 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "strict_2d_sos_rpa",
+  "material_class": "default",
+  "description": "Baseline strict-2D SOS-RPA prescription (q-averaged strict-2D RPA correlation energy).",
+  "extends": null,
+  "parameters": {
+    "in_plane_kgrid": {
+      "default": [
+        12,
+        12
+      ],
+      "allowed_range": [
+        4,
+        4
+      ],
+      "target": [
+        12,
+        12
+      ],
+      "per_system_override_rule": "Converge the in-plane mesh before averaging over q.",
+      "rationale": "The q-average is only meaningful once the in-plane sampling is converged.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "vacuum": {
+      "default": 20.0,
+      "allowed_range": [
+        10.0,
+        60.0
+      ],
+      "target": 20.0,
+      "per_system_override_rule": "Converge the vacuum thickness for the 2D slab.",
+      "rationale": "Insufficient vacuum breaks the 2D Ewald decoupling.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    }
+  }
+}

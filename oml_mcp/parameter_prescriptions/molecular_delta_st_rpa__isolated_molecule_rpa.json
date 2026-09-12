@@ -1,0 +1,70 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "molecular_delta_st_rpa",
+  "material_class": "isolated_molecule_rpa",
+  "description": "Isolated molecule in a box: molecular RPA correlation energy and G0W0 (H2O, H2, Li).",
+  "extends": "default",
+  "parameters": {
+    "box_size": {
+      "default": 15.0,
+      "allowed_range": [
+        5.0,
+        40.0
+      ],
+      "target": 15.0,
+      "per_system_override_rule": "Converge the vacuum box for the isolated molecule; the upstream water case uses a large box.",
+      "rationale": "The box must decouple periodic images; too small a box changes the correlation energy.",
+      "gate_id": "stage.scf.artifacts",
+      "confidence": "established"
+    },
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Molecular RPA needs a denser frequency grid for the correlation energy.",
+      "rationale": "The RPA correlation energy integral converges slowly in frequency.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "grid_cutoff": {
+      "default": 100.0,
+      "allowed_range": [
+        50.0,
+        400.0
+      ],
+      "target": 100.0,
+      "per_system_override_rule": "Keep the real-space grid cutoff consistent with the ABACUS ecutwfc.",
+      "rationale": "The response grid must match the mean-field grid.",
+      "gate_id": "stage.preprocess.finite",
+      "confidence": "established"
+    },
+    "pca_threshold": {
+      "default": 0.01,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.01,
+      "per_system_override_rule": "Loosen the PCA threshold for molecular auxiliary bases, which are small.",
+      "rationale": "Molecular auxiliary bases are small and well conditioned; a loose threshold is safe and fast.",
+      "gate_id": "stage.pyatb.main_dataset",
+      "confidence": "established"
+    },
+    "occupied_basis": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp",
+        "dzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "Use a TZDP occupied basis for the molecule.",
+      "rationale": "Molecules need a flexible occupied manifold to describe the correlation energy.",
+      "gate_id": null,
+      "confidence": "established"
+    }
+  }
+}

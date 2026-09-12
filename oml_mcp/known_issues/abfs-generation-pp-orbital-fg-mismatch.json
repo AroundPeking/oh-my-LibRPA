@@ -1,0 +1,20 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abfs-generation-pp-orbital-fg-mismatch",
+  "title": "ABFS_ORBITAL generated from the wrong PP/orbital set and without f/g channels; STRU may also name nonexistent .orb/.abfs files",
+  "symptom": "User: '你的辅助基生成有问题' - the auxiliary basis must all come from 10au TZDP orbitals (the same orbital used in the GW step) with the Dojo-NC-SR PP set, and must contain f and g channels ('生成辅助基时要有f，g轨道'). Separately, in GaAs/k8_for_aux_xshrink the STRU pointed at Ga .orb/.abfs filenames that did not match the files actually present in the directory.",
+  "root_cause": "The ABFS_ORBITAL (SIAB-generated) auxiliary basis was produced from a different NAO/PP combination and with a lower angular-momentum ceiling than the GW orbital basis, so the auxiliary space does not span the products of the 10au TZDP orbitals actually used in the GW step. Asset drift then left the case directory's .orb/.abfs files out of sync with the STRU entries, so the PP/orbital/ABFS triple silently disagrees with what was validated.",
+  "minimal_fix": "Regenerate the auxiliary basis with the ABFS/SIAB workflow using TZDP 10au orbitals and the Dojo-NC-SR PP set (/data/home/df_iopcas_ghj/basis_pp/ABACUS-orbitals-main/Dojo-NC-SR), enabling f and g channels (f plus g is sufficient; clone https://github.com/abacusmodeling/ABACUS-orbitals if absent on the server), point ABFS_ORBITAL in STRU at the regenerated file, and use the same 10au TZDP orbitals in the GW step. Before any submission, make every .orb/.abfs filename in STRU exactly match a file that exists in the case directory.",
+  "validation": "Check that the ABFS file header contains f and g shells (l up to f/g), that SCF/NSCF/GW all read the same 10au TZDP orbital file, and that the ABFS name/path matches that PP+orbital combination; for each STRU orbital/ABFS entry verify with ls that the named file exists in the case directory before submitting.",
+  "avoid": "Do not reuse an ABFS generated from a different orbital/PP pairing or with a lower lmax, do not mix a Dojo-NC-SR PP with orbitals/ABFS built from another PP family, do not submit a case hoping ABACUS silently picks up whatever orb/abfs files happen to be present, and do not pair a restored .orb with an .abfs from a different generation.",
+  "source": "codex-sessions:rollout-2026-04-01T00-08-25-019d44a7-41c2-7802-8597-bf9fa04dfc28.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:pp-orbital-abfs-match",
+  "parameters": {
+    "pseudopotential": "Dojo-NC-SR (/data/home/df_iopcas_ghj/basis_pp/ABACUS-orbitals-main/Dojo-NC-SR)",
+    "nao_orbital": "TZDP 10au, identical for SCF/NSCF/GW and for ABFS generation",
+    "abfs_angular_momentum": "include f and g channels",
+    "stru_rule": "each .orb/.abfs filename must exist in the case directory before submission",
+    "abacus_orbitals_repo": "https://github.com/abacusmodeling/ABACUS-orbitals"
+  }
+}

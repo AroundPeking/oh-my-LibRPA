@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "shrink-chi-noop-without-shrink-abfs",
+  "title": "use_shrink_chi=true silently does nothing when use_shrink_abfs=false",
+  "symptom": "A finite-T Na bcc run with use_shrink_chi=true but use_shrink_abfs=false actually executed the un-shrunk, complex, kBLACS path; the static chi for the selected ABF pair did not come from a shrunk (sinvS) path, so any shrink-based attribution of that static chi was wrong.",
+  "root_cause": "LibRPA decides shrinkage from whether sinvS is non-empty, and sinvS is only loaded when use_shrink_abfs=true (shrink entry driver/read_data.cpp:713, complex selection src/core/chi0.cpp:961, actual call src/core/chi0.cpp:2190). use_shrink_chi is subordinate, so setting it alone is a no-op.",
+  "minimal_fix": "Set use_shrink_abfs=true (so sinvS is loaded) whenever use_shrink_chi=true or a shrunk auxiliary basis is intended; otherwise record in the log that the run is un-shrunk.",
+  "validation": "Confirm from the driver/reader log that sinvS was loaded and the shrink branch at driver/read_data.cpp:713 is taken before attributing any result to shrinkage.",
+  "avoid": "Do not assume use_shrink_chi=true implies shrinkage, and do not compare shrunk vs un-shrunk results from input flags alone - the flags are not the mechanism.",
+  "source": "codex-sessions:rollout-2026-09-06T08-42-53-01a0742b-0d7f-7431-ab1b-7d1b2fe836d2.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:shrink-abfs-coupling",
+  "parameters": {
+    "use_shrink_abfs": "true required to populate sinvS",
+    "use_shrink_chi": "effective only when sinvS is non-empty",
+    "shrink_switch_mechanism": "non-empty sinvS, not the use_shrink_chi flag"
+  }
+}

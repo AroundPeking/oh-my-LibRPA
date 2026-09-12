@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coulomb-cut-empty-2byte-blocks",
+  "title": "coulomb_cut_* blocks written as 2-byte empty files for large supercells; rpa/exx_ccp_rmesh_times=4 does not fix it",
+  "symptom": "In the GaAs case_13e_5e_k888 debugging on df: with exx_ccp_rmesh_times = rpa_ccp_rmesh_times = 4 the C512 run still writes coulomb_cut_2.txt as 2 bytes, and the C1024 run writes coulomb_cut_3/6/7.txt as 2 bytes. The job raised no error at that point ('作业还没报错'), so the empty blocks only surface at readback/post-processing.",
+  "root_cause": "For those atom pairs the cut (truncated/Spencer) Coulomb pre-screening/computation stage produces nothing to write, yet the writer still creates an empty (2-byte) placeholder file instead of an explicit block or a hard failure. Enlarging the real-space cutoff through exx_ccp_rmesh_times / rpa_ccp_rmesh_times reproduces the same empty files, so the rmesh setting is not the trigger.",
+  "minimal_fix": "Make the cut-Coulomb writer fail loudly (or write a consistent, size-checked zero block) whenever a pair has no computed block, so an empty block can never reach LibRPA; then determine why that particular pair is empty for this cell instead of tuning the rmesh multipliers.",
+  "validation": "Check that every coulomb_cut_*.txt is larger than the bare header size and that the pair set covers all atom pairs with R; run the LibRPA readback (reader-v1) and require a hard error on any short/empty block. Do this for both the C512 and C1024 cells before trusting any GW number.",
+  "avoid": "Do not conclude the Coulomb data is complete because the scheduler job finished normally, and do not chase ccp_rmesh_times / basis thresholds as the cause — ccp=4 left the same 2-byte files.",
+  "source": "codex-sessions:rollout-2026-05-18T16-55-42-019e3a4c-5755-7560-b096-28f6b3b30034.jsonl; codex-sessions:rollout-2026-06-05T15-24-55-019e96ab-b2ac-7940-a2b5-b00747398737.jsonl",
+  "confidence": "tentative",
+  "gate_id": "coulomb-cut-block-size-gate",
+  "parameters": {}
+}

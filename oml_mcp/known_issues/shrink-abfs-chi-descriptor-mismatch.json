@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "shrink-abfs-chi-descriptor-mismatch",
+  "title": "use_shrink_abfs=t with use_shrink_chi=f corrupts the GW Wc Coulomb blocks (334-dim shrink basis consumed as 794-dim full basis)",
+  "symptom": "With `use_shrink_abfs = t` and `use_shrink_chi = f` in one librpa.in the output files disagree on the auxiliary basis: coulomb_mat_0.txt Naux=334 (shrink), coulomb_cut_0.txt Naux=334 (shrink), coulomb_unshrinked_cut_0.txt Naux=794, Cs_data_0.txt per atom 397 (full), Cs_shrinked_data_0.txt per atom 167 (shrink), shrink_sinvS_0.txt 334 x 794. The GW Wc matrix is then built with mismatched dimensions and the LibRI-collected matrix 'directly breaks'; coulwc_sq is garbage and the wrong Wc cannot be explained by chi0 physics.",
+  "root_cause": "Two independent switches select two different auxiliary bases. (1) The legacy Coulomb reader picks the basis with use_shrink_abfs; with t it reads basis_aux_shrink for coulomb_mat/coulomb_cut, i.e. 334-dimensional pds->vq / pds->vq_cut. (2) The GW Wc dense-matrix descriptor is selected with use_shrink_chi; with f, compute_g0w0.cpp passes the FULL descriptor with n_abf=794. (3) compute_Wc_freq_q_blacs then wraps the Coulomb block via chi0.atbasis_abf.get_atom_nb(Mu), assuming coulmat_wc/coulmat_eps and chi0.atbasis_abf share the same auxiliary basis - so a 167x167 shrink atom block is consumed as a 397x397 full atom block.",
+  "minimal_fix": "Never let the two switches disagree: if use_shrink_abfs=t also set use_shrink_chi=t (and likewise keep both f), so the basis read by the legacy Coulomb reader equals the Wc/chi0 descriptor. Additionally assert at runtime that Naux of basis_aux_shrink equals the aux dimension used to build Wc.",
+  "validation": "After the run, the reported dimensions must line up: Naux in coulomb_mat_N.txt must equal the Wc/chi0 aux dimension used by GW (Cs_shrinked_data 167 <-> shrink 334, Cs_data 397 <-> full 794); the Wc/coulwc_sq matrix then has consistent blocks with no basis-dimension mismatch inside compute_Wc_freq_q_blacs.",
+  "avoid": "Do not blame chi0 physics or negative-eigenvalue screening first, and do not 'repair' the result by post-processing Wc - the first corruption is the Coulomb block basis dimension versus the Wc/chi descriptor. Do not use shrink_sinvS_0.txt (334 x 794) to relabel shrink blocks as full blocks.",
+  "source": "codex-sessions:rollout-2026-06-29T09-56-03-019f1117-3b57-7330-9fc7-c8cccfd332c2.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:shrink-switch-consistency",
+  "parameters": {
+    "use_shrink_abfs": "must equal use_shrink_chi (both t or both f) in one librpa.in",
+    "use_shrink_chi": "controls the GW Wc dense-matrix descriptor, not only the chi0 stage",
+    "coulomb_mat_N.txt Naux": "334 (shrink) vs coulomb_unshrinked_cut_0.txt 794 (full) - cross-check against the Wc descriptor",
+    "Cs_data_0.txt / Cs_shrinked_data_0.txt": "per atom 397 (full) / 167 (shrink); shrink_sinvS_0.txt is 334 x 794"
+  }
+}

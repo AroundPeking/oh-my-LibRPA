@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "ibz-kstar-expansion-symrot-k",
+  "title": "use_pyatb + Drude head needs OUT.ABACUS/symrot_k.txt present in the input directory to expand 35 IBZ k-stars to 512 full-BZ points",
+  "symptom": "Al metal `al4_oh_k888`: the run aborted with an opaque `35 / 512` k-point mapping failure (and, in a stripped test directory, `Failed to match ABACUS real-space symmetry atom mapping`). Inspecting the weights showed the IBZ total occupation weight being copied to every star member.",
+  "root_cause": "With `use_metal_drude_head + use_pyatb`, LibRPA must expand the 35 IBZ k-stars of the main `band_out` onto PyATB's 512 full-BZ points (pyatb_librpa_df/band_out, KS_eigenvector_*, velocity_matrix, k_path_info are always the full regular grid, driver/driver_utils.cpp). When the run directory does not contain the ABACUS k-star sidecar `OUT.ABACUS/symrot_k.txt`, the expansion silently falls back to an identity mapping over the 35 representatives, and weights are not split by star size. A test directory holding only `band_out/stru_out/pyatb_librpa_df` links reproduces this exactly.",
+  "minimal_fix": "Copy the ABACUS symmetry sidecars (`irreducible_sector.txt`, `symrot_k.txt`, `symrot_R.txt`, `symrot_abf_k.txt`) into the LibRPA input directory next to `librpa.in` rather than leaving them under `OUT.ABACUS`, and use `symrot_k.txt` to expand the IBZ k-stars to the full BZ while splitting the occupation weight by star size (driver/driver_utils.cpp). Add a guard that errors explicitly with 'Make sure the run directory also contains OUT.ABACUS/symrot_k.txt' when the sidecar is absent.",
+  "validation": "The LibRPA log prints `expanding 35 ABACUS k-stars to 512 full-BZ k-points`; `print_head` succeeds both with `use_metal_drude_head = F` and `T`; the averaged head changes from 1.4668302014764298e19 to 1.4668302015815290e19 (relative difference ~7.17e-11). Deliberately removing `OUT.ABACUS` yields the explicit sidecar error instead of the `35 / 512` message.",
+  "avoid": "Do not trust the PyATB `band_out` occupations for Drude/head in a metal case, and do not leave symmetry files only inside OUT.ABACUS. Note that this expansion only repairs occupations/weights - the head/wing itself is still evaluated on all 512 k points, it is not a symmetry-reduced head.",
+  "source": "codex-sessions:rollout-2026-03-21T15-34-27-019d0f51-1cca-72d1-9ab0-695c80b2d810.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-symmetry-sidecar-in-input-dir",
+  "parameters": {}
+}

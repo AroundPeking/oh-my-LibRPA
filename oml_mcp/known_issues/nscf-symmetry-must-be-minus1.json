@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "nscf-symmetry-must-be-minus1",
+  "title": "INPUT_nscf must stay symmetry = -1 whenever the LibRPA symmetry switches are on (validators must check it, not only INPUT_scf)",
+  "symptom": "A controlled-execution admission layer accepted cases with `INPUT_scf symmetry=1`, LibRPA symmetry switches on, but `INPUT_nscf symmetry=1` - a configuration that violates the full-k-point NSCF/band preprocessing flow and should never reach execution.",
+  "root_cause": "The materializer/validator (oml_mcp materializer.py:70) parsed INPUT_nscf but only checked spin and resource directories, and the symmetry alignment check used only INPUT_scf, so an inconsistent NSCF symmetry setting passed admission.",
+  "minimal_fix": "In the standard symmetry lane keep `INPUT_scf` at `symmetry = 1` (to generate the IBZ sidecars) while `INPUT_nscf`/`INPUT` stay at `symmetry = -1` (full k points for bands/PyATB), and extend the admission validator to require `symmetry = -1` in INPUT_nscf and to check symmetry consistency across INPUT_scf, INPUT_nscf and librpa.in.",
+  "validation": "Static preflight over all three files: fail with a clear message when INPUT_nscf has symmetry != -1 while LibRPA symmetry flags are enabled; confirm the accepted reference cases use INPUT_scf symmetry=1 / INPUT_nscf symmetry=-1 (as in the SiC sg15 df sym+shrink case) and produce sidecars irreducible_sector.txt plus symrot_*.txt.",
+  "avoid": "Do not validate symmetry from INPUT_scf alone, and do not 'unify' symmetry across SCF/NSCF by setting both to 1 - that removes the full-k NSCF products the band/head-wing steps need.",
+  "source": "codex-sessions:rollout-2026-06-30T16-24-40-019f17a1-6135-7ef0-8bdf-c86bf7aae661.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate-nscf-symmetry-minus1",
+  "parameters": {}
+}

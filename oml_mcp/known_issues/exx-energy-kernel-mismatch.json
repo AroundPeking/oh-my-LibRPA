@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-energy-kernel-mismatch",
+  "title": "ABACUS printed EXX total (active-cut Spencer kernel) is not comparable to a LibRPA full-direct occupied trace",
+  "symptom": "EXX totals disagree wildly between codes: ABACUS active-cut -95.32359552 (GeTe) and -90.91615538 (SnSe) Ha/cell versus LibRPA full-direct occupied trace -92.60441917 (GeTe) and -350.93993950 (SnSe), which looks like a broken energy path.",
+  "root_cause": "The value ABACUS prints comes from the active ABFS basis with the Spencer spherical-cut Coulomb kernel (source/source_lcao/module_ri/RPA_LRI.hpp:576); the active basis is built from physical NAO products at 1e-4 and rotated (Exx_LRI.hpp:417), and the external plus-g raw ABFS, raw Cs and shrink mapping do NOT enter that printed total. A plain CVC pseudo-inverse with relative threshold lambda > lambda_max x 1e-5 is used. LibRPA's number uses the later full-direct kernel: two different operators, not one wrong number.",
+  "minimal_fix": "Record kernel + auxiliary basis + shrink/pseudo-inverse settings with every EXX number, and compare only totals produced by the same path; extract the printed ABACUS total from the active-cut path explicitly rather than matching it against a full-direct trace.",
+  "validation": "Reproduce -95.32359552 (GeTe) / -90.91615538 (SnSe) Ha/cell from active ABFS + Spencer cut kernel + lambda > lambda_max x 1e-5, and confirm the LibRPA comparator used the same kernel (the audit reproduced the scalar extraction with manifest 56/56 PASS).",
+  "avoid": "Do not call the cut-versus-full difference an error, and do not treat a finite ABACUS total as proof the EXX operator is validated: empty states have zero occupation, so a catastrophic empty-band shift can stay entirely out of the occupied trace (which is exactly why the ABACUS total was 'not independently verified').",
+  "source": "codex-sessions:rollout-2026-09-06T23-10-46-01a07745-9e3d-7943-9019-06ace25cc21a.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:exx-kernel-identity",
+  "parameters": {
+    "exx_active_aux_basis": "active ABFS from rotated physical-NAO products, PCA 1e-4",
+    "cut_coulomb_kernel": "Spencer spherical cut (active-cut path)",
+    "cvc_pseudo_inverse": "plain CVC, relative threshold lambda > lambda_max x 1e-5",
+    "energy_comparison_rule": "compare only same-kernel, same-aux-basis, same-shrink totals"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "dojo-stringent-vs-gth-pbe-gap",
+  "title": "GTH pseudopotential gives a ~0.16 eV wrong PBE gap for GeTe; PseudoDojo stringent + matched TZDP reproduces all-electron",
+  "symptom": "GeTe PBE gap with GTH = 1.030717909716 eV vs all-electron 0.868309 eV (error ~0.162 eV); PseudoDojo NC-SR stringent with matched TZDP gives 0.873450199058 eV. SnSe: AE 0.966363 eV vs Dojo 0.960080987488 eV (~0.006 eV).",
+  "root_cause": "The GTH PP as used is not accurate enough for the PBE gap of this heavy-element 2D material (GTH norm-conserving PPs are tuned for a different accuracy target than PseudoDojo NC-SR stringent), whereas a PseudoDojo NC-SR stringent scalar-relativistic PP with a matched TZDP orbital reproduces the all-electron gap to ~0.005 eV.",
+  "minimal_fix": "Reject GeTe/GTH; select PseudoDojo NC-SR stringent (scalar-relativistic, no SOC) with a matched TZDP orbital for GeTe and SnSe scalar no-SOC GW, and record the choice as USER_SELECTED_PBE_BASED.",
+  "validation": "Compare the PBE gaps directly against the all-electron values (GeTe Dojo 0.873450199058 vs AE 0.868309; SnSe Dojo 0.960080987488 vs AE 0.966363) and against the rejected GTH GeTe number 1.030717909716, keeping the frozen six-panel AE-vs-NAO PBE figure and the raw data paths intact.",
+  "avoid": "Do not present the PBE-based selection as GW/EXX acceptance or as having passed head/plane-wave screening (AE-head/own-PW screening was explicitly waived by the user; production GW head/wing stays enabled). Do not delete or overwrite the old candidates/results, and do not turn a per-material comparison into a global element ranking.",
+  "source": "codex-sessions:rollout-2026-09-06T23-00-25-01a0773c-2655-7df3-9baf-64128d2e06ee.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:pp-pbe-gap-vs-ae",
+  "parameters": {
+    "selected_pp": "PseudoDojo NC-SR stringent, scalar-relativistic, no SOC",
+    "selected_orbital": "matched TZDP",
+    "rejected": "GTH for GeTe",
+    "acceptance_scope": "USER_SELECTED_PBE_BASED; not GW/EXX acceptance"
+  }
+}

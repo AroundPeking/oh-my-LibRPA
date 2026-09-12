@@ -1,0 +1,20 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "low-s-modes-amplify-aux-charge-error",
+  "title": "Near-singular AO overlap (S_min ~1e-4) lets the lowest-S modes dominate huge Ge/Sn auxiliary charge errors",
+  "symptom": "Fitted charge error against occupied states reaches 56.30 for Ge and 36 for Sn with new-material S_min ~1e-4, whereas WSe2 (S_min 2.17520587e-3, cond 4925) gives occupied-transition max 0.0538456 and frontier 0.002398/0.004754. GeTe state 211 has an AO coefficient squared norm of 5867.95, of which 99.61% comes from the lowest 8 S modes. Separately the raw Ge plus-g ABFS header (S14,P12,D12,F10,G9,H6,I4,J2,K1) contains FEWER s channels than the earlier active basis implied (~28 s, 27 zero, 328 total) at the same PCA 1e-4.",
+  "root_cause": "Expansion/inversion through the near-singular tail of the AO overlap amplifies the low-S modes, and those 8 lowest modes carry essentially all of the erroneous weight in the state's AO coefficients. Raw ABFS generation and active-basis construction use different prepare/PCA conventions, so neither basis is a subset of the other and the raw plus-g file must not be assumed to contain the active basis.",
+  "minimal_fix": "Do not treat a PCA/shrink threshold as a proven root cause. Run the diagnostic-only decomposition that removes just the terms involving the lowest-S modes (dropping the 8 lowest S modes takes the state-211-to-occupied max charge error from 56.30 to 0.570), and record actual per-l channel counts from BOTH file headers instead of assuming a subset relation.",
+  "validation": "Reproduce the per-mode decomposition (state 211 AO square norm 5867.95, 99.61% low-S weight) and confirm the max charge error falls 56.30 -> 0.570; separately confirm the residual full-AO-fit error of 2.097 survives the low-S removal, which is why the threshold cannot be declared the root cause.",
+  "avoid": "Do not declare the PCA/shrink threshold the root cause from the low-S reduction alone - the 2.097 full-AO-fit error remains unexplained. Do not attribute the whole 56.30 error to small onsite errors, and do not assume the raw plus-g ABFS contains the active basis.",
+  "source": "codex-sessions:rollout-2026-09-06T23-13-58-01a07748-8de7-7943-a8e8-d74ba3b0dbbe.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:overlap-conditioning",
+  "parameters": {
+    "S_min_concern": "<= ~1e-4 (Ge/Sn problematic) vs 2.17520587e-3 (WSe2 acceptable)",
+    "low_S_handling": "exclude the lowest-S modes from the diagnostic decomposition before attributing the error",
+    "residual_full_ao_fit_error": "2.097",
+    "charge_error_after_low_S_removal": "0.570 (from 56.30)",
+    "raw_ge_abfs_header": "S14,P12,D12,F10,G9,H6,I4,J2,K1 vs active implied ~28 s / 328 total"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coulomb-mat-empty-atom-pairs",
+  "title": "ABACUS rpa=1 writes empty coulomb_mat_* blocks for some atom pairs (coulomb_cut_* has them all)",
+  "symptom": "With rpa 1, the produced coulomb_mat_* files are missing matrix blocks for certain atom pairs — the files exist but are empty — while the same atom pairs are complete in coulomb_cut_*. The atom-pair block set and matrix sizes of the two families should be identical. Reproduced on df from the user-supplied case ~/Download/gw.tar.gz.",
+  "root_cause": "The RPA Coulomb writing path in source/source_lcao/module_ri (RPA_LRI / Exx_LRI, the cal_cut_coulomb_cs / output_cut_coulomb_cs family) emits full (coulomb_mat_*) blocks through an atom-pair loop that drops pairs which the cut-Coulomb writer does emit, so the pair coverage of the two families diverges silently. Work was branched from codex/merge-ri-moment-gw-symmetry-old-libri into codex/fix-rpa-coulomb-mat-pairs (worktree /Users/ghj/.config/superpowers/worktrees/abacus-develop/codex-fix-rpa-coulomb-mat-pairs).",
+  "minimal_fix": "Reproduce on df, diff the atom-pair file sets of coulomb_mat_* against coulomb_cut_* to enumerate the missing pairs, add a print of the atom pair inside the coulomb_mat writer loop, and restore the skipped pairs so both writers cover the same atom-pair set with the same block dimensions.",
+  "validation": "For every q (iq) list both block families and assert identical atom-pair sets and identical per-block dimensions; then run the LibRPA readback on the directory and require it to fail loudly on any missing/empty block instead of silently skipping it.",
+  "avoid": "Do not assume the run is fine because the job exits normally — ABACUS wrote the empty blocks without erroring — and do not paste coulomb_cut_* content into coulomb_mat_* since they are different kernels.",
+  "source": "codex-sessions:rollout-2026-05-14T00-43-43-019e2239-08f7-7963-a84c-663d65563e19.jsonl",
+  "confidence": "tentative",
+  "gate_id": "coulomb-atom-pair-block-coverage-gate",
+  "parameters": {}
+}

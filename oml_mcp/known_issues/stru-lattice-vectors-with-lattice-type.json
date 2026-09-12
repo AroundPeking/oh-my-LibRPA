@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stru-lattice-vectors-with-lattice-type",
+  "title": "ABACUS STRU parse abort: LATTICE_VECTORS combined with an explicit lattice type",
+  "symptom": "ABACUS aborts with 'do not use LATTICE_VECTORS along with explicit specification of lattice type' for /home/ghj/gw/regression_test/g0w0_band_abacus_BN_headwing_shrink_soc_libri/merge_test, before the BN headwing/shrink/SOC G0W0 setup can start.",
+  "root_cause": "The STRU file specifies both explicit LATTICE_VECTORS and an explicit lattice type. The ABACUS STRU reader treats these as mutually exclusive lattice definitions, so parsing stops with an input-contract error rather than a physics problem.",
+  "minimal_fix": "Edit STRU so exactly one lattice definition remains: either keep the declared lattice type with LATTICE_CONSTANT/LATTICE_PARAMETERS, or give the three LATTICE_VECTORS explicitly and remove the other declaration.",
+  "validation": "Re-run the same ABACUS case; the message disappears and the run proceeds past STRU reading into the intended BN headwing/shrink/SOC G0W0 setup.",
+  "avoid": "Do not add a second lattice declaration to silence the message, and do not patch syntax without first deciding which lattice definition is authoritative.",
+  "source": "codex-sessions:rollout-2026-03-11T15-48-36-019cdbde-7a66-72c3-95a7-9171895ee9a6.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:stru-lattice-exclusive",
+  "parameters": {
+    "stru_rule": "LATTICE_VECTORS XOR explicit lattice type"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "nbands-below-nlocal-in-gw-inputs",
+  "title": "INPUT_scf/INPUT_nscf nbands left far below the exported NLOCAL in a GW run (64 vs 170)",
+  "symptom": "In /data/home/df_iopcas_ghj/gw/altermagnet/20260401-202506-alpha-MnTe-gw-shrink-nspin2-dojo10au the run exports NLOCAL = 170, but INPUT_scf and INPUT_nscf set only nbands = 64 (user: 'INPUT_*里面的nbands为什么没有和基组数170对上'). Related: the user asked to sweep nbands below the basis size for MnF2 (from the full nbands down to only a few conduction bands, '4个点') because wrong PBE bands may corrupt the GW result.",
+  "root_cause": "The ABACUS inputs kept a small nbands although the dojo10au NAO basis plus ABFS_ORBITAL gave a 170-function basis, so the exported state space does not cover the basis (incomplete manifold for the Green's function/chi0). nbands is decoupled from NLOCAL in the input file, so nothing warns about the truncation.",
+  "minimal_fix": "Set nbands in INPUT_scf/INPUT_nscf to the basis size actually exported (NLOCAL, 170 here) - or explicitly document/justify the truncation - and re-check the manifold before running LibRPA. The site-specific librpa.in recommendation for this case is nfreq = 24. For any deliberate nbands<nbasis study, change ONLY nbands and keep every other key identical.",
+  "validation": "Extract NLOCAL from the ABACUS output and compare with nbands in INPUT_scf/INPUT_nscf; they must agree (or the truncation be justified) before the RPA/GW stage. For a truncation sweep, the truncated-nbands run must converge back to the full-nbands result when nbands is restored (reference low gaps for the MnF2 case: PBE0 5.66298 eV, GW 6.71815 eV).",
+  "avoid": "Do not keep nbands=64 and compare those bands against a full-manifold reference, and do not assume LibRPA re-expands the state space beyond what ABACUS exported. Running the magnetic (nspin=2) nbands sweep through the auto-executor is a dead end: it returns ROUTE_NOT_EXECUTABLE because nspin=2 is unsupported, independently of nbands - use the normal manual submission path instead of changing nbands or solver defaults to 'unlock' the route.",
+  "source": "codex-sessions:rollout-2026-04-02T21-06-41-019d4e4d-9921-7b51-9873-08f9a03b01ed.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:nbands-vs-nlocal",
+  "parameters": {
+    "nbands": "must equal NLOCAL of the actual basis (170 for the alpha-MnTe dojo10au case), not 64",
+    "nfreq": "24 (recommended for that case's librpa.in)",
+    "nbands_sweep_rule": "change only nbands; identical everything else",
+    "blocking_error_for_nspin2": "ROUTE_NOT_EXECUTABLE"
+  }
+}

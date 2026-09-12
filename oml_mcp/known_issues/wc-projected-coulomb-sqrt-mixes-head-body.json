@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "wc-projected-coulomb-sqrt-mixes-head-body",
+  "title": "Metallic static complete-Wc projected Coulomb square root mixes head and body",
+  "symptom": "The native RED test (src/test/test_rpa_headwing.cpp, +46 lines, job 3272953, 33 s) compiles and links but exits 255, throwing 'metallic static complete-Wc projected Coulomb square root mixes head and body'.",
+  "root_cause": "In the metallic static complete-Wc path the head and body blocks of the projected Coulomb matrix are combined into one object before the square root is taken, so the square root is formed from a mixed head+body matrix instead of separate head and body blocks. The Wc projected-Coulomb square root therefore does not respect the head/body partition that the analytic head+wing treatment requires.",
+  "minimal_fix": "Keep head and body as separate blocks when forming the square root of the projected Coulomb matrix in the complete-Wc metallic-static path; the RED assertion text defines the required behaviour (the method fix was still pending in the record).",
+  "validation": "Re-run the pinned RED case after the method fix: it must still link and now exit 0 with all pre-existing assertions unchanged, and the ~33 s runtime envelope must not regress.",
+  "avoid": "Do not treat head and body as one contiguous block for the square root, and do not delete or soften the 'mixes head and body' assertion to make the suite green.",
+  "source": "codex-sessions:rollout-2026-09-06T23-06-40-01a07741-ddcd-7ed0-a4d4-8cfdfac417c7.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:wc-head-body-separation",
+  "parameters": {
+    "test_file": "src/test/test_rpa_headwing.cpp",
+    "failure_message": "metallic static complete-Wc projected Coulomb square root mixes head and body",
+    "exit_code": "255"
+  }
+}

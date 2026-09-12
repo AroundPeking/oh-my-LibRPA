@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coulomb-mat-pair-coverage-rpa-rmesh",
+  "title": "coulomb_mat_* silently missing atom-pair blocks relative to coulomb_cut_* in rpa=1 runs",
+  "symptom": "In an rpa=1 calculation some `coulomb_mat_*` atom-pair blocks are absent/empty although `coulomb_cut_*` contains them. Reproduced baseline on df: `cut_blocks=32896` vs `mat_blocks=32768`, i.e. 128 missing blocks (64 per rank for 2 ranks); each `coulomb_mat` file is 1152 lines shorter (18 lines per block), and the missing blocks are cross/boundary blocks such as atom pairs (0,64), (1,65) and header ranges (1-4,257-260) ... (253-256,509-512).",
+  "root_cause": "`output_ewald_coulomb()` (source/source_lcao/module_ri/RPA_LRI.hpp) restored `ccp_rmesh_times` back to `exx_ccp_rmesh_times` (=2 in this case) before writing `coulomb_mat_*`, while `coulomb_cut_*` is written with the RPA neighbour range `rpa_ccp_rmesh_times` (=5). A historical commit had deliberately switched full Coulomb back to `exx_ccp_rmesh_times` to save memory, which conflicts with LibRPA's requirement that `coulomb_mat` and `coulomb_cut` share identical pair coverage. Paths involved: `RPA_LRI::out_coulomb_k`, `Exx_LRI::cal_ewald_coulomb` / `cal_cut_coulomb_cs`.",
+  "minimal_fix": "Make the RPA full-Coulomb output use the RPA neighbour range: in `output_ewald_coulomb` (RPA_LRI.hpp:406) write `coulomb_mat_*` with the RPA `ccp_rmesh_times` and the same `period_Vs`, then restore the original EXX parameters before returning. Numerics are untouched - only the output range changes. Diagnostic/regression tool: `tests/integrate/tools/check_rpa_coulomb_pair_coverage.py` parsing block headers `(mu_start, mu_end, nu_start, nu_end)` of all `coulomb_cut_*.txt` vs `coulomb_mat_*.txt`, wired into `catch_properties.sh` and the two RPA result.ref cases. Commit `5d77ac24c fix: match RPA Coulomb output pair coverage`. Cheap workaround for users on an unfixed binary: set `exx_ccp_rmesh_times` equal to `rpa_ccp_rmesh_times`.",
+  "validation": "Run the coverage script after the fix: `cut_blocks=32896 mat_blocks=32896 missing_from_mat=0 extra_in_mat=0`, and `coulomb_cut_0`/`coulomb_mat_0` both 148609 lines with matching headers. Also verify the script's negative control (delete one `coulomb_mat` block -> non-zero exit).",
+  "avoid": "Do not silently shrink the pair set to save memory in an RPA run - LibRPA's consumer requires coulomb_mat/coulomb_cut shape consistency. Do not diagnose this as an MPI distribution bug for the cut path; the cut path is the correct one and the full-Coulomb output range is what must change.",
+  "source": "codex-sessions:rollout-2026-05-14T00-43-43-019e2239-08f7-7963-a84c-663d65563e19.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-rpa-coulomb-pair-coverage",
+  "parameters": {}
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-cs-inv-thr-relative-spectral-truncation",
+  "title": "exx_cs_inv_thr 是作用在局域辅助库伦矩阵上的相对谱截断伪逆，不是 AO S(k) 也不是导出的 V(q)",
+  "symptom": "调 exx_cs_inv_thr 会显著改变 EXX 结果（GeTe 上 1e-6 -> 1e-5 -> 1e-4 把全谱最低 EXX 能量从 -2.05e7 eV 拉到 -1.07e5 eV），但即便增大到 1e-3/1e-2 仍只是“明显减轻、没有修复”。实践中很容易把它的效果误判成“AO 基组问题”或“V(q) 病态”。",
+  "root_cause": "源码语义（pinned fee8bbff 快照）：`Inverse_Matrix.hpp:105` 实际保留 `λ > exx_cs_inv_thr × max(0, λmax)`，是相对阈值的谱截断伪逆，不是绝对截断、不是加底值、也不是 ridge。它作用于一中心/两中心的局域辅助基库伦拟合矩阵 `V_fit`；`LRI_CV.hpp:348` 同位存 `0.5 V_fit⁺ A`，非同位对则组装整个两中心矩阵后求逆。它既不是 AO 的 `S(k)`，也不是最终导出的周期 `V(q)`。另一条路径（ABACUS 打印总能）用相对阈值 `λ > λmax × 1e-5` 的普通 CVC 伪逆。",
+  "minimal_fix": "把 exx_cs_inv_thr 当作“局域 RI 拟合矩阵的谱截断阈值”来调与记录：先固定其他变量，用它做敏感性诊断而不是修复手段；若必须给值，沿用已验证算例的 1e-5（GaN xshrink 案例），并把 effective default 与是否显式设置一同写入 provenance。库基组路线则明确 OMIT 正的 exx_cs_inv_thr。",
+  "validation": "确认记录里写明该阈值作用对象是 `V_fit`（一/两中心局域辅助库伦矩阵）而非 `S(k)`/`V(q)`；检查日志中保留模数与 λmin/λmax 是否与设定阈值自洽；同一输入的阈值扫描必须给出非单调也可能出现的结果（GeTe 电荷误差 43.26 -> 56.30 -> 51.80），因此不能把单调性当验证。",
+  "avoid": "不要把 exx_cs_inv_thr 的效果当成 NAO 质量证据；不要以为调大阈值就等于修好；不要在未导出 `V_fit/A` 的情况下宣称已测得局域拟合矩阵病态；不要把它和导出的周期 full/cut `V(q)` 混为一体。",
+  "source": "codex-sessions:rollout-2026-09-08T16-01-27-01a08009-4b3a-7d31-8dda-e16ee57204bf.jsonl | codex-sessions:rollout-2026-09-06T23-10-46-01a07745-9e3d-7943-9019-06ace25cc21a.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_exx_cs_inv_thr_semantics",
+  "parameters": {
+    "default_semantics": "λ > exx_cs_inv_thr × max(0, λmax) 相对谱截断伪逆（Inverse_Matrix.hpp:105）",
+    "verified_value": "1e-5（GaN xshrink_paircorr_k888 案例）",
+    "abacus_printed_energy_path": "普通 CVC，相对阈值 λ > λmax × 1e-5",
+    "library_route_rule": "使用外部 ABFS_ORBITAL 时 OMIT 正的 exx_cs_inv_thr",
+    "applicability": "仅对局域辅助基库伦拟合矩阵 V_fit 生效，与 S(k)、导出的 V(q) 无关"
+  }
+}

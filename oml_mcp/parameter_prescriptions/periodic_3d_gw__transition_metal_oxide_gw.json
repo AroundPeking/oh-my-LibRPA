@@ -1,0 +1,100 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "transition_metal_oxide_gw",
+  "description": "Correlated transition-metal-oxide G0W0 (MnO2 spin-polarised, NiO type-II AFM). Heavy 3d elements need explicit EXX cutoffs.",
+  "extends": "default",
+  "parameters": {
+    "nfreq": {
+      "default": 6,
+      "allowed_range": [
+        4,
+        64
+      ],
+      "target": 6,
+      "per_system_override_rule": "The upstream MnO2 nspin2 case validates nfreq=6.",
+      "rationale": "Upstream MnO2 regression uses nfreq=6.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        2,
+        2,
+        2
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          8,
+          8,
+          8
+        ]
+      ],
+      "target": [
+        2,
+        2,
+        2
+      ],
+      "per_system_override_rule": "Keep the screening mesh regular and identical to the SCF mesh.",
+      "rationale": "The transition-metal-oxide cases require a full regular mesh to keep the Coulomb definition consistent.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "oncv_pbe_10au_100ry",
+      "allowed_range": [
+        "oncv_pbe_10au_100ry",
+        "oncv_pbe_8au_100ry",
+        "dojo_nc_sr_tzdp",
+        "gth_soc_pbe"
+      ],
+      "target": "oncv_pbe_10au_100ry",
+      "per_system_override_rule": "Use ONCV PBE PPs with a matched 10au/100Ry orbital set for the 3d shell.",
+      "rationale": "Heavy 3d elements need a larger cutoff radius and a matching orbital set.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp",
+        "dzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "Keep a triple-zeta-plus-polarisation NAO set so the 3d manifold is described.",
+      "rationale": "Underdescribing the 3d manifold is a known garbage-EXX cause for TM oxides.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": 1e-05,
+      "allowed_range": [
+        1e-06,
+        0.0001
+      ],
+      "target": 1e-05,
+      "per_system_override_rule": "Set an explicit small threshold (1e-5, allowed 1e-6..1e-4) instead of the automatic default; heavy elements make the Cs inverse ill-conditioned.",
+      "rationale": "The automatic Cs inverse cutoff is too aggressive for heavy elements and produces completely wrong EXX bands; this is the recurring heavy-element tuning fix.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "shrink_threshold": {
+      "default": 0.1,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.1,
+      "per_system_override_rule": "The upstream MnO2 case uses shrink_abfs_pca_thr 1e-1 because the ABFS set is large for the 3d shell.",
+      "rationale": "Upstream MnO2 sets shrink_abfs_pca_thr 1e-1.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    }
+  }
+}

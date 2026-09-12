@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "nbands-not-equal-nbasis",
+  "title": "Incomplete state space: nbands != nbasis",
+  "symptom": "The state-space gate reports nstates != nbasis (band_out state count differs from the physical LCAO basis dimension).",
+  "root_cause": "nbands is set below the full LCAO basis dimension, truncating the screening space and underconverging the GW self-energy. This is often a silent configuration error in INPUT_scf / INPUT_nscf.",
+  "minimal_fix": "Raise ABACUS nbands to the full basis dimension (nbands == nbasis). If that is too expensive, keep nbands >= nbasis and leave the state-space gate NOT_EVALUATED rather than silently truncating.",
+  "validation": "Re-run the stage.state_space.nbands_vs_nbasis gate: it passes when nstates == nbasis.",
+  "avoid": "Silently truncating nbands below nbasis; a truncated state space corrupts EXX/GW and is a common cause of abnormal result jumps.",
+  "source": "abacus-librpa-debug skill ('abnormal result jumps: check nbands against basis-size conventions'); oh-my-librpa gw-route.",
+  "confidence": "established",
+  "gate_id": "stage.state_space.nbands_vs_nbasis",
+  "parameters": {"nbands": "== nbasis"}
+}

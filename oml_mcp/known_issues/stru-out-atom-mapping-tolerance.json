@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stru-out-atom-mapping-tolerance",
+  "title": "`Symmetry failed to map an atom under a k-star operation` from a hard-coded 1e-5 atom-mapping tolerance vs stru_out coordinate text precision",
+  "symptom": "LibRPA (reader-v1 + symmetry, master_ghj) fails on zinc-blende GaAs k888 with `Symmetry failed to map an atom under a k-star operation` (slurm job FAILED), after SCF/PyATB/NSCF/preprocess all completed. The same failure string can appear in stripped test directories as `Failed to match ABACUS real-space symmetry atom mapping`.",
+  "root_cause": "`find_symmetry_atom_target()` in src/core/symmetry_context.cpp used a hard-coded `1e-5` tolerance while `stru_out` writes the As fractional coordinate as about 0.25000518; at that tolerance 18 As mappings fail although the maximum deviation is only 2.07e-5. The file already defines `kSymmetryRSpaceAtomMapTol = 5e-5` (used by the real-space atom-mapping fallback). Two compounding interface facts: reader-v1 logs `legacy sidecars : ignored`, so `OUT.ABACUS/symrot_R.txt` is not consumed and LibRPA rebuilds the atom mapping itself from `stru_out`'s symmetry operations - whose 24 translation columns are all zero in the GaAs output - and the k-star mapping requires each operation to map a same-type atom onto itself plus a lattice vector.",
+  "minimal_fix": "Use the existing `kSymmetryRSpaceAtomMapTol = 5e-5` in the k-star atom-mapping check (src/core/symmetry_context.cpp, `find_symmetry_atom_target`) and add a regression test built from the real stru_out coordinate 0.25000518 with the corresponding symmetry operation (src/test/test_symmetry_context.cpp). Related interface requirement: ABACUS must append the symmetry operations at the end of `stru_out` whenever symmetry is used, since reader-v1 rebuilds the mapping from that file alone.",
+  "validation": "RED first: the new unit test must throw the same `Symmetry failed to map an atom under a k-star operation` on the unpatched code. After the change, `test_symmetry_context` passes and a LibRPA-only rerun completes (job 21102722 COMPLETED, 02:02:55, exit 0:0), whose log passes `Success: Read DFT xc potential, solve quasi-particle equation` and enters `Use LibRI for chi0`, producing `GW_band_spin_1.dat` with 21 k-path points x 36 (occupation, energy) pairs.",
+  "avoid": "Do not conclude that the symmetry operations are non-closed - the maximum deviation here is 2.07e-5, i.e. printed-coordinate rounding. Do not loosen the tolerance globally or per case; reuse the real-space tolerance constant that already exists, and do not assume `symrot_R.txt` will rescue the mapping, because reader-v1 ignores it.",
+  "source": "codex-sessions:rollout-2026-07-01T17-07-04-019f1cee-90d6-73a3-bed4-dccbedbb9eb1.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-symmetry-atom-map-tolerance",
+  "parameters": {}
+}

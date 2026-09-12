@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-kpoint-convergence-one-over-n",
+  "title": "EXX 对 k 点收敛只有 1/N 而非 1/N^2，且 raw 库伦矩阵缺 q->0 解析 head",
+  "symptom": "EXX 计算随 k 点收敛很慢（约 1/N），不是期望的 1/N^2；同时 raw 库伦矩阵在 q->0 处没有解析表达式，导致 GW（尤其 2D）对 k 点与真空层收敛慢。",
+  "root_cause": "有限的 R_max/超胞下直接对 V(R) 做傅立叶变换，在小 q 区域不准：正确的 bare 变换是 V(q) ~ 4π/q²，q 很小时实空间要加到非常远才能重建该尖峰；Ewald/辅助函数的作用正是把这部分小 q 长程头部解析取出。直接做完整收缩 `H_exx ~ C V C D` 时，由于 C 局域、绝缘体 D(R) 指数衰减，最终和本身可以是收敛的（D(R)V(R) ~ e^{-R/ξ}/R），但单看 V(q) 的头部仍然是难点。",
+  "minimal_fix": "为 raw 库伦矩阵补 q->0 的解析 head（写进文档并落实为实现），并配合 head/wing 修正；EXX/RPA 侧沿用已实现的 RPA head/wing 控制（V^(1/2) chi0 V^(1/2) 路径）与对称性加速。判断 k 收敛时必须区分“1/N 尾巴”与实现 bug。",
+  "validation": "以固定其它变量的 k 收敛曲线验证（例如 Si 体系 k444 起，开对称性、不开 shrink、不加 ABFS_ORBITAL、exx_pca_threshold=1e-6、不开 headwing 作为基线；以及带 head/wing 的对照），确认 gap 随 k 的收敛阶；注意“exclude W^c(q=0)”这条线表达的是排除 q=0 的 W^c，而不是笼统的“without head/wing corrections”。",
+  "avoid": "不要把 1/N 收敛尾巴当成实现 bug 去改物理输入；不要在 q->0 处直接用有限 R_max 的 V(R) 求和替代解析 head；不要把 cut Coulomb 当成 bare+Ewald 的等价物（它换了核）。",
+  "source": "codex-sessions:rollout-2026-05-18T11-40-33-019e392b-d028-7162-b326-f755c6286bc7.jsonl | codex-sessions:rollout-2026-05-03T12-02-23-019dec00-6b85-72a0-8173-98eedd38e910.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate_exx_k_convergence",
+  "parameters": {
+    "target_scaling": "至少 1/N^2（当前约 1/N）",
+    "raw_coulomb_head": "q->0 解析表达式（V(q) ~ 4π/q²）",
+    "baseline_kconvergence_inputs": "symmetry on, use_shrink_abfs=f, 无 ABFS_ORBITAL, exx_pca_threshold 1e-6, 不开 headwing",
+    "head_wing_note": "图上要写“exclude W^c(q=0)”，不要写成 without head/wing corrections"
+  }
+}

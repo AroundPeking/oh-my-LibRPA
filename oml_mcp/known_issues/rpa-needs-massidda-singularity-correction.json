@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "rpa-needs-massidda-singularity-correction",
+  "title": "rpa=1 时必须显式打开 exx_singularity_correction massidda",
+  "symptom": "输入里默认 `exx_singularity_correction default` 时跑 RPA/GW，用户明确指出“开 rpa 要开这个”，否则参数前提就不对（此前多次输入遗漏该项）。",
+  "root_cause": "`exx_singularity_correction` 的默认值是 `default`，可选 `spencer, revised_spencer, massidda, limits, carrier`（源码 `std::string exx_singularity_correction = \"default\"`）。RPA 路径要求库伦奇点修正采用 massidda 方案。注意 `#rpa` 被注释掉时该项不影响当前 GW 流程，关键是 INPUT_scf 中真正生效的 RPA/EXX 段。",
+  "minimal_fix": "在 INPUT_scf 显式写 `exx_singularity_correction     massidda`，与 `rpa 1` 同时出现，并把它纳入参数检查清单（检查时要区分被注释掉的行与真正生效的行）。",
+  "validation": "确认 INPUT_scf 中 `rpa 1` 与 `exx_singularity_correction massidda` 同时生效（非注释行）；对照 /home/ghj/GW/debug/CdS 等可跑通参考输入，确认参数名在当前分支被识别。",
+  "avoid": "不要依赖默认值；不要把被 `#` 注释的 `#rpa` 行当作已启用；不要在排查 EXX 异常时忽略这一项前提是否满足。",
+  "source": "codex-sessions:rollout-2026-03-15T16-12-14-019cf08d-8d0e-7d61-a0be-2f6350a3d40d.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_rpa_singularity_correction",
+  "parameters": {
+    "exx_singularity_correction": "massidda（当 rpa=1 时）",
+    "default_value": "default",
+    "allowed_values": "spencer, revised_spencer, massidda, limits, carrier",
+    "companion_inputs": "exx_pca_threshold 1e-6, rpa_ccp_rmesh_times 6, exx_ccp_rmesh_times 3~4, exx_cs_inv_thr 1e-5, out_mat_xc 1"
+  }
+}

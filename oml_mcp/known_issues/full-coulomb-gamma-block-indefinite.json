@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "full-coulomb-gamma-block-indefinite",
+  "title": "Gamma-point full-Coulomb auxiliary block is strongly indefinite (74 negative eigenvalues, min ~-831.876 Ha) while the run still reports an EXX path gap of 8.3228 eV",
+  "symptom": "A completed MnTe run (job 21384055, COMPLETED 0:0, 4 nodes, 4 MPI x 30 OMP, 03:27:09, exx_band_q30_gamma_q90_20260726 under alpha_mnte_masterghj_v1_noshrink_pca1e-4_lambda0p8_mpi4_20260724) produced all four band files (161 x 170, Gamma = point 81, 21 occupied bands per spin) with correct symmetry relations (EXX frontier-band RMS deviation ~2 meV, Gamma spin difference ~0.73 meV), yet the full-Coulomb Gamma block has 74 negative eigenvalues with a minimum of about -831.876 Ha, and the path gap jumps from PBE 0.7275 eV to EXX@PBE 8.3228 eV.",
+  "root_cause": "Not established in the record: the run finished and the symmetry transfer is fine, so the indefiniteness is not a crash or a parallel-transport error. It is either a genuine property of that full-Ewald auxiliary Coulomb block at Gamma (head/wing treatment) or a construction problem in the auxiliary-basis/Coulomb path of this specific setup (run tag noshrink_pca1e-4_lambda0p8: no shrink, PCA threshold 1e-4, screening lambda 0.8). The record establishes only the symptom and requires that the Gamma block and the very large EXX gap be confirmed before the numbers are used.",
+  "minimal_fix": "Treat the Gamma Coulomb block as a pre-flight gate: print and inspect its eigenvalue spectrum and dimensions, verify the head and wing are treated consistently (analytic head/wing versus the direct-G/Fourier route), and re-run the Coulomb construction varying the auxiliary-basis PCA/shrink settings one factor at a time before interpreting any EXX gap from this data set. Do not feed an indefinite auxiliary Coulomb block into the EXX/GW stage as a validated input.",
+  "validation": "The Gamma-point Coulomb matrix is positive semidefinite (no large negative eigenvalues), or the negative spectrum is explained and bounded, AND the EXX result passes the independent check that LibRPA's diagonal EXX matches D_n = <psi_n^PBE|Sigma_x - V_xc^PBE|psi_n^PBE> together with the full-matrix eigenvalues; only then is the gap (8.3228 eV vs PBE 0.7275 eV) physical.",
+  "avoid": "Do not accept a COMPLETED job plus good symmetry residuals as evidence that the Coulomb matrix is physical. Do not report an 8.32 eV EXX path gap while the Gamma block is indefinite. Do not change several factors at once (auxiliary basis, PCA/shrink, binary, lambda) when hunting this, because the effect then cannot be attributed.",
+  "source": "codex-sessions:rollout-2026-07-30T19-21-54-019fb2c2-6ef9-7b93-a501-e086409c5c5f.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:coulomb-block-psd",
+  "parameters": {
+    "psd_gate": "Gamma (and each q) auxiliary Coulomb block must be positive semidefinite; inspect the eigenvalue spectrum before use",
+    "observed_numbers": "74 negative eigenvalues, min ~-831.876 Ha; PBE path gap 0.7275 eV vs EXX@PBE 8.3228 eV",
+    "one_factor_at_a_time": "vary head/wing treatment, PCA/shrink threshold, auxiliary basis or binary separately"
+  }
+}

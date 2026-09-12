@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stale-output-contamination",
+  "title": "Stale output contamination / stod parse failure",
+  "symptom": "A run reads old outputs from a previous run, or ABACUS/LibRPA fails with a stod (string-to-double) parse/read error on an input or output file.",
+  "root_cause": "Stale-output contamination from previous runs, or inputs mixed from different workflow chains with mismatched parameter spellings (e.g. the deprecated cs_inv_thr key instead of exx_cs_inv_thr).",
+  "minimal_fix": "Run in a fresh immutable run directory. Before treating a failure as a physics/input issue, check for stale files and mixed input chains. Replace the deprecated cs_inv_thr with exx_cs_inv_thr; run the compatibility audit first when ABACUS reports 'THE PARAMETER NAME ... IS INCORRECT!'.",
+  "validation": "Re-run in a clean directory; the input parse and read succeed with no stale files.",
+  "avoid": "Reusing a run directory across producer stages; keeping deprecated key spellings that the current binary rejects.",
+  "source": "abacus-librpa-debug skill (diagnosis order step 4, stod); oh-my-librpa debug-route and abacus-merge-compat references.",
+  "confidence": "established",
+  "gate_id": "stage.{stage}.completion",
+  "parameters": {"run directory": "fresh immutable", "cs_inv_thr": "replace with exx_cs_inv_thr"}
+}

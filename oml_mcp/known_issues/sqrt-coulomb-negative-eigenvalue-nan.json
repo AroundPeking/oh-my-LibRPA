@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "sqrt-coulomb-negative-eigenvalue-nan",
+  "title": "NaN/Inf from sqrt of small negative eigenvalues of the Coulomb matrix; sqrt_coulomb_threshold must be 0",
+  "symptom": "The auxiliary-basis Coulomb matrix (mat_coulomb) has small negative eigenvalues from numerical error, which turn into NaN when the square root is taken. The user flagged that the filtering threshold before the sqrt must default to 0 and asked to verify it.",
+  "root_cause": "The Coulomb matrix is not exactly positive semi-definite numerically, so an unfiltered negative eigenvalue passed to sqrt yields NaN. The code relies on sqrt_coulomb_threshold (default 0) to filter negative/near-singular eigen-directions - and that filtering lives in whichever eigen-solver branch is actually taken (ELPA vs ScaLAPACK power_hemat_blacs_real), so a run on the other branch can leave negative eigenvalues unfiltered.",
+  "minimal_fix": "Verify sqrt_coulomb_threshold is 0 (its intended default), determine from the run log which eigen-solver branch was actually executed (ELPA vs ScaLAPACK power_hemat_blacs_real), and confirm negative eigen-directions are filtered before the square root. If the log shows unfiltered negative eigenvalues, fix that branch's filtering instead of editing the Coulomb matrix.",
+  "validation": "Grep the run log for unfiltered-negative-eigenvalue warnings and check outputs for NaN/Inf: with sqrt_coulomb_threshold=0 and the correct branch, negative eigen-directions are filtered and the sqrt/inverse step stays finite.",
+  "avoid": "Do not equate a negative eigenvalue of the Coulomb matrix with a broken input or with NaN by itself - negative eigenvalues of mat_coulomb are normal numerical error. Do not 'fix' it by shifting or regularizing the matrix before the sqrt; threshold filtering is the intended mechanism.",
+  "source": "codex-sessions:rollout-2026-06-29T09-56-03-019f1117-3b57-7330-9fc7-c8cccfd332c2.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate:coulomb-negative-eig-threshold",
+  "parameters": {
+    "sqrt_coulomb_threshold": "0 (default; filters negative/near-singular eigen-directions before the sqrt)"
+  }
+}

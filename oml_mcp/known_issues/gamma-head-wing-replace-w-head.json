@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "gamma-head-wing-replace-w-head",
+  "title": "replace_w_head=false does not drop Gamma — it only skips the macroscopic head/wing overwrite; the sqrt filter is a separate mechanism",
+  "symptom": "Misdiagnosis risk: with replace_w_head=false users assume the Gamma point is excluded from Wc(q), or that its divergence is simply discarded, and then try to 'restore' q = 0 by hand.",
+  "root_cause": "Code path: driver/task_gw.cpp prepares epsmac_LF_imagfreq_re only when Params::replace_w_head is true (task_gw.cpp:88) and passes an empty epsmac_LF_imagfreq to compute_Wc_freq_q when it is false (task_gw.cpp:204). epsilon.cpp:3812 overwrites the head/wing only when epsmac_LF_imagfreq.size() > 0 && is_gamma_point(q); otherwise the generic branch runs epsilon = 1 - sqrt(V) chi0 sqrt(V), then inverts and builds Wc = sqrt(Vcut)(eps^-1 - 1)sqrt(Vcut) (epsilon.cpp:3895). Gamma is still present in Wc(q). The only Gamma-specific numerical step is that the ScaLAPACK path takes the bare-Coulomb square root through power_hemat_blacs_real (epsilon.cpp:3478) and filters singular/near-singular eigen-directions with sqrt_coulomb_threshold — a numerical filter, not a head/wing replacement and not dropping q = 0.",
+  "minimal_fix": "Set replace_w_head = t when the macroscopic dielectric (head/wing) treatment at Gamma is wanted; with false, expect the plain matrix path and inspect sqrt_coulomb_threshold / vq_threshold (reference values are 0) instead of 'fixing' a missing q = 0.",
+  "validation": "Grep the LibRPA log for the Gamma head/wing override and for the number of filtered eigen-directions; confirm Gamma still appears in the Wc(q) list, that no NaN appears in eps^-1, and that the two switches are reported separately.",
+  "avoid": "Do not drop q = 0 by hand and do not add a head term outside the code path — replace_w_head and sqrt_coulomb_threshold/vq_threshold control different things (macroscopic dielectric overwrite vs singular-subspace filtering).",
+  "source": "codex-sessions:rollout-2026-05-03T12-02-23-019dec00-6b85-72a0-8173-98eedd38e910.jsonl; codex-sessions:rollout-2026-04-08T16-05-01-019d6c1f-9011-7151-a220-145a36253ad2.jsonl",
+  "confidence": "established",
+  "gate_id": "gamma-headwing-switch-gate",
+  "parameters": {}
+}

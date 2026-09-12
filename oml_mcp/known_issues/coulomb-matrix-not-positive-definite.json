@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "coulomb-matrix-not-positive-definite",
+  "title": "Coulomb matrix not positive-definite (indefinite / non-Hermitian)",
+  "symptom": "The reader-v1 full Coulomb family v1_coulomb_full_iq_*_rank*.dat is indefinite or non-Hermitian: the PSD/Hermitian gate reports a materially negative eigenvalue or a Hermitian residual above roundoff.",
+  "root_cause": "The LU-based Coulomb-matrix inversion (exx_cs_inv_thr = -1) is numerically unstable for a large or near-singular auxiliary-basis set, especially for systems with localised d/f states or long-range screening. For strict-2D the legacy full-Ewald matrix can also be strongly indefinite because of large-number cancellation between the Ewald terms.",
+  "minimal_fix": "Switch the inversion to matrix diagonalization by setting exx_cs_inv_thr to a positive value (1e-5 is the documented safe choice). For strict-2D, opt in to out_librpa_2d_coulomb_method direct_mixed_fourier. Never clip eigenvalues or substitute cut Coulomb to make a failed matrix pass.",
+  "validation": "Re-run the stage.state/coulomb gate: the full matrix must be Hermitian to roundoff and have no materially negative eigenvalue relative to the largest eigenvalue and numerical norm.",
+  "avoid": "Eigenvalue clipping, a smooth inverse, or substituting cut Coulomb for the production result. Do not relax the PSD gate to pass a failed matrix.",
+  "source": "abacus-librpa-strict2d-direct-coulomb skill; ghj-stringent-dojo-exx-diagnostic; ~/.codex sessions on Coulomb-not-positive-definite.",
+  "confidence": "established",
+  "gate_id": "coulomb.psd_hermitian",
+  "parameters": {"exx_cs_inv_thr": "positive (1e-5), else direct_mixed_fourier for strict-2D"}
+}

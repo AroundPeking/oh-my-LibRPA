@@ -1,0 +1,20 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "gw-selfenergy-divergence-stale-intermediates",
+  "title": "GW 能带完全错误（gap -776.9 eV、e_qp 到 1e6 eV）：混用旧中间文件，不是非正定库伦也不是对称性",
+  "symptom": "camg2n2 的 `LibRPA.1520572.out` 里 QP 阶段一开始 `ReSigc` 就到 10^2-10^3 eV，最终 `GW bandgap = -776.8876724 eV`；`GW_band_spin_1.dat` 能量范围到 ~10^6 eV；k222 对称性 A/B 对照仍为 `GW bandgap = -14.1473774 eV`（on）与 `-14.1474162 eV`（off），带文件范围约 -9.08e5 ~ +4.72e5 eV。SCF k-grid 自能表里还出现 `occ = 12.00000`（不是 2/0）。",
+  "root_cause": "主因是流程里混用了旧中间文件：本次 run_abacus.sh 把 SCF 与对称 sidecar 刷新段整段注释掉，导致 coulomb/shrink/sym 用的是旧数据，与本轮 nscf/preprocess 不一致；EXX 本身已经异常大、GW 只是进一步放大。已排除的假设：截断导致库伦矩阵非正定（用户判断正确，不能据此判死）；对称性导致 occ 错（k222 开/关对称两组 occ_band 都是 21，E_FERMI 8.86741911 vs 8.86741910 eV，GW 都同样发散）。",
+  "minimal_fix": "新建干净目录并恢复完整链路 `scf -> sidecar -> pyatb -> nscf -> preprocess -> librpa`，先把旧输出清掉再跑；随后只改自能数值稳定性做最小排查：`use_shrink_chi=f`、`vq_threshold=1e-6`、`sqrt_coulomb_threshold=1e-6`（原 case 两者为 0）。",
+  "validation": "确认 run_abacus.sh 中 scf/sidecar 同步段确实执行（不再被注释），输出目录里 abacus.*/nscf.*/LibRPA.* 时间戳属于本次运行；检查 QP 阶段首批 `ReSigc` 应在 eV 量级而非 10^2-10^3 eV；`GW_band_spin_*.dat` 能量范围应为正常物理量级。",
+  "avoid": "不要把 `GW bandgap = -776.9 eV` 归因于非正定截断库伦或对称性；不要在未恢复 SCF/sidecar 的前提下继续复用旧 coulomb/shrink/sym；不要在带路径无逐态日志的段落里统计 occ 就下结论（occ=12 出现在 SCF k-grid 自能构造表，不是 band k-path）。",
+  "source": "codex-sessions:rollout-2026-03-14T02-25-27-019ce872-4038-7601-bcad-655a2187ca56.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_gw_sigc_finiteness",
+  "parameters": {
+    "use_shrink_chi": "f（Sigc 定位测试）",
+    "vq_threshold": "0 -> 1e-6",
+    "sqrt_coulomb_threshold": "0 -> 1e-6",
+    "required_chain": "scf -> sidecar(sym) -> pyatb -> nscf -> preprocess -> librpa，且先清旧输出",
+    "k222_symmetry_control": "开/关对称性两组 occ_band=21、E_FERMI 一致，说明对称性不是发散主因"
+  }
+}

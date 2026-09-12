@@ -1,0 +1,100 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "bulk_bn_soc_gw",
+  "description": "Bulk BN G0W0 with spin-orbit coupling. Grounded in the LibRPA BN SOC regression cases.",
+  "extends": "default",
+  "parameters": {
+    "nfreq": {
+      "default": 6,
+      "allowed_range": [
+        4,
+        64
+      ],
+      "target": 6,
+      "per_system_override_rule": "nFreq 6 matches the upstream BN SOC regression.",
+      "rationale": "The upstream BN SOC case validates nfreq=6.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        1,
+        1,
+        2
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          8,
+          8,
+          8
+        ]
+      ],
+      "target": [
+        1,
+        1,
+        2
+      ],
+      "per_system_override_rule": "Use the upstream 1x1x2 Gamma mesh for the fast SOC check.",
+      "rationale": "The BN SOC regression uses a 1x1x2 mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "oncv_pbe_8au_100ry",
+      "allowed_range": [
+        "oncv_pbe_8au_100ry",
+        "oncv_pbe_10au_100ry",
+        "dojo_nc_sr_tzdp",
+        "gth_soc_pbe"
+      ],
+      "target": "oncv_pbe_8au_100ry",
+      "per_system_override_rule": "Use the ONCV PBE PP with the matched orbital set.",
+      "rationale": "Matches the upstream BN SOC case.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "2s2p1d",
+      "allowed_range": [
+        "2s2p1d",
+        "tzdp",
+        "dzp"
+      ],
+      "target": "2s2p1d",
+      "per_system_override_rule": "Keep the 2s2p1d NAO set.",
+      "rationale": "Matches the upstream BN SOC orbital set.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": -1.0,
+      "per_system_override_rule": "Automatic default is fine for light-element BN even with SOC.",
+      "rationale": "No heavy elements are present.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "shrink_threshold": {
+      "default": 0.01,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.01,
+      "per_system_override_rule": "The BN SOC case uses a looser exx_pca_threshold 1e-2 because SOC doubles the state space.",
+      "rationale": "The upstream BN SOC case sets exx_pca_threshold 1e-2.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    }
+  }
+}

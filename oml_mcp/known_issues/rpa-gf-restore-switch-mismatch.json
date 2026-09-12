@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "rpa-gf-restore-switch-mismatch",
+  "title": "RPA symmetry inflates Total EcRPA by ~200x when the Green-function k-star restore is still keyed on use_abacus_gw_symmetry",
+  "symptom": "With symmetry added to the RPA task the total energy became `Total EcRPA = -64.643745818 Ha` while the symmetry=-1 full-q reference was `-0.342512415 Ha`. Disabling the chi0 real-space restore reproduced exactly -2.710799111 Ha, the '8 IBZ k-point subset without symmetry' value, showing the blow-up came from the restore stage rather than the formula.",
+  "root_cause": "The Green-function k-star expansion in src/core/meanfield.cpp was still gated on `Params::use_abacus_gw_symmetry`, while the RPA lane deliberately ran with `use_abacus_gw_symmetry=f, use_abacus_rpa_symmetry=t`. The GF was therefore never expanded over the k-star, but the chi0 ABF restore was applied afterwards, so the response was over-counted by roughly N_k^2. A second trap: a naive helper written as 'RPA or GW switch true' would re-enable chi0 symmetry for g0w0 runs that explicitly set `use_abacus_gw_symmetry=f`.",
+  "minimal_fix": "Make the switch task-aware instead of name-aware: introduce `use_abacus_rpa_symmetry` (driver/inputfile.cpp:183, src/params.h:89, src/params.cpp:38) defaulting to inherit `use_abacus_gw_symmetry` for input compatibility, and dispatch through `use_abacus_chi0_symmetry()` (src/pbc.cpp:199) so RPA (chi0 + GF restore) follows the RPA switch and GW/Wc keeps the GW switch. Point the meanfield.cpp GF restore at that helper. Commit `d71f3f5 Add ABACUS symmetry support for RPA`. Keep the RPA symmetry path on the row/atom-pair `coulomb_mat` reader.",
+  "validation": "The symmetry=1 IBZ producer with `use_abacus_rpa_symmetry=t` must reproduce the symmetry=-1 full-q number at np1 and np4: both give `Total EcRPA = -0.342512415 Ha` with stderr 0 and no imaginary-part warning. Also verify the independent switch test: BN k222 with `use_abacus_rpa_symmetry=T, use_abacus_gw_symmetry=F` gives `Total EcRPA = -57.071411860 Ha`, proving RPA symmetry is not triggered by the GW-named flag.",
+  "avoid": "Do not rewrite the RPA formula for a 200x discrepancy - that magnitude is weight/coverage plumbing. `read_Vq_full` was the first suspect and was NOT the cause (the result stayed -64.64 Ha after switching back to the row reader).",
+  "source": "codex-sessions:rollout-2026-06-01T23-45-09-019e83dc-3dbe-7841-9eae-c96466c00acb.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-rpa-symmetry-mode-parity",
+  "parameters": {}
+}

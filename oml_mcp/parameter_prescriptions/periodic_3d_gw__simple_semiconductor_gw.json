@@ -1,0 +1,88 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "simple_semiconductor_gw",
+  "description": "Conventional sp semiconductor G0W0 (bulk Si).",
+  "extends": "default",
+  "parameters": {
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        64
+      ],
+      "target": 16,
+      "per_system_override_rule": "Conventional semiconductors need a moderately dense frequency grid; 16 is a safe fast default.",
+      "rationale": "Si converges quickly but still needs a denser grid than the 6-8 used by the smallest BN smoke cases.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Use a regular Gamma-centred mesh.",
+      "rationale": "The screening mesh must match the ABACUS producer mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "oncv_pbe_8au_100ry",
+      "allowed_range": [
+        "oncv_pbe_8au_100ry",
+        "oncv_pbe_10au_100ry",
+        "dojo_nc_sr_tzdp",
+        "gth_soc_pbe"
+      ],
+      "target": "oncv_pbe_8au_100ry",
+      "per_system_override_rule": "Use a matched PP/orbital pair.",
+      "rationale": "PP/orbital mismatch is a known garbage-EXX cause.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp",
+      "allowed_range": [
+        "tzdp",
+        "tzp",
+        "dzp"
+      ],
+      "target": "tzdp",
+      "per_system_override_rule": "Use TZDP for the empty-state manifold.",
+      "rationale": "GW needs flexible empty states.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": -1.0,
+      "per_system_override_rule": "Automatic default is fine for light sp semiconductors.",
+      "rationale": "No heavy elements are present.",
+      "gate_id": null,
+      "confidence": "established"
+    }
+  }
+}

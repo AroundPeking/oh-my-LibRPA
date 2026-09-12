@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-cs-inv-thr-masks-not-fixes",
+  "title": "Raising exx_cs_inv_thr mitigates but does not fix heavy-element EXX anomalies",
+  "symptom": "GeTe/SnSe EXX is abnormal. Re-staging the identical GeTe inputs with exx_cs_inv_thr=1e-3 and 1e-2 '明显减轻了 EXX 异常，却没有修复' - the anomaly shrinks but survives.",
+  "root_cause": "Two mechanisms coexist and must not be conflated: (a) low AO overlap eigenvalues of S(k)/Gamma amplify errors, and (b) the LRI fit error of individual non-coincident atom pairs is itself large (WSe2 with S_min=2.17520587e-3, cond 4925 behaves, while Ge/Sn with S_min~1e-4 show Qb errors 56/36). Raising the inverse threshold only regularises a near-singular inverse; it leaves the underlying basis/fit error in place.",
+  "minimal_fix": "Stop tuning the threshold upward: revert to the default (leave exx_cs_inv_thr unset) and instead inspect AO S(k)/Gamma eigenvalues and conditioning together with the per-pair LRI local fit matrix vs the global direct V; if basis generation is at fault, move to the verified library PP/orbital route (see stringent-nao entry).",
+  "validation": "The EXX anomaly must disappear at the default threshold, and the per-pair LRI fit residual for non-coincident pairs must be shown small, using the existing exx_lri_metric_audit, exx_lri_representation_audit and production_20260908/exx_comparison evidence instead of a threshold scan.",
+  "avoid": "Do not report 'sensitive to the inverse threshold' as proof that the NAO generation is bad - that is an unsafe causal inference. Do not use a positive-definite V or a good PBE band structure as evidence that the LRI fit quality is fine.",
+  "source": "codex-sessions:rollout-2026-09-08T16-01-27-01a08009-4b3a-7d31-8dda-e16ee57204bf.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:lri-fit-vs-threshold",
+  "parameters": {
+    "exx_cs_inv_thr": "leave unset (default); 1e-3 and 1e-2 only mitigated",
+    "diagnostic_priority": "pair-resolved LRI fit error + AO S(k)/Gamma eigenvalues before any threshold or basis change",
+    "S_min_concern": "<= ~1e-4 problematic (Ge/Sn) vs 2.2e-3 acceptable (WSe2)"
+  }
+}

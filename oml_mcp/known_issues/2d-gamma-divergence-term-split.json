@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "2d-gamma-divergence-term-split",
+  "title": "2D Gamma divergence: split the integrand into v(q) and the chi/F subtraction — the residual 1/N gap drift sits in the integral of F(q)",
+  "symptom": "The Coulomb-derived GW gap drifts as 1/N with the q mesh ('整个库伦计算得到的gap是1/N收敛'). The earlier explanation that attributed this to the mesh average of the bare leading eigenvalue lambda_1(q) was withdrawn as the wrong diagnostic.",
+  "root_cause": "The level energy is assembled as sum_{q != 0} [M(k-q) v(q) - M(k) F(q)] + M(q) * integral F(q) (compensation-function splitting of the q -> 0 singularity). With a correct compensation function the discrete q-sum converges quickly, and what is left unhandled when the singularity is not subtracted exactly is the integral of F(q). In the auxiliary-basis representation the divergence structure is angular-momentum dependent — 1/q^2 between two nodeless s-type NAOs and 1/q between a nodeless s-type and any other NAO — so a 2D compensation function must reproduce the 2D 1/q behaviour (not the 3D 1/q^2), and may need two terms (F1 + F2).",
+  "minimal_fix": "Instrument the two pieces separately — the discrete q-sum of [M(k-q)v(q) - M(k)F(q)] and the analytic term M(k)*integral F(q) — identify which of them carries the 1/N drift, and fix the compensation function so the correct power of q is subtracted exactly at q -> 0 for the 2D kernel.",
+  "validation": "Show that the v(q) piece is already converged with the q mesh while the F(q) integral carries the residual drift, then verify the gap is mesh-independent (Gamma-centred vs shifted meshes, two mesh densities) once the correct F is used.",
+  "avoid": "Do not use the mesh average of the bare leading eigenvalue lambda_1(q) as the convergence diagnostic (explicitly withdrawn as the wrong criterion), and do not apply a 3D 1/q^2 compensation function to the 2D kernel.",
+  "source": "codex-sessions:rollout-2026-04-09T16-17-28-019d7151-550e-7fd1-a043-b5040bb1a781.jsonl; codex-sessions:rollout-2026-05-18T11-40-33-019e392b-d028-7162-b326-f755c6286bc7.jsonl; codex-sessions:rollout-2026-03-26T23-52-41-019d2ad9-109f-7413-9a6c-6f6a6049a2f2.jsonl",
+  "confidence": "tentative",
+  "gate_id": "2d-gamma-compensation-split-gate",
+  "parameters": {}
+}

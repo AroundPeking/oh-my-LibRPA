@@ -1,0 +1,48 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "bn-3d-headwing-shrink-soc-g0w0",
+  "title": "G0W0 bulk BN, head/wing + shrink + SOC (full ABACUS pipeline)",
+  "system": "BN",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": true,
+  "nspin": 1,
+  "stages": [
+    "scf",
+    "pyatb",
+    "nscf",
+    "preprocess",
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": "bulk_bn_gw",
+  "reference_status": "REFERENCE_AVAILABLE",
+  "estimated_seconds": 150,
+  "validators": [
+    {
+      "name": "GW bandgap",
+      "regex": "GW bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "EXX bandgap",
+      "regex": "EXX bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "DFT bandgap",
+      "regex": "DFT bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    }
+  ],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_band_abacus_BN_headwing_shrink_soc_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)",
+    "One-shot GW quasi-particle energies (QPE MPI smoke)"
+  ],
+  "note": "Combined head/wing, shrink and SOC path; the most demanding small BN regression."
+}

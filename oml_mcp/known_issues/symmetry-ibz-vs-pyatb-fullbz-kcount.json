@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-ibz-vs-pyatb-fullbz-kcount",
+  "title": "Symmetry-reduced IBZ k-points (8) in band_out do not match pyatb head/wing full-BZ k-points (64)",
+  "symptom": "For the Si k444 symmetry+shrink test the SCF/RPA grid is 4x4x4 Gamma-centered, but after ABACUS symmetry the root band_out contains 8 IBZ k points while the pyatb/head-wing files contain 64 full-BZ k points - two different k-point sets inside one run directory.",
+  "root_cause": "ABACUS symmetry (with irreducible_sector handling) reduces the 4x4x4 Gamma-centered mesh to 8 irreducible k points written to root band_out, whereas the pyatb head/wing producer writes all 64 full-BZ k points. The two sets are different objects and cannot be compared index-by-index or assumed to have the same length.",
+  "minimal_fix": "Before diagnosing, read the actual inputs/outputs: count k points in root band_out versus the pyatb/head-wing output, and check whether STRU carries an external ABFS_ORBITAL entry (this Si k444 run used an external ABFS_ORBITAL, not on-the-fly PCA generation).",
+  "validation": "The k-point counts of the symmetry-reduced ABACUS output and of the pyatb head/wing files are each known and the mapping between them is explicit; STRU shows the ABFS_ORBITAL source so the auxiliary-basis provenance is no longer assumed.",
+  "avoid": "Do not assume the auxiliary basis was generated on the fly by PCA when an external ABFS_ORBITAL was supplied, and do not compare IBZ-reduced ABACUS output with full-BZ pyatb output as if they were the same k-point list.",
+  "source": "codex-sessions:rollout-2026-06-01T23-49-22-019e83e0-193f-7fc2-96ab-e93ab59fffd9.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:kpoint-set-match",
+  "parameters": {
+    "kmesh": "4x4x4 Gamma-centered (k444) for symmetric test cases",
+    "band_out k count": "8 IBZ k points after ABACUS symmetry (Si k444)",
+    "pyatb head/wing k count": "64 full-BZ k points (same run)",
+    "ABFS_ORBITAL": "external .abfs present in STRU -> PCA is not the source of the auxiliary basis"
+  }
+}

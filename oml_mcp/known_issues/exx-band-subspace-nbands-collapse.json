@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "exx-band-subspace-nbands-collapse",
+  "title": "nbands 改变后 LibRPA 在更大 KS 子空间重解 EXX band，EXX 带隙从 +10.69 eV 翻成 -9.09 eV",
+  "symptom": "alpha-MnTe（NLOCAL=170，2 Mn 6s3p3d2f=44/atom + 2 Te 3s3p3d2f=41/atom，62 价电子）把 INPUT/INPUT_scf/INPUT_nscf 的 nbands 由 64 改为 170（并把 librpa.in 的 nfreq 由 16 改为 24）后，LibRPA 日志里的 EXX bandgap 由 `EXX bandgap = 10.6904259 eV`（number of bands: 64）变成 `EXX bandgap = -9.0873788 eV`（number of bands: 170），同时打印 `DFT bandgap = 0.6688659 eV`。即出现负带隙/能带塌进近隙流形的假象。用户判断“EXX 没有对高态求和所以肯定没有影响”，因此怀疑输入其实没变。",
+  "root_cause": "不是 SCF/NSCF 的 KS 或 EXX 矩阵元变了，而是 LibRPA band-stage 在更大的 band 子空间里重新求解 EXX band-path 解。逐项比对证据：(1) band_out 第 3 行（band 子空间维数）从 64 变成 170；(2) 公共前 64 个 spin-band 的 band_KS_eigenvalue_k_* 差为 0，band_vxc_k_* 只差 1e-12 量级；(3) Cs_*/coulomb_* 差异仅为机器精度（含 -0.0/+0.0 文本差异），不可能造成几十 eV 跳变；(4) LibRPA.1563357.out:79 读 `number of bands: 64`，LibRPA.1573625.out:79 读 `number of bands: 170`。也就是说导出的 EXX_band_spin_* 不是“原带逐条加对角修正”，子空间一变，标签/解就不再对应旧结果。",
+  "minimal_fix": "把 nbands 显式钉在 NLOCAL（本算例 170）并让 INPUT / INPUT_scf / INPUT_nscf 三处一致；GW 用 170 带结果，但 EXX 图不要直接沿用变了子空间后导出的 EXX_band_spin_*——改从“公共不变的 KS + band_vxc 固定近隙窗口”重建近隙 EXX，或先在固定流形内重解。跨 nbands 的 EXX 结果不可直接对比。",
+  "validation": "检查 band_out 第 3 行等于所设 nbands、LibRPA 日志 `number of bands:` 与之相同；确认 EXX bandgap 符号与量级合理（应为正且约为 PBE/DFT gap 加交换修正，而不是负的十几 eV）；重建前后用同一固定 band window 比较近隙 EXX 曲线，公共低能态必须逐点一致。",
+  "avoid": "不要用 nbands=64 跑 GW——对 GW 只剩 33 条空带/自旋，明显偏紧；不要把“EXX 物理上不因高态求和而变”错误外推成“导出的 EXX_band_spin_* 一定不变”；不要把负 EXX 带隙归因于 ABACUS SCF/EXX 实现 bug。",
+  "source": "codex-sessions:rollout-2026-04-02T21-06-41-019d4e4d-9921-7b51-9873-08f9a03b01ed.jsonl | codex-sessions:rollout-2026-09-08T11-59-42-01a07f2b-f3b3-7041-8623-24775d6493d5.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_exx_band_subspace_pin",
+  "parameters": {
+    "nbands": "等于 NLOCAL（alpha-MnTe 算例 170；INPUT/INPUT_scf/INPUT_nscf 三处一致）",
+    "NLOCAL_check": "读 OUT.ABACUS/running_scf.log 与 running_nscf.log 第 193-194 行的 NLOCAL/NBANDS 打印值",
+    "nfreq": "16 -> 24（与该 rerun 同时改动，需单独记录，勿与 nbands 混为一因）",
+    "subspace_rule": "band-stage 子空间维数 = nbands；band_out 第 3 行必须等于 nbands"
+  }
+}

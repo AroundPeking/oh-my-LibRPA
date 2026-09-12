@@ -1,0 +1,27 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "si-3d-aims-g0w0",
+  "title": "G0W0 bulk silicon (FHI-aims producer, LibRPA-only replay)",
+  "system": "Si",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": null,
+  "reference_status": "REFERENCE_PENDING",
+  "estimated_seconds": 45,
+  "validators": [],
+  "output_files": [
+    "self_energy_omega.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_aims_Si_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)"
+  ],
+  "note": "FHI-aims producer; LibRPA stage only. No upstream validator declared."
+}

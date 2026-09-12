@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symrot-trs-index-out-of-range-crash",
+  "title": "ABACUS SIGSEGV in print_symrot_info_k() when a k-star member carries a TRS-extended isym",
+  "symptom": "Adding symmetry (rpa=1, symmetry=1) makes ABACUS die in the RPA/EXX postSCF symmetry output right after SCF: stdout shows `BAD TERMINATION`, slurm reports `std::out_of_range: map::at`, and the backtrace lands in `get_rotated_atom()`. Reproduced on the BN case /home/ghj/tmp/test (g0w0_band_abacus_BN_headwing_shrink_soc_libri/merge_test); the crash also happens with 1 MPI, so gdb can be used directly.",
+  "root_cause": "`print_symrot_info_k()` in source/source_lcao/module_ri/module_exx_symmetry/symmetry_rotation_output.cpp walks `kv.kstars`, whose `isym` can be >= nrotk because it encodes `TRS * space-group`. The routine used that raw index for `ucell.symm.get_rotated_atom(isym, iat)` and `symrot.rotmat_Slm[isym]`, i.e. indexed arrays sized by the space group with a time-reversal-composed number -> out-of-range map::at / SIGSEGV. `Symmetry_rotation::rot_matrix_ao()` already normalises `isym >= nsym_` by subtracting `nsym_`; the output routine did not. The same old code is present on upstream/develop (symmetry_rotation_output.cpp:61), so this is a develop bug, not a merge artefact.",
+  "minimal_fix": "In `print_symrot_info_k()`, fold the index back before any lookup: if `isym >= nrotk` then `isym_space = isym - nrotk`, and use `isym_space` for `get_rotated_atom()`, `get_return_lattice()` and `rotmat_Slm[]`; annotate the written record as `(TRS * isym_space)`. Landed as commit 4c1902dd9 'Fix TRS symmetry index in symrot_k output'.",
+  "validation": "Re-run the same symmetry case: it must pass the symmetry/EXX output stage and write symrot_k/symrot_R without `std::out_of_range`. Also run an nspin=2 variant and confirm `nspin = 2` plus `nks(nspin=2)` appear in OUT.ABACUS/running_scf.log and the run gets past symmetry/EXX initialisation.",
+  "avoid": "Do not chase STRU / `latname user_defined_lattice` (the left-handed lattice warning is harmless) and do not 'fix' it by turning symmetry off - the failing quantity is an index, not the structural input.",
+  "source": "codex-sessions:rollout-2026-03-11T15-48-36-019cdbde-7a66-72c3-95a7-9171895ee9a6.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-symmetry-trs-index",
+  "parameters": {}
+}

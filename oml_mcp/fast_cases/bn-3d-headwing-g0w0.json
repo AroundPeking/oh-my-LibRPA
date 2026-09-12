@@ -1,0 +1,33 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "bn-3d-headwing-g0w0",
+  "title": "G0W0 bulk BN head/wing (LibRPA-only replay)",
+  "system": "BN",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": "bulk_bn_gw",
+  "reference_status": "LEGACY_HANDOFF",
+  "estimated_seconds": 30,
+  "validators": [
+    {
+      "name": "Spin1-state1-eqp-sequence",
+      "regex": "^\\s*1\\s+2\\.00000\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+([-+0-9.Ee]+)\\s*$",
+      "tolerance": 0.0001
+    }
+  ],
+  "output_files": [
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_band_abacus_BN_headwing_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)",
+    "One-shot GW quasi-particle energies (QPE MPI smoke)"
+  ],
+  "note": "Upstream stages legacy (pre reader-v1) ABACUS output, so only the LibRPA stage is replayable."
+}

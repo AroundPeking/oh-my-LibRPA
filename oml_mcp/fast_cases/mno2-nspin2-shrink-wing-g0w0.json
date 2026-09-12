@@ -1,0 +1,53 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "mno2-nspin2-shrink-wing-g0w0",
+  "title": "G0W0 MnO2 spin-polarised, shrink + wing (full ABACUS pipeline)",
+  "system": "MnO2",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 2,
+  "stages": [
+    "scf",
+    "pyatb",
+    "nscf",
+    "preprocess",
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": "transition_metal_oxide_gw",
+  "reference_status": "REFERENCE_AVAILABLE",
+  "estimated_seconds": 180,
+  "validators": [
+    {
+      "name": "GW bandgap",
+      "regex": "GW bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "EXX bandgap",
+      "regex": "EXX bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "DFT bandgap",
+      "regex": "DFT bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    },
+    {
+      "name": "Spin1-k1-state1-eqp",
+      "regex": "^\\s*1\\s+1\\.00000\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+([-+0-9.Ee]+)\\s*$",
+      "tolerance": 0.0001
+    }
+  ],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_band_abacus_MnO2_nspin2_shrink_wing_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)",
+    "One-shot GW quasi-particle energies (QPE MPI smoke)"
+  ],
+  "note": "Spin-polarised transition-metal oxide; the heavy-element exx_cs_inv_thr case."
+}

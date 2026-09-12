@@ -1,0 +1,21 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "lri-local-fit-error-low-overlap-amplification",
+  "title": "GeTe/SnSe 重元素 EXX 灾难性错误的机制：LRI 局域拟合误差先存在，晶体 AO 低重叠本征模再放大",
+  "symptom": "GeTe/SnSe 用重元素 stringent 基组时 EXX 出现灾难性异常（前沿差与总能都非物理）。exx_cs_inv_thr 扫描结果（前沿 46/47 差，eV / 全谱最低 EXX 能量，eV）：1e-6 -> -1204.39299 / -20536635.86482；1e-5 -> -66.16062 / -1002834.55606；1e-4 -> -5.73146 / -106646.76101。三者均失败，跃迁电荷误差还非单调变化 43.2600 -> 56.3008 -> 51.7996。",
+  "root_cause": "不是“重元素 NAO 生成不好”：同原子径向 Gram 矩阵 max|G-I| <= 2.67e-15（NAO）与 2.69e-14 ~ 3.22e-14（raw ABFS），即径向函数没有重复。真正机制是两段：(1) 局域拟合误差本身很大——cases_basis.active.fit_minus_S.maxabs = 2.09688974 (GeTe) / 2.02714043 (SnSe)，单个非同位原子对就已很大（GeTe [2,4,0,0,0] AO (39,1)：原生重叠 -0.37248542 vs 拟合 -0.81254044；SnSe [3,3,0,-1,0] AO (13,13)：0.18443541 vs 0.66670455；最差单 pair/R 残差 0.440055 / 0.482269），而原生 C_KS†SC_KS-I 最大误差只有 7.64e-8 / 1.43e-7，解释不了。(2) 晶体 AO 近线性相关放大误差——144 点全正定但存在低重叠模：GeTe Γ λmin 9.38846396e-5、λmax 13.06683840、条件数 139179.73；SnSe Γ λmin 1.03828596e-4、λmax 12.94915835、条件数 124716.69（全 144 点最小 7.51829275e-5 在 (0.5,0.5,0)，最大条件数 136630.89 在 (0,5/6,0)）；GeTe 第 211 态 AO 系数平方范数 5867.95，其中 99.61% 来自最低 8 个 S 模，仅在诊断分解中扣除涉及这 8 模的项，该态到占据态的最大 charge 误差就从 56.30 降到 0.570368。跃迁误差 raw 66.6712815 / 40.7671715 -> active 56.3007951 / 35.9804454，说明不是 shrink 才产生。",
+  "minimal_fix": "不要先重做整套 EXX 或整批重新生成 NAO；最小诊断是只取两个异常原子对加一个同位对照，回放同一输入，导出求逆前的 `V_fit`、`A`、保留模掩码、实际系数 `C_fit` 与最终径向电荷矩，分别检查 `V_fit C_fit - P_keep A` 与被截掉的 `(I-P_keep)A`，区分求逆错误、截断损失、积分收敛与辅助空间不足。",
+  "validation": "active ABFS 不是 raw 的列子集（GeTe 1742->1296，SnSe 1612->1238，RPA_ABFS_PREORTH mode=none），所以必须用运行时导出的本地矩阵核对；核对逐 R 求和能复现 Γ 拟合矩阵（已复现到 1.78e-15，说明 pair/R 键无遗漏、也非周期累积所致）；只有定位到具体 NAO 通道后才值得定向缩减或重新训练，并重新验证 PBE、拟合与 EXX。",
+  "avoid": "不要把“对 exx_cs_inv_thr 敏感”直接说成“NAO 生成不好”；不要因为 V(q) 正定或 PBE 好看就认为拟合质量通过；不要用删除最低 8 个 S 模当成修复（那只是放大机制证据）；不要指望调大阈值修好——它只减轻、不修复。还有一处必须记录的数据缺口：producer 未输出求逆前的局域 `V_fit`/`A`（out_ri_cv=0），现有数据无法给出局域拟合矩阵的条件数或实际丢弃模数。",
+  "source": "codex-sessions:rollout-2026-09-08T16-01-27-01a08009-4b3a-7d31-8dda-e16ee57204bf.jsonl | codex-sessions:rollout-2026-09-06T23-13-58-01a07748-8de7-7943-a8e8-d74ba3b0dbbe.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_lri_local_metric_dump",
+  "parameters": {
+    "exx_cs_inv_thr_sweep": "1e-6 / 1e-5 / 1e-4 均失败（前沿差 -1204.39299 / -66.16062 / -5.73146 eV）",
+    "diagnostic_target": "两个异常原子对的 V_fit + A + 保留模 + C_fit + 最终径向数组，外加一个同位对照",
+    "ao_condition_number": "GeTe Γ 139179.73；SnSe Γ 124716.69（报警线 1e10 只代表检查通过，不代表适合高精度 EXX）",
+    "low_overlap_modes": "Γ 点 λ<1e-3 的模数 = 8（仅统计界限，不是建议截断值）",
+    "radial_gram_tolerance": "NAO max|G-I| <= 2.67e-15；raw ABFS <= 3.22e-14",
+    "spillage_level3": "Ge 5.97e-5 / Sn 7.40e-5 / Te 6.11e-5 / Se 8.34e-5"
+  }
+}

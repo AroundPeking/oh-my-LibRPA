@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "heavy-element-lri-pair-fit-error",
+  "title": "Heavy-element (GeTe/SnSe) EXX blow-up localizes to single-atom-pair LRI fit error, not to NAO linear dependence",
+  "symptom": "GeTe/SnSe EXX anomalies, extreme per atom pair: GeTe worst pair is atoms 2-4 at R = (0,0,0), distance 2.878 A, where an AO element has native S = -0.37249 but the fitted value is -0.81254; SnSe worst is atoms 3-3 at R = (0,-1,0), distance 4.285 A, where 0.18444 becomes 0.66670. Raising exx_cs_inv_thr to 1e-3 and 1e-2 clearly reduces the EXX anomaly but does not fix it. The huge EXX values (Ge 211 -> -9481 eV including a Q-direction -4150; Sn 153 -> -3206 eV including -2018) are reproduced by a wrong charge channel on top of a positive-semidefinite V, so they are not a PSD failure of the Coulomb matrix.",
+  "root_cause": "Two effects are entangled: low eigenvalues of the AO overlap S(k) amplify the error, but the local (pair-wise) LRI fit matrix itself differs strongly from the global direct V for individual non-on-site atom pairs far apart. The audit conclusion is that the single-pair fit error is already large, so threshold sensitivity is a symptom rather than proof that the heavy-element NAO generation is bad.",
+  "minimal_fix": "Localize per (atom pair, R): diff the LRI fitted block against the direct/full block and report the worst pairs with their distances, then investigate the fit for exactly those pairs (auxiliary-basis completeness / moment order) instead of tuning global inversion thresholds.",
+  "validation": "Recompute the per-pair per-R block comparison table and require the worst element's relative error to drop once the pair-specific fit is improved; report exx_cs_inv_thr as a diagnostic that was varied, not as the fix.",
+  "avoid": "Do not infer 'the NAO generation is bad' from threshold sensitivity, do not treat a PSD V or a good PBE band structure as proof that the LRI fit is good, and do not read the huge negative EXX energies as a PSD bug.",
+  "source": "codex-sessions:rollout-2026-09-08T16-01-27-01a08009-4b3a-7d31-8dda-e16ee57204bf.jsonl; codex-sessions:rollout-2026-09-06T23-13-58-01a07748-8de7-7943-a8e8-d74ba3b0dbbe.jsonl",
+  "confidence": "established",
+  "gate_id": "lri-pair-fit-vs-direct-gate",
+  "parameters": {}
+}

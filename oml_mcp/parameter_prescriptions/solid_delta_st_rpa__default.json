@@ -1,0 +1,78 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "solid_delta_st_rpa",
+  "material_class": "default",
+  "description": "Baseline periodic-solid Delta-Sternheimer RPA prescription.",
+  "extends": null,
+  "parameters": {
+    "grid_cutoff": {
+      "default": 100.0,
+      "allowed_range": [
+        50.0,
+        400.0
+      ],
+      "target": 100.0,
+      "per_system_override_rule": "Keep the response real-space grid cutoff consistent with the ABACUS ecutwfc.",
+      "rationale": "The Sternheimer response grid must match the mean-field grid or the response is inconsistent.",
+      "gate_id": "stage.preprocess.finite",
+      "confidence": "established"
+    },
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Use a dense frequency grid for the RPA correlation energy.",
+      "rationale": "The RPA correlation energy integral converges slowly in frequency.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "pca_threshold": {
+      "default": 0.01,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.01,
+      "per_system_override_rule": "Loosen the auxiliary-basis PCA threshold for solids, whose auxiliary sets are large.",
+      "rationale": "A tight PCA threshold on a large solid auxiliary basis is expensive without improving accuracy.",
+      "gate_id": "stage.pyatb.main_dataset",
+      "confidence": "established"
+    },
+    "coulomb_metric": {
+      "default": "full",
+      "allowed_range": [
+        "full",
+        "cut"
+      ],
+      "target": "full",
+      "per_system_override_rule": "Use the full Coulomb metric; the cut metric is diagnostic-only and must not be used for production.",
+      "rationale": "The cut Coulomb is not the physical metric; substituting it changes the RPA correlation energy.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "kq_sampling": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        1,
+        1,
+        1
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Keep the k/q sampling regular and Gamma-centred, matching the SCF mesh.",
+      "rationale": "The k and q sums must use a consistent regular mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "thermal-wc-underflow-general-lu",
+  "title": "Thermal Wc built as T(eps^-1 - I)T can return 0 for extreme Coulomb scales; solve eps*Delta = (S chi S)T instead",
+  "symptom": "Verified counterexample on the current OpenBLAS chain: S = 1e-200, chi = -1, T = 1e200 makes the intermediate product underflow and the routine returns Wc = 0 where the correct answer is about -1. The condition estimate is rcond = 1 and both backward-error residuals are zero, so every existing check passes.",
+  "root_cause": "The direct form Wc = T(eps^-1 - I)T forms S chi S and then subtracts; when the Hermitian Coulomb roots differ by hundreds of orders of magnitude the intermediate underflows/overflows and the subtraction loses the entire answer. The bounded thermal screening core therefore uses the algebraically equivalent weak-response form: build eps = I - S chi S, solve eps*Delta = (S chi S)T with a general pivoted complex LU (no same-frequency Hermitian fill, no real projection, explicit column-major copies), then Wc = T*Delta (src/core/thermal_gw_screening.cpp).",
+  "minimal_fix": "Keep the solve form eps*Delta = (S chi S)T -> Wc = T*Delta; reject ill-conditioned solves (rcond <= 64*N*machine_eps); add the scalar S=1e-200, chi=-1, T=1e200 regression and explicitly refuse the regime where intermediate information is lost, instead of returning a plausible-looking zero.",
+  "validation": "Run the analytic 2x2 non-commuting S/T tests, the non-symmetric chi tests, the independent 1e-18 weak-response regression, and the extreme-scaling scalar case; require Wc ~ -1 (or a hard rejection) and that no case is silently zeroed.",
+  "avoid": "Do not accept a passing run as proof of correctness — rcond = 1 with zero residuals does not detect this underflow — and do not restore a same-frequency Hermitian eigensolver fill or real-symmetry projection to make the solve cheaper.",
+  "source": "codex-sessions:rollout-2026-09-05T15-16-33-01a0706d-1aa9-7cd0-9909-fc9d9ad8451b.jsonl; codex-sessions:rollout-2026-09-05T15-12-37-01a07069-81a6-7813-942c-f306934132da.jsonl",
+  "confidence": "established",
+  "gate_id": "wc-extreme-scaling-regression-gate",
+  "parameters": {}
+}

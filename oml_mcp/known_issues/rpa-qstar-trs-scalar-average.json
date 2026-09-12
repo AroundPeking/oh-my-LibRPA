@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "rpa-qstar-trs-scalar-average",
+  "title": "RPA per-IBZ-q scalar needs q-star time-reversal averaging or Total EcRPA keeps a spurious imaginary part",
+  "symptom": "In the first k444 symmetry RPA test the real part was correct but the accumulated total energy retained an obvious imaginary part.",
+  "root_cause": "`symrot_k.txt` places `TRS * ...` members inside the same k/q star (k444 is a concrete example), so a scalar accumulated on the irreducible representative is not real on its own. The star average must combine the spatial star members with their time-reversed partners; when the star already contains -q the scalar is simply real.",
+  "minimal_fix": "Average the scalar contribution over the star inside the energy accumulation: F_star(q) = (n_s F(q) + n_t F(q)*) / (n_s + n_t), and when -q is already in the star take Re F(q). Apply the same treatment to the RPA weight w_q. RPA needs no W_c: only the ABF block rotation / little-group average of V(q) and chi0(q, iw) before Tr{V chi0} and logdet{1 - V chi0}.",
+  "validation": "No imaginary-part warning and no residual imaginary component in Total EcRPA; the k444 symmetry-on value must match the symmetry=-1 full-q run exactly at printed precision (`-0.342512415 Ha`).",
+  "avoid": "Do not just discard the imaginary part of the total, and do not reuse the GW W_c path for the RPA scalar - the RPA integrand is Tr{V chi0} + logdet, not a screened-interaction quantity.",
+  "source": "codex-sessions:rollout-2026-06-01T23-45-09-019e83dc-3dbe-7841-9eae-c96466c00acb.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-rpa-qstar-reality",
+  "parameters": {}
+}

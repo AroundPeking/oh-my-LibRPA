@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "headwing-pyatb-full-bz-only",
+  "title": "The head/wing lane cannot consume a symmetry-reduced pyatb_librpa_df - it must be generated on the full regular k-grid",
+  "symptom": "A symmetry-aware `get_diel.py` / `output_librpa.py` pair (reading `symrot_k.txt`, passing IBZ k-points + star member counts + nk_full, writing star-weighted occupations) was used to build `pyatb_librpa_df` for a symmetry lane, which broke the head/wing lane. The mistake had already been propagated into the CaMg2N2 k775 stage and into the GaAs `k6_foraux_xshrink` reference case, whose `pyatb` had to be regenerated.",
+  "root_cause": "head/wing in this LibRPA version does not support an IBZ/star-weight `pyatb_librpa_df`: the lane always evaluates the full k set, so the PyATB products must be full-BZ. The two roles were conflated in the same directory, so full-BZ files could also overwrite the root `band_out` / `KS_eigenvector_*` that the symmetry sidecar matching needs.",
+  "minimal_fix": "In the head/wing lane always regenerate `pyatb_librpa_df` on the full regular k-grid, and never pass `symrot_k.txt` IBZ k-points to `output_librpa.py`. Keep the files separate: root `band_out` / `k_path_info` / `velocity_matrix` / `KS_eigenvector_*.dat` are the symmetry-sidecar-matched products; `pyatb_librpa_df/*` are full-BZ products and must not overwrite the root ones. If only `pyatb_librpa_df` needs rebuilding, do it in an isolated directory and copy back only that subdirectory. Rule written into the skills (`skills/oh-my-librpa/references/gw-route.md`, `skills/abacus-librpa-gw/SKILL.md`).",
+  "validation": "`pyatb_librpa_df/band_out` first line must equal nk_full (216 for a 6x6x6 grid); the root `band_out` stays the symmetry-matched file (in the GaAs case both were 14693 lines); the LibRPA job must read the full grid and produce head/wing output without the missing-file errors.",
+  "avoid": "Do not 'modernize' the reference case by pointing it at the IBZ-aware scripts, and do not let full-BZ `pyatb_librpa_df` products overwrite the root `band_out`/`KS_eigenvector_*` files needed for symmetry sidecar matching - this silently corrupts the symmetry lane while leaving head/wing apparently fine.",
+  "source": "codex-sessions:rollout-2026-04-08T15-06-54-019d6bea-5e03-71c1-a341-bf978337f9f0.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-headwing-full-bz-pyatb",
+  "parameters": {}
+}

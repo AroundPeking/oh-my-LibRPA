@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "rpa-postscf-crash-map-at",
+  "title": "SCF 收敛后 RPA/EXX postSCF 路径崩溃：std::out_of_range: map::at",
+  "symptom": "BN headwing+shrink+SOC 回归测试 merge_test：SCF 实际已收敛（`OUT.ABACUS/running_scf.log:1787`），但随后在 RPA/EXX postSCF 阶段崩溃，停在 `running_scf.log:1857`-`:1861`；stdout 从 `abacus.1448.out:74` 起是 `BAD TERMINATION`，slurm 明确 `std::out_of_range: map::at`（`slurm-1448.out:8`）。用户最初怀疑是 STRU 晶格写法问题。",
+  "root_cause": "是 ABACUS develop 的 RPA/RI/EXX 后处理路径崩溃（map::at 越界），不是晶体结构格式错误；与 `do not use LATTICE_VECTORS along with explicit specification of lattice type` 那条提示无关（该提示源于 `latname=none`/`user_defined_lattice` 处理不一致）。同一算例还存在第二个独立问题：NSCF 带着已失效的 `exx_use_ewald`。",
+  "minimal_fix": "把两个问题分开处理：先按当前分支把 NSCF 的旧参数删掉；再针对 RPA/EXX postSCF 的 map::at 崩溃定位缺失的 map key（对照收敛日志最后阶段与通过回归的算例输入差异）。STRU 若要显式晶格类型可用 `latname user_defined_lattice`（或写 `latname fcc` 并保留显式 LATTICE_CONSTANT），但这不解决崩溃。",
+  "validation": "SCF 收敛后能越过 `running_scf.log:1857`-`:1861` 继续产出 RPA/EXX 后处理结果；slurm 日志无 `std::out_of_range: map::at`、无 `BAD TERMINATION`；NSCF 阶段无未识别参数报错。",
+  "avoid": "不要只改 STRU 就认为问题解决；不要把两个独立故障（旧参数 + postSCF 崩溃）合成一个根因；不要在程序错误阶段解读物理结果。",
+  "source": "codex-sessions:rollout-2026-03-11T15-48-36-019cdbde-7a66-72c3-95a7-9171895ee9a6.jsonl",
+  "confidence": "tentative",
+  "gate_id": "gate_rpa_postscf_completion",
+  "parameters": {
+    "failure_signature": "std::out_of_range: map::at（slurm-1448.out:8），BAD TERMINATION（abacus.1448.out:74）",
+    "splits": "问题1 = RPA/EXX postSCF 崩溃；问题2 = NSCF 带 exx_use_ewald",
+    "stru_fix_if_needed": "latname user_defined_lattice（或 latname fcc + 显式 LATTICE_CONSTANT）"
+  }
+}

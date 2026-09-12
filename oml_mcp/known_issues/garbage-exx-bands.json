@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "garbage-exx-bands",
+  "title": "EXX @PBE bands are completely garbage (implausible gap, jagged branches, NaNs)",
+  "symptom": "The EXX band structure is unreasonable: an implausible gap, jagged branches, NaN values, or high raw bands collapsing into the near-gap manifold.",
+  "root_cause": "A basis/PP mismatch, a shallow pseudopotential, a mismatched orbital family, an incomplete state space (nbands < nbasis), or an indefinite Coulomb matrix upstream of the EXX construction.",
+  "minimal_fix": "Run the EXX chain retest in order: (1) verify the pseudopotential and matched numerical-orbital family, (2) verify the auxiliary basis (ABFS) generation, (3) check nbands == nbasis, (4) check the Coulomb PSD/Hermitian gate. Fix the first failing link; do not tune the EXX output directly.",
+  "validation": "A clean PseudoDojo stringent / vetted Dojo-NC-SR PP with a matched orbital set gives continuous physical EXX bands and a plausible gap. Preserve the negative diagnostic rather than masking it.",
+  "avoid": "Masking the symptom (clipping, changing the band window, or substituting a different functional) before identifying the causal link.",
+  "source": "ghj-stringent-dojo-exx-diagnostic skill; abacus-pp-pbe-head-screening; ~/.codex sessions on abnormal EXX bands.",
+  "confidence": "established",
+  "gate_id": "stage.state_space.nbands_vs_nbasis",
+  "parameters": {"basis_family": "matched PP/orbital family", "nbands": "== nbasis"}
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "full-q-reference-requires-symmetry-minus1",
+  "title": "A true full-q reference requires ABACUS symmetry = -1; symmetry = 0 is still TRS-folded and IBZ data is not a substitute",
+  "symptom": "For BN k444 an ABACUS producer with `symmetry = 0` printed `KPOINTS 36`, not the expected 64 full points, so it could not serve as the no-symmetry baseline; switching the same input to `symmetry = -1` printed `KPOINTS 64`. Separately, taking the symmetry=1 producer (only 8 IBZ q/k points) and simply setting `use_abacus_rpa_symmetry = f` gave `Total EcRPA = -2.710799111 Ha`, versus the genuine full-q `-0.342512415 Ha`.",
+  "root_cause": "ABACUS symmetry=0 still folds k (and q) with time reversal, so the mesh is reduced (36 of 64) rather than full. A symmetry=1 producer writes only IBZ representatives plus star sidecars, so turning the LibRPA symmetry switch off downstream leaves an incomplete q/k mesh. Neither configuration is a full-q reference; the difference is a coverage artefact, not a numerical disagreement.",
+  "minimal_fix": "Whenever a symmetry-on result needs a full-q/symmetry-off control, build a second ABACUS producer with `symmetry = -1` (and keep `INPUT_nscf`/`INPUT` at `symmetry = -1`), then run LibRPA on that data with the symmetry flags off. Confirm the ABACUS log reports the full grid (e.g. `KPOINTS 64` for k444) before using it as the reference.",
+  "validation": "Grep the ABACUS SCF log for `KPOINTS`: 36 means symmetry=0 folding (unusable), 64 means symmetry=-1 full grid (usable). The symmetry-on IBZ run and the symmetry=-1 full-q run must then agree to printed precision on the same task (both `Total EcRPA = -0.342512415 Ha` for BN k444, np1 and np4).",
+  "avoid": "Do not treat `symmetry = 0` as 'symmetry off = full q'; do not compare an IBZ-producer run with LibRPA symmetry disabled against a symmetry-on run; do not present `use_abacus_*_symmetry = f` on IBZ data as a cheap no-symmetry control.",
+  "source": "codex-sessions:rollout-2026-06-01T23-45-09-019e83dc-3dbe-7841-9eae-c96466c00acb.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-fullq-reference-symmetry-minus1",
+  "parameters": {}
+}

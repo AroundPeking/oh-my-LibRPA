@@ -1,0 +1,91 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "altermagnet_gw",
+  "description": "Altermagnetic alpha-MnTe GW (GTH TZDP10 matched basis, nspin=2).",
+  "extends": null,
+  "parameters": {
+    "basis_family": {
+      "default": "gth_tzdp10",
+      "allowed_range": [
+        "gth_tzdp10",
+        "dojo_nc_sr_tzdp",
+        "oncv_pbe_10au_100ry"
+      ],
+      "target": "gth_tzdp10",
+      "per_system_override_rule": "Use the validated GTH TZDP10 matched basis set for alpha-MnTe.",
+      "rationale": "The altermagnet identity is frozen on the GTH TZDP10 matched basis.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "tzdp10",
+      "allowed_range": [
+        "tzdp10",
+        "tzdp"
+      ],
+      "target": "tzdp10",
+      "per_system_override_rule": "Keep the 10au TZDP NAO family that the reference uses.",
+      "rationale": "The frozen reference uses the GTH TZDP10 set.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": 1e-05,
+      "allowed_range": [
+        1e-06,
+        0.0001
+      ],
+      "target": 1e-05,
+      "per_system_override_rule": "Use an explicit small threshold; Mn is a 3d heavy element and the automatic cutoff breaks EXX.",
+      "rationale": "Heavy 3d elements make the Cs inverse ill-conditioned; the automatic cutoff produces garbage EXX.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        4,
+        4,
+        4
+      ],
+      "allowed_range": [
+        1,
+        1,
+        1
+      ],
+      "target": [
+        4,
+        4,
+        4
+      ],
+      "per_system_override_rule": "Use a regular Gamma-centred mesh matching the SCF run.",
+      "rationale": "Screening definition must match the producer mesh.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "nfreq": {
+      "default": 16,
+      "allowed_range": [
+        4,
+        128
+      ],
+      "target": 16,
+      "per_system_override_rule": "Use a moderately dense frequency grid.",
+      "rationale": "Magnetic systems need a denser grid than the smallest smoke cases.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "nbands": {
+      "default": 0,
+      "allowed_range": [
+        0,
+        4096
+      ],
+      "target": null,
+      "per_system_override_rule": "Set nbands equal to nbasis; an altermagnet has two spin channels so nbasis is roughly doubled.",
+      "rationale": "An incomplete state space corrupts EXX/GW.",
+      "gate_id": "stage.state_space.nbands_vs_nbasis",
+      "confidence": "established"
+    }
+  }
+}

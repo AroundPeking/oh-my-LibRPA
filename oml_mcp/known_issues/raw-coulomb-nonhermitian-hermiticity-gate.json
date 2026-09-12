@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "raw-coulomb-nonhermitian-hermiticity-gate",
+  "title": "Raw auxiliary Coulomb block marginally non-Hermitian (1.178e-12 vs the 1e-12 gate) aborts the campaign at 'require finite Hermitian Coulomb matrix'",
+  "symptom": "Na finite-T full-q screening: job 3247316 FAILED 1:0 after 4m58s. Twelve representative q points passed (max adjoint 4.48578e-12) and the run stopped at representative 13 (one-based iq14, zero-based iq13, q ~ (-1/8, 1/8, 1/8)) with the message 'require finite Hermitian Coulomb matrix'. The raw 140x140 full/cut V there has ||V - V^dag|| / ||V|| = 1.17812e-12 against the unchanged 1e-12 gate, with max diagonal imaginary part 1.760014e-11.",
+  "root_cause": "The asymmetry is created in the producer/reader round-trip, not by the screening step: the native reader preserves the raw full on-site block, the serial epsilon assembly effectively uses the raw lower triangle for the one-atom cell while the default ScaLAPACK path uses the raw upper triangle, and the ABACUS writer's Fourier/periodization phase (exact fractional vs Cartesian q.R, self-inverse R blocks) leaves small off-diagonal/imaginary mismatches. Independently reproduced: zeroing only the imaginary diagonal does not bring the residual below the limit.",
+  "minimal_fix": "Locate the responsible matrix elements element-wise for the failing q, then make writer and reader agree on a single triangle/phase convention so the reconstructed block is Hermitian by construction (write/read one triangle and mirror exactly, with one documented fractional-q phase convention). Do not change the gate value and do not project V.",
+  "validation": "Recompute ||V - V^dag||/||V|| and the max diagonal imaginary part for the failing q (iq13/native iq14) plus a passing control (iq12) and require the failing residual to fall well below 1e-12 while the control is unchanged; then re-run the full representative set and require all q to pass the unchanged 1e-12 gate. Cross-check that the twelve previously passing representatives still pass.",
+  "avoid": "Do not declare it fixed after clearing the diagonal imaginary part (reproduced: the residual stays over the limit), do not raise the 1e-12 threshold, do not Hermitian-project the matrix, and do not retry the job expecting a different outcome.",
+  "source": "codex-sessions:rollout-2026-09-06T00-23-05-01a07261-7820-7a30-88d2-e0c580c718e9.jsonl; codex-sessions:rollout-2026-09-05T22-46-02-01a07208-9e74-7263-887a-2f48a271b8d7.jsonl; codex-sessions:rollout-2026-09-06T01-31-33-01a072a0-258d-7aa2-be58-3fef98e86a2f.jsonl",
+  "confidence": "tentative",
+  "gate_id": "coulomb-hermiticity-1e-12-gate",
+  "parameters": {}
+}

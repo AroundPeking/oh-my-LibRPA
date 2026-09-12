@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "abacus-exx-energy-kernel-mismatch",
+  "title": "ABACUS printed EXX total uses the active-ABFS + Spencer truncated kernel, so cut-vs-full Coulomb differences are not evidence of a bad Coulomb matrix",
+  "symptom": "For GeTe/SnSe the printed ABACUS EXX energy is -95.32359552 / -90.91615538 Ha per cell, while the LibRPA full-direct occupied trace is -92.60441917 / -350.93993950 Ha — differences of tens to hundreds of Ha that look like a catastrophic Coulomb-matrix failure.",
+  "root_cause": "The value ABACUS prints comes from the active ABFS (physical NAO products generated with exx_pca_thr 1e-4 and rotated) together with the Spencer spherical truncated kernel (source/source_lcao/module_ri/RPA_LRI.hpp:576, active basis construction in Exx_LRI.hpp:417) and a plain-CVC pseudo-inverse with relative threshold lambda > lambda_max * 1e-5. The external plus-g raw ABFS, the raw Cs and the shrink mapping do not enter that printed total. The LibRPA trace instead uses the full-direct kernel, so the two numbers are computed with different kernels and thresholds and are not comparable. In addition, empty states have zero occupation, so a catastrophic empty-band shift need not enter the occupied trace: a finite total does not prove the operator is correct (ABACUS total energy is not independently validated).",
+  "minimal_fix": "Compare like with like: audit the printed EXX against the same kernel/basis/threshold path (active ABFS + Spencer cut + the same Cs inverse threshold) and treat only a same-kernel discrepancy as a Coulomb bug. Record the kernel, basis (raw vs active ABFS) and pseudo-inverse threshold next to every EXX number.",
+  "validation": "Recompute both traces with matched kernel/basis/threshold and show the difference collapses to the small residual expected from the cut-vs-full kernel difference; separately inspect the empty-band energies, since a correct occupied trace does not imply correct empty states.",
+  "avoid": "Do not call the raw cut-vs-full difference an error without matching kernel and pseudo-inverse threshold ('核与筛选阈值不匹配，不能把差值直接判为错误'), and do not conclude the operator is validated because the printed total energy is finite.",
+  "source": "codex-sessions:rollout-2026-09-06T23-10-46-01a07745-9e3d-7943-9019-06ace25cc21a.jsonl",
+  "confidence": "established",
+  "gate_id": "exx-energy-kernel-match-gate",
+  "parameters": {}
+}

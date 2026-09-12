@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "irreducible-q-representative-only",
+  "title": "With symmetry on, only irreducible q-star representative indices may be submitted; other q indices abort with 'not a representative of the symmetry q-star'",
+  "symptom": "A production array submitted all 16 q indices of a 4x4x1 mesh with symmetry on; pure graphene q004 finished SCF and 2D Coulomb construction and then exited with the explicit error (Chinese log) '所选 q 点不是对称性 q-star 的代表点' (the chosen q point is not a representative of the symmetry q-star). q001-q003 ran, the remaining indices would have failed identically, wasting nodes.",
+  "root_cause": "The symmetry lane writes/accepts only irreducible q-star representatives (10 of the 16 points for this 4x4x1 slab). Submitting the full q index list mechanically mixes representative and non-representative points, and non-representatives have no partial-response data to accumulate.",
+  "minimal_fix": "Recover the correct representative list and weights from the actual `bz_sampling` output, filter the job array (or the aggregation script) to the irreducible q-star representatives only, and aggregate with the `v1_partial + symmetry manifest` flow rather than re-running the full q index list.",
+  "validation": "The number of representatives must match the symmetry-reduced q count (10 here); the resulting equation/shard counts must follow from that set - this case is 35 x 10 x 16 = 5600 response equations and 160 shards, not the 6160/176 estimated from the unfiltered list. Confirm no job fails with the q-star representative error.",
+  "avoid": "Do not freeze/ignore the error as a transient; do not keep submitting the remaining non-representative indices 'to be safe', and do not infer the representative set from the input KPT block instead of from the actual bz_sampling/sidecar output.",
+  "source": "codex-sessions:rollout-2026-06-09T13-21-10-019eaad3-d5f6-7223-9d0c-51361b4d0028.jsonl",
+  "confidence": "established",
+  "gate_id": "gate-symmetry-irreducible-q-representatives",
+  "parameters": {}
+}

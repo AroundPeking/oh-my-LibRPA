@@ -1,0 +1,26 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stringent-nao-catastrophic-exx-use-verified-library",
+  "title": "Self-generated stringent 10au TZDP NAO gives good PBE but catastrophic EXX; the verified library Dojo-NC-SR TZDP10 set passes",
+  "symptom": "GeTe from the old stringent route (q22/q24, NAO 6s6p3d2f, TZDP10) has a good PBE band structure but a catastrophic EXX, and the old SnSe stringent route EXX failed badly, so no GW can be built on it.",
+  "root_cause": "The self-generated stringent NAO (combined PP+orbital replacement, lower-valence/q22-q24 PseudoDojo) produces an EXX pathology that inverse-threshold tuning does not remove. The verified library set - Dojo-NC-SR PP with matched TZDP10 physical 3s3p3d2f orbital, an extra 1g auxiliary-only shell, and external ABFS_ORBITAL generated at PCA 1e-4 (library q14/q16) - passes numerical EXX.",
+  "minimal_fix": "Do not regenerate: reuse the verified library Dojo-NC-SR TZDP10 physical 3s3p3d2f orbital plus the extra 1g auxiliary-only shell, with external ABFS_ORBITAL, keeping the production switch set exactly: exx_pca_threshold 10, shrink 1e-4, shrink_lu_inv_thr 1e-3, exx_cs_inv_thr omitted, symmetry on, direct 110 Ry, kz 64, Gamma8, no SOC. Search the existing registry by exact hash before regenerating anything.",
+  "validation": "The library control passes numerical EXX, and GeTe then completed through production_20260908/gete_library_tzdp10_noinv_20260908 and production_20260909/gete_library_tzdp10_plusg_gw_master_b6a432b9_20260909 against tested LibRPA master-ghj b6a432b9.",
+  "avoid": "Do not submit GW from the failed SnSe stringent route. Do not force fresh NAO/ABFS generation when an exact-hash vetted library asset exists (an audit of the diagnostic skill found it explicitly mandated 'generate a fresh physical NAO' plus auxiliary/ABFS regeneration, conflicting with the screening skill's reuse-first rule). Do not attribute the cure to the pseudopotential OR the basis alone - the library swap changed both at once.",
+  "source": "codex-sessions:rollout-2026-09-09T12-29-49-01a0846d-e432-7711-97c2-12f9d7f54d44.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:reuse-verified-basis",
+  "parameters": {
+    "nao": "Dojo-NC-SR matched TZDP10 physical 3s3p3d2f + extra 1g auxiliary-only",
+    "aux_basis": "external ABFS_ORBITAL, generation PCA 1e-4",
+    "exx_pca_threshold": "10",
+    "shrink": "1e-4",
+    "shrink_lu_inv_thr": "1e-3",
+    "exx_cs_inv_thr": "omit (leave unset)",
+    "symmetry": "on",
+    "direct_cutoff": "110 Ry",
+    "kz": "64",
+    "soc": "off",
+    "asset_rule": "reuse by exact hash before regenerating"
+  }
+}

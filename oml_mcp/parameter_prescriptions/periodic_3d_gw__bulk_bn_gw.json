@@ -1,0 +1,100 @@
+{
+  "schema": "oml.parameter-prescription.v1",
+  "route_id": "periodic_3d_gw",
+  "material_class": "bulk_bn_gw",
+  "description": "Bulk hexagonal BN G0W0. Grounded in the LibRPA BN shrink/symmetry regression cases.",
+  "extends": "default",
+  "parameters": {
+    "nfreq": {
+      "default": 8,
+      "allowed_range": [
+        4,
+        64
+      ],
+      "target": 8,
+      "per_system_override_rule": "nFreq 8 matches the upstream BN shrink regression and is enough for the fast case.",
+      "rationale": "The upstream BN regression validates nfreq=8 for this system.",
+      "gate_id": "stage.librpa.completion",
+      "confidence": "established"
+    },
+    "screening_kgrid": {
+      "default": [
+        2,
+        2,
+        2
+      ],
+      "allowed_range": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          8,
+          8,
+          8
+        ]
+      ],
+      "target": [
+        2,
+        2,
+        2
+      ],
+      "per_system_override_rule": "Use the fast 2x2x2 Gamma-centred mesh from the regression case for the quick check.",
+      "rationale": "The BN sym-shrink regression uses a 2x2x2 Gamma mesh; matching it keeps the fast case seconds-scale.",
+      "gate_id": "dataset.screening_grid",
+      "confidence": "established"
+    },
+    "basis_family": {
+      "default": "oncv_pbe_8au_100ry",
+      "allowed_range": [
+        "oncv_pbe_8au_100ry",
+        "oncv_pbe_10au_100ry",
+        "dojo_nc_sr_tzdp",
+        "gth_soc_pbe"
+      ],
+      "target": "oncv_pbe_8au_100ry",
+      "per_system_override_rule": "Use the ONCV PBE PP with the matched 8au/100Ry 2s2p1d orbital set.",
+      "rationale": "The BN regression pairs B/N ONCV PBE PPs with B/N gga_8au_100Ry_2s2p1d orbitals.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "nao_family": {
+      "default": "2s2p1d",
+      "allowed_range": [
+        "2s2p1d",
+        "tzdp",
+        "dzp"
+      ],
+      "target": "2s2p1d",
+      "per_system_override_rule": "Keep the 2s2p1d NAO set that the regression validates.",
+      "rationale": "Matches the upstream BN orbital set.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "exx_cs_inv_thr": {
+      "default": -1.0,
+      "allowed_range": [
+        -1.0,
+        1.0
+      ],
+      "target": -1.0,
+      "per_system_override_rule": "Leave the automatic default for light elements; BN needs no manual cutoff.",
+      "rationale": "BN is light-element and the automatic Cs inverse cutoff is well conditioned.",
+      "gate_id": null,
+      "confidence": "established"
+    },
+    "shrink_threshold": {
+      "default": 0.001,
+      "allowed_range": [
+        0.0,
+        1.0
+      ],
+      "target": 0.001,
+      "per_system_override_rule": "Keep the upstream shrink_lu_inv_thr=1e-3 for BN.",
+      "rationale": "The BN sym-shrink regression uses shrink_lu_inv_thr 1e-3.",
+      "gate_id": "coulomb.psd_hermitian",
+      "confidence": "established"
+    }
+  }
+}

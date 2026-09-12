@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "stale-get-diel-out-librpa-ignore-symmetry",
+  "title": "Stale copies of get_diel.py / out_librpa.py in a stage build pyatb_librpa_df from the full MP grid and ignore symmetry",
+  "symptom": "The same-named get_diel.py and out_librpa.py differ between /data/home/df_iopcas_ghj/gw/GaAs/k6_foraux_xshrink and the CaMg2N2 stage, and it was unclear which is correct, so results from the two cases are not comparable ('哪个是对的').",
+  "root_cause": "The copies in GaAs/k6_foraux_xshrink are the updated version that handles symrot_k.txt and IBZ weights; the copies used by the CaMg2N2 stage are the older version that only generates pyatb_librpa_df on the full MP mesh, ignoring the symmetry-reduced k set and its weights. Same-named scripts in different case directories are not equivalent.",
+  "minimal_fix": "Replace the stage's get_diel.py and out_librpa.py with the updated versions from /data/home/df_iopcas_ghj/gw/GaAs/k6_foraux_xshrink (the ones reading symrot_k.txt and IBZ weights) and regenerate pyatb_librpa_df so the head/wing path uses the correctly weighted IBZ k set.",
+  "validation": "diff the two script pairs to confirm the stage copies now contain the symrot_k.txt / IBZ-weight handling, then regenerate pyatb_librpa_df and check the produced k list and weights match the symmetry-reduced set rather than the full MP grid.",
+  "avoid": "Do not keep running the stage with the old scripts 'just to compare' (mixing an old workflow copy into a new stage contaminates later audits), and do not assume same-named scripts in different case directories are equivalent.",
+  "source": "codex-sessions:rollout-2026-04-08T15-06-54-019d6bea-5e03-71c1-a341-bf978337f9f0.jsonl",
+  "confidence": "established",
+  "gate_id": "gate:headwing-script-provenance",
+  "parameters": {
+    "get_diel_py": "use the GaAs/k6_foraux_xshrink version (handles symrot_k.txt and IBZ weights)",
+    "out_librpa_py": "use the GaAs/k6_foraux_xshrink version",
+    "pyatb_librpa_df": "regenerate after switching scripts; do not reuse the full-MP-grid output"
+  }
+}

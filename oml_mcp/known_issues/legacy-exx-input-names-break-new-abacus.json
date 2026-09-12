@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "legacy-exx-input-names-break-new-abacus",
+  "title": "旧参数名在新 ABACUS 上直接不认：exx_use_ewald（NSCF）与 cs_inv_thr",
+  "symptom": "回归算例 merge_test 里 NSCF 报旧参数错误：`exx_use_ewald` 已经不认（`nscf.1448.out:13`），而当前运行用的 INPUT 第 37 行仍带着它；早期另一算例的失败也是旧参数名未适配新 ABACUS，例如 `exx_use_ewald` 和 `cs_inv_thr`。",
+  "root_cause": "参数在分支演进中被改名/移除：`exx_use_ewald` 不再被识别，逆阈值参数改名为 `exx_cs_inv_thr`。这类失败经常被误判成框架不兼容（例如以为 shrink 与 paircorr 不兼容），实际只是输入 schema 过期。",
+  "minimal_fix": "按当前分支重写 INPUT/INPUT_scf/INPUT_nscf，删除 `exx_use_ewald`，把 `cs_inv_thr` 改成 `exx_cs_inv_thr`；三个 INPUT 分别独立检查，不要只看 SCF。",
+  "validation": "重跑后 NSCF 日志不再出现未识别参数报错；对每个 INPUT 文件做参数名白名单检查；与当前分支的 INPUT 测试样例（source/source_io/test/support/INPUT）对照。",
+  "avoid": "不要把旧参数报错归因于 shrink/paircorr 框架不兼容；不要只修 INPUT_scf 而漏掉 INPUT_nscf/INPUT；不要在未确认参数名生效前解读数值结果。",
+  "source": "codex-sessions:rollout-2026-03-15T16-12-14-019cf08d-8d0e-7d61-a0be-2f6350a3d40d.jsonl | codex-sessions:rollout-2026-03-11T15-48-36-019cdbde-7a66-72c3-95a7-9171895ee9a6.jsonl",
+  "confidence": "established",
+  "gate_id": "gate_input_schema_current",
+  "parameters": {
+    "renamed": "cs_inv_thr -> exx_cs_inv_thr",
+    "removed": "exx_use_ewald（新分支不再识别）",
+    "check_scope": "INPUT、INPUT_scf、INPUT_nscf 三处逐个检查"
+  }
+}

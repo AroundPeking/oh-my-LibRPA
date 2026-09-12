@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "static-w-antihermitian-from-chi",
+  "title": "Static-W anti-Hermitian residual is inherited from a non-Hermitian chi, not produced by the Coulomb screening code",
+  "symptom": "Job 3250730 failed at the iq28 static-W gate: the positive/negative pairing test passes at 1.125e-15, but static W has Hermres 1.536e-11, above the 1e-11 limit. The input static chi already has Hermres 4.0337e-12 while the Coulomb roots are Hermitian to ~1e-16.",
+  "root_cause": "For Wc = T Y S chi S Y^dag T with Hermitian Coulomb roots S,T and Y = (I - S chi S)^-1, the anti-Hermitian part of static Wc is exactly T Y S (chi - chi^dag) S Y^dag T. This was verified numerically: the C++ W anti-Hermitian part matches that expression to 3.64e-16 absolute, and the C++ W itself agrees with an independent general complex solve to 2.14e-15. The 1.5e-11 residual therefore comes from the upstream chi producer.",
+  "minimal_fix": "Leave the static-W gate and the C++ screening untouched and move the investigation to the chi producer, which already carries ~4e-12 anti-Hermitian weight; fix the producer so chi is Hermitian to the required tolerance.",
+  "validation": "Check element-wise that W - W^dag equals T Y S (chi - chi^dag) S Y^dag T (expect ~1e-16 agreement) and that the C++ W matches an independent general LU solve to ~1e-15; then re-run the iq28 static gate after the producer fix and require Hermres <= 1e-11.",
+  "avoid": "Do not Hermitian-project W, do not relax the 1e-11 threshold, and do not treat the failing q point as a bug in the screening algorithm — the attribution algebra shows where the asymmetry enters.",
+  "source": "codex-sessions:rollout-2026-09-06T04-34-58-01a07348-1411-7812-9b39-63fdbc8a12b7.jsonl",
+  "confidence": "established",
+  "gate_id": "static-w-hermiticity-attribution-gate",
+  "parameters": {}
+}

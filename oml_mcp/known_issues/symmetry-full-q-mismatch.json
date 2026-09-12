@@ -1,0 +1,14 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-full-q-mismatch",
+  "title": "Symmetry/full-q comparison mismatch",
+  "symptom": "The symmetry-enabled GW branch does not agree with the full-q branch within the registered symmetry_fullq_tolerance_ev (e.g. 0.0001 eV).",
+  "root_cause": "A stale or mismatched stru_out, a truncated state space (nbands < nbasis), an indefinite Coulomb matrix, or a k-grid/basis discrepancy between the two branches. In LibRPA 0.7.0 the rotation reconstruction is rebuilt from the symmetry metadata in stru_out; a missing or wrong stru_out breaks it.",
+  "minimal_fix": "Keep nbands, k-meshes, shrink settings, thresholds, PP/NAO/ABFS files, and helper scripts identical between the two branches; patch only the symmetry-related keys and the stru_out-producing SCF stage. Verify stru_out comes from the same symmetry-enabled SCF and is present in the LibRPA working directory.",
+  "validation": "Gate KS, EXX, GW, and the fundamental gap independently at the registered symmetry tolerance; a stable gap alone cannot accept the pair. A matching symmetry/full-q control (e.g. the BN 4x4x4 no-head/wing 8-q to 64-q control) should agree to 1e-5 eV.",
+  "avoid": "Relaxing the symmetry gate, or reusing a full-q stru_out for a symmetry run (or vice versa) based on matching lattice constants and basis dimensions alone.",
+  "source": "abacus-librpa-strict2d-ewald-headwing; oh-my-librpa gw-route periodic symmetry lane; ~/.codex sessions on symmetry bug.",
+  "confidence": "established",
+  "gate_id": "stage.symmetry_fullq",
+  "parameters": {"symmetry": "use_symmetry_exx/gw t with matched stru_out", "nbands": "== nbasis"}
+}
