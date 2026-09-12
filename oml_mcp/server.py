@@ -14,6 +14,11 @@ from .artifacts import (
 from .admission_manifest import load_admission_manifest
 from .benchmark_suite import evaluate_registered_route_benchmark_suite
 from .control import ControlledExecutionService
+from .coulomb_diagnostics import inspect_coulomb_psd_hermitian
+from .diagnostic_canary import (
+    run_diagnostic_battery as run_diagnostic_battery_data,
+    score_diagnostic_battery,
+)
 from .evals import evaluate_evidence, load_scorecard, score_route_benchmark
 from .errors import OMLError
 from .evolution import EvolutionBudget, EvolutionUsage, propose_candidate
@@ -97,7 +102,7 @@ def build_server() -> MCPServer:
             "execution profile, immutable plan digest, fixed stage name, and registered run receipt. "
             "No tool accepts arbitrary shell, SSH, Slurm, cleanup, or retry commands."
         ),
-        version="0.4.10",
+        version="0.4.11",
     )
     annotations = _read_only_annotations()
 
@@ -459,6 +464,51 @@ def build_server() -> MCPServer:
             reconstruction_tolerance=reconstruction_tolerance,
             metric_relative_tolerance=metric_relative_tolerance,
         )
+
+    @server.tool(
+        name="inspect_coulomb_matrix",
+        description=(
+            "Check every reader-v1 full-Coulomb q block for Hermiticity and "
+            "positive-semidefiniteness without any reference or clipping."
+        ),
+        annotations=_external_read_annotations(),
+        structured_output=True,
+    )
+    def inspect_coulomb_matrix(
+        path: str,
+        hermitian_relative_tolerance: float = 1.0e-9,
+        negative_eigenvalue_relative_floor: float = 1.0e-8,
+    ) -> dict[str, Any]:
+        """Run the reference-free Coulomb PSD/Hermitian gate on one directory."""
+        return inspect_coulomb_psd_hermitian(
+            Path(path),
+            hermitian_relative_tolerance=hermitian_relative_tolerance,
+            negative_eigenvalue_relative_floor=negative_eigenvalue_relative_floor,
+        )
+
+    @server.tool(
+        name="run_diagnostic_battery",
+        description=(
+            "Run the fast reference-free diagnostic battery over a run directory: "
+            "per-stage output gates, Coulomb PSD/Hermitian, nbands==nbasis, "
+            "LibRPA scalar finiteness, and curated known-issue remediation."
+        ),
+        annotations=_external_read_annotations(),
+        structured_output=True,
+    )
+    def run_diagnostic_battery(
+        run_path: str,
+        stages: list[ControlledStage] | None = None,
+        include_remediation: bool = True,
+    ) -> dict[str, Any]:
+        """Scan one run with the fail-closed battery and bridge it to promotion evidence."""
+        report = run_diagnostic_battery_data(
+            Path(run_path),
+            stages=stages,
+            include_remediation=include_remediation,
+        )
+        report["promotion_evidence"] = score_diagnostic_battery(report)
+        return report
 
     @server.tool(
         name="prepare_run",

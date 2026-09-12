@@ -165,12 +165,12 @@ class PhaseTwoDocumentationTest(unittest.TestCase):
         package = (REPOSITORY / "oml_mcp" / "__init__.py").read_text(encoding="utf-8")
         server = (REPOSITORY / "oml_mcp" / "server.py").read_text(encoding="utf-8")
 
-        self.assertEqual(plugin["version"], "0.4.10")
-        self.assertIn('version = "0.4.10"', pyproject)
+        self.assertEqual(plugin["version"], "0.4.11")
+        self.assertIn('version = "0.4.11"', pyproject)
         self.assertIn('"benchmark_suites/*.json"', pyproject)
         self.assertIn('"route_benchmarks/*.json"', pyproject)
-        self.assertIn('__version__ = "0.4.10"', package)
-        self.assertIn('version="0.4.10"', server)
+        self.assertIn('__version__ = "0.4.11"', package)
+        self.assertIn('version="0.4.11"', server)
 
     def test_siab_first_order_wavefunction_plan_is_preserved(self):
         text = (

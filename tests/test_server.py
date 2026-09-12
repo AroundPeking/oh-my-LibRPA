@@ -42,6 +42,8 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "inspect_reader_v1",
                 "inspect_grid_coulomb_consistency",
                 "inspect_sternheimer_comparison",
+                "inspect_coulomb_matrix",
+                "run_diagnostic_battery",
                 "evaluate_admission",
                 "propose_evolution_candidate",
                 "prepare_run",
@@ -72,6 +74,8 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             "inspect_reader_v1",
             "inspect_grid_coulomb_consistency",
             "inspect_sternheimer_comparison",
+            "inspect_coulomb_matrix",
+            "run_diagnostic_battery",
             "evaluate_admission",
             "propose_evolution_candidate",
             "get_status",
@@ -181,6 +185,61 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info["format_version"], "v1")
         self.assertEqual(info["metadata"]["nstates"], 3)
 
+    async def test_coulomb_matrix_tool_reports_psd_and_indefinite_blocks(self):
+        from tests.test_stage_inspection import write_coulomb_block
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_coulomb_block(
+                root / "v1_coulomb_full_iq_1_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
+            clean = await self.call("inspect_coulomb_matrix", {"path": str(root)})
+
+            write_coulomb_block(
+                root / "v1_coulomb_full_iq_2_rank0.dat",
+                np.diag([-1.0, 9.0]).astype(np.complex128),
+            )
+            indefinite = await self.call("inspect_coulomb_matrix", {"path": str(root)})
+
+        self.assertEqual(clean["status"], "PASS")
+        self.assertEqual(clean["counts"]["FAIL"], 0)
+        self.assertEqual(indefinite["counts"]["FAIL"], 1)
+        indefinite_gate = next(
+            gate
+            for gate in indefinite["gates"]
+            if gate["gate_id"] == "coulomb.psd_hermitian.iq_2"
+        )
+        self.assertEqual(indefinite_gate["status"], "FAIL")
+        self.assertIn("negative_eigenvalue_count=1", indefinite_gate["evidence"])
+
+    async def test_diagnostic_battery_tool_scans_clean_and_empty_runs(self):
+        from tests.test_diagnostic_canary import _write_full_clean_run
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            clean_root = pathlib.Path(tmpdir) / "clean"
+            _write_full_clean_run(clean_root)
+            clean = await self.call(
+                "run_diagnostic_battery", {"run_path": str(clean_root)}
+            )
+
+            empty_root = pathlib.Path(tmpdir) / "empty"
+            empty_root.mkdir()
+            empty = await self.call(
+                "run_diagnostic_battery", {"run_path": str(empty_root)}
+            )
+
+        self.assertEqual(clean["status"], "PASS")
+        self.assertEqual(
+            clean["promotion_evidence"]["promotion_eligibility"], "ENABLED"
+        )
+        self.assertIn("reference accuracy remains unproven", clean["promotion_evidence"]["evidence_note"])
+        self.assertEqual(empty["status"], "NOT_EVALUATED")
+        self.assertEqual(
+            empty["promotion_evidence"]["promotion_eligibility"], "BLOCKED"
+        )
+        self.assertEqual(empty["remediation"]["matched_count"], 0)
+
     async def test_stdio_protocol_initializes_lists_and_calls_tools(self):
         repository = pathlib.Path(__file__).resolve().parents[1]
         parameters = StdioServerParameters(
@@ -196,7 +255,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 24)
+        self.assertEqual(len(listed.tools), 26)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "master_ghj")
 
