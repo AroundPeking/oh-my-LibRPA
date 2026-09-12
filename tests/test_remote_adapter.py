@@ -544,3 +544,62 @@ class UpsertSpacingTest(unittest.TestCase):
 
             document = parse_abacus_input(path)
             self.assertEqual(document.value("shrink_lu_inv_thr"), "0.001")
+
+
+class AwaitTerminalStateTest(unittest.TestCase):
+    def test_scheduler_completed_stage_proceeds_to_inspection(self):
+        """A Slurm-COMPLETED stage must reach the gate battery, not abort.
+
+        The first live cluster run exposed this: _await_stage returns
+        'COMPLETED' for a successful scheduler job, and the old
+        `reached != 'PASSED'` check treated every real success as a failure.
+        """
+        import tempfile
+
+        from oml_mcp.remote_adapter import ControlledExecutionBinding
+
+        calls = {"inspect": 0}
+
+        class FakeService:
+            def get_status(self, run_id, attempt_id):
+                return {
+                    "attempt": {"status": "SUBMITTED"},
+                    "scheduler": {"normalized_state": "COMPLETED", "raw_state": "COMPLETED"},
+                }
+
+            def inspect_stage(self, run_id, attempt_id, plan_digest):
+                calls["inspect"] += 1
+                return {"accepted": True, "counts": {"PASS": 3, "WARN": 0, "FAIL": 0, "SKIP": 0}}
+
+            def submit_stage(self, run_id, stage, plan_digest):
+                return {"attempt_id": f"attempt-{stage}"}
+
+        binding = ControlledExecutionBinding(service=FakeService(), sleep=lambda _s: None)
+        receipt = {"run_id": "run-x", "plan_digest": "digest", "remote_run_dir": "/tmp/unused"}
+        outcome = binding.run_stages(receipt, ("scf",))
+
+        self.assertEqual(calls["inspect"], 1)
+        self.assertEqual(outcome["status"], "COMPLETED")
+        self.assertTrue(outcome["detail"][-1]["accepted"])
+
+    def test_scheduler_failed_stage_aborts_before_inspection(self):
+        from oml_mcp.remote_adapter import ControlledExecutionBinding
+
+        class FakeService:
+            def get_status(self, run_id, attempt_id):
+                return {
+                    "attempt": {"status": "SUBMITTED"},
+                    "scheduler": {"normalized_state": "FAILED", "raw_state": "FAILED"},
+                }
+
+            def submit_stage(self, run_id, stage, plan_digest):
+                return {"attempt_id": f"attempt-{stage}"}
+
+            def inspect_stage(self, run_id, attempt_id, plan_digest):
+                raise AssertionError("failed stages must not be inspected")
+
+        binding = ControlledExecutionBinding(service=FakeService(), sleep=lambda _s: None)
+        receipt = {"run_id": "run-x", "plan_digest": "digest", "remote_run_dir": "/tmp/unused"}
+        outcome = binding.run_stages(receipt, ("scf",))
+
+        self.assertEqual(outcome["status"], "FAILED")

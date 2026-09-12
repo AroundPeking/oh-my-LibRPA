@@ -735,7 +735,11 @@ class ControlledExecutionBinding:
                         }
 
             outcome = self._await_stage(run_id, attempt_id)
-            if outcome["reached"] != "PASSED":
+            # A scheduler-COMPLETED stage is not yet a pass: the diagnostic
+            # battery (including the COMMAND_COMPLETED receipt gate) decides.
+            # Only a scheduler failure, cancellation, or an unobservable stage
+            # aborts before inspection.
+            if outcome["reached"] in {"FAILED", "CANCELLED", "UNKNOWN"}:
                 detail.append(
                     {"stage": stage, "attempt_id": attempt_id, "outcome": outcome["reached"]}
                 )
