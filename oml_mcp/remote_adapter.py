@@ -524,6 +524,7 @@ class ControlledExecutionBinding:
         service: Any,
         poll_seconds: float = 30.0,
         max_polls: int = 240,
+        scheduler_max_polls: int | None = None,
         plan_options: dict[str, Any] | None = None,
         sleep: Callable[[float], None] | None = None,
         login_node: "LoginNodePolicy | None" = None,
@@ -535,6 +536,13 @@ class ControlledExecutionBinding:
         self.service = service
         self.poll_seconds = poll_seconds
         self.max_polls = max_polls
+        # Scheduler stages queue behind other users; a bounded-but-generous
+        # queue budget (default 12h) keeps a busy partition from being
+        # misreported as an infrastructure failure while still failing
+        # closed on a true hang.
+        self.scheduler_max_polls = (
+            scheduler_max_polls if scheduler_max_polls is not None else 1440
+        )
         self.plan_options = plan_options or {}
         self._sleep = sleep
         self.login_node = login_node
@@ -559,13 +567,16 @@ class ControlledExecutionBinding:
         }
 
     # -- stage execution ----------------------------------------------------
-    def _await_stage(self, run_id: str, attempt_id: str) -> dict[str, Any]:
+    def _await_stage(
+        self, run_id: str, attempt_id: str, *, scheduler_stage: bool = True
+    ) -> dict[str, Any]:
         """Poll one attempt until it reaches a terminal scheduler state."""
         import time
 
         sleep = self._sleep or time.sleep
+        budget = self.scheduler_max_polls if scheduler_stage else self.max_polls
         last: dict[str, Any] = {}
-        for _ in range(self.max_polls):
+        for _ in range(budget):
             last = self.service.get_status(run_id, attempt_id)
             attempt = last.get("attempt") or {}
             state = str(attempt.get("status") or "").upper()
