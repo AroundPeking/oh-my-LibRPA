@@ -826,19 +826,33 @@ class ControlledExecutionBinding:
     def collect_outputs(
         self, receipt: dict[str, Any], file_names: tuple[str, ...]
     ) -> dict[str, str]:
-        """Read declared outputs from the prepared local run directory."""
+        """Read declared outputs from the run's fetched terminal snapshots.
+
+        For ssh runs the produced artifacts never appear in the local run
+        root; the stage inspections fetch them into
+        ``<run>/.oml/snapshots/<attempt>/``. Search the newest snapshot
+        first, then fall back to the run root (local transport).
+        """
         root = receipt.get("local_run_dir")
         if not root:
             return {}
+        root_path = Path(root)
+        snapshot_dirs = sorted(
+            (root_path / ".oml" / "snapshots").glob("attempt-*"),
+            key=lambda item: item.stat().st_mtime,
+            reverse=True,
+        ) if (root_path / ".oml" / "snapshots").is_dir() else []
+        search_dirs = (*snapshot_dirs, root_path)
         collected: dict[str, str] = {}
         for name in file_names:
-            path = Path(root) / name
-            if not path.is_file():
-                continue
-            try:
-                collected[name] = path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
+            for directory in search_dirs:
+                path = directory / name
+                if path.is_file():
+                    try:
+                        collected[name] = path.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        continue
+                    break
         return collected
 
 

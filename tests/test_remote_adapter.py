@@ -603,3 +603,33 @@ class AwaitTerminalStateTest(unittest.TestCase):
         outcome = binding.run_stages(receipt, ("scf",))
 
         self.assertEqual(outcome["status"], "FAILED")
+
+
+class CollectOutputsTest(unittest.TestCase):
+    def test_collect_prefers_newest_snapshot_then_run_root(self):
+        import tempfile
+
+        from oml_mcp.remote_adapter import ControlledExecutionBinding
+
+        binding = ControlledExecutionBinding(service=object())
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run = pathlib.Path(tmpdir)
+            snap_old = run / ".oml" / "snapshots" / "attempt-old"
+            snap_new = run / ".oml" / "snapshots" / "attempt-new"
+            snap_old.mkdir(parents=True)
+            snap_new.mkdir(parents=True)
+            (snap_old / "GW_band_spin_1.dat").write_text("old\n", encoding="utf-8")
+            (snap_new / "GW_band_spin_1.dat").write_text("new\n", encoding="utf-8")
+            (run / "librpa.out").write_text("root\n", encoding="utf-8")
+
+            import time as _time
+
+            os_time = __import__("os")
+            os_time.utime(snap_old / "GW_band_spin_1.dat", (1, 1))
+            collected = binding.collect_outputs(
+                {"local_run_dir": str(run)},
+                ("GW_band_spin_1.dat", "librpa.out"),
+            )
+
+        self.assertEqual(collected["GW_band_spin_1.dat"], "new\n")
+        self.assertEqual(collected["librpa.out"], "root\n")
