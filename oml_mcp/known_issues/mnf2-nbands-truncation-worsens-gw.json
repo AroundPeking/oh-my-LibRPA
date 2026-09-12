@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "mnf2-nbands-truncation-worsens-gw",
+  "title": "Truncating empty states does NOT fix MnF2 GW - it destroys the conduction window",
+  "symptom": "Hypothesis 'PBE high states are so wrong that dropping them fixes GW' tested on MnF2 GW@PBE0 (basis 176, occupied 29/spin, window = states 1-31, screening 6x6x9, nfreq 16, QPE solver mode 2, frozen PP/NAO/ABFS; jobs 3286682/85/88/91). Path gaps: 176 -> 6.71815 eV (baseline), 128 -> 7.64408 (+0.93 eV), 80 -> -13805.85, 48 -> -19947.94, 32 -> 14.12853 with VBM corrupted (-0.458 vs 3.954). KS and EXX are bit-identical across all points (truncation correctly isolated to the LibRPA GW stage).",
+  "root_cause": "The screening genuinely needs the full empty-state space: cutting states starves chi0/W and the QPE solver produces unbound roots inside the window (worst offenders at state 30: |GW-KS| ~ 19015/22392 eV at specific k). The +0.93 eV shift between 99 and 147 conduction states (threshold 0.05 eV) also shows 176 empty states are NOT converged. The anomalous high-energy QP states of the full run are therefore not removable by truncation - they are a symptom of an unresolved Sigma_c-chain issue, not of bad input states.",
+  "minimal_fix": "Do not shorten the state space to chase clean bands. For empty-state convergence extend UPWARD (176 -> 224 -> ... with every stage recomputed); expect each point to cost ~14+ h of from-scratch GW without checkpoint restart. Keep KS/EXX invariance as the single-variable proof that only the GW stage changed.",
+  "validation": "Method check: the same window script reproduces the frozen baseline (KS 5.66298 / GW 6.71815 / EXX 14.64799 eV) bit-for-bit before trusting ladder numbers. Collected results and per-point data: AITP_project/mnf2_nbands_gw_pbe0 (STATUS_20260912_results.md, data/nb{128,080,048,032}).",
+  "avoid": "Interpreting truncation-induced smoother curves as 'more accurate'; reusing the 176-state self-energy for a truncated run; plotting-window truncation (bands 1-31) mistaken for physical truncation - earlier 'nbands studies' only changed the plot.",
+  "source": "~/.codex session 01a07f2d (2026-09-08/09, user-designed MnF2 campaign); results collected 2026-09-12 from df server after the session hit its usage limit.",
+  "confidence": "established",
+  "parameters": {
+    "nbands": "do not truncate below nbasis for GW; extend upward for empty-state convergence",
+    "pyatb_states": "reduce output states only with all AO coefficients preserved (reduce_pyatb_states.py, byte-identical validated)"
+  }
+}

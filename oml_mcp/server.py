@@ -36,6 +36,7 @@ from .sternheimer_diagnostics import (
     inspect_grid_coulomb_consistency as inspect_grid_coulomb_consistency_data,
     inspect_sternheimer_comparison as inspect_sternheimer_comparison_data,
 )
+from .step_scorecard import score_run_steps as score_run_steps_data
 from .validators import validate_case as validate_case_data
 
 
@@ -509,6 +510,20 @@ def build_server() -> MCPServer:
         )
         report["promotion_evidence"] = score_diagnostic_battery(report)
         return report
+
+    @server.tool(
+        name="score_run_steps",
+        description=(
+            "Score one complete run step by step (SCF, NSCF, PyATB, Coulomb "
+            "dataset, preprocess, LibRPA, handoff) on the fixed 100-point "
+            "full-calculation table, with curated remediation for lost points."
+        ),
+        annotations=_external_read_annotations(),
+        structured_output=True,
+    )
+    def score_run_steps(run_path: str) -> dict[str, Any]:
+        """Attribute the diagnostic gates to the step where the work happened."""
+        return score_run_steps_data(Path(run_path))
 
     @server.tool(
         name="prepare_run",

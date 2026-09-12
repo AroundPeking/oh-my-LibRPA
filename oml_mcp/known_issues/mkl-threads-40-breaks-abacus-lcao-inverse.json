@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "mkl-threads-40-breaks-abacus-lcao-inverse",
+  "title": "MKL_NUM_THREADS=40 aborts ABACUS LCAO before the first SCF iteration (Inverse_Matrix range_error)",
+  "symptom": "Four fresh MnF2 SCF jobs died before the first electronic iteration with std::range_error at Inverse_Matrix.hpp:117 (source_lcao/module_ri); the eigensolver return codes were 559/661/763 on the first calls.",
+  "root_cause": "The new submission script set MKL_NUM_THREADS=40 where the historical ABACUS scripts set 1; the LCAO inverse-matrix path is not safe under that threading on this build. The only changed variable was the thread count.",
+  "minimal_fix": "Set MKL_NUM_THREADS=1 for the ABACUS stage (matching the historical scripts) and resubmit; all four cases then completed. If threading is desired, validate the exact (build, threads) pair on a small case first.",
+  "validation": "Job 3286634 (nb128) completed after the single-variable revert; the other three points likewise.",
+  "avoid": "Raising thread counts inside ABACUS LCAO stages without a small-case validation; confusing this with the LibRPA-side OMP layout rules (which are separate).",
+  "source": "~/.codex session 01a07f2d (MnF2 campaign first submission 3286328-331, 2026-09-08).",
+  "confidence": "established",
+  "parameters": {
+    "MKL_NUM_THREADS": "1 for ABACUS LCAO stages on this build"
+  }
+}

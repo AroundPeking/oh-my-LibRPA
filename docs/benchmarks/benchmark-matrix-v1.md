@@ -167,3 +167,35 @@ counterexamples for nondegenerate drift, changed KS group membership, and a
 changed degenerate-group mean or occupation manifold. It tests diagnostic
 specificity; it does not provide wavefunction overlaps or scientific
 acceptance.
+
+## Scope Decision 2026-09-12: Step Completeness First
+
+The active benchmark scores whether ONE complete calculation does every step
+correctly, and where points are earned or lost. Convergence ladders are
+parked: the recorded ladders (BN frequency/k-grid/screening, MoS2 N-mesh)
+remain as frozen evidence, but new ladder points are NOT part of the active
+benchmark until the step-completeness benchmark is stable and the material
+classes below are validated by the user.
+
+The fixed step table (100 points) is implemented by
+`oml_mcp.step_scorecard.score_run_steps` (MCP tool `score_run_steps`):
+
+| Step | Points | What is checked |
+| --- | ---: | --- |
+| `scf` | 15 | SCF completion, converged density, vxc_out, stru_out |
+| `nscf` | 10 | NSCF completion, eigenvalues, band KS assets |
+| `pyatb` | 15 | PyATB head/wing metadata and eigenvector/velocity dimensions |
+| `coulomb_dataset` | 15 | reader-v1 Coulomb family Hermitian + PSD per q block |
+| `preprocess` | 10 | band preprocessing artifacts and finiteness |
+| `librpa` | 20 | LibRPA completion, GW band shape, finite reported scalars |
+| `handoff` | 15 | cross-step state-space contract (nbands == nbasis) |
+
+Rules: a step never attempted scores 0 and is NOT_EVALUATED; any FAIL gate
+zeroes the step; a WARN halves it; full marks require every gate PASS and
+every step attempted. Every lost point carries curated known-issue
+remediation, so a step score doubles as a fault localizer.
+
+Material classes `perovskite_gw`, `transition_metal_oxide_gw`, and
+`altermagnet_gw` are PARKED at user decision (2026-09-12): their identities
+and frozen assets stay registered, but no benchmark activity targets them
+until the user has personally validated representative calculations.

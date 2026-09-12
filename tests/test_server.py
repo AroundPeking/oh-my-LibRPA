@@ -44,6 +44,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "inspect_sternheimer_comparison",
                 "inspect_coulomb_matrix",
                 "run_diagnostic_battery",
+                "score_run_steps",
                 "evaluate_admission",
                 "propose_evolution_candidate",
                 "prepare_run",
@@ -76,6 +77,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             "inspect_sternheimer_comparison",
             "inspect_coulomb_matrix",
             "run_diagnostic_battery",
+            "score_run_steps",
             "evaluate_admission",
             "propose_evolution_candidate",
             "get_status",
@@ -255,7 +257,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 26)
+        self.assertEqual(len(listed.tools), 27)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "master_ghj")
 
