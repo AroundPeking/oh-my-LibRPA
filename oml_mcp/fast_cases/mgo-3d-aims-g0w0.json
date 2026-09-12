@@ -1,8 +1,8 @@
 {
   "schema": "oml.fast-case.v1",
-  "case_id": "si-3d-aims-g0w0",
-  "title": "G0W0 bulk silicon (FHI-aims producer, LibRPA-only replay)",
-  "system": "Si",
+  "case_id": "mgo-3d-aims-g0w0",
+  "title": "G0W0 bulk MgO, 27-k eqp sequence (FHI-aims producer, LibRPA-only replay)",
+  "system": "MgO",
   "task": "gw",
   "system_type": "solid",
   "soc": false,
@@ -11,24 +11,23 @@
     "librpa"
   ],
   "route": "periodic_3d_gw",
-  "material_class": null,
   "reference_status": "REFERENCE_AVAILABLE",
   "estimated_seconds": 45,
   "validators": [
     {
       "name": "Spin1-state1-eqp-sequence",
-      "file": "librpa.out",
       "regex": "^\\s*1\\s+2\\.00000\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+([-+0-9.Ee]+)\\s*$",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     }
   ],
   "output_files": [
     "self_energy_omega.dat",
     "librpa.out"
   ],
-  "upstream_directory": "g0w0_aims_Si_libri",
+  "upstream_directory": "g0w0_aims_MgO_libri",
   "upstream_groups": [
     "One-shot GW quasi-particle energies (QPE)"
   ],
-  "note": "FHI-aims producer; LibRPA stage only. Upgraded 2026-09-12: frozen ref carries the state-1 QPE sequence, validator wired from the regression convention."
+  "note": "Wide-gap oxide family; the frozen check is the state-1 QP energy across all 27 k points of the mesh."
 }

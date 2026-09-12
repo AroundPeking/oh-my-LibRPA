@@ -323,6 +323,24 @@ def evaluate_case_against_reference(
             )
             unevaluated = True
             continue
+        if len(expected) != len(actual):
+            # A sequence of a different length means the definition changed
+            # (state window, k set, or output format). Comparing only the
+            # overlapping prefix would silently hide that, so this is a FAIL.
+            reports.append(
+                {
+                    "name": validator.name,
+                    "status": "FAIL",
+                    "reason": "SEQUENCE_LENGTH_MISMATCH",
+                    "file": key,
+                    "reference_count": len(expected),
+                    "observed_count": len(actual),
+                    "reference_values": expected,
+                    "observed_values": actual,
+                }
+            )
+            accepted = False
+            continue
         paired = list(zip(expected, actual))
         worst = max(abs(a - b) for a, b in paired)
         matches = worst <= validator.tolerance

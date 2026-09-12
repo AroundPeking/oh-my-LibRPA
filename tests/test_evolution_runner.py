@@ -115,3 +115,25 @@ class StageCheckTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AuditTest(unittest.TestCase):
+    def test_audit_reports_ready_and_not_ready_cases(self):
+        from oml_mcp.evolution_runner import audit_benchmarks
+
+        if not (UPSTREAM_ROOT / "g0w0_band_abacus_BN_sym_shrink_libri").is_dir():
+            self.skipTest("upstream LibRPA regression suite not available")
+
+        report = audit_benchmarks(UPSTREAM_ROOT)
+
+        self.assertEqual(report["schema"], "oml.benchmark-audit.v1")
+        self.assertEqual(report["total_cases"], 16)
+        self.assertGreaterEqual(report["ready_cases"], 12)
+        by_id = {row["case_id"]: row for row in report["cases"]}
+        self.assertTrue(by_id["bn-3d-sym-shrink-g0w0"]["ready"])
+        self.assertTrue(by_id["h2-molecule-aims-g0w0"]["ready"])
+        # The two registered pending-upstream cases must never claim readiness.
+        self.assertFalse(by_id["mos2-strict2d-sos-rpa-qavg"]["ready"])
+        self.assertFalse(by_id["si-solid-delta-st-rpa"]["ready"])
+        # Legacy-format cases stay excluded from the evolution loop by design.
+        self.assertFalse(by_id["bn-3d-headwing-g0w0"]["ready"])

@@ -1,34 +1,33 @@
 {
   "schema": "oml.fast-case.v1",
-  "case_id": "si-3d-aims-g0w0",
-  "title": "G0W0 bulk silicon (FHI-aims producer, LibRPA-only replay)",
-  "system": "Si",
+  "case_id": "h2-molecule-aims-g0w0",
+  "title": "G0W0 hydrogen molecule (FHI-aims producer, LibRPA-only replay)",
+  "system": "H2",
   "task": "gw",
-  "system_type": "solid",
+  "system_type": "molecule",
   "soc": false,
   "nspin": 1,
   "stages": [
     "librpa"
   ],
-  "route": "periodic_3d_gw",
-  "material_class": null,
+  "route": "molecular_delta_st_rpa",
   "reference_status": "REFERENCE_AVAILABLE",
-  "estimated_seconds": 45,
+  "estimated_seconds": 30,
   "validators": [
     {
       "name": "Spin1-state1-eqp-sequence",
-      "file": "librpa.out",
       "regex": "^\\s*1\\s+2\\.00000\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+([-+0-9.Ee]+)\\s*$",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     }
   ],
   "output_files": [
     "self_energy_omega.dat",
     "librpa.out"
   ],
-  "upstream_directory": "g0w0_aims_Si_libri",
+  "upstream_directory": "g0w0_aims_mole_H2_libri",
   "upstream_groups": [
     "One-shot GW quasi-particle energies (QPE)"
   ],
-  "note": "FHI-aims producer; LibRPA stage only. Upgraded 2026-09-12: frozen ref carries the state-1 QPE sequence, validator wired from the regression convention."
+  "note": "FHI-aims producer; frozen eqp sequence from the LibRPA regression ref (base nfreq run; the .16 files belong to a separate frequency variant)."
 }

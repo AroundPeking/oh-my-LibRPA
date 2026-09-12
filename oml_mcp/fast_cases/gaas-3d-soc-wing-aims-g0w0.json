@@ -1,0 +1,40 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "gaas-3d-soc-wing-aims-g0w0",
+  "title": "G0W0 GaAs band path with SOC wing (FHI-aims producer, LibRPA-only replay)",
+  "system": "GaAs",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": true,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "reference_status": "REFERENCE_AVAILABLE",
+  "estimated_seconds": 45,
+  "validators": [
+    {
+      "name": "GW-band-full-sequence",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001,
+      "file": "GW_band_spin_1.dat"
+    },
+    {
+      "name": "EXX-band-full-sequence",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001,
+      "file": "EXX_band_spin_1.dat"
+    }
+  ],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "EXX_band_spin_1.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_band_aims_GaAs_soc_wing_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)"
+  ],
+  "note": "SOC semiconductor family; spinor band file printed as a single spin channel."
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "li-atom-aims-g0w0",
+  "title": "G0W0 lithium atom (FHI-aims producer, LibRPA-only replay)",
+  "system": "Li",
+  "task": "gw",
+  "system_type": "molecule",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "molecular_delta_st_rpa",
+  "reference_status": "REFERENCE_AVAILABLE",
+  "estimated_seconds": 30,
+  "validators": [
+    {
+      "name": "Spin1-state1-eqp-sequence",
+      "regex": "^\\s*1\\s+1\\.00000\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+([-+0-9.Ee]+)\\s*$",
+      "tolerance": 0.0001,
+      "file": "librpa.out"
+    }
+  ],
+  "output_files": [
+    "self_energy_omega.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_aims_Li_atom_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)"
+  ],
+  "note": "Odd-electron atom: state-1 occupancy is 1.0, so the eqp variant pins occ 1.00000."
+}

@@ -240,7 +240,7 @@ def _parse_budget_argument(value: str) -> tuple[str, float]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--case", required=True, help="fast case id, e.g. bn-3d-sym-shrink-g0w0")
+    parser.add_argument("--case", help="fast case id, e.g. bn-3d-sym-shrink-g0w0")
     parser.add_argument(
         "--axis",
         action="append",
@@ -269,6 +269,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wall-minutes", type=float, default=60.0)
     parser.add_argument("--disk-gb", type=float, default=10.0)
     parser.add_argument(
+        "--audit",
+        action="store_true",
+        help="report benchmark readiness for every registered fast case, then exit",
+    )
+    parser.add_argument(
         "--stage-check",
         action="store_true",
         help="stage one candidate locally to verify inputs and references, then exit",
@@ -284,6 +289,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.audit:
+        report = audit_benchmarks(args.upstream_root)
+        text = json.dumps(report, ensure_ascii=False, indent=2)
+        if args.out:
+            Path(args.out).write_text(text + "\n", encoding="utf-8")
+        print(text)
+        return 0
+    if not args.case:
+        raise SystemExit("--case is required for this mode")
     axis_values = dict(_parse_axis(item) for item in args.axis)
     if not axis_values:
         raise SystemExit("at least one --axis is required")
@@ -341,6 +355,88 @@ def _route_axes(route_id: str) -> frozenset[str]:
 
     return ROUTE_MUTATION_AXES.get(route_id, frozenset())
 
+
+
+def audit_benchmarks(upstream_root: str | Path = DEFAULT_UPSTREAM_ROOT) -> dict[str, Any]:
+    """Report benchmark readiness for every registered fast case.
+
+    For each case the audit answers four questions without running anything:
+    does the upstream producer bundle exist, which stages would a replay run,
+    are the frozen reference files readable, and does every validator regex
+    actually extract values from those references. A case is READY only when
+    all four hold; every other combination names what is missing.
+    """
+    from .fast_benchmark import list_fast_cases
+    from .remote_adapter import RemoteAdapterError
+
+    rows: list[dict[str, Any]] = []
+    for case in list_fast_cases():
+        row: dict[str, Any] = {
+            "case_id": case.case_id,
+            "route": case.route,
+            "reference_status": case.reference_status,
+            "stages": list(case.stages),
+        }
+        try:
+            source = locate_case_source(case, upstream_root)
+            row["upstream_found"] = True
+            row["replayable_stages"] = list(source.replayable_stages)
+        except RemoteAdapterError as exc:
+            row["upstream_found"] = False
+            row["upstream_error"] = str(exc)
+            row["replayable_stages"] = []
+        try:
+            reference = load_reference_texts(case.case_id, upstream_root)
+        except RemoteAdapterError:
+            reference = {}
+        row["reference_files_found"] = sorted(reference)
+        row["reference_files_missing"] = sorted(set(case.output_files) - set(reference))
+        validator_rows = []
+        extracts = True
+        for validator in case.validators:
+            key = validator.file or next(iter(reference), None)
+            text = reference.get(key) if key else None
+            values = validator.extract(text) if text is not None else []
+            ok = bool(values)
+            extracts = extracts and ok
+            validator_rows.append(
+                {
+                    "name": validator.name,
+                    "file": key,
+                    "values_from_reference": len(values),
+                    "ok": ok,
+                }
+            )
+        row["validators"] = validator_rows
+        row["ready"] = bool(
+            row["upstream_found"]
+            and case.evaluable
+            and extracts
+            and not row["reference_files_missing"]
+        )
+        if not row["ready"]:
+            reasons = []
+            if not row["upstream_found"]:
+                reasons.append("upstream bundle missing")
+            if row["reference_files_missing"]:
+                reasons.append("reference files missing")
+            if not case.validators:
+                reasons.append("no validators declared")
+            elif not extracts:
+                reasons.append("a validator regex extracts nothing from the reference")
+            if case.reference_status != "REFERENCE_AVAILABLE":
+                reasons.append(f"reference_status={case.reference_status}")
+            row["not_ready_because"] = reasons
+        rows.append(row)
+
+    ready = sum(1 for row in rows if row["ready"])
+    return {
+        "schema": "oml.benchmark-audit.v1",
+        "upstream_root": str(upstream_root),
+        "total_cases": len(rows),
+        "ready_cases": ready,
+        "cases": rows,
+    }
 
 if __name__ == "__main__":
     sys.exit(main())

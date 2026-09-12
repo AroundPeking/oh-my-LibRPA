@@ -22,22 +22,26 @@
     {
       "name": "GW bandgap",
       "regex": "GW bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     },
     {
       "name": "EXX bandgap",
       "regex": "EXX bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     },
     {
       "name": "DFT bandgap",
       "regex": "DFT bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     },
     {
       "name": "Spin1-k1-state1-eqp",
       "regex": "^\\s*1\\s+1\\.00000\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+[-+0-9.Ee]+\\s+([-+0-9.Ee]+)\\s*$",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     }
   ],
   "output_files": [

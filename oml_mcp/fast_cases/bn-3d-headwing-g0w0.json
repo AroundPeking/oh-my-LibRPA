@@ -29,5 +29,5 @@
     "One-shot GW quasi-particle energies (QPE)",
     "One-shot GW quasi-particle energies (QPE MPI smoke)"
   ],
-  "note": "Upstream stages legacy (pre reader-v1) ABACUS output, so only the LibRPA stage is replayable."
+  "note": "Upstream stages legacy (pre reader-v1) ABACUS output, so only the LibRPA stage is replayable. Legacy-format regression check: deliberately excluded from the evolution loop (tests pin this); the reader-v1 BN cases are the evolution carriers."
 }

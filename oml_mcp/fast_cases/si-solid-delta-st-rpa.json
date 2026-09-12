@@ -1,0 +1,31 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "si-solid-delta-st-rpa",
+  "title": "Solid Delta-Sternheimer RPA, Si single-q chain (upstream pending)",
+  "system": "Si",
+  "task": "rpa",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "solid_delta_st_rpa",
+  "reference_status": "REFERENCE_PENDING",
+  "estimated_seconds": 120,
+  "validators": [
+    {
+      "name": "Correlation energy",
+      "regex": "Total EcRPA: \\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    }
+  ],
+  "output_files": [
+    "librpa.out"
+  ],
+  "upstream_directory": "solid_delta_st_rpa_si",
+  "upstream_groups": [
+    "Delta-Sternheimer RPA"
+  ],
+  "note": "The verified Si Sternheimer chain (dedicated grid metric, trace-log -3.1041) ran on fisherd 2026-08-30; freeze that producer bundle into the regression tree before this case becomes evaluable."
+}

@@ -22,17 +22,20 @@
     {
       "name": "GW bandgap",
       "regex": "GW bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     },
     {
       "name": "EXX bandgap",
       "regex": "EXX bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     },
     {
       "name": "DFT bandgap",
       "regex": "DFT bandgap\\(eV\\):\\s+([-+]?\\d*\\.\\d+)",
-      "tolerance": 0.0001
+      "tolerance": 0.0001,
+      "file": "librpa.out"
     }
   ],
   "output_files": [

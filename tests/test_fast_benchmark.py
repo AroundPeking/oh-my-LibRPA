@@ -164,3 +164,42 @@ class FastCaseEvaluationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SequenceLengthTest(unittest.TestCase):
+    def test_sequence_length_mismatch_fails_instead_of_truncating(self):
+        from oml_mcp.fast_benchmark import CaseValidator, evaluate_case_against_reference, load_fast_case
+
+        case = load_fast_case("si-band-aims-g0w0")
+        reference_text = "\n".join(f"{i} 0.0 0.0 0.0 1.0 {1.0 + i} 0.0 {10.0 + i}" for i in range(5))
+        observed_text = "\n".join(f"{i} 0.0 0.0 0.0 1.0 {1.0 + i} 0.0 {10.0 + i}" for i in range(4))
+        validator = case.validators[0]
+
+        exx = case.validators[1].file
+        result = evaluate_case_against_reference(
+            case,
+            {validator.file: reference_text, exx: reference_text},
+            {validator.file: observed_text, exx: observed_text},
+        )
+
+        self.assertEqual(result["status"], "FAIL")
+        report = next(r for r in result["validators"] if r["name"] == validator.name)
+        self.assertEqual(report["reason"], "SEQUENCE_LENGTH_MISMATCH")
+        self.assertEqual(report["reference_count"], 5 * 7)
+        self.assertEqual(report["observed_count"], 4 * 7)
+
+    def test_matching_sequence_within_tolerance_passes(self):
+        from oml_mcp.fast_benchmark import evaluate_case_against_reference, load_fast_case
+
+        case = load_fast_case("si-band-aims-g0w0")
+        validator = case.validators[0]
+        text = "\n".join(f"{i} 0.0 0.0 0.0 1.0 {1.0 + i} 0.0 {10.0 + i}" for i in range(5))
+
+        exx = case.validators[1].file
+        result = evaluate_case_against_reference(
+            case,
+            {validator.file: text, exx: text},
+            {validator.file: text.replace("10.0", "10.00001"), exx: text},
+        )
+
+        self.assertEqual(result["status"], "PASS", result)

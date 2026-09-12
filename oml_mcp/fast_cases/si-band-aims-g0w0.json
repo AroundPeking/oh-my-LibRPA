@@ -1,0 +1,40 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "si-band-aims-g0w0",
+  "title": "G0W0 bulk silicon band path (FHI-aims producer, LibRPA-only replay)",
+  "system": "Si",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "reference_status": "REFERENCE_AVAILABLE",
+  "estimated_seconds": 45,
+  "validators": [
+    {
+      "name": "GW-band-full-sequence",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001,
+      "file": "GW_band_spin_1.dat"
+    },
+    {
+      "name": "EXX-band-full-sequence",
+      "regex": "([-+]?\\d+\\.\\d+)",
+      "tolerance": 0.0001,
+      "file": "EXX_band_spin_1.dat"
+    }
+  ],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "EXX_band_spin_1.dat",
+    "librpa.out"
+  ],
+  "upstream_directory": "g0w0_band_aims_Si_libri",
+  "upstream_groups": [
+    "One-shot GW quasi-particle energies (QPE)"
+  ],
+  "note": "The aims band refs print no bandgap scalars, so the validator compares the complete numeric sequence of each band file; SEQUENCE_LENGTH_MISMATCH now fails instead of silently truncating."
+}

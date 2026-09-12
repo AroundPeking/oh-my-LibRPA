@@ -12,7 +12,7 @@
   ],
   "route": "molecular_delta_st_rpa",
   "material_class": null,
-  "reference_status": "LEGACY_HANDOFF",
+  "reference_status": "REFERENCE_AVAILABLE",
   "estimated_seconds": 30,
   "validators": [
     {
@@ -28,5 +28,5 @@
   "upstream_groups": [
     "RPA correlation energy"
   ],
-  "note": "Isolated-molecule RPA correlation energy; FHI-aims producer, LibRPA stage only."
+  "note": "Isolated-molecule RPA correlation energy; FHI-aims producer, LibRPA stage only. Promoted to REFERENCE_AVAILABLE 2026-09-12: frozen ref librpa.out exists and the EcRPA validator extracts -0.306258510 Ha."
 }

@@ -1,0 +1,31 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "mos2-strict2d-sos-rpa-qavg",
+  "title": "Strict-2D SOS-RPA MoS2 qavg, four-mesh reference (upstream pending)",
+  "system": "MoS2",
+  "task": "rpa",
+  "system_type": "slab",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "librpa"
+  ],
+  "route": "strict_2d_sos_rpa",
+  "reference_status": "REFERENCE_PENDING",
+  "estimated_seconds": 120,
+  "validators": [
+    {
+      "name": "Correlation energy",
+      "regex": "Total EcRPA: \\s+([-+]?\\d*\\.\\d+)",
+      "tolerance": 0.0001
+    }
+  ],
+  "output_files": [
+    "librpa.out"
+  ],
+  "upstream_directory": "strict2d_sos_rpa_mos2_qavg",
+  "upstream_groups": [
+    "Strict-2D SOS-RPA qavg"
+  ],
+  "note": "PASS_REFERENCE_BOUNDED reference exists (route_benchmarks/strict2d-sos-rpa-mos2-qavg-v1.json, N=8/10/12/16 meshes) but the frozen producer bundle still lives on df-dcu; freeze it into the regression tree before this case becomes evaluable."
+}
