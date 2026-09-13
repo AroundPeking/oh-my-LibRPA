@@ -11,9 +11,9 @@
         4,
         64
       ],
-      "target": 8,
-      "per_system_override_rule": "nFreq 8 matches the upstream BN shrink regression and is enough for the fast case.",
-      "rationale": "The upstream BN regression validates nfreq=8 for this system.",
+      "target": 24,
+      "per_system_override_rule": "The convergence ladder (2026-09-13) showed nfreq 24 and 32 produce bit-identical near-gap GW windows on the bn-k222 case while 16 sits 0.32 eV off the converged values; nfreq >= 24 is the converged choice for BN-class periodic GW.",
+      "rationale": "Rounds run-20260913T151454Z (24) and the 32-point round agree to 0.0000 eV across the near-gap window; the old 16-point and 8-point grids move up to 0.32 eV.",
       "gate_id": "stage.librpa.completion",
       "confidence": "established"
     },

@@ -41,7 +41,9 @@ class PrescriptionBaselineTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             report = run_evolution(
                 case_id="bn-3d-sym-shrink-g0w0",
-                axis_values={"nfreq": (16, 24)},
+                # The bulk_bn_gw prescription now pins nfreq 24 (convergence
+                # ladder); axis values must differ from the baseline.
+                axis_values={"nfreq": (32, 48)},
                 allowed_axes=("nfreq",),
                 budget=EvolutionBudget(
                     cpu_hours=1.0,
