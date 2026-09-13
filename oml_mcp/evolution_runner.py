@@ -299,6 +299,10 @@ def run_evolution(
             "headwing": case.headwing,
             "profile_id": software_profile_id,
         },
+        # The live LibRPA monitor reads the LOCAL run mirror, which for ssh
+        # transport never receives live outputs - it would poll its whole
+        # budget as UNOBSERVED. Stage-gate inspection still judges the stage.
+        monitor_librpa=profile.transport == "local",
     )
     case_source, case_root = _locate_case_in_roots(case, resolve_upstream_roots(upstream_root))
     adapter = ControlledRunAdapter(

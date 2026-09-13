@@ -61,9 +61,10 @@ class CaseValidator:
     """One scalar reference check copied from the upstream suite."""
 
     name: str
-    regex: str
+    regex: str = "([-+]?\\d+\\.\\d+)"
     tolerance: float = DEFAULT_TOLERANCE
     file: str | None = None
+    band_states: tuple[int, ...] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name:
@@ -74,7 +75,7 @@ class CaseValidator:
             compiled = re.compile(self.regex)
         except re.error as exc:
             raise FastCaseError(f"validator regex is invalid: {exc}") from exc
-        if compiled.groups < 1:
+        if compiled.groups < 1 and not self.band_states:
             raise FastCaseError("validator regex must capture at least one value")
         if (
             isinstance(self.tolerance, bool)
@@ -85,6 +86,8 @@ class CaseValidator:
 
     def extract(self, text: str) -> list[float]:
         """Return every captured value in file order."""
+        if self.band_states:
+            return self._extract_band_states(text)
         values: list[float] = []
         pattern = re.compile(self.regex, re.MULTILINE)
         for match in pattern.finditer(text):
@@ -93,6 +96,22 @@ class CaseValidator:
                 values.append(float(raw))
             except (TypeError, ValueError):
                 continue
+        return values
+
+    def _extract_band_states(self, text: str) -> list[float]:
+        """Energies of the selected states, in k-line order."""
+        values: list[float] = []
+        for line in text.splitlines():
+            tokens = line.split()
+            if len(tokens) < 7:
+                continue
+            pairs = tokens[4:]
+            n_states = len(pairs) // 2
+            energies = [float(pairs[2 * s + 1]) for s in range(n_states)]
+            for state in self.band_states or ():
+                if not 1 <= state <= n_states:
+                    raise ValueError(f"band state {state} out of range 1..{n_states}")
+                values.append(energies[state - 1])
         return values
 
     def to_dict(self) -> dict[str, Any]:
@@ -174,9 +193,14 @@ def _case_from_json(value: dict[str, Any]) -> FastCase:
     validators = tuple(
         CaseValidator(
             name=item["name"],
-            regex=item["regex"],
+            regex=item.get("regex") or "([-+]?\\d+\\.\\d+)",
             tolerance=float(item.get("tolerance", DEFAULT_TOLERANCE)),
             file=item.get("file"),
+            band_states=(
+                tuple(int(s) for s in item["band_states"])
+                if item.get("band_states")
+                else None
+            ),
         )
         for item in value.get("validators", [])
     )

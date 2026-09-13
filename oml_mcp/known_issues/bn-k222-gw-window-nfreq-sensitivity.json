@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "bn-k222-gw-window-nfreq-sensitivity",
+  "title": "BN k222 v1 case: changing nfreq shifts the whole GW window, growing with energy",
+  "symptom": "First live evolution round (run-20260912T132957Z-53d93fb1e0, nfreq 16->24, everything else frozen): KS bands bit-identical, EXX within 4e-05 eV, but GW states shift monotonically with state index - occupied top ~0.30 eV, mid window 1-9 eV, top state 50.0 eV; only states 5/6 stay put. The raw window is itself unhealthy: QP orderings cross (state 8 below state 7), states reach +212 eV, and a naive whole-window 'gap' is negative.",
+  "root_cause": "Unknown - do not attribute to the Pade/anacon continuation without evidence (the user explicitly rejects that guess). The shift pattern (small uniform below the gap, monotonically growing above) is consistent with a definitional coupling of the frequency grid to the self-energy evaluation, but the mechanism is open. The window's high states are the fragile part, matching the MnF2 and hBN high-state lessons.",
+  "minimal_fix": "Do not scan nfreq on this case until the definition is pinned. Accept near-Fermi states only (window states 3-8); treat the full window as a diagnostic, not an acceptance criterion. A controlled nbands 26->30 probe tests whether adding empty states disturbs the near-gap window at all.",
+  "validation": "KS bit-identity and EXX invariance prove single-variable control; near-gap window diffs are the acceptance metric. Re-evaluate after pinning whatever definition axis the mechanism investigation identifies.",
+  "avoid": "Attributing the shift to a specific mechanism (e.g. Pade order) without a controlled test; comparing whole windows containing anomalous high states; treating the old reference window as physical acceptance material.",
+  "source": "First live evolution round 2026-09-12/13, df pinned stack, ledger /tmp/evolve-bn-run13.json + snapshot state-wise analysis.",
+  "confidence": "established",
+  "parameters": {
+    "nfreq": "do not scan on this case until the definition coupling is understood",
+    "acceptance": "near-Fermi window states 3-8 only"
+  }
+}
