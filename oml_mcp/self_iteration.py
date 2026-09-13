@@ -126,6 +126,10 @@ class LoopPolicy:
     # Control mode: run the pristine baseline definition once (no mutation)
     # as a reproducibility anchor. The ledger records changed_axis "control".
     control_replay: bool = False
+    # Ladder mode: walk the axis values in order and compare each rung with
+    # the previous one; the FIRST equivalent pair proves the earlier rung is
+    # already converged, which becomes the recommended definition.
+    ladder: bool = False
 
     def __post_init__(self) -> None:
         if not self.allowed_axes:
@@ -229,6 +233,15 @@ def run_self_iteration(
     if policy.control_replay:
         return _run_control_replay(
             case=case, baseline=baseline, policy=policy, adapter=adapter, reference=reference
+        )
+    if policy.ladder:
+        return _run_convergence_ladder(
+            case=case,
+            baseline=baseline,
+            axis_values=axis_values,
+            policy=policy,
+            adapter=adapter,
+            reference=reference,
         )
 
     registered = ROUTE_MUTATION_AXES.get(case.route)
@@ -547,5 +560,148 @@ def _run_control_replay(
         "stop_reason": "CONTROL_COMPLETE",
         "ledger": [ledger_record],
         "usage": {"candidates": 1, "cpu_hours": 0.0, "wall_seconds": 0, "disk_bytes": 0},
+        "budget": asdict(policy.budget),
+    }
+
+def _run_convergence_ladder(
+    *,
+    case: FastCase,
+    baseline: dict[str, Any],
+    axis_values: dict[str, Sequence[Any]],
+    policy: LoopPolicy,
+    adapter: IterationAdapter,
+    reference: dict[str, str] | None,
+) -> dict[str, Any]:
+    """Walk one axis upward and stop at the first equivalent pair of rungs.
+
+    Rung 0 is the baseline definition itself, judged against the frozen
+    reference. Rung k (k >= 1) is judged against rung k-1's PRODUCED
+    outputs. The first ACCEPTED pair proves the earlier rung was already
+    converged, so the recommended definition is the earlier one; if the
+    ladder exhausts without an equivalent pair, the axis is still moving at
+    the last rung and nothing is recommended.
+    """
+    if len(axis_values) != 1:
+        raise SelfIterationError(
+            "ladder mode walks exactly one axis; pass one --axis with the rung values"
+        )
+    axis, values = next(iter(axis_values.items()))
+    if axis not in policy.allowed_axes:
+        raise SelfIterationError(f"ladder axis is not allowed: {axis}")
+
+    ledger: list[dict[str, Any]] = []
+    usage = {"candidates": 0, "cpu_hours": 0.0, "wall_seconds": 0, "disk_bytes": 0}
+    prev_definition = dict(baseline)
+    prev_observed: dict[str, str] | None = dict(reference) if reference else None
+    recommended: dict[str, Any] | None = None
+    converged_at = None
+    stop_reason = "LADDER_EXHAUSTED"
+
+    for index, value in enumerate(values, start=1):
+        if not policy.execute:
+            ledger.append(
+                {
+                    "iteration": index,
+                    "changed_axis": axis,
+                    "candidate": {"definition": {**baseline, axis: value}},
+                    "candidate_digest": f"ladder-{index}",
+                    "outcome": NOT_EVALUATED,
+                    "fast_case_status": "NOT_EVALUATED",
+                    "reason": "dry run: execution is disabled by policy",
+                    "lesson": "set execute=True to submit this rung",
+                    "detail": {},
+                    "run_id": None,
+                }
+            )
+            continue
+
+        candidate = {**baseline, axis: value}
+        verdict: dict[str, Any] = {
+            "status": "NOT_EVALUATED",
+            "reason_code": "NOT_EVALUATED",
+            "validators": [],
+        }
+        observation = adapter.run_candidate(
+            case=case, candidate=candidate, iteration=index, changed_axis=axis
+        )
+        usage["candidates"] += 1
+        observed = observation.get("observed") or {}
+        diagnostics = observation.get("diagnostics") or {}
+
+        if observation.get("status") != "COMPLETED":
+            outcome, reason = INFRASTRUCTURE_ERROR, (
+                f"stage execution did not complete: {observation.get('status')}"
+            )
+            verdict_status = "NOT_EVALUATED"
+        elif diagnostics.get("status") == "FAIL":
+            outcome, reason = REJECTED_GATE, "diagnostic battery failed"
+            verdict_status = "NOT_EVALUATED"
+        else:
+            verdict = (
+                evaluate_case_against_reference(case, prev_observed or {}, observed)
+                if prev_observed
+                else {"status": "NOT_EVALUATED", "reason_code": "REFERENCE_MISSING", "validators": []}
+            )
+            verdict_status = verdict["status"]
+            if verdict_status == "PASS":
+                outcome = ACCEPTED
+                reason = f"rung {index} is equivalent to rung {index - 1} within tolerance"
+                recommended = dict(prev_definition)
+                converged_at = index
+                stop_reason = "CONVERGED"
+            elif verdict_status == "FAIL":
+                outcome = REJECTED_REFERENCE
+                reason = "rung moved beyond tolerance relative to the previous rung"
+            else:
+                outcome = NOT_EVALUATED
+                reason = verdict.get("reason_code", "NOT_EVALUATED")
+
+        ledger.append(
+            {
+                "iteration": index,
+                "changed_axis": axis,
+                "candidate": {"definition": dict(candidate)},
+                "candidate_digest": f"ladder-{index}",
+                "outcome": outcome,
+                "fast_case_status": verdict_status,
+                "reason": reason,
+                "lesson": (
+                    f"the previous value ({prev_definition.get(axis)}) is the converged choice"
+                    if outcome == ACCEPTED
+                    else f"{axis}={value} differs from the previous rung; keep walking or freeze this as the new anchor"
+                ),
+                "detail": {
+                    "observed": observed,
+                    "validators": verdict.get("validators", []),
+                    "diagnostics": diagnostics,
+                },
+                "run_id": observation.get("run_id"),
+            }
+        )
+        if outcome == ACCEPTED:
+            break
+        if outcome in {REJECTED_REFERENCE, NOT_EVALUATED} and prev_observed is not None:
+            prev_definition = dict(candidate)
+            prev_observed = observed or prev_observed
+        if outcome == INFRASTRUCTURE_ERROR or outcome == REJECTED_GATE:
+            stop_reason = f"STOPPED_{outcome}"
+            break
+
+    accepted_iterations = [r["iteration"] for r in ledger if r["outcome"] == ACCEPTED]
+    return {
+        "schema": LOOP_SCHEMA,
+        "schema_version": 1,
+        "case_id": case.case_id,
+        "route": case.route,
+        "mode": "convergence_ladder",
+        "executed": bool(policy.execute),
+        "accepted_count": len(accepted_iterations),
+        "improved": recommended is not None,
+        "accepted_definition": recommended,
+        "accepted_digest": f"converged-at-rung-{converged_at}" if converged_at else None,
+        "accepted_iterations": accepted_iterations,
+        "stop_reason": stop_reason if policy.execute else "PROPOSAL_ONLY",
+        "ledger": ledger,
+        "usage": usage,
         "budget": asdict(policy.budget),
     }

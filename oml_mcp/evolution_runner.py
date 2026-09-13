@@ -211,6 +211,7 @@ def run_evolution(
     baseline: dict[str, Any] | None = None,
     stop_after_consecutive_rejections: int = 0,
     control_replay: bool = False,
+    ladder: bool = False,
 ) -> dict[str, Any]:
     """Run the closed loop for one fast case.
 
@@ -229,6 +230,7 @@ def run_evolution(
             stop_after_consecutive_rejections=stop_after_consecutive_rejections,
             execute=False,
             control_replay=control_replay,
+            ladder=ladder,
         )
         report = run_self_iteration(
             case=case,
@@ -329,6 +331,7 @@ def run_evolution(
             stop_after_consecutive_rejections=stop_after_consecutive_rejections,
             execute=True,
             control_replay=control_replay,
+            ladder=ladder,
         ),
         adapter=adapter,
         reference=reference or None,
@@ -420,6 +423,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="stage one candidate locally to verify inputs and references, then exit",
     )
     parser.add_argument(
+        "--ladder",
+        action="store_true",
+        help="convergence ladder: walk the axis rungs in order and stop at the first equivalent pair",
+    )
+    parser.add_argument(
         "--control",
         action="store_true",
         help="control replay: run the pristine upstream config once as a reproducibility anchor",
@@ -491,6 +499,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             staging_root=args.staging_root,
             baseline=baseline,
             control_replay=args.control,
+            ladder=args.ladder,
         )
 
     text = json.dumps(report, ensure_ascii=False, indent=2)

@@ -322,3 +322,86 @@ class SelfIterationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ConvergenceLadderTest(unittest.TestCase):
+    """The ladder walks rungs and stops at the first equivalent pair."""
+
+    def _run(self, observed_sequence):
+        from oml_mcp.evolution import EvolutionBudget
+        from oml_mcp.fast_benchmark import FastCase, CaseValidator
+        from oml_mcp.self_iteration import LoopPolicy, run_self_iteration
+
+        case = FastCase(
+            case_id="ladder-test",
+            title="t",
+            system="BN",
+            task="gw",
+            system_type="solid",
+            soc=False,
+            nspin=1,
+            stages=("scf", "pyatb", "nscf", "preprocess", "librpa"),
+            validators=(
+                CaseValidator(name="gw", regex="([-+]?\\d+\\.\\d+)", file="GW.dat"),
+            ),
+            output_files=("GW.dat",),
+        )
+
+        class LadderAdapter:
+            def __init__(self, sequence):
+                self.sequence = list(sequence)
+                self.calls = []
+
+            def run_candidate(self, *, case, candidate, iteration, changed_axis=None):
+                self.calls.append(candidate)
+                return {
+                    "status": "COMPLETED",
+                    "run_id": f"run-{iteration}",
+                    "observed": {"GW.dat": self.sequence[iteration - 1]},
+                    "diagnostics": {"status": "PASS"},
+                }
+
+        baseline = {"nfreq": 16}
+        adapter = LadderAdapter(observed_sequence)
+        report = run_self_iteration(
+            case=case,
+            baseline=baseline,
+            axis_values={"nfreq": (24, 32)},
+            policy=LoopPolicy(
+                budget=EvolutionBudget(max_candidates=4, cpu_hours=8, wall_seconds=3600, disk_bytes=1000),
+                allowed_axes=("nfreq",),
+                execute=True,
+                ladder=True,
+            ),
+            adapter=adapter,
+            reference={"GW.dat": "1.0\n2.0\n3.0\n"},
+        )
+        return report
+
+    def test_first_equivalent_pair_recommends_the_earlier_rung(self):
+        report = self._run(["1.0\n2.0\n3.0\n", "1.0\n2.0\n3.0\n"])
+
+        self.assertEqual(report["mode"], "convergence_ladder")
+        self.assertEqual(report["stop_reason"], "CONVERGED")
+        # Rung 1 (nfreq 24) matched the frozen reference: the baseline value
+        # (16) is the converged recommendation.
+        self.assertEqual(report["accepted_definition"], {"nfreq": 16})
+        self.assertEqual(report["usage"]["candidates"], 1)
+
+    def test_moving_rung_keeps_the_ladder_walking(self):
+        # Rung 2 must reproduce RUNG 1's outputs (not the frozen reference) to
+        # prove rung 1 converged.
+        report = self._run(["1.5\n2.0\n3.0\n", "1.5\n2.0\n3.0\n"])
+
+        self.assertEqual(report["stop_reason"], "CONVERGED")
+        # Rung 1 moved beyond tolerance vs the reference, so the recommendation
+        # is rung 1's definition (nfreq 24) - rung 2 proved rung 1 converged.
+        self.assertEqual(report["accepted_definition"], {"nfreq": 24})
+        self.assertEqual(report["usage"]["candidates"], 2)
+
+    def test_exhausted_ladder_recommends_nothing(self):
+        report = self._run(["1.5\n2.0\n3.0\n", "2.5\n2.0\n3.0\n"])
+
+        self.assertEqual(report["stop_reason"], "LADDER_EXHAUSTED")
+        self.assertIsNone(report["accepted_definition"])
+        self.assertFalse(report["improved"])
