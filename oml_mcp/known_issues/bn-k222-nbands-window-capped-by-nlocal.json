@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "bn-k222-nbands-window-capped-by-nlocal",
+  "title": "bn-k222 v1 case: the state window IS the basis dimension (26 = NLOCAL); empty states cannot be added via nbands",
+  "symptom": "An nbands 26->30 probe died in SCF before the first iteration: 'Number of basis (NLOCAL) < Number of electronic states (NBANDS)'. The case's orbital set (2s2p1d x 2 atoms) gives NLOCAL = 26, so the original nbands = 26 window already spans the full basis.",
+  "root_cause": "For this basis there are no empty states to add by raising nbands: the window is capped by the basis dimension. Adding empty states requires a LARGER orbital set (e.g. 2s2p2d), which is a basis change and a new frozen case - the same 'extend upward means a bigger basis' conclusion as the MnF2 campaign.",
+  "minimal_fix": "To study empty-state convergence or high-state pollution on BN, generate a larger-basis case (new PP/NAO set, new freeze). Never raise nbands above NLOCAL.",
+  "validation": "ABACUS refuses nbands > NLOCAL at input parsing (observed run-20260913T012756Z-72f8d9b58d).",
+  "avoid": "Treating nbands as a free axis on cases whose window already equals the basis; probing empty-state effects on a window-capped case.",
+  "source": "First nbands mutation attempt 2026-09-13 (evolution round 2).",
+  "confidence": "established",
+  "parameters": {
+    "nbands": "<= NLOCAL; the bn-k222 window is already NLOCAL"
+  }
+}

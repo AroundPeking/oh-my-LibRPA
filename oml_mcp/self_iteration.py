@@ -122,6 +122,9 @@ class LoopPolicy:
     # Stop early after this many consecutive rejections (0 disables).
     stop_after_consecutive_rejections: int = 0
     execute: bool = False
+    # Control mode: run the pristine baseline definition once (no mutation)
+    # as a reproducibility anchor. The ledger records changed_axis "control".
+    control_replay: bool = False
 
     def __post_init__(self) -> None:
         if not self.allowed_axes:
@@ -222,6 +225,10 @@ def run_self_iteration(
     """
     if not isinstance(baseline, dict) or not baseline:
         raise SelfIterationError("baseline must be a non-empty definition object")
+    if policy.control_replay:
+        return _run_control_replay(
+            case=case, baseline=baseline, policy=policy, adapter=adapter, reference=reference
+        )
 
     registered = ROUTE_MUTATION_AXES.get(case.route)
     if registered is None:
@@ -429,3 +436,114 @@ def write_ledger(report: dict[str, Any], path: str | Path) -> Path:
     payload = {"schema": LEDGER_SCHEMA, "schema_version": 1, "report": report}
     target.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     return target
+
+
+def _run_control_replay(
+    *,
+    case: FastCase,
+    baseline: dict[str, Any],
+    policy: LoopPolicy,
+    adapter: IterationAdapter,
+    reference: dict[str, str] | None,
+) -> dict[str, Any]:
+    """Run the pristine baseline definition once as a reproducibility anchor.
+
+    The one-axis attribution rule does not apply: nothing is mutated. The
+    verdict is the honest reproducibility statement - ACCEPTED only when the
+    replay reproduces the frozen reference.
+    """
+    if not policy.execute:
+        return {
+            "schema": LOOP_SCHEMA,
+            "schema_version": 1,
+            "case_id": case.case_id,
+            "route": case.route,
+            "mode": "control_replay_proposal",
+            "executed": False,
+            "accepted_count": 0,
+            "improved": False,
+            "accepted_definition": None,
+            "accepted_digest": None,
+            "accepted_iterations": [],
+            "stop_reason": "PROPOSAL_ONLY",
+            "ledger": [
+                {
+                    "iteration": 1,
+                    "changed_axis": "control",
+                    "candidate": {"definition": dict(baseline)},
+                    "candidate_digest": "control",
+                    "outcome": NOT_EVALUATED,
+                    "fast_case_status": "NOT_EVALUATED",
+                    "reason": "control replay proposal",
+                    "lesson": "set execute=True to run the control replay",
+                    "detail": {},
+                    "run_id": None,
+                }
+            ],
+            "usage": {"candidates": 0, "cpu_hours": 0.0, "wall_seconds": 0, "disk_bytes": 0},
+            "budget": asdict(policy.budget),
+        }
+
+    observation = adapter.run_candidate(case=case, candidate={}, iteration=1)
+    observed = observation.get("observed") or {}
+    verdict = (
+        evaluate_case_against_reference(case, reference, observed)
+        if reference
+        else {
+            "status": "NOT_EVALUATED",
+            "reason_code": "REFERENCE_MISSING",
+            "validators": [],
+        }
+    )
+    diagnostics = observation.get("diagnostics") or {}
+    if observation.get("status") != "COMPLETED":
+        outcome, reason = INFRASTRUCTURE_ERROR, (
+            f"stage execution did not complete: {observation.get('status')}"
+        )
+    elif diagnostics.get("status") == "FAIL":
+        outcome, reason = REJECTED_GATE, "diagnostic battery failed"
+    elif verdict["status"] == "PASS":
+        outcome, reason = ACCEPTED, verdict["reason_code"]
+    elif verdict["status"] == "FAIL":
+        outcome, reason = REJECTED_REFERENCE, verdict["reason_code"]
+    else:
+        outcome, reason = NOT_EVALUATED, verdict["reason_code"]
+
+    run_id = observation.get("run_id")
+    ledger_record = {
+        "iteration": 1,
+        "changed_axis": "control",
+        "candidate": {"definition": dict(baseline)},
+        "candidate_digest": "control",
+        "outcome": outcome,
+        "fast_case_status": verdict["status"],
+        "reason": reason,
+        "lesson": (
+            "control replay reproduces the frozen reference"
+            if outcome == ACCEPTED
+            else f"control replay did not reproduce the reference: {reason}"
+        ),
+        "detail": {
+            "observed": observed,
+            "validators": verdict.get("validators", []),
+            "diagnostics": diagnostics,
+        },
+        "run_id": run_id,
+    }
+    return {
+        "schema": LOOP_SCHEMA,
+        "schema_version": 1,
+        "case_id": case.case_id,
+        "route": case.route,
+        "mode": "control_replay",
+        "executed": True,
+        "accepted_count": 1 if outcome == ACCEPTED else 0,
+        "improved": outcome == ACCEPTED,
+        "accepted_definition": dict(baseline) if outcome == ACCEPTED else None,
+        "accepted_digest": "control",
+        "accepted_iterations": [1] if outcome == ACCEPTED else [],
+        "stop_reason": "CONTROL_COMPLETE",
+        "ledger": [ledger_record],
+        "usage": {"candidates": 1, "cpu_hours": 0.0, "wall_seconds": 0, "disk_bytes": 0},
+        "budget": asdict(policy.budget),
+    }

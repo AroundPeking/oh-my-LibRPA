@@ -409,8 +409,11 @@ class ControlledRunAdapter:
 
         The prescription fills in the per-system parameters the candidate did
         not set explicitly, which is how "different systems need different
-        input parameters" reaches the actual run.
+        input parameters" reaches the actual run. An EMPTY candidate means a
+        control replay: the upstream inputs are staged untouched.
         """
+        if not candidate:
+            return {}
         keys = resolve_prescription_keys(self.case.case_id)
         if keys is None:
             return dict(candidate)

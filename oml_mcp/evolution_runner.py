@@ -210,6 +210,7 @@ def run_evolution(
     staging_root: str | Path | None = None,
     baseline: dict[str, Any] | None = None,
     stop_after_consecutive_rejections: int = 0,
+    control_replay: bool = False,
 ) -> dict[str, Any]:
     """Run the closed loop for one fast case.
 
@@ -222,16 +223,18 @@ def run_evolution(
     base = baseline if baseline is not None else baseline_from_prescription(case_id)
 
     if not execute:
+        policy = LoopPolicy(
+            budget=budget,
+            allowed_axes=allowed_axes or ("nfreq",),
+            stop_after_consecutive_rejections=stop_after_consecutive_rejections,
+            execute=False,
+            control_replay=control_replay,
+        )
         report = run_self_iteration(
             case=case,
             baseline=base,
             axis_values=axis_values,
-            policy=LoopPolicy(
-                budget=budget,
-                allowed_axes=allowed_axes,
-                stop_after_consecutive_rejections=stop_after_consecutive_rejections,
-                execute=False,
-            ),
+            policy=policy,
             adapter=_RefusingAdapter(),
         )
         report["mode"] = "propose_only"
@@ -323,6 +326,7 @@ def run_evolution(
             allowed_axes=allowed_axes,
             stop_after_consecutive_rejections=stop_after_consecutive_rejections,
             execute=True,
+            control_replay=control_replay,
         ),
         adapter=adapter,
         reference=reference or None,
@@ -414,6 +418,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="stage one candidate locally to verify inputs and references, then exit",
     )
     parser.add_argument(
+        "--control",
+        action="store_true",
+        help="control replay: run the pristine upstream config once as a reproducibility anchor",
+    )
+    parser.add_argument(
         "--execute",
         action="store_true",
         help="really submit candidates through the execution profile (default: propose only)",
@@ -434,8 +443,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not args.case:
         raise SystemExit("--case is required for this mode")
     axis_values = dict(_parse_axis(item) for item in args.axis)
-    if not axis_values:
-        raise SystemExit("at least one --axis is required")
+    if not axis_values and not args.control:
+        raise SystemExit("at least one --axis is required (or use --control)")
     baseline = None
     if args.baseline:
         baseline = {}
@@ -479,6 +488,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             upstream_root=args.upstream_root,
             staging_root=args.staging_root,
             baseline=baseline,
+            control_replay=args.control,
         )
 
     text = json.dumps(report, ensure_ascii=False, indent=2)
