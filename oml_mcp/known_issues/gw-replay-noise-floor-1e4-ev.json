@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "gw-replay-noise-floor-1e4-ev",
+  "title": "GW near-gap replay noise floor is ~1.3e-04 eV on the pinned stack - acceptance tolerances must sit above it",
+  "symptom": "A byte-identical control replay of the bn-k222 v1 case (same binaries, inputs, resources) reproduced KS bit-for-bit and EXX to 1e-05 eV, but the near-gap GW states shifted by up to 1.3e-04 eV - enough to exceed a 1e-04 eV tolerance and false-fail a perfectly healthy run.",
+  "root_cause": "The GW quasiparticle summation is not bitwise deterministic across runs (parallel reduction ordering in the self-energy chain). KS eigenvalues and the EXX chain are effectively deterministic; only the correlated part carries the noise.",
+  "minimal_fix": "Calibrate each case's GW tolerance above the MEASURED replay noise floor (here 1e-03 eV, 10x the floor), and keep KS/EXX at the tight convention. Any candidate rejection must exceed the floor by orders of magnitude to be meaningful (the nfreq=24 rejection sat at 2300x).",
+  "validation": "One control replay per stack generation is enough to measure the floor; re-measure whenever the stack or resources change.",
+  "avoid": "Setting GW tolerances at or below the replay noise floor (guaranteed false failures), or loosening tolerances without a measured floor to justify them.",
+  "source": "Control replay run-20260913T015601Z-6bbcd6aa9c (df pinned stack, 2026-09-13).",
+  "confidence": "established",
+  "parameters": {
+    "tolerance": "GW >= 10x measured replay floor; KS/EXX 1e-04 eV"
+  }
+}

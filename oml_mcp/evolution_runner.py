@@ -323,7 +323,9 @@ def run_evolution(
         axis_values=axis_values,
         policy=LoopPolicy(
             budget=budget,
-            allowed_axes=allowed_axes,
+            # Control replay never mutates an axis; keep a placeholder so the
+            # policy's non-empty invariant holds.
+            allowed_axes=allowed_axes or ("nfreq",),
             stop_after_consecutive_rejections=stop_after_consecutive_rejections,
             execute=True,
             control_replay=control_replay,
