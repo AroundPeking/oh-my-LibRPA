@@ -319,10 +319,12 @@ def apply_prescription(
     result = dict(definition)
     applied: dict[str, Any] = {}
     for name, rule in prescription.parameters.items():
-        # Only override a parameter when the prescription pins an explicit target.
-        # A parameter whose target is None (e.g. nbands must equal nbasis, which is
-        # system-dependent) is left untouched so the caller keeps the definition.
-        if rule.target is None:
+        # Only fill a parameter the definition does not already carry: the
+        # candidate definition (case-pinned values plus the one mutated axis)
+        # always wins over the prescription baseline, or an evolution round
+        # would silently run the prescription defaults instead of the
+        # proposed definition.
+        if rule.target is None or name in result:
             continue
         value = rule.target
         _validate_value(rule, value)

@@ -430,6 +430,7 @@ class ControlledRunAdapter:
         case: FastCase,
         candidate: dict[str, Any],
         iteration: int,
+        changed_axis: str | None = None,
     ) -> dict[str, Any]:
         definition = self._resolve_definition(candidate)
         bundle = self.staging_root / f"{case.case_id}-iter{iteration}"
@@ -438,7 +439,11 @@ class ControlledRunAdapter:
             upstream_root=self.upstream_root,
             destination=bundle,
             candidate=definition,
-            explicit_axes=frozenset(candidate),
+            # Only the proposed axis is an explicit mutation; every other
+            # definition value may fill absent keys but must never overwrite
+            # what the case pins (otherwise a round silently runs the
+            # prescription defaults instead of the proposed definition).
+            explicit_axes=frozenset({changed_axis}) if changed_axis else frozenset(candidate),
         )
         stages = tuple(staging["stages"])
 

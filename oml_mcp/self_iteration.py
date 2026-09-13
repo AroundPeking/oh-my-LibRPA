@@ -81,6 +81,7 @@ class IterationAdapter(Protocol):
         case: FastCase,
         candidate: dict[str, Any],
         iteration: int,
+        changed_axis: str | None = None,
     ) -> dict[str, Any]:
         """Execute one candidate and return its artifacts.
 
@@ -339,6 +340,7 @@ def run_self_iteration(
                     case=case,
                     candidate=proposal.candidate,
                     iteration=iteration,
+                    changed_axis=proposal.changed_axis,
                 )
             except Exception as exc:  # adapter/remote failure is a first-class outcome
                 consecutive_rejections += 1

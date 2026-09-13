@@ -51,7 +51,7 @@ class FakeAdapter:
         self.error_values = set(error_values)
         self.calls = []
 
-    def run_candidate(self, *, case, candidate, iteration):
+    def run_candidate(self, *, case, candidate, iteration, changed_axis=None):
         self.calls.append({"case_id": case.case_id, "candidate": dict(candidate), "iteration": iteration})
         axis_value = candidate.get("exx_cs_inv_thr")
         if axis_value in self.error_values:

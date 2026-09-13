@@ -27,18 +27,27 @@ class ParameterPrescriptionTest(unittest.TestCase):
         # nbands is not pinned to a numeric value in the material override
         self.assertIsNone(prescription.parameters["nbands"].target)
 
-    def test_apply_prescription_overrides_only_pinned_targets(self):
+    def test_apply_prescription_fills_only_absent_keys(self):
         definition = {"nfreq": 32, "nbands": 48, "screening_kgrid": [4, 4, 4]}
         result = apply_prescription(
             "periodic_3d_gw", "transition_metal_oxide_gw", definition=definition
         )
 
-        # Per-system parameters ARE pinned for the transition-metal-oxide family:
-        # this is the "different systems need different input parameters" rule.
-        self.assertEqual(result["applied"]["exx_cs_inv_thr"], 1e-5)
-        self.assertEqual(result["applied"]["nfreq"], 6)
-        self.assertEqual(result["applied"]["screening_kgrid"], [2, 2, 2])
-        self.assertEqual(result["definition"]["exx_cs_inv_thr"], 1e-5)
+        # The candidate definition WINS on every key it carries: a prescription
+        # baseline may only fill keys the definition does not declare, or an
+        # evolution round would silently run the defaults instead of the
+        # proposed definition (observed live: nfreq 24 -> prescription 8).
+        self.assertEqual(
+            result["applied"],
+            {
+                "exx_cs_inv_thr": 1e-5,
+                "basis_family": "oncv_pbe_10au_100ry",
+                "nao_family": "tzdp",
+                "shrink_threshold": 0.1,
+            },
+        )
+        self.assertEqual(result["definition"]["nfreq"], 32)
+        self.assertEqual(result["definition"]["screening_kgrid"], [4, 4, 4])
         # nbands must equal nbasis (system-dependent), so it is never pinned.
         self.assertNotIn("nbands", result["applied"])
         self.assertEqual(result["definition"]["nbands"], 48)  # untouched
