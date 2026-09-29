@@ -40,6 +40,14 @@ For production replay of the same definition, use reviewed profile
 N=8/10/12/16 criterion. It makes no asymptotic exponent claim and is not
 strict-2D GW acceptance. Evaluate the benchmark through OML MCP before use.
 
+For the current ABACUS and LibRPA `master_ghj` stack, select
+`abacus-librpa-2026-09-29-strict2d-sos-rpa-v3`. It requires
+`librpa_2d_coulomb_head.txt` in the ABACUS `OUT.librpa` producer directory,
+with `replace_w_head=t`, `use_2d_dielectric=t`, `use_pyatb=f`, and
+`rpa_headwing_mode=qavg`. This is a source-matched `TESTABLE` protocol, not a
+replacement for the immutable `.dat` replay profiles or a production
+convergence claim.
+
 ## Default `librpa.in` Preset for RPA
 
 For RPA requests, set:

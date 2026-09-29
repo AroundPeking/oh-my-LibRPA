@@ -21,6 +21,8 @@ PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 PROFILE_NAME = "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json"
 PRODUCTION_PROFILE_ID = "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
 PRODUCTION_PROFILE_NAME = "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json"
+CURRENT_PROFILE_ID = "abacus-librpa-2026-09-29-strict2d-sos-rpa-v3"
+CURRENT_PROFILE_NAME = "abacus-librpa-strict2d-sos-rpa-2026-09-v3.json"
 BENCHMARK_ID = "strict2d-sos-rpa-mos2-qavg-v1"
 MANIFEST_ID = "df-dcu-strict2d-sos-rpa-2026-09-02-v1"
 
@@ -70,6 +72,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
     def test_profile_is_registered_without_mutating_historical_profiles(self):
         self.assertIn(PROFILE_ID, list_profiles())
         self.assertIn(PRODUCTION_PROFILE_ID, list_profiles())
+        self.assertIn(CURRENT_PROFILE_ID, list_profiles())
 
     def test_profile_pins_the_validated_librpa_and_replay_only_contract(self):
         profile = load_profile(profile_id=PROFILE_ID)
@@ -95,6 +98,24 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         )
         self.assertTrue(contract["k_mesh_acceptance"]["require_stable_asymptotic_fit"])
         self.assertTrue(contract["k_mesh_acceptance"]["forbid_convergence_exponent_claim"])
+
+    def test_current_profile_uses_the_txt_sidecar_and_direct_abacus_velocity(self):
+        profile = load_profile(profile_id=CURRENT_PROFILE_ID)
+        contract = profile["contract"]["strict_2d_sos_rpa"]
+
+        self.assertEqual(
+            profile["components"]["abacus"]["revision"],
+            "27793bba810b2c5bc0492a778647fd48923899b8",
+        )
+        self.assertEqual(
+            profile["components"]["librpa"]["revision"],
+            "1c52e91736359ac02812baef803055af3e6f1a7e",
+        )
+        self.assertEqual(contract["coulomb_head_artifact"], "librpa_2d_coulomb_head.txt")
+        self.assertEqual(contract["producer_policy"], "source_matched_current_producer")
+        self.assertTrue(contract["allow_abacus_rerun"])
+        self.assertFalse(contract["allow_pyatb_rerun"])
+        self.assertFalse(contract["required_input"]["use_pyatb"])
 
     def test_profile_cannot_self_promote_beyond_testable_l3(self):
         profile = load_profile(profile_id=PROFILE_ID)
@@ -179,6 +200,16 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         )
         self.assertEqual(production_packaged, production_repository)
 
+        current_repository = json.loads(
+            (root / "profiles" / CURRENT_PROFILE_NAME).read_text(encoding="utf-8")
+        )
+        current_packaged = json.loads(
+            (root / "oml_mcp" / "profiles" / CURRENT_PROFILE_NAME).read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(current_packaged, current_repository)
+
     def test_user_facing_rpa_guidance_names_the_strict2d_replay_exception(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         texts = [
@@ -197,6 +228,18 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         rpa_skill = texts[0]
         self.assertIn("$librpa-openmp-mkl-threading", rpa_skill)
         self.assertIn("OMP_NUM_THREADS == MKL_NUM_THREADS", rpa_skill)
+
+    def test_current_protocol_guidance_keeps_historical_replays_unchanged(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        texts = [
+            (root / "skills" / "abacus-librpa-rpa" / "SKILL.md").read_text(encoding="utf-8"),
+            (root / "skills" / "abacus-librpa-version-guard" / "SKILL.md").read_text(encoding="utf-8"),
+            (root / "skills" / "oh-my-librpa" / "references" / "rpa-route.md").read_text(encoding="utf-8"),
+        ]
+        for text in texts:
+            self.assertIn(CURRENT_PROFILE_ID, text)
+            self.assertIn("librpa_2d_coulomb_head.txt", text)
+            self.assertIn("use_pyatb=f", text)
 
     def test_live_benchmark_keeps_result_gates_and_remaining_convergence_separate(self):
         path = (
@@ -260,6 +303,59 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
         self.assertFalse(plan.options["allow_pyatb_rerun"])
         self.assertEqual(plan.gates[0].status, "WARN")
         self.assertTrue(any("stable asymptotic regime" in item for item in plan.assumptions))
+
+    def test_plan_case_selects_the_current_source_matched_strict2d_route(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            librpa_input = root / "librpa.in"
+            librpa_input.write_text(
+                librpa_input.read_text(encoding="utf-8").replace(
+                    "use_pyatb = t", "use_pyatb = f"
+                ),
+                encoding="utf-8",
+            )
+            plan = plan_case(
+                root,
+                task="rpa",
+                system_type="2d",
+                response_method="sos",
+                headwing=True,
+                use_symmetry=True,
+                profile_id=CURRENT_PROFILE_ID,
+            )
+
+        self.assertEqual(plan.route, "strict_2d_sos_rpa")
+        self.assertTrue(plan.options["allow_abacus_rerun"])
+        self.assertFalse(plan.options["allow_pyatb_rerun"])
+        self.assertTrue(any("source-matched ABACUS" in item for item in plan.assumptions))
+        self.assertTrue(any("without a PyATB stage" in item for item in plan.assumptions))
+
+    def test_validate_case_accepts_the_current_source_matched_input_contract(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            librpa_input = root / "librpa.in"
+            librpa_input.write_text(
+                librpa_input.read_text(encoding="utf-8").replace(
+                    "use_pyatb = t", "use_pyatb = f"
+                ),
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root,
+                task="rpa",
+                system_type="2d",
+                response_method="sos",
+                use_symmetry=True,
+                headwing=True,
+                profile_id=CURRENT_PROFILE_ID,
+                stage="input",
+            )
+
+        self.assertTrue(report.accepted, report.to_dict())
+        gates = {gate.gate_id: gate for gate in report.gates}
+        self.assertEqual(gates["librpa.strict_2d_sos_rpa"].status, "PASS")
 
     def test_plan_case_selects_the_l4_reference_bounded_route(self):
         with tempfile.TemporaryDirectory() as tmpdir:

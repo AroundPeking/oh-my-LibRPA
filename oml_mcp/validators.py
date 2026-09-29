@@ -636,7 +636,8 @@ def _strict_2d_sos_rpa_input_gate(
     for key in ("replace_w_head", "use_2d_dielectric", "use_pyatb"):
         actual = _bool_value(librpa, key)
         if actual is not required[key]:
-            mismatches.append(f"{key}={librpa.value(key)!r} expected t")
+            expected = "t" if required[key] else "f"
+            mismatches.append(f"{key}={librpa.value(key)!r} expected {expected}")
     mode = (librpa.value("rpa_headwing_mode") or "").strip().lower()
     if mode != required["rpa_headwing_mode"]:
         mismatches.append(
@@ -659,7 +660,7 @@ def _strict_2d_sos_rpa_input_gate(
             "librpa.in does not match the strict-2D SOS-RPA qavg contract",
             (str(librpa.path), *mismatches),
             (
-                "enable replace_w_head/use_2d_dielectric/use_pyatb, set "
+                "set replace_w_head/use_2d_dielectric/use_pyatb to the selected profile, "
                 "option_dielect_func=3, rpa_headwing_mode=qavg and "
                 "rpa_headwing_body_start=1, and remove head_only"
             ),
@@ -719,7 +720,7 @@ def _strict2d_coulomb_head_gate(root: Path, filename: str) -> GateResult:
             "strict2d.coulomb_head",
             "strict-2D Coulomb head artifact is missing or empty",
             (str(path),),
-            "reuse the non-empty librpa_2d_coulomb_head.dat from the validated producer",
+            f"provide the non-empty {filename} from the selected ABACUS producer contract",
         )
     return _pass(
         "strict2d.coulomb_head",

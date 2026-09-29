@@ -50,6 +50,16 @@ requiring complete adjacent-grid invariance. It makes no asymptotic exponent
 claim and is not strict-2D GW acceptance. Call `inspect_route_benchmark` and
 `evaluate_route_benchmark` before using the production profile.
 
+### Current strict-2D producer protocol
+
+For the current `master_ghj` ABACUS and LibRPA pair, select
+`abacus-librpa-2026-09-29-strict2d-sos-rpa-v3`. Generate one source-matched
+ABACUS reader-v1 data set and require
+`OUT.librpa/librpa_2d_coulomb_head.txt`. Set `replace_w_head=t`,
+`use_2d_dielectric=t`, `use_pyatb=f`, and `rpa_headwing_mode=qavg`.
+This is a `TESTABLE` interface protocol; it does not change the frozen v1/v2
+`.dat` replay records or establish a production 2D convergence claim.
+
 ## Default `librpa.in` preset
 
 Set or verify:

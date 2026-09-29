@@ -6,6 +6,7 @@ from typing import Any
 from .intake import ingest_case
 from .models import CasePlan, GateResult
 from .profiles import (
+    STRICT_2D_SOS_RPA_CURRENT_PROFILE_ID,
     STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID,
     is_strict_2d_sos_rpa_profile,
     load_profile,
@@ -68,12 +69,21 @@ def _plan_rpa_route(
             raise PlanError("strict-2D SOS-RPA requires the SOS response method")
         if headwing is False:
             raise PlanError("strict-2D SOS-RPA requires analytic head/wing q averaging")
-        assumptions.extend(
-            (
-                "reuse the validated reader-v1 ABACUS and PyATB producer without rerunning either producer",
-                "use full 2D Ewald Coulomb with analytic Gamma head/wing q averaging",
+        if profile_id == STRICT_2D_SOS_RPA_CURRENT_PROFILE_ID:
+            assumptions.extend(
+                (
+                    "generate a source-matched ABACUS reader-v1 producer data set",
+                    "use the ABACUS velocity matrix directly without a PyATB stage",
+                    "use full 2D Ewald Coulomb with analytic Gamma head/wing q averaging",
+                )
             )
-        )
+        else:
+            assumptions.extend(
+                (
+                    "reuse the validated reader-v1 ABACUS and PyATB producer without rerunning either producer",
+                    "use full 2D Ewald Coulomb with analytic Gamma head/wing q averaging",
+                )
+            )
         if profile_id == STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID:
             assumptions.extend(
                 (

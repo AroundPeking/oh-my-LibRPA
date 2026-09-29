@@ -17,8 +17,13 @@ STRICT_2D_SOS_RPA_PROFILE_ID = "abacus-librpa-2026-09-02-strict2d-sos-rpa-v1"
 STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID = (
     "abacus-librpa-2026-09-03-strict2d-sos-rpa-v2"
 )
+STRICT_2D_SOS_RPA_CURRENT_PROFILE_ID = "abacus-librpa-2026-09-29-strict2d-sos-rpa-v3"
 STRICT_2D_SOS_RPA_PROFILE_IDS = frozenset(
-    {STRICT_2D_SOS_RPA_PROFILE_ID, STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID}
+    {
+        STRICT_2D_SOS_RPA_PROFILE_ID,
+        STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID,
+        STRICT_2D_SOS_RPA_CURRENT_PROFILE_ID,
+    }
 )
 PROFILE_NAMES = {
     LEGACY_PROFILE_ID: "abacus-librpa-pyatb-2026-08.json",
@@ -29,6 +34,7 @@ PROFILE_NAMES = {
     V6_PROFILE_ID: "abacus-librpa-pyatb-2026-09-v6.json",
     STRICT_2D_SOS_RPA_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v1.json",
     STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v2.json",
+    STRICT_2D_SOS_RPA_CURRENT_PROFILE_ID: "abacus-librpa-strict2d-sos-rpa-2026-09-v3.json",
 }
 PROFILE_NAME = PROFILE_NAMES[DEFAULT_PROFILE_ID]
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -374,6 +380,7 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
     if strict_2d_sos_rpa:
         route_capability = capabilities["strict_2d_sos_rpa"]
         production_profile = profile_id == STRICT_2D_SOS_RPA_PRODUCTION_PROFILE_ID
+        current_profile = profile_id == STRICT_2D_SOS_RPA_CURRENT_PROFILE_ID
         expected_status = "ENABLED" if production_profile else "TESTABLE"
         expected_level = "L4" if production_profile else "L3"
         if (
@@ -417,20 +424,29 @@ def _validate_v2_capabilities(profile: dict[str, Any]) -> None:
             or route_contract.get("reader_format") != "v1"
             or route_contract.get("coulomb") != "full_2d_ewald"
             or route_contract.get("coulomb_head_artifact")
-            != "librpa_2d_coulomb_head.dat"
+            != (
+                "librpa_2d_coulomb_head.txt"
+                if current_profile
+                else "librpa_2d_coulomb_head.dat"
+            )
             or route_contract.get("nfreq") != 16
             or route_contract.get("headwing") != "qavg"
             or route_contract.get("head_only") is not False
-            or route_contract.get("producer_policy") != "reuse_validated_only"
-            or route_contract.get("allow_abacus_rerun") is not False
+            or route_contract.get("producer_policy")
+            != (
+                "source_matched_current_producer"
+                if current_profile
+                else "reuse_validated_only"
+            )
+            or route_contract.get("allow_abacus_rerun") is not current_profile
             or route_contract.get("allow_pyatb_rerun") is not False
         ):
-            raise ProfileError("contract.strict_2d_sos_rpa is not the pinned replay-only route")
+            raise ProfileError("contract.strict_2d_sos_rpa is not the registered strict-2D route")
         if route_contract.get("required_input") != {
             "replace_w_head": True,
             "option_dielect_func": 3,
             "use_2d_dielectric": True,
-            "use_pyatb": True,
+            "use_pyatb": not current_profile,
             "rpa_headwing_mode": "qavg",
             "rpa_headwing_body_start": 1,
         }:
