@@ -21,6 +21,7 @@ revisions and executable hashes on the server.
 | `abacus-librpa-2026-09-06-v6` | `1648a8a344427ae1b6394912bf677c4a20e053f2` | `7e40c5bbf735a78aa15fa589ca2468fec2e2427b` | current default; periodic 3D GW EXPERIMENTAL at L3 |
 | `abacus-librpa-2026-09-02-strict2d-sos-rpa-v1` | `0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43` replay only | `c87103df00b772ddbfc21597884c2787cf685037` | `strict_2d_sos_rpa`, TESTABLE LibRPA-only qavg replay |
 | `abacus-librpa-2026-09-03-strict2d-sos-rpa-v2` | `0e3bedae4d6fafe19ce176aa7a2e1ca5c842fa43` replay only | `c87103df00b772ddbfc21597884c2787cf685037` | `strict_2d_sos_rpa`, ENABLED reference-bounded replay |
+| `abacus-librpa-2026-09-29-strict2d-sos-rpa-v3` | `27793bba810b2c5bc0492a778647fd48923899b8` | `0cd087e34b714f70e59ab7ad5b1240c367ca065f` | current strict-2D RPA producer protocol, TESTABLE |
 
 All use PyATB `9fb9028c59b1dbaf9cf66965280961fc2225d9eb` where required. V2/v3/v4/v5/v6 register
 `periodic_3d_gw`, `strict_2d_gw`, `molecular_delta_st_rpa`, and
@@ -40,6 +41,11 @@ The v2 strict-2D SOS-RPA profile is bound to benchmark
 `strict2d-sos-rpa-mos2-qavg-v1`. Its reference-bounded acceptance records
 operational k-mesh convergence for the exact MoS2 definition, makes no
 asymptotic exponent claim, and is not strict-2D GW acceptance.
+
+The v3 strict-2D SOS-RPA profile is source-matched rather than an immutable
+replay. It requires `OUT.librpa/librpa_2d_coulomb_head.txt`, permits an
+ABACUS producer run, and uses the ABACUS velocity matrix directly
+(`use_pyatb=f`). It is not a production convergence or strict-2D GW claim.
 
 ## Hard Gates
 
