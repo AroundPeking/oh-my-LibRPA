@@ -1,0 +1,61 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r4",
+  "layer": "gw",
+  "title": "GW layer is wrong",
+  "symptom": "GW bands are scrambled or bumped after the EXX layer checks out.",
+  "evidence_required": [
+    "fullcoul checks as in r2",
+    "ABFS generation-stage exx_pca_threshold",
+    "PP/NAO/hash identity of the basis set"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "check fullcoul as in r2",
+      "parameters": [],
+      "direction": "diagnose",
+      "expected_improvement": "excludes a shared construction problem first",
+      "guard": "do not change GW-specific parameters while fullcoul is unresolved"
+    },
+    {
+      "action": "decrease the generation-stage exx_pca_threshold and regenerate the ABFS",
+      "parameters": [
+        "exx_pca_threshold"
+      ],
+      "direction": "decrease",
+      "expected_improvement": "enlarges the auxiliary basis and reduces the GW LRI error",
+      "guard": "an oversized auxiliary basis becomes linearly dependent; keep the production value at 10 with ABFS_ORBITAL"
+    },
+    {
+      "action": "switch to another matched PP/NAO set from the database",
+      "parameters": [
+        "basis_family",
+        "nao_family"
+      ],
+      "direction": "switch",
+      "expected_improvement": "removes basis-specific GW sensitivity when the numerical knobs are exhausted",
+      "guard": "keep the PP/NAO pair matched and record the new set ids"
+    }
+  ],
+  "stop_condition": "GW bands are smooth or the candidate list is exhausted.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/exx-pca-threshold",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/libri-screening-thresholds",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": [
+    "abfs-generation-pp-orbital-fg-mismatch"
+  ]
+}

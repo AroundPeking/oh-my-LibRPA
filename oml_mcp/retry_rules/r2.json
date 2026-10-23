@@ -1,0 +1,53 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r2",
+  "layer": "exx",
+  "title": "EXX layer is wrong at a large scale",
+  "symptom": "Large-range EXX-KS deviations or scrambled EXX bands after localization.",
+  "evidence_required": [
+    "fullcoul construction method and its parameters",
+    "hermitian residual",
+    "negative or near-null eigenvalues",
+    "ewald versus direct cross-check"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "inspect the Coulomb matrix for non-Hermiticity and negative eigenvalues",
+      "parameters": [],
+      "direction": "diagnose",
+      "expected_improvement": "confirms or excludes a broken fullcoul before touching any threshold",
+      "guard": "record the findings in the trial ledger"
+    },
+    {
+      "action": "cross-check the fullcoul construction with the other algorithm",
+      "parameters": [
+        "out_librpa_3d_coulomb_method",
+        "out_librpa_2d_coulomb_method"
+      ],
+      "direction": "switch",
+      "expected_improvement": "separates a construction bug from a basis or screening problem",
+      "guard": "direct methods need converged ecut/kz/gamma orders and have no automatic fallback"
+    }
+  ],
+  "stop_condition": "fullcoul passes both algorithms and the EXX anomaly persists (continue with r3).",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/out-librpa-3d-coulomb-method",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/out-librpa-2d-coulomb-method",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": [
+    "coulomb-mat-empty-atom-pairs"
+  ]
+}

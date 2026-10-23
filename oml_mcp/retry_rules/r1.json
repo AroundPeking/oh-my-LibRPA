@@ -1,0 +1,35 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r1",
+  "layer": "any",
+  "title": "Bands are completely scrambled or wrong at a large scale",
+  "symptom": "The KS/EXX/GW band figures show scrambled or broadly wrong bands; the artifact is not a local bump.",
+  "evidence_required": [
+    "KS, EXX and GW tables for the same k grid",
+    "layer localization report (EXX-KS versus GW-EXX)",
+    "smoothness reports for each layer"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "run layer localization and branch to r2 or r4",
+      "parameters": [],
+      "direction": "diagnose",
+      "expected_improvement": "identifies which operator layer introduces the artifact before any parameter change",
+      "guard": "do not change parameters before the layer is identified"
+    }
+  ],
+  "stop_condition": "The failing layer is identified (EXX -> r2, GW -> r4).",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/exx-pca-threshold",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}

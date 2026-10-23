@@ -1,0 +1,30 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r7",
+  "layer": "any",
+  "title": "Bands are smooth but the gap differs from the reference",
+  "symptom": "The smoothness and localization gates pass, but the GW gap differs from the trusted reference by more than the tolerance (default 0.2 eV).",
+  "evidence_required": [
+    "PBE/EXX/GW indirect and direct gaps",
+    "trusted reference value and its source",
+    "gap comparison receipt"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "fail the trial and branch back to the EXX/GW layer rules",
+      "parameters": [],
+      "direction": "diagnose",
+      "expected_improvement": "prevents accepting a smooth but physically wrong result",
+      "guard": "the reference must be trusted; 0.2 eV is the default tolerance"
+    }
+  ],
+  "stop_condition": "The gap matches within tolerance or a layer cause is found.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}

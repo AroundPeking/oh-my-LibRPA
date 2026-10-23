@@ -1,0 +1,41 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r5",
+  "layer": "any",
+  "title": "Symmetry-related anomaly",
+  "symptom": "The artifact pattern suggests an incorrect symmetry treatment rather than a numerical threshold.",
+  "evidence_required": [
+    "symmetry flags in librpa.in",
+    "stru_out symmetry metadata",
+    "matching known issues"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "match the known symmetry issues and verify the symmetry flags and stru_out",
+      "parameters": [
+        "use_symmetry_exx",
+        "use_symmetry_gw"
+      ],
+      "direction": "diagnose",
+      "expected_improvement": "excludes a symmetry bug before changing basis parameters",
+      "guard": "do not mix legacy sidecar assumptions with the stru_out rebuild path"
+    }
+  ],
+  "stop_condition": "The symmetry explanation is confirmed or excluded.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/use-fullcoul-exx",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": [
+    "symmetry-full-q-mismatch",
+    "fullcoul-exx-flag-overridden-by-gw-symmetry"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r3",
+  "layer": "exx",
+  "title": "EXX layer shows small-range bumps or non-smooth segments",
+  "symptom": "Localized EXX bumps over a narrow k/band region while the rest of the bands is smooth.",
+  "evidence_required": [
+    "EXX-KS delta curvature outliers",
+    "shrink products and shrink_abfs_pca_thr",
+    "Coulomb spectrum and retained rank"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "decrease shrink_abfs_pca_thr by one step",
+      "parameters": [
+        "shrink_abfs_pca_thr"
+      ],
+      "direction": "decrease",
+      "expected_improvement": "keeps more shrunk auxiliary functions and reduces the EXX LRI error",
+      "guard": "watch for linear dependence; verify the Coulomb spectrum and retained rank before accepting"
+    }
+  ],
+  "stop_condition": "EXX bands are smooth or the shrunk basis becomes ill-conditioned (go to r9).",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/shrink-abfs-pca-thr",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r9",
+  "layer": "both",
+  "title": "Auxiliary basis is too large or linearly dependent",
+  "symptom": "The auxiliary basis keeps growing while near-null Coulomb directions or linear dependence appear and results worsen.",
+  "evidence_required": [
+    "auxiliary dimension versus basis dimension",
+    "near-null Coulomb directions",
+    "retained rank"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "revert one step to the previous auxiliary basis and stop enlarging",
+      "parameters": [
+        "exx_pca_threshold",
+        "abfs_family"
+      ],
+      "direction": "revert",
+      "expected_improvement": "restores a well-conditioned auxiliary basis",
+      "guard": "do not continue decreasing thresholds after linear dependence appears"
+    }
+  ],
+  "stop_condition": "The auxiliary basis is well conditioned again.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/exx-pca-threshold",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}

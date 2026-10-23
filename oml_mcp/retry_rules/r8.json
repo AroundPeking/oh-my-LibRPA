@@ -1,0 +1,41 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r8",
+  "layer": "both",
+  "title": "LRI error is reported as large",
+  "symptom": "The reporting layer flags a large LibRI screening error.",
+  "evidence_required": [
+    "which layer reports the error",
+    "current threshold values for that layer",
+    "expected runtime cost"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "decrease the threshold family of the reporting layer",
+      "parameters": [
+        "libri_chi0_threshold_C",
+        "libri_exx_threshold_C",
+        "libri_g0w0_threshold_C",
+        "shrink_abfs_pca_thr",
+        "exx_pca_threshold"
+      ],
+      "direction": "decrease",
+      "expected_improvement": "tightens screening and reduces the numerical LibRI error",
+      "guard": "change the family coherently and check cost and conditioning"
+    }
+  ],
+  "stop_condition": "The LRI error is below the reporting threshold or the basis becomes ill-conditioned (go to r9).",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/libri-screening-thresholds",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}

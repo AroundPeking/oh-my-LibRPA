@@ -1,0 +1,37 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r6",
+  "layer": "any",
+  "title": "Shrink-related anomaly",
+  "symptom": "The artifact correlates with the shrunk auxiliary basis or its products.",
+  "evidence_required": [
+    "shrink products",
+    "prefix_lri_coeff_shrink and prefix_shrink_sinvS",
+    "shrink_abfs_pca_thr"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "inspect the shrink products and match known shrink issues",
+      "parameters": [
+        "use_shrink_abfs"
+      ],
+      "direction": "diagnose",
+      "expected_improvement": "separates a shrink bug from a basis or threshold problem",
+      "guard": "do not turn shrink off silently for a production definition"
+    }
+  ],
+  "stop_condition": "The shrink explanation is confirmed or excluded.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (band-artifact decision tree)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/shrink-abfs-pca-thr",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}
