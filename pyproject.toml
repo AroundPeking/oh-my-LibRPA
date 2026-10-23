@@ -12,7 +12,9 @@ authors = [
   {name = "AroundPeking", email = "gonghuanjing@iphy.ac.cn"},
 ]
 dependencies = [
-  "mcp>=2.0,<3",
+  # mcp 2.1+ wraps tool exceptions into a generic "Error executing tool <name>"
+  # message, which drops the domain error text the tool contract and tests rely on.
+  "mcp>=2.0,<2.1",
   "numpy>=1.26",
 ]
 
