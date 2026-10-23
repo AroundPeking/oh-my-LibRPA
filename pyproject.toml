@@ -41,6 +41,7 @@ oml_mcp = [
   "known_issues/*.json",
   "parameter_prescriptions/*.json",
   "parameter_knowledge/*.json",
+  "policy/*.json",
   "retry_rules/*.json",
   "fast_cases/*.json",
 ]

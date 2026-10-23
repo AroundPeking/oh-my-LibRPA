@@ -1,0 +1,31 @@
+{
+  "schema_version": "oml.policy.v1",
+  "id": "abfs_contract",
+  "title": "A prebuilt ABFS is used with exx_pca_threshold = 10 and shrink on",
+  "rule": "When a prebuilt database ABFS is staged through ABFS_ORBITAL, the production input sets exx_pca_threshold = 10 and use_shrink_abfs = t so two auxiliary-basis definitions are never stacked.",
+  "scope": {
+    "routes": [
+      "periodic_3d_gw",
+      "strict_2d_gw",
+      "strict_2d_sos_rpa"
+    ],
+    "stage": "production"
+  },
+  "enforcement": {
+    "kind": "gate",
+    "id": "policy.abfs_contract"
+  },
+  "on_violation": "fail_closed",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/exx-pca-threshold.json",
+      "accessed": "2026-10-23"
+    }
+  ]
+}

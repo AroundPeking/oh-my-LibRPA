@@ -1,0 +1,31 @@
+{
+  "schema_version": "oml.policy.v1",
+  "id": "kpoint_standard",
+  "title": "Standard k grids: solids 8x8x8, 2D 12x12x1",
+  "rule": "Production runs start at 8x8x8 for solids and 12x12x1 (kz = 1) for 2D. A larger grid is a convergence-ladder step, never a new default.",
+  "scope": {
+    "routes": [
+      "periodic_3d_gw",
+      "strict_2d_gw",
+      "strict_2d_sos_rpa"
+    ],
+    "stage": "production"
+  },
+  "enforcement": {
+    "kind": "gate",
+    "id": "policy.kpoint_standard"
+  },
+  "on_violation": "fail_closed",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/kpoint-standard.json",
+      "accessed": "2026-10-23"
+    }
+  ]
+}

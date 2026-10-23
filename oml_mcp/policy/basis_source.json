@@ -1,0 +1,29 @@
+{
+  "schema_version": "oml.policy.v1",
+  "id": "basis_source",
+  "title": "PP, NAO and ABFS come from the LibRPA database",
+  "rule": "Production staging resolves every STRU element from the LibRPA-database element sets. A missing element must be built with the abacus-librpa-gw-basis-skill method and must not fall back silently to case-bundled assets.",
+  "scope": {
+    "routes": [
+      "*"
+    ],
+    "stage": "production"
+  },
+  "enforcement": {
+    "kind": "gate",
+    "id": "policy.basis_source"
+  },
+  "on_violation": "fail_closed",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/kpoint-standard.json",
+      "accessed": "2026-10-23"
+    }
+  ]
+}
