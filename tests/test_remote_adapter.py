@@ -8,6 +8,7 @@ from oml_mcp.fast_benchmark import load_fast_case
 from oml_mcp.remote_adapter import (
     ControlledRunAdapter,
     RemoteAdapterError,
+    _apply_definition_to_inputs,
     locate_case_source,
     stage_case_bundle,
     summarize_collected_outputs,
@@ -633,3 +634,98 @@ class CollectOutputsTest(unittest.TestCase):
 
         self.assertEqual(collected["GW_band_spin_1.dat"], "new\n")
         self.assertEqual(collected["librpa.out"], "root\n")
+
+
+class KptRewriteTest(unittest.TestCase):
+    def _bundle(self) -> pathlib.Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = pathlib.Path(directory.name)
+        (root / "KPT_scf").write_text("K_POINTS\n0\nGamma\n2 2 2 0 0 0\n", encoding="utf-8")
+        (root / "KPT_nscf").write_text("K_POINTS\n0\nGamma\n4 4 4 0 0 0\n", encoding="utf-8")
+        (root / "librpa.in").write_text("nfreq = 8\n", encoding="utf-8")
+        return root
+
+    def test_scf_kgrid_rewrites_only_kpt_scf(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle, {"scf_kgrid": [6, 6, 6]}, explicit_axes=frozenset({"scf_kgrid"})
+        )
+        self.assertEqual(result["applied"]["scf_kgrid"], [6, 6, 6])
+        self.assertIn("6 6 6 0 0 0", (bundle / "KPT_scf").read_text(encoding="utf-8"))
+        self.assertIn("4 4 4 0 0 0", (bundle / "KPT_nscf").read_text(encoding="utf-8"))
+
+    def test_screening_kgrid_alias_rewrites_kpt_scf(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle,
+            {"screening_kgrid": [8, 8, 8]},
+            explicit_axes=frozenset({"screening_kgrid"}),
+        )
+        self.assertEqual(result["applied"]["screening_kgrid"], [8, 8, 8])
+        self.assertIn("8 8 8 0 0 0", (bundle / "KPT_scf").read_text(encoding="utf-8"))
+
+    def test_nscf_kgrid_rewrites_only_kpt_nscf(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle, {"nscf_kgrid": [10, 10, 10]}, explicit_axes=frozenset({"nscf_kgrid"})
+        )
+        self.assertEqual(result["applied"]["nscf_kgrid"], [10, 10, 10])
+        self.assertIn("10 10 10 0 0 0", (bundle / "KPT_nscf").read_text(encoding="utf-8"))
+        self.assertIn("2 2 2 0 0 0", (bundle / "KPT_scf").read_text(encoding="utf-8"))
+
+    def test_in_plane_kgrid_forces_kz_one(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle, {"in_plane_kgrid": [12, 12]}, explicit_axes=frozenset({"in_plane_kgrid"})
+        )
+        self.assertEqual(result["applied"]["in_plane_kgrid"], [12, 12, 1])
+        self.assertIn("12 12 1 0 0 0", (bundle / "KPT_nscf").read_text(encoding="utf-8"))
+
+    def test_canonical_axis_wins_over_alias(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle,
+            {"scf_kgrid": [6, 6, 6], "screening_kgrid": [8, 8, 8]},
+            explicit_axes=frozenset({"scf_kgrid", "screening_kgrid"}),
+        )
+        self.assertEqual(result["applied"]["scf_kgrid"], [6, 6, 6])
+        self.assertIn("screening_kgrid", result["unapplied"])
+        self.assertIn("6 6 6 0 0 0", (bundle / "KPT_scf").read_text(encoding="utf-8"))
+
+    def test_non_explicit_grid_is_preserved(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle, {"nscf_kgrid": [10, 10, 10]}, explicit_axes=frozenset()
+        )
+        self.assertIn("nscf_kgrid", result["preserved"])
+        self.assertNotIn("nscf_kgrid", result["unapplied"])
+        self.assertIn("4 4 4 0 0 0", (bundle / "KPT_nscf").read_text(encoding="utf-8"))
+
+    def test_missing_kpt_file_is_unapplied(self):
+        bundle = self._bundle()
+        (bundle / "KPT_nscf").unlink()
+        result = _apply_definition_to_inputs(
+            bundle, {"nscf_kgrid": [10, 10, 10]}, explicit_axes=frozenset({"nscf_kgrid"})
+        )
+        self.assertIn("nscf_kgrid", result["unapplied"])
+
+    def test_line_mode_kpt_is_unapplied(self):
+        bundle = self._bundle()
+        (bundle / "KPT_scf").write_text(
+            "K_POINTS\n3\nLine\n0 0 0 10\n0.5 0 0 10\n1 0 0 1\n", encoding="utf-8"
+        )
+        result = _apply_definition_to_inputs(
+            bundle, {"scf_kgrid": [6, 6, 6]}, explicit_axes=frozenset({"scf_kgrid"})
+        )
+        self.assertIn("scf_kgrid", result["unapplied"])
+        self.assertIn("Line", (bundle / "KPT_scf").read_text(encoding="utf-8"))
+
+    def test_invalid_grid_is_unapplied(self):
+        bundle = self._bundle()
+        for grid in ([0, 4, 4], [4, 4, 4, 4], "abc"):
+            with self.subTest(grid=grid):
+                result = _apply_definition_to_inputs(
+                    bundle, {"scf_kgrid": grid}, explicit_axes=frozenset({"scf_kgrid"})
+                )
+                self.assertIn("scf_kgrid", result["unapplied"])

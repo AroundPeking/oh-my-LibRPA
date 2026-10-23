@@ -154,13 +154,48 @@ def _apply_definition_to_inputs(
         else:
             preserved[axis] = value
 
+    # KPT files: SCF and NSCF grids are separate files. ``scf_kgrid`` is the
+    # canonical name; ``screening_kgrid`` remains the legacy alias for the SCF
+    # grid. ``in_plane_kgrid`` is the 2D response grid, which is the NSCF grid
+    # with kz fixed to 1.
+    kpt_axes = {
+        "scf_kgrid": ("KPT_scf", None),
+        "screening_kgrid": ("KPT_scf", None),
+        "nscf_kgrid": ("KPT_nscf", None),
+        "in_plane_kgrid": ("KPT_nscf", 1),
+    }
+    canonical_kpt_axis = {"screening_kgrid": "scf_kgrid", "in_plane_kgrid": "nscf_kgrid"}
+    for axis, (filename, force_kz) in kpt_axes.items():
+        if axis not in candidate or candidate[axis] is None:
+            continue
+        value = candidate[axis]
+        owner = canonical_kpt_axis.get(axis)
+        if owner is not None and candidate.get(owner) is not None:
+            unapplied[axis] = value
+            continue
+        path = bundle / filename
+        if not path.is_file():
+            unapplied[axis] = value
+            continue
+        if axis not in explicit:
+            preserved[axis] = value
+            continue
+        try:
+            grid = _normalize_kpoint_grid(value, force_kz=force_kz)
+        except ValueError:
+            unapplied[axis] = value
+            continue
+        if _upsert_kpt_grid(path, grid):
+            applied[axis] = list(grid)
+        else:
+            unapplied[axis] = value
+
     # LibRPA librpa.in key mapping.
     librpa_keys = {
         "nfreq": "nfreq",
         "abfs_family": None,
         "basis_family": None,
         "nao_family": None,
-        "screening_kgrid": None,
     }
     path = bundle / "librpa.in"
     if path.is_file():
@@ -182,7 +217,7 @@ def _apply_definition_to_inputs(
     # Axes with no direct single-key representation are reported as unapplied
     # rather than silently ignored.
     for axis in candidate:
-        if axis not in applied and axis not in unapplied:
+        if axis not in applied and axis not in unapplied and axis not in preserved:
             unapplied[axis] = candidate[axis]
 
     return {"applied": applied, "unapplied": unapplied, "preserved": preserved}
@@ -238,6 +273,66 @@ def _upsert_abacus_key(path: Path, key: str, value: Any) -> bool:
         out.append(rendered)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return True
+
+
+def _normalize_kpoint_grid(value: Any, *, force_kz: int | None = None) -> tuple[int, int, int]:
+    """Return a positive three-component Gamma-centred grid."""
+    if isinstance(value, str):
+        tokens = value.replace("x", " ").replace(",", " ").split()
+    elif isinstance(value, (list, tuple)):
+        tokens = list(value)
+    else:
+        raise ValueError("k-point grid must be a list of integers or a string")
+    try:
+        grid = [int(token) for token in tokens]
+    except (TypeError, ValueError) as exc:
+        raise ValueError("k-point grid components must be integers") from exc
+    if len(grid) == 2:
+        grid.append(1)
+    if len(grid) != 3:
+        raise ValueError("k-point grid must have two or three components")
+    if any(component <= 0 for component in grid):
+        raise ValueError("k-point grid components must be positive")
+    if force_kz is not None:
+        grid[2] = force_kz
+    return grid[0], grid[1], grid[2]
+
+
+def _upsert_kpt_grid(path: Path, grid: tuple[int, int, int]) -> bool:
+    """Rewrite a Gamma-centred KPT grid; line and path layouts are left untouched."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    k_points = next(
+        (index for index, line in enumerate(lines) if line.strip().upper() == "K_POINTS"),
+        None,
+    )
+    if k_points is None:
+        return False
+    gamma = next(
+        (
+            index
+            for index in range(k_points + 1, min(len(lines), k_points + 8))
+            if lines[index].strip().lower().startswith("gamma")
+        ),
+        None,
+    )
+    if gamma is None:
+        return False
+    rendered = f"{grid[0]} {grid[1]} {grid[2]} 0 0 0"
+    tokens = lines[gamma].split()
+    if len(tokens) > 1 and all(token.lstrip("+-").isdigit() for token in tokens[1:4]):
+        lines[gamma] = f"Gamma {rendered}"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return True
+    for index in range(gamma + 1, min(len(lines), gamma + 6)):
+        tokens = lines[index].split()
+        if tokens and all(token.lstrip("+-").isdigit() for token in tokens[:3]):
+            lines[index] = rendered
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return True
+    return False
 
 
 def _upsert_librpa_key(path: Path, key: str, value: Any) -> bool:

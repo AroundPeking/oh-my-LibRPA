@@ -13,6 +13,8 @@ ROUTE_MUTATION_AXES = {
             "nfreq",
             "nbands",
             "screening_kgrid",
+            "scf_kgrid",
+            "nscf_kgrid",
             "nao_family",
             "abfs_family",
             "shrink_threshold",
@@ -21,7 +23,15 @@ ROUTE_MUTATION_AXES = {
         }
     ),
     "strict_2d_gw": frozenset(
-        {"nfreq", "nbands", "in_plane_kgrid", "vacuum", "ewald_precision"}
+        {
+            "nfreq",
+            "nbands",
+            "in_plane_kgrid",
+            "scf_kgrid",
+            "nscf_kgrid",
+            "vacuum",
+            "ewald_precision",
+        }
     ),
     "molecular_delta_st_rpa": frozenset(
         {"box_size", "nfreq", "grid_cutoff", "pca_threshold", "occupied_basis"}
@@ -29,7 +39,9 @@ ROUTE_MUTATION_AXES = {
     "solid_delta_st_rpa": frozenset(
         {"grid_cutoff", "nfreq", "pca_threshold", "coulomb_metric", "kq_sampling"}
     ),
-    "strict_2d_sos_rpa": frozenset({"in_plane_kgrid", "vacuum"}),
+    "strict_2d_sos_rpa": frozenset(
+        {"in_plane_kgrid", "scf_kgrid", "nscf_kgrid", "vacuum"}
+    ),
 }
 
 

@@ -180,7 +180,7 @@ class Strict2dSosRpaProfileTest(unittest.TestCase):
     def test_controlled_evolution_keeps_nfreq_fixed_and_only_scans_physical_2d_axes(self):
         self.assertEqual(
             ROUTE_MUTATION_AXES["strict_2d_sos_rpa"],
-            frozenset({"in_plane_kgrid", "vacuum"}),
+            frozenset({"in_plane_kgrid", "scf_kgrid", "nscf_kgrid", "vacuum"}),
         )
 
     def test_packaged_profile_matches_repository_audit_copy(self):
