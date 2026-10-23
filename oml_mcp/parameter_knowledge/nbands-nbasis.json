@@ -1,0 +1,38 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "nbands-nbasis",
+  "title": "nbands equals the physical basis dimension",
+  "parameters": {
+    "nbands": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": null,
+      "default_origin": "user",
+      "meaning": "Number of bands; must equal the physical basis dimension nbasis and must never truncate the basis."
+    }
+  },
+  "adjust": [],
+  "constraints": [
+    "Count nbasis from the .orb channels with degeneracy s=1, p=3, d=5, f=7, g=9, h=11, i=13, j=15, k=17, sum over radial channels and atoms, and multiply by 2 when SOC is enabled.",
+    "nbands cannot exceed nbasis; a state window capped by the basis dimension (bn-k222 lesson) is a property of the basis, not a reason to lower nbands."
+  ],
+  "sources": [
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/minimal/INPUT_scf.template",
+      "locator": "counting rule comment",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "oml_mcp/parameter_prescriptions/periodic_3d_gw__default.json",
+      "locator": "nbands target null with nbasis rule",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {
+    "known_issues": [
+      "bn-k222-nbands-window-capped-by-nlocal"
+    ]
+  }
+}

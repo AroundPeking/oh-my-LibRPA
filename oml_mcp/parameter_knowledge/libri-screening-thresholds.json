@@ -1,0 +1,91 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "libri-screening-thresholds",
+  "title": "LibRI screening thresholds (the only LibRPA-side tunables)",
+  "parameters": {
+    "libri_chi0_threshold_C": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 0.0001,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for real-space triple coefficients in the response function (chi0)."
+    },
+    "libri_chi0_threshold_G": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 1e-05,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for the real-space Green's function in chi0."
+    },
+    "libri_exx_threshold_V": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 0.1,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for the Coulomb part of exact exchange."
+    },
+    "libri_exx_threshold_C": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 0.0001,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for real-space triple coefficients in exact exchange."
+    },
+    "libri_exx_threshold_D": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 0.0001,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for the D (density) part of exact exchange."
+    },
+    "libri_g0w0_threshold_C": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 1e-05,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for real-space triple coefficients in the GW self-energy."
+    },
+    "libri_g0w0_threshold_G": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 1e-05,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for the Green's function in the GW self-energy."
+    },
+    "libri_g0w0_threshold_Wc": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 1e-06,
+      "default_origin": "oml",
+      "meaning": "LibRI screening threshold for the screened Coulomb interaction Wc in GW."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "LRI screening error is reported as large",
+      "action": "decrease",
+      "effect": "tightens screening and reduces the LibRI error at a larger computational cost",
+      "guard": "change the family coherently and re-check the affected stage before touching the DFT-generation parameters"
+    }
+  ],
+  "constraints": [
+    "Defaults follow the oml contract values; the LibRPA documentation lists 0.0 defaults, so an input without explicit values may be less screened.",
+    "These are the only LibRPA-side tunables; everything else on the LibRPA side is workflow control."
+  ],
+  "sources": [
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/librpa.in",
+      "locator": "lines 44-51",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "librpa_docs",
+      "ref": "https://aesm-group.github.io/LibRPA/",
+      "path": "user_guide/runtime_parameters.html",
+      "locator": "LibRI Filtering section",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

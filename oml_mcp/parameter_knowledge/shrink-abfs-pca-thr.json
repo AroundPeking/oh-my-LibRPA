@@ -1,0 +1,49 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "shrink-abfs-pca-thr",
+  "title": "Shrink-stage PCA threshold for the auxiliary basis in GW/RPA",
+  "parameters": {
+    "shrink_abfs_pca_thr": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": 0.0001,
+      "default_origin": "oml",
+      "meaning": "When non-negative, shrinks the auxiliary basis for GW/RPA at the shrink stage; smaller values keep more auxiliary functions and reduce the EXX LRI error."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "EXX bands show small-range bumps or locally non-smooth segments",
+      "action": "decrease",
+      "effect": "keeps more shrunk auxiliary functions and reduces the EXX LRI error",
+      "guard": "too small a value enlarges the basis and can introduce linear dependence; verify the Coulomb spectrum and retained rank"
+    }
+  ],
+  "constraints": [
+    "The ABACUS default is -1 (shrinking disabled); the oml default template pins 1e-4.",
+    "This is a different parameter from exx_pca_threshold: it acts at the shrink stage, not at ABFS generation."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/input_parameter.h",
+      "locator": "line 657",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_lcao/module_ri/RPA_LRI.hpp",
+      "locator": "shrink_abfs_pca_thr >= 0 activates shrinking",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/INPUT_scf",
+      "locator": "shrink_abfs_pca_thr 1e-4",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

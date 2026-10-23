@@ -1,0 +1,36 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "out-librpa-2d-coulomb-method",
+  "title": "Strict-2D full Coulomb construction algorithm for LibRPA reader-v1",
+  "parameters": {
+    "out_librpa_2d_coulomb_method": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": "ewald",
+      "default_origin": "abacus",
+      "meaning": "Selects the strict-2D full auxiliary Coulomb construction: ewald (established split-Ewald output) or direct_mixed_fourier (positive Gram matrix)."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "strict-2D EXX or GW bands are wrong and the Coulomb matrix is suspect",
+      "action": "switch",
+      "effect": "cross-check with the other algorithm (ewald versus direct_mixed_fourier)",
+      "guard": "direct_mixed_fourier requires rpa=1, out_librpa_reader_version=1, exx_ewald_dimension=2, positive out_librpa_2d_direct_ecut, positive out_librpa_2d_direct_kz_order, and a positive even out_librpa_2d_direct_gamma_order"
+    }
+  ],
+  "constraints": [
+    "direct_mixed_fourier is default-off and has no automatic fallback.",
+    "The three direct-mode parameters must each be converged."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/read_inp_out.cpp",
+      "locator": "out_librpa_2d_coulomb_method, lines 1532-1580",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

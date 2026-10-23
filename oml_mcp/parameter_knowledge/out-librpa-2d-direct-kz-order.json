@@ -1,0 +1,29 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "out-librpa-2d-direct-kz-order",
+  "title": "Transformed-kz quadrature order for the direct strict-2D Coulomb construction",
+  "parameters": {
+    "out_librpa_2d_direct_kz_order": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": 0,
+      "default_origin": "abacus",
+      "meaning": "Positive transformed-kz quadrature order for direct_mixed_fourier; converges independently of the reciprocal cutoff."
+    }
+  },
+  "adjust": [],
+  "constraints": [
+    "Must be positive when direct_mixed_fourier is selected.",
+    "Converge it separately from out_librpa_2d_direct_ecut."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/read_inp_out.cpp",
+      "locator": "out_librpa_2d_direct_kz_order",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

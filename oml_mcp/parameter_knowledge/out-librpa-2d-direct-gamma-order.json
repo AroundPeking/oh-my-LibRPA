@@ -1,0 +1,28 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "out-librpa-2d-direct-gamma-order",
+  "title": "Gamma-plane quadrature order for the direct strict-2D Coulomb construction",
+  "parameters": {
+    "out_librpa_2d_direct_gamma_order": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": 8,
+      "default_origin": "abacus",
+      "meaning": "Positive even in-plane quadrature order for the Gamma-cell Coulomb average in direct_mixed_fourier."
+    }
+  },
+  "adjust": [],
+  "constraints": [
+    "Must be positive and even when direct_mixed_fourier is selected."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/read_inp_out.cpp",
+      "locator": "out_librpa_2d_direct_gamma_order",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

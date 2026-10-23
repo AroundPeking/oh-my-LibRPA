@@ -1,0 +1,52 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "use-fullcoul-exx",
+  "title": "Full versus cut Coulomb in the exact-exchange operator",
+  "parameters": {
+    "use_fullcoul_exx": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": true,
+      "default_origin": "oml",
+      "meaning": "LibRPA switch selecting the full Coulomb interaction in the exact-exchange operator; false selects the truncated Coulomb matrix."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "a cut-Coulomb EXX definition is deliberately required",
+      "action": "switch",
+      "effect": "set use_fullcoul_exx = f only for that explicit definition",
+      "guard": "a cut-Coulomb result needs its own definition-matched benchmark; do not compare it to full-Coulomb references as if they were the same definition"
+    }
+  ],
+  "constraints": [
+    "oml default is t (user decision 2026-10-23); the LibRPA documented default is false.",
+    "With use_abacus_gw_symmetry=t the flag is ineffective: LibRPA takes the IBZ full-Coulomb branch regardless of the flag."
+  ],
+  "sources": [
+    {
+      "kind": "librpa_docs",
+      "ref": "https://aesm-group.github.io/LibRPA/",
+      "path": "user_guide/runtime_parameters.html",
+      "locator": "use_fullcoul_exx",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/librpa.in",
+      "locator": "use_fullcoul_exx = t",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "oml_mcp/known_issues/fullcoul-exx-flag-overridden-by-gw-symmetry.json",
+      "locator": "symmetry override",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {
+    "known_issues": [
+      "fullcoul-exx-flag-overridden-by-gw-symmetry"
+    ]
+  }
+}

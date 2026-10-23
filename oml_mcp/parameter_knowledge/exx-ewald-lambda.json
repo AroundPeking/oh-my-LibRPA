@@ -1,0 +1,28 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "exx-ewald-lambda",
+  "title": "Gaussian decay coefficient of the Ewald split for full Coulomb in RI-EXX",
+  "parameters": {
+    "exx_ewald_lambda": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": 1.0,
+      "default_origin": "abacus",
+      "meaning": "Controls the Gaussian auxiliary functions in the Ewald split of the full Coulomb matrix; the real-space Gaussian cutoff is proportional to sqrt(35/lambda)."
+    }
+  },
+  "adjust": [],
+  "constraints": [
+    "Keep the default unless a converged study justifies another value; record the value in provenance."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/read_inp_exx_dftu.cpp",
+      "locator": "exx_ewald_lambda, lines 535-538",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

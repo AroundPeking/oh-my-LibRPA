@@ -1,0 +1,81 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "exx-pca-threshold",
+  "title": "ABFS generation and production threshold for auxiliary-basis screening",
+  "parameters": {
+    "exx_pca_threshold": {
+      "owner": "abacus",
+      "stage": "both",
+      "default": 0.0001,
+      "default_origin": "abacus",
+      "meaning": "Threshold that screens on-site auxiliary functions (ABFS) in exact exchange; smaller values keep more auxiliary functions and enlarge the auxiliary basis.",
+      "stage_defaults": {
+        "abfs_generation": {
+          "value": 0.0001,
+          "origin": "oml",
+          "note": "Generation run with rpa 1: controls how many auxiliary functions the product-PCA produces."
+        },
+        "production": {
+          "value": 10.0,
+          "origin": "oml",
+          "note": "Formal GW/RPA run with ABFS_ORBITAL in STRU: values greater than 1 screen the PCA-generated auxiliary functions out, so only the prebuilt ABFS is used."
+        }
+      }
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "LRI error stays large at the GW level after the fullcoul check is clean",
+      "action": "decrease",
+      "effect": "regenerate the ABFS with a smaller generation-stage threshold so the auxiliary basis gets larger",
+      "guard": "an oversized auxiliary basis becomes linearly dependent and makes the result worse; check the retained rank and near-null Coulomb directions before accepting it"
+    },
+    {
+      "symptom": "bands are wrong while ABFS_ORBITAL is declared",
+      "action": "set",
+      "effect": "keep the production stage at exx_pca_threshold = 10 so two auxiliary-basis definitions are not stacked",
+      "guard": "do not lower the production value below 1 to add PCA functions on top of a prebuilt ABFS"
+    }
+  ],
+  "constraints": [
+    "ABFS_ORBITAL and an active PCA threshold are two competing auxiliary-basis definitions.",
+    "With ABFS_ORBITAL set, exx_pca_threshold = 10 together with use_shrink_abfs = t is the production contract.",
+    "Without ABFS_ORBITAL, the PCA generation route uses 1e-4 by default."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/input_parameter.h",
+      "locator": "line 625",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/read_inp_exx_dftu.cpp",
+      "locator": "lines 243-258",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "skill",
+      "ref": "/Users/ghj/.zcode/skills/abacus-librpa-abfs-orbital/references/abfs-orbital-recipe.md",
+      "locator": "lines 54-57 and 331-335",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "skill",
+      "ref": "/Users/ghj/.zcode/skills/ghj-remote-ssh/SKILL.md",
+      "locator": "ABFS_ORBITAL plus exx_pca_threshold = 10 rule",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {
+    "known_issues": [
+      "abfs-generation-pp-orbital-fg-mismatch"
+    ],
+    "rules": [
+      "librpa-default-presets"
+    ]
+  }
+}

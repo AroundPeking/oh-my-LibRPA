@@ -1,0 +1,28 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "exx-ewald-dimension",
+  "title": "Ewald Coulomb singularity dimension",
+  "parameters": {
+    "exx_ewald_dimension": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": 3,
+      "default_origin": "abacus",
+      "meaning": "3 for periodic three-dimensional Coulomb, 2 for isolated-layer Coulomb; selects which full-Coulomb family is available."
+    }
+  },
+  "adjust": [],
+  "constraints": [
+    "out_librpa_2d_coulomb_method is available only with exx_ewald_dimension=2; out_librpa_3d_coulomb_method only with 3."
+  ],
+  "sources": [
+    {
+      "kind": "abacus_source",
+      "ref": "origin/master_ghj@e1f596801",
+      "path": "source/source_io/module_parameter/read_inp_exx_dftu.cpp",
+      "locator": "exx_ewald_dimension, lines 517-523",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

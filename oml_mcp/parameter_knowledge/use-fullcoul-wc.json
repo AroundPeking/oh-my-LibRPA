@@ -1,0 +1,28 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "use-fullcoul-wc",
+  "title": "Full versus cut Coulomb in the screened interaction Wc",
+  "parameters": {
+    "use_fullcoul_wc": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": false,
+      "default_origin": "librpa",
+      "meaning": "LibRPA switch selecting the full Coulomb interaction in Wc = v + v chi Wc; the strict-2D analytic head/wing path requires it to be true."
+    }
+  },
+  "adjust": [],
+  "constraints": [
+    "The strict-2D analytic head/wing path requires use_fullcoul_wc = t and uses the full 2D Ewald interaction at every finite q."
+  ],
+  "sources": [
+    {
+      "kind": "librpa_docs",
+      "ref": "https://aesm-group.github.io/LibRPA/",
+      "path": "user_guide/runtime_parameters.html",
+      "locator": "use_fullcoul_wc",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}
