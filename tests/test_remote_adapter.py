@@ -729,3 +729,80 @@ class KptRewriteTest(unittest.TestCase):
                     bundle, {"scf_kgrid": grid}, explicit_axes=frozenset({"scf_kgrid"})
                 )
                 self.assertIn("scf_kgrid", result["unapplied"])
+
+
+class ContinuationRewriteTest(unittest.TestCase):
+    def _bundle(self) -> pathlib.Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = pathlib.Path(directory.name)
+        (root / "INPUT_scf").write_text(
+            "INPUT_PARAMETERS\nnbands 26\nexx_pca_threshold 1e-3\nshrink_abfs_pca_thr 1e-1\nshrink_lu_inv_thr 1e-3\n",
+            encoding="utf-8",
+        )
+        (root / "INPUT_nscf").write_text(
+            "INPUT_PARAMETERS\nnbands 26\n", encoding="utf-8"
+        )
+        (root / "librpa.in").write_text("nfreq = 24\n", encoding="utf-8")
+        return root
+
+    def test_continuation_controls_are_written(self):
+        bundle = self._bundle()
+        candidate = {
+            "tfgrids_type": "minimax",
+            "n_params_anacon": 6,
+            "option_qpe_solver": 0,
+            "use_qpe_adaptive_damp": False,
+        }
+        result = _apply_definition_to_inputs(
+            bundle, candidate, explicit_axes=frozenset(candidate)
+        )
+        text = (bundle / "librpa.in").read_text(encoding="utf-8")
+        self.assertEqual(set(result["applied"]), set(candidate))
+        self.assertIn("tfgrids_type = minimax", text)
+        self.assertIn("n_params_anacon = 6", text)
+        self.assertIn("option_qpe_solver = 0", text)
+        self.assertIn("use_qpe_adaptive_damp = f", text)
+
+    def test_pca_thresholds_and_coulomb_method_are_written(self):
+        bundle = self._bundle()
+        candidate = {
+            "exx_pca_threshold": 1e-4,
+            "shrink_abfs_pca_thr": 1e-2,
+            "out_librpa_3d_coulomb_method": "direct_reciprocal",
+        }
+        result = _apply_definition_to_inputs(
+            bundle, candidate, explicit_axes=frozenset(candidate)
+        )
+        text = (bundle / "INPUT_scf").read_text(encoding="utf-8")
+        self.assertEqual(set(result["applied"]), set(candidate))
+        self.assertIn("0.0001", text)
+        self.assertIn("shrink_abfs_pca_thr 0.01", text)
+        self.assertIn("out_librpa_3d_coulomb_method direct_reciprocal", text)
+
+    def test_non_explicit_values_are_preserved(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle,
+            {"nbands": 30},
+            explicit_axes=frozenset(),
+        )
+        self.assertIn("nbands", result["preserved"])
+        self.assertIn("nbands 26", (bundle / "INPUT_scf").read_text(encoding="utf-8"))
+
+    def test_apply_prescription_false_keeps_the_definition_authoritative(self):
+        case = load_fast_case("bn-k222-sym-v1-shrink-head-g0w0")
+        adapter = ControlledRunAdapter(
+            case=case,
+            upstream_root=".",
+            staging_root=".",
+            materialize=lambda *args: {},
+            run_stages=lambda *args: {},
+            collect_outputs=lambda *args: {},
+        )
+        exact = adapter._resolve_definition(
+            {"tfgrids_type": "minimax"}, merge_prescription=False
+        )
+        self.assertEqual(exact, {"tfgrids_type": "minimax"})
+        merged = adapter._resolve_definition({"tfgrids_type": "minimax"})
+        self.assertIn("nfreq", merged)

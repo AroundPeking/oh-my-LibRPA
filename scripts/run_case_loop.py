@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Run one analysis-driven loop on a fast case through an execution profile.
+
+Example (BN, fisherd current stack):
+
+    .venv/bin/python scripts/run_case_loop.py \
+      --case bn-k222-sym-v1-shrink-head-g0w0 \
+      --execution-profile fisherd-current-3d-gw-v1 \
+      --software-profile abacus-librpa-2026-09-06-v6 \
+      --staging-root ~/.local/share/oh-my-librpa/fisherd/sources \
+      --helpers-dir templates/abacus-librpa-gw/template \
+      --upstream-root ~/.local/share/oh-my-librpa/upstream \
+      --artifact-root ~/.local/share/oh-my-librpa/fisherd/loop-artifacts \
+      --max-trials 1
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from oml_mcp.fast_benchmark import load_fast_case  # noqa: E402
+from oml_mcp.loop_adapter import ControlledLoopRunner  # noqa: E402
+from oml_mcp.loop_runner import run_loop  # noqa: E402
+
+
+CONTINUATION_SEED = {
+    "tfgrids_type": "minimax",
+    "n_params_anacon": 6,
+    "option_qpe_solver": 0,
+    "use_qpe_adaptive_damp": False,
+}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--case", required=True)
+    parser.add_argument("--execution-profile", required=True)
+    parser.add_argument("--software-profile", default=None)
+    parser.add_argument("--staging-root", required=True)
+    parser.add_argument("--helpers-dir", required=True)
+    parser.add_argument("--upstream-root", required=True)
+    parser.add_argument("--artifact-root", required=True)
+    parser.add_argument("--max-trials", type=int, default=1)
+    parser.add_argument("--poll-seconds", type=float, default=30.0)
+    parser.add_argument("--scheduler-max-polls", type=int, default=None)
+    parser.add_argument("--ledger", default=None)
+    parser.add_argument(
+        "--seed-file",
+        default=None,
+        help="JSON definition merged over the continuation seed (e.g. the case's current values)",
+    )
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    seed = dict(CONTINUATION_SEED)
+    if args.seed_file:
+        seed.update(json.loads(Path(args.seed_file).read_text(encoding="utf-8")))
+    case = load_fast_case(args.case)
+    runner = ControlledLoopRunner(
+        case=case,
+        execution_profile_id=args.execution_profile,
+        software_profile_id=args.software_profile,
+        staging_root=args.staging_root,
+        helpers_dir=args.helpers_dir,
+        upstream_root=args.upstream_root,
+        artifact_root=args.artifact_root,
+        poll_seconds=args.poll_seconds,
+        scheduler_max_polls=args.scheduler_max_polls,
+    )
+    ledger = args.ledger or str(Path(args.artifact_root) / f"{case.case_id}-ledger.json")
+    result = run_loop(
+        seed,
+        runner,
+        occupied_bands=None,
+        gap_reference_ev=runner.reference_gap_ev(),
+        max_trials=args.max_trials,
+        ledger_path=ledger,
+    )
+    report = result.to_dict()
+    if result.records:
+        report["reference"] = runner.evaluate_reference(result.records[-1].trial)
+    report["execution_profile"] = args.execution_profile
+    report["software_profile"] = args.software_profile
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+    return 0 if result.status == "ACCEPTED" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

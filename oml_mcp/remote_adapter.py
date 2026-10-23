@@ -119,6 +119,10 @@ def _apply_definition_to_inputs(
         "nbands": "nbands",
         "exx_cs_inv_thr": "exx_cs_inv_thr",
         "shrink_threshold": "shrink_lu_inv_thr",
+        "shrink_abfs_pca_thr": "shrink_abfs_pca_thr",
+        "exx_pca_threshold": "exx_pca_threshold",
+        "out_librpa_3d_coulomb_method": "out_librpa_3d_coulomb_method",
+        "out_librpa_2d_coulomb_method": "out_librpa_2d_coulomb_method",
     }
     explicit = explicit_axes if explicit_axes is not None else frozenset(candidate)
     preserved: dict[str, Any] = {}
@@ -193,6 +197,10 @@ def _apply_definition_to_inputs(
     # LibRPA librpa.in key mapping.
     librpa_keys = {
         "nfreq": "nfreq",
+        "tfgrids_type": "tfgrids_type",
+        "n_params_anacon": "n_params_anacon",
+        "option_qpe_solver": "option_qpe_solver",
+        "use_qpe_adaptive_damp": "use_qpe_adaptive_damp",
         "abfs_family": None,
         "basis_family": None,
         "nao_family": None,
@@ -499,16 +507,23 @@ class ControlledRunAdapter:
         self._run_stages = run_stages
         self._collect_outputs = collect_outputs
 
-    def _resolve_definition(self, candidate: dict[str, Any]) -> dict[str, Any]:
+    def _resolve_definition(
+        self, candidate: dict[str, Any], *, merge_prescription: bool = True
+    ) -> dict[str, Any]:
         """Merge the system-family prescription into the candidate definition.
 
         The prescription fills in the per-system parameters the candidate did
         not set explicitly, which is how "different systems need different
         input parameters" reaches the actual run. An EMPTY candidate means a
         control replay: the upstream inputs are staged untouched.
+        ``apply_prescription=False`` keeps the caller's definition authoritative,
+        which is what the analysis-driven loop needs: it manages its own
+        single-axis changes and must not be silently re-seeded.
         """
         if not candidate:
             return {}
+        if not merge_prescription:
+            return dict(candidate)
         keys = resolve_prescription_keys(self.case.case_id)
         if keys is None:
             return dict(candidate)
@@ -526,8 +541,11 @@ class ControlledRunAdapter:
         candidate: dict[str, Any],
         iteration: int,
         changed_axis: str | None = None,
+        apply_prescription: bool = True,
     ) -> dict[str, Any]:
-        definition = self._resolve_definition(candidate)
+        definition = self._resolve_definition(
+            candidate, merge_prescription=apply_prescription
+        )
         bundle = self.staging_root / f"{case.case_id}-iter{iteration}"
         staging = stage_case_bundle(
             case,

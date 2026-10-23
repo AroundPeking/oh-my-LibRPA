@@ -139,14 +139,34 @@ class BandAnalysisTest(unittest.TestCase):
                     occupied_bands=2,
                 )
 
-    def test_smoothness_needs_three_kpoints(self):
+    def test_smoothness_needs_five_kpoints(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            write_band(root / "KS_band_spin_1.dat", smooth_rows(0.0)[:2], occupations=OCCUPATIONS)
+            write_band(root / "KS_band_spin_1.dat", smooth_rows(0.0)[:3], occupations=OCCUPATIONS)
             layer = load_layer(root / "KS_band_spin_1.dat", quantity="ks")
         report = smoothness(layer.energies)
         self.assertFalse(report["evaluated"])
-        self.assertFalse(report["smooth"])
+        self.assertIsNone(report["smooth"])
+
+    def test_coarse_path_accepts_only_with_a_gap_reference(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_band(root / "KS_band_spin_1.dat", smooth_rows(0.0)[:3])
+            write_band(root / "EXX_band_spin_1.dat", smooth_rows(0.5)[:3])
+            write_band(root / "GW_band_spin_1.dat", smooth_rows(0.7)[:3])
+            paths = {
+                "ks": root / "KS_band_spin_1.dat",
+                "exx": root / "EXX_band_spin_1.dat",
+                "gw": root / "GW_band_spin_1.dat",
+            }
+            without_gap = analyze_band_set(paths, occupied_bands=3)
+            gap = without_gap["gaps"]["gw"]["indirect_gap_ev"]
+            with_gap = analyze_band_set(paths, occupied_bands=3, gap_reference_ev=gap)
+        self.assertFalse(without_gap["accepted"])
+        self.assertIn("no band gate was evaluable", " ".join(without_gap["reasons"]))
+        self.assertEqual(without_gap["localization"]["layer"], "not_evaluated")
+        self.assertTrue(with_gap["accepted"])
+        self.assertEqual(with_gap["reasons"], [])
 
 
 if __name__ == "__main__":

@@ -29,6 +29,10 @@ DEFAULT_SMOOTHNESS_FLOOR_EV = 0.05
 DEFAULT_LOCALIZATION_FLOOR_EV = 0.02
 DEFAULT_LOCALIZATION_Z = 6.0
 LARGE_RANGE_FRACTION = 0.20
+# A curvature gate on fewer than five k points measures the path segments,
+# not the band shape; coarse paths are reported as not evaluated instead of
+# producing false alarms.
+MIN_CURVATURE_KPOINTS = 5
 
 
 class BandAnalysisError(ValueError):
@@ -115,11 +119,11 @@ def smoothness(
 ) -> dict[str, Any]:
     """Flag bands whose second difference along k exceeds a robust threshold."""
     curvature = _second_differences(rows)
-    if not curvature:
+    if len(rows) < MIN_CURVATURE_KPOINTS:
         return {
             "evaluated": False,
-            "smooth": False,
-            "reason": "at least three k points are required",
+            "smooth": None,
+            "reason": f"at least {MIN_CURVATURE_KPOINTS} k points are required for a curvature gate",
             "max_curvature_ev": None,
             "outliers": [],
         }
@@ -199,6 +203,15 @@ def localization(
     for layer in (exx, gw):
         if layer.nkpoints != ks.nkpoints or layer.nbands != ks.nbands:
             raise BandAnalysisError("KS, EXX and GW tables must share the k grid and state count")
+    if ks.nkpoints < MIN_CURVATURE_KPOINTS:
+        return {
+            "evaluated": False,
+            "layer": "not_evaluated",
+            "consistent": None,
+            "reason": f"at least {MIN_CURVATURE_KPOINTS} k points are required for layer localization",
+            "exx_minus_ks": {"evaluated": False, "anomaly_count": 0, "extent": 0.0, "classification": "not_evaluated", "outliers": []},
+            "gw_minus_exx": {"evaluated": False, "anomaly_count": 0, "extent": 0.0, "classification": "not_evaluated", "outliers": []},
+        }
     exx_delta = [
         [exx.energies[k][band] - ks.energies[k][band] for band in range(ks.nbands)]
         for k in range(ks.nkpoints)
@@ -225,6 +238,7 @@ def localization(
     else:
         layer = "none"
     return {
+        "evaluated": True,
         "layer": layer,
         "exx_minus_ks": exx_report,
         "gw_minus_exx": gw_report,
@@ -309,18 +323,24 @@ def analyze_band_set(
         )
 
     reasons: list[str] = []
-    if not all(report["smooth"] for report in smoothness_reports.values()):
-        broken = [layer for layer, report in smoothness_reports.items() if not report["smooth"]]
-        reasons.append(f"non-smooth bands in {broken}")
-    if not localization_report["consistent"]:
+    for layer, report in smoothness_reports.items():
+        if report["evaluated"] and not report["smooth"]:
+            reasons.append(f"non-smooth bands in {layer}")
+    if localization_report.get("evaluated") and not localization_report["consistent"]:
         reasons.append(f"layer anomaly located in {localization_report['layer']}")
     if gap_check is not None and not gap_check["pass"]:
         reasons.append(
             f"GW gap {gap_check['value_ev']:.3f} eV differs from the reference by "
             f"{gap_check['delta_ev']:+.3f} eV (tolerance {gap_check['tolerance_ev']} eV)"
         )
-    evaluated = all(report["evaluated"] for report in smoothness_reports.values())
-    accepted = evaluated and not reasons
+    evaluated_any = (
+        any(report["evaluated"] for report in smoothness_reports.values())
+        or bool(localization_report.get("evaluated"))
+        or gap_check is not None
+    )
+    if not evaluated_any:
+        reasons.append("no band gate was evaluable (coarse k path and no gap reference)")
+    accepted = evaluated_any and not reasons
     return {
         "accepted": accepted,
         "reasons": reasons,
