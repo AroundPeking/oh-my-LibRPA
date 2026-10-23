@@ -76,6 +76,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="opt out of the database basis default and keep the case-bundled assets",
     )
+    parser.add_argument(
+        "--policy-mode",
+        choices=("production", "replay"),
+        default="production",
+        help="policy scope: production enforces the database basis and standard k grid",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="run the policy preflight audit and exit without submitting",
+    )
     return parser
 
 
@@ -98,7 +109,12 @@ def main() -> int:
         basis_root=args.basis_root,
         basis_family=args.basis_family,
         use_database_basis=not args.case_basis,
+        policy_mode=args.policy_mode,
     )
+    if args.preflight_only:
+        audit = runner.audit(seed, mode=args.policy_mode)
+        print(json.dumps(audit, indent=2, ensure_ascii=False))
+        return 0 if audit["ok"] else 2
     ledger = args.ledger or str(Path(args.artifact_root) / f"{case.case_id}-ledger.json")
     gap_reference = (
         args.gap_reference_ev

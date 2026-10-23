@@ -15,12 +15,13 @@ import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
-from .basis_registry import load_registry, resolve_set, verify_asset
+from .basis_registry import BasisRegistryError, load_registry, resolve_set, verify_asset
 from .control import ControlledExecutionService
 from .evolution_runner import load_reference_texts
 from .execution_profiles import load_execution_profile
 from .fast_benchmark import FastCase, evaluate_case_against_reference
 from .loop_runner import LoopError, TrialOutcome
+from .preflight import preflight
 from .profiles import load_profile
 from .remote_adapter import (
     ControlledExecutionBinding,
@@ -35,6 +36,30 @@ BAND_KEYS = {
     "EXX_band_spin_1.dat": "exx",
     "GW_band_spin_1.dat": "gw",
 }
+
+ROUTE_DIMENSIONS = {
+    "periodic_3d_gw": "3d",
+    "strict_2d_gw": "2d",
+    "strict_2d_sos_rpa": "2d",
+}
+
+
+def read_case_scf_grid(source: str | Path) -> list[int] | None:
+    """Read the positive three-integer Gamma grid from a case ``KPT_scf``."""
+    path = Path(source) / "KPT_scf"
+    if not path.is_file():
+        return None
+    for line in reversed(path.read_text(encoding="utf-8").splitlines()):
+        tokens = line.split()
+        if len(tokens) < 3:
+            continue
+        try:
+            grid = [int(token) for token in tokens[:3]]
+        except ValueError:
+            continue
+        if all(component > 0 for component in grid):
+            return grid
+    return None
 
 
 class ControlledLoopRunner:
@@ -56,6 +81,7 @@ class ControlledLoopRunner:
         basis_family: str | None = None,
         require_abf: bool = True,
         use_database_basis: bool = True,
+        policy_mode: str = "production",
     ) -> None:
         profile = load_execution_profile(execution_profile_id)
         if not getattr(profile, "enabled", True):
@@ -64,6 +90,7 @@ class ControlledLoopRunner:
         self.basis_family = basis_family
         self.require_abf = require_abf
         self.use_database_basis = use_database_basis
+        self.policy_mode = policy_mode
         self.registry = None
         if use_database_basis:
             if not basis_root:
@@ -123,32 +150,32 @@ class ControlledLoopRunner:
         self.artifact_root = Path(artifact_root)
         self.upstream_root = upstream_root
 
-    def run(self, definition: Mapping[str, Any], *, trial: int) -> TrialOutcome:
-        # A stale bundle from an earlier crashed attempt is derived data; set
-        # it aside (never delete) so this trial starts clean.
-        stale = Path(self.adapter.staging_root) / f"{self.case.case_id}-iter{trial}"
-        if stale.is_dir():
-            import time as _time
-
-            stale.rename(stale.with_name(f"{stale.name}.crashed-{int(_time.time())}"))
+    def _resolve_submission(self, definition: Mapping[str, Any]) -> tuple[
+        dict[str, Any], dict[str, dict[str, str]] | None, list[str], dict[str, Any]
+    ]:
         exact = dict(definition)
         basis_override: dict[str, dict[str, str]] | None = None
         notes: list[str] = []
+        missing: list[str] = []
+        has_abf = False
+        source = locate_case_source(self.case, self.upstream_root)
         if self.use_database_basis:
-            source = locate_case_source(self.case, self.upstream_root)
             stru_path = source.directory / "STRU"
             if not stru_path.is_file():
                 raise LoopError("the database basis override needs a STRU in the case source")
             elements = [element for element, _, _ in species(stru_path.read_text(encoding="utf-8"))]
             override: dict[str, dict[str, str]] = {}
-            has_abf = False
             for element in dict.fromkeys(elements):
-                element_set = resolve_set(
-                    self.registry,
-                    element,
-                    family=self.basis_family,
-                    require_abf=self.require_abf,
-                )
+                try:
+                    element_set = resolve_set(
+                        self.registry,
+                        element,
+                        family=self.basis_family,
+                        require_abf=self.require_abf,
+                    )
+                except BasisRegistryError:
+                    missing.append(element)
+                    continue
                 roles: dict[str, str] = {}
                 for role in ("pp", "nao", "abf"):
                     asset = element_set.asset(role)
@@ -169,6 +196,44 @@ class ControlledLoopRunner:
                     "database PP/NAO/ABFS staged; ABFS production contract: "
                     "exx_pca_threshold=10, use_shrink_abfs=t"
                 )
+        scf_grid = exact.get("scf_kgrid") or read_case_scf_grid(source.directory)
+        policy_inputs = {
+            "database_basis": self.use_database_basis,
+            "missing_elements": tuple(missing),
+            "scf_kgrid": scf_grid,
+            "dimension": ROUTE_DIMENSIONS.get(self.case.route),
+            "abfs_orbital": has_abf if self.use_database_basis else None,
+            "exx_pca_threshold": exact.get("exx_pca_threshold"),
+            "use_shrink_abfs": exact.get("use_shrink_abfs"),
+        }
+        return exact, basis_override, notes, policy_inputs
+
+    def audit(
+        self, definition: Mapping[str, Any], *, mode: str | None = None
+    ) -> dict[str, Any]:
+        """Run the preflight audit without submitting anything."""
+        exact, basis_override, notes, policy_inputs = self._resolve_submission(definition)
+        result = preflight(mode=mode or self.policy_mode, **policy_inputs)
+        return {
+            "ok": result.ok,
+            "preflight": result.to_dict(),
+            "effective_definition": exact,
+            "basis_override": basis_override,
+            "notes": list(notes),
+        }
+
+    def run(self, definition: Mapping[str, Any], *, trial: int) -> TrialOutcome:
+        # A stale bundle from an earlier crashed attempt is derived data; set
+        # it aside (never delete) so this trial starts clean.
+        stale = Path(self.adapter.staging_root) / f"{self.case.case_id}-iter{trial}"
+        if stale.is_dir():
+            import time as _time
+
+            stale.rename(stale.with_name(f"{stale.name}.crashed-{int(_time.time())}"))
+        exact, basis_override, notes, policy_inputs = self._resolve_submission(definition)
+        audit = preflight(mode=self.policy_mode, **policy_inputs)
+        if not audit.ok:
+            raise LoopError("policy preflight failed: " + "; ".join(audit.reasons))
         result = self.adapter.run_candidate(
             case=self.case,
             candidate=exact,

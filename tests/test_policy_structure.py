@@ -1,5 +1,6 @@
 import unittest
 
+from oml_mcp.loop_adapter import read_case_scf_grid
 from oml_mcp.policy_gates import (
     FAIL,
     GATE_IMPLEMENTATIONS,
@@ -136,6 +137,28 @@ class ReferenceVerdictTest(unittest.TestCase):
     def test_invalid_reference_is_rejected(self):
         with self.assertRaises(ReferenceError):
             physical_reference(6.0, source="x", scope="y", status="regression")
+
+
+class CaseGridTest(unittest.TestCase):
+    def test_reads_a_gamma_grid(self):
+        import pathlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "KPT_scf").write_text("K_POINTS\n0\nGamma\n8 8 8 0 0 0\n", encoding="utf-8")
+            self.assertEqual(read_case_scf_grid(root), [8, 8, 8])
+
+    def test_line_mode_has_no_grid(self):
+        import pathlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "KPT_scf").write_text(
+                "K_POINTS\n2\nLine\n0 0 0 10\n0.5 0 0 10\n", encoding="utf-8"
+            )
+            self.assertIsNone(read_case_scf_grid(root))
 
 
 class PreflightTest(unittest.TestCase):
