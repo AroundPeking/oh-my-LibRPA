@@ -1,0 +1,91 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "kpoint-standard",
+  "title": "Default k-grid standard: solids 8x8x8, 2D 12x12x1, shrink and symmetry on",
+  "parameters": {
+    "scf_kgrid": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": [8, 8, 8],
+      "default_origin": "oml",
+      "meaning": "oml axis for the SCF KPT grid; on the ABACUS reader-v1 route this grid is also the LibRPA screening sampling."
+    },
+    "in_plane_kgrid": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": [12, 12, 1],
+      "default_origin": "oml",
+      "meaning": "oml 2D axis: in-plane 12x12 with kz fixed to 1."
+    },
+    "use_shrink_abfs": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": true,
+      "default_origin": "oml",
+      "meaning": "Shrink the auxiliary basis in GW/RPA; production definitions keep it on."
+    },
+    "use_symmetry_exx": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": true,
+      "default_origin": "oml",
+      "meaning": "Use the symmetry metadata written by the symmetry-enabled SCF for EXX."
+    },
+    "use_symmetry_gw": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": true,
+      "default_origin": "oml",
+      "meaning": "Use the symmetry metadata written by the symmetry-enabled SCF for GW."
+    },
+    "symmetry": {
+      "owner": "abacus",
+      "stage": "production",
+      "default": 1,
+      "default_origin": "oml",
+      "meaning": "ABACUS symmetry switch: 1 for non-SOC solids so stru_out carries the symmetry metadata, -1 for SOC."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "a result is not converged at the standard grid",
+      "action": "increase",
+      "effect": "continue the k-grid convergence ladder beyond 8x8x8 (solids) or 12x12x1 (2D)",
+      "guard": "record each rung and require the adjacent-rung equivalence before claiming convergence"
+    }
+  ],
+  "constraints": [
+    "Start production solid calculations at 8x8x8 and 2D calculations at 12x12x1 (kz = 1); do not start from a 2x2x2 or 4x4x4 replay grid.",
+    "Keep shrink and symmetry on for production definitions; only the SOC lane keeps ABACUS symmetry = -1 and the LibRPA symmetry flags off.",
+    "The k-grid is the first convergence axis; a larger grid is a ladder step, not a new default."
+  ],
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (standard k-grid: solids k888, 2D k12x12x1, shrink and symmetry on)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/KPT_scf",
+      "path": "KPT_scf",
+      "locator": "8 8 8 0 0 0",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/librpa.in",
+      "path": "librpa.in",
+      "locator": "use_shrink_abfs = t; use_symmetry_exx = t; use_symmetry_gw = t",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/INPUT_scf",
+      "path": "INPUT_scf",
+      "locator": "symmetry 1",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {}
+}

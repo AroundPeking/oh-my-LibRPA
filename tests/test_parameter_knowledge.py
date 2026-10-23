@@ -97,6 +97,14 @@ class ParameterKnowledgeTest(unittest.TestCase):
         self.assertEqual(lookup("out_librpa_2d_coulomb_method")["parameter"]["default"], "ewald")
         self.assertEqual(lookup("out_librpa_2d_direct_gamma_order")["parameter"]["default"], 8)
 
+        # Standard grids: solids k888, 2D k12x12x1, shrink and symmetry on.
+        self.assertEqual(lookup("scf_kgrid")["parameter"]["default"], [8, 8, 8])
+        self.assertEqual(lookup("in_plane_kgrid")["parameter"]["default"], [12, 12, 1])
+        self.assertIs(lookup("use_shrink_abfs")["parameter"]["default"], True)
+        self.assertIs(lookup("use_symmetry_exx")["parameter"]["default"], True)
+        self.assertIs(lookup("use_symmetry_gw")["parameter"]["default"], True)
+        self.assertEqual(lookup("symmetry")["parameter"]["default"], 1)
+
     def test_every_entry_cites_a_dated_source(self):
         for entry in load_entries():
             for source in entry["sources"]:

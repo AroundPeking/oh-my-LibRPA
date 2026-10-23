@@ -43,21 +43,13 @@
       "confidence": "established"
     },
     "screening_kgrid": {
-      "default": [
-        4,
-        4,
-        4
-      ],
+      "default": [8, 8, 8],
       "allowed_range": [
         1,
         1,
         1
       ],
-      "target": [
-        4,
-        4,
-        4
-      ],
+      "target": [8, 8, 8],
       "per_system_override_rule": "Use a regular Gamma-centred mesh matching the SCF run.",
       "rationale": "Screening definition must match the producer mesh.",
       "gate_id": "dataset.screening_grid",

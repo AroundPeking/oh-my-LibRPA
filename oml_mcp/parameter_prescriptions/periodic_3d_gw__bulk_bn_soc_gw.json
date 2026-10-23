@@ -18,11 +18,7 @@
       "confidence": "established"
     },
     "screening_kgrid": {
-      "default": [
-        1,
-        1,
-        2
-      ],
+      "default": [8, 8, 8],
       "allowed_range": [
         [
           1,
@@ -35,11 +31,7 @@
           8
         ]
       ],
-      "target": [
-        1,
-        1,
-        2
-      ],
+      "target": [8, 8, 8],
       "per_system_override_rule": "Use the upstream 1x1x2 Gamma mesh for the fast SOC check.",
       "rationale": "The BN SOC regression uses a 1x1x2 mesh.",
       "gate_id": "dataset.screening_grid",

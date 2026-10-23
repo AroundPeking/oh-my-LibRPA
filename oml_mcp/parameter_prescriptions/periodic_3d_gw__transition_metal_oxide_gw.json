@@ -18,11 +18,7 @@
       "confidence": "established"
     },
     "screening_kgrid": {
-      "default": [
-        2,
-        2,
-        2
-      ],
+      "default": [8, 8, 8],
       "allowed_range": [
         [
           1,
@@ -35,11 +31,7 @@
           8
         ]
       ],
-      "target": [
-        2,
-        2,
-        2
-      ],
+      "target": [8, 8, 8],
       "per_system_override_rule": "Keep the screening mesh regular and identical to the SCF mesh.",
       "rationale": "The transition-metal-oxide cases require a full regular mesh to keep the Coulomb definition consistent.",
       "gate_id": "dataset.screening_grid",

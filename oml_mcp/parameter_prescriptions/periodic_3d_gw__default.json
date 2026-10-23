@@ -30,11 +30,7 @@
       "confidence": "established"
     },
     "screening_kgrid": {
-      "default": [
-        4,
-        4,
-        4
-      ],
+      "default": [8, 8, 8],
       "allowed_range": [
         [
           1,
@@ -47,11 +43,7 @@
           16
         ]
       ],
-      "target": [
-        4,
-        4,
-        4
-      ],
+      "target": [8, 8, 8],
       "per_system_override_rule": "Use the SCF mesh; keep it regular and Gamma-centred for the screening sum.",
       "rationale": "The screening k-mesh must match the ABACUS producer mesh so the Coulomb and bz_sampling definitions agree.",
       "gate_id": "dataset.screening_grid",

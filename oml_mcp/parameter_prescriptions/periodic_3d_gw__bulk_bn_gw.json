@@ -18,11 +18,7 @@
       "confidence": "established"
     },
     "screening_kgrid": {
-      "default": [
-        2,
-        2,
-        2
-      ],
+      "default": [8, 8, 8],
       "allowed_range": [
         [
           1,
@@ -35,11 +31,7 @@
           8
         ]
       ],
-      "target": [
-        2,
-        2,
-        2
-      ],
+      "target": [8, 8, 8],
       "per_system_override_rule": "Use the fast 2x2x2 Gamma-centred mesh from the regression case for the quick check.",
       "rationale": "The BN sym-shrink regression uses a 2x2x2 Gamma mesh; matching it keeps the fast case seconds-scale.",
       "gate_id": "dataset.screening_grid",
