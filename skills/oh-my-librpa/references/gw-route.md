@@ -42,9 +42,9 @@ Set or verify these `librpa.in` defaults unless a stronger empirical rule overri
 - `parallel_routing = libri`
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
-- `use_fullcoul_exx = f`
+- `use_fullcoul_exx = t`
 
-This matches the LibRPA 0.7.0 default and its ABACUS GW regressions. Enable full-Coulomb EXX only as an explicit physical-definition override with a definition-matched benchmark.
+`t` is the oml default. A cut-Coulomb (`f`) EXX definition is a separate physical choice and needs its own definition-matched benchmark.
 - `output_gw_sigc_mat_rf = f`
 - `libri_chi0_threshold_C = 1e-4`
 - `libri_chi0_threshold_G = 1e-5`

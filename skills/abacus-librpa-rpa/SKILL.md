@@ -60,8 +60,8 @@ For RPA requests, set:
 - `use_soc = 0/1` according to the INPUT spin/SOC state
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
-- `use_fullcoul_exx = f`
-- Set `use_fullcoul_exx = t` only for an explicitly requested full-Coulomb EXX definition, not as a general RPA default.
+- `use_fullcoul_exx = t`
+- `t` is the oml default. Use `use_fullcoul_exx = f` only for an explicitly requested cut-Coulomb EXX definition with a definition-matched benchmark.
 - `libri_chi0_threshold_C = 1e-4`
 - `libri_chi0_threshold_G = 1e-5`
 - `libri_exx_threshold_V = 1e-1`

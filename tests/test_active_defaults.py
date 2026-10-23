@@ -80,7 +80,7 @@ class ActiveDefaultsTest(unittest.TestCase):
             "fn_vxc_scf = vxc_out",
             "version_coul_reader = 1",
             "version_lri_reader = 1",
-            "use_fullcoul_exx = f",
+            "use_fullcoul_exx = t",
         )
         failures = []
         for path in template_paths:
@@ -144,13 +144,21 @@ class ActiveDefaultsTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertNotIn("n_params_anacon", path.read_text(encoding="utf-8"))
 
-    def test_active_defaults_do_not_enable_full_coulomb_exx_implicitly(self):
+    def test_active_templates_enable_full_coulomb_exx_explicitly(self):
+        template_paths = tuple((ROOT / "templates" / "abacus-librpa-gw").rglob("librpa.in*"))
+        template_paths += tuple(
+            (ROOT / "skills" / "oh-my-librpa" / "templates" / "abacus-librpa-gw").rglob(
+                "librpa.in*"
+            )
+        )
         failures = []
-        enabled = re.compile(r"use_fullcoul_exx\s*=\s*t\b", re.IGNORECASE)
-        for path in active_files():
-            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-                if enabled.search(line) and "explicit" not in line.lower():
-                    failures.append(f"{path.relative_to(ROOT)}:{line_number}:{line.strip()}")
+        for path in template_paths:
+            text = path.read_text(encoding="utf-8")
+            if "use_fullcoul_exx = t" not in text:
+                failures.append(f"{path.relative_to(ROOT)}: missing explicit use_fullcoul_exx = t")
+            if "use_fullcoul_exx = f" in text:
+                failures.append(f"{path.relative_to(ROOT)}: still pins use_fullcoul_exx = f")
+        self.assertTrue(template_paths)
         self.assertEqual(failures, [], "\n".join(failures))
 
     def test_shell_checker_accepts_current_task_and_keeps_deprecated_alias_detection(self):

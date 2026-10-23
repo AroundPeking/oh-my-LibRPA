@@ -275,18 +275,18 @@ def _fullcoul_exx_gate(librpa: InputDocument) -> GateResult:
             "librpa.fullcoul_exx",
             "use_fullcoul_exx is not a valid LibRPA boolean switch",
             (str(librpa.path), f"use_fullcoul_exx={raw}"),
-            "set use_fullcoul_exx = f, or set t only for an explicit definition-matched full-Coulomb EXX calculation",
+            "set use_fullcoul_exx = t (oml default) or f for an explicit cut-Coulomb EXX definition",
         )
-    if enabled:
+    if enabled is False:
         return _warn(
             "librpa.fullcoul_exx",
-            "full-Coulomb EXX changes the physical definition from the LibRPA 0.7.0 ABACUS regression baseline",
-            (str(librpa.path), "use_fullcoul_exx=t"),
-            "use use_fullcoul_exx = f unless full-Coulomb EXX was explicitly requested, then require a definition-matched benchmark",
+            "cut-Coulomb EXX differs from the oml default full-Coulomb EXX definition",
+            (str(librpa.path), "use_fullcoul_exx=f"),
+            "set use_fullcoul_exx = t unless a cut-Coulomb EXX definition was explicitly requested, then require a definition-matched benchmark",
         )
     return _pass(
         "librpa.fullcoul_exx",
-        "EXX uses the LibRPA 0.7.0 ABACUS regression Coulomb definition",
+        "EXX uses the oml default full-Coulomb definition",
         str(librpa.path),
     )
 
