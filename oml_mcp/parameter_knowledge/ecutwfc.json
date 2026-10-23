@@ -6,15 +6,15 @@
     "ecutwfc": {
       "owner": "abacus",
       "stage": "both",
-      "default": 130.0,
+      "default": 100.0,
       "default_origin": "oml",
       "meaning": "Plane-wave cutoff in Ry; in the LCAO route it mainly controls the real-space grid density, not a basis-set size."
     }
   },
   "adjust": [],
   "constraints": [
-    "User guidance 2026-10-23: 100 Ry is generally sufficient; ecutwfc is not a convergence axis in this round.",
-    "The template still ships 130 Ry; do not tune ecutwfc inside the loop."
+    "User decision 2026-10-23: 100 Ry is sufficient and is the shipped template default; ecutwfc is not a convergence axis in this round.",
+    "Do not tune ecutwfc inside the loop."
   ],
   "sources": [
     {

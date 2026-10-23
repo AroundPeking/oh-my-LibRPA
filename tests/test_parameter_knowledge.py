@@ -90,7 +90,7 @@ class ParameterKnowledgeTest(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertEqual(lookup(name)["parameter"]["default"], value)
 
-        self.assertEqual(lookup("ecutwfc")["parameter"]["default"], 130.0)
+        self.assertEqual(lookup("ecutwfc")["parameter"]["default"], 100.0)
         self.assertEqual(lookup("exx_ewald_dimension")["parameter"]["default"], 3)
         self.assertEqual(lookup("exx_ewald_lambda")["parameter"]["default"], 1.0)
         self.assertEqual(lookup("out_librpa_3d_coulomb_method")["parameter"]["default"], "ewald")

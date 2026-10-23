@@ -14,7 +14,7 @@ calculation	    nscf
 ntype			2	
 nbands			79
 #Parameters (Accuracy)
-ecutwfc			130
+ecutwfc			100
 
 smearing_method 	gaussian
 smearing_sigma		1e-4
