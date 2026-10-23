@@ -15,13 +15,19 @@ import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
+from .basis_registry import load_registry, resolve_set, verify_asset
 from .control import ControlledExecutionService
 from .evolution_runner import load_reference_texts
 from .execution_profiles import load_execution_profile
 from .fast_benchmark import FastCase, evaluate_case_against_reference
 from .loop_runner import LoopError, TrialOutcome
 from .profiles import load_profile
-from .remote_adapter import ControlledExecutionBinding, ControlledRunAdapter
+from .remote_adapter import (
+    ControlledExecutionBinding,
+    ControlledRunAdapter,
+    locate_case_source,
+)
+from .stru import species
 
 
 BAND_KEYS = {
@@ -46,11 +52,26 @@ class ControlledLoopRunner:
         software_profile_id: str | None = None,
         poll_seconds: float = 30.0,
         scheduler_max_polls: int | None = None,
+        basis_root: str | Path | None = None,
+        basis_family: str | None = None,
+        require_abf: bool = True,
+        use_database_basis: bool = True,
     ) -> None:
         profile = load_execution_profile(execution_profile_id)
         if not getattr(profile, "enabled", True):
             raise LoopError(f"execution profile {execution_profile_id} is disabled")
         service = ControlledExecutionService(profile, profile_id=software_profile_id)
+        self.basis_family = basis_family
+        self.require_abf = require_abf
+        self.use_database_basis = use_database_basis
+        self.registry = None
+        if use_database_basis:
+            if not basis_root:
+                raise LoopError(
+                    "the LibRPA-database basis is the default; pass a basis library root "
+                    "(or set OML_BASIS_LIBRARY_ROOT), or opt out with use_database_basis=False"
+                )
+            self.registry = load_registry(basis_root)
         approved_helpers = (
             load_profile(profile_id=software_profile_id)["contract"]["workflow_helpers"]
             if software_profile_id is not None
@@ -110,18 +131,57 @@ class ControlledLoopRunner:
             import time as _time
 
             stale.rename(stale.with_name(f"{stale.name}.crashed-{int(_time.time())}"))
+        exact = dict(definition)
+        basis_override: dict[str, dict[str, str]] | None = None
+        notes: list[str] = []
+        if self.use_database_basis:
+            source = locate_case_source(self.case, self.upstream_root)
+            stru_path = source.directory / "STRU"
+            if not stru_path.is_file():
+                raise LoopError("the database basis override needs a STRU in the case source")
+            elements = [element for element, _, _ in species(stru_path.read_text(encoding="utf-8"))]
+            override: dict[str, dict[str, str]] = {}
+            has_abf = False
+            for element in dict.fromkeys(elements):
+                element_set = resolve_set(
+                    self.registry,
+                    element,
+                    family=self.basis_family,
+                    require_abf=self.require_abf,
+                )
+                roles: dict[str, str] = {}
+                for role in ("pp", "nao", "abf"):
+                    asset = element_set.asset(role)
+                    if asset is None:
+                        continue
+                    verify_asset(asset)
+                    roles[role] = str(asset.path)
+                override[element] = roles
+                has_abf = has_abf or "abf" in roles
+            basis_override = override
+            if has_abf:
+                # A prebuilt database ABFS is used through ABFS_ORBITAL; the
+                # production contract then screens the PCA basis out and keeps
+                # shrink enabled.
+                exact["exx_pca_threshold"] = 10.0
+                exact["use_shrink_abfs"] = True
+                notes.append(
+                    "database PP/NAO/ABFS staged; ABFS production contract: "
+                    "exx_pca_threshold=10, use_shrink_abfs=t"
+                )
         result = self.adapter.run_candidate(
             case=self.case,
-            candidate=dict(definition),
+            candidate=exact,
             iteration=trial,
             changed_axis=None,
             apply_prescription=False,
+            basis_override=basis_override,
         )
         status = str(result.get("status") or "UNKNOWN")
         if status != "COMPLETED":
             return TrialOutcome(
                 status=status,
-                note=str(result.get("diagnostics") or "")[:1000],
+                note="; ".join(notes + [str(result.get("diagnostics") or "")[:1000]]),
             )
         observed = dict(result.get("observed") or {})
         outdir = self.artifact_root / f"trial-{trial}"
@@ -133,13 +193,12 @@ class ControlledLoopRunner:
             key = BAND_KEYS.get(name)
             if key:
                 artifacts[key] = str(path)
-        note = ""
         if not artifacts:
-            note = "the run completed but did not produce the three band tables"
+            notes.append("the run completed but did not produce the three band tables")
         return TrialOutcome(
             status="COMPLETED",
             artifacts=artifacts,
-            note=note,
+            note="; ".join(notes),
         )
 
     def reference_gap_ev(self) -> float | None:

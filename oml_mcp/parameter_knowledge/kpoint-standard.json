@@ -57,7 +57,8 @@
   "constraints": [
     "Start production solid calculations at 8x8x8 and 2D calculations at 12x12x1 (kz = 1); do not start from a 2x2x2 or 4x4x4 replay grid.",
     "Keep shrink and symmetry on for production definitions; only the SOC lane keeps ABACUS symmetry = -1 and the LibRPA symmetry flags off.",
-    "The k-grid is the first convergence axis; a larger grid is a ladder step, not a new default."
+    "The k-grid is the first convergence axis; a larger grid is a ladder step, not a new default.",
+    "PP/NAO/ABFS default to the LibRPA-database element sets; a missing element must be built with the abacus-librpa-gw-basis-skill method and must never be silently replaced by case-bundled assets."
   ],
   "sources": [
     {

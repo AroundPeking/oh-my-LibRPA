@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -60,6 +61,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="trusted physical GW gap reference (eV); overrides the frozen replay gap",
     )
+    parser.add_argument(
+        "--basis-root",
+        default=os.environ.get("OML_BASIS_LIBRARY_ROOT"),
+        help="LibRPA-database root (default: $OML_BASIS_LIBRARY_ROOT); PP/NAO/ABFS come from here by default",
+    )
+    parser.add_argument(
+        "--basis-family",
+        default=None,
+        help="preferred element-set family (e.g. SG15); default is the deterministic first usable set",
+    )
+    parser.add_argument(
+        "--case-basis",
+        action="store_true",
+        help="opt out of the database basis default and keep the case-bundled assets",
+    )
     return parser
 
 
@@ -79,6 +95,9 @@ def main() -> int:
         artifact_root=args.artifact_root,
         poll_seconds=args.poll_seconds,
         scheduler_max_polls=args.scheduler_max_polls,
+        basis_root=args.basis_root,
+        basis_family=args.basis_family,
+        use_database_basis=not args.case_basis,
     )
     ledger = args.ledger or str(Path(args.artifact_root) / f"{case.case_id}-ledger.json")
     gap_reference = (

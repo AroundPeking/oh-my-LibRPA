@@ -40,6 +40,7 @@
   "constraints": [
     "ABFS_ORBITAL and an active PCA threshold are two competing auxiliary-basis definitions.",
     "With ABFS_ORBITAL set, exx_pca_threshold = 10 together with use_shrink_abfs = t is the production contract.",
+    "When a prebuilt database ABFS is staged through ABFS_ORBITAL, the production input still sets exx_pca_threshold = 10 and use_shrink_abfs = t.",
     "Without ABFS_ORBITAL, the PCA generation route uses 1e-4 by default."
   ],
   "sources": [

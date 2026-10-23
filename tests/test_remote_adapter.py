@@ -8,6 +8,7 @@ from oml_mcp.fast_benchmark import load_fast_case
 from oml_mcp.remote_adapter import (
     ControlledRunAdapter,
     RemoteAdapterError,
+    _apply_basis_override,
     _apply_definition_to_inputs,
     locate_case_source,
     stage_case_bundle,
@@ -806,3 +807,70 @@ class ContinuationRewriteTest(unittest.TestCase):
         self.assertEqual(exact, {"tfgrids_type": "minimax"})
         merged = adapter._resolve_definition({"tfgrids_type": "minimax"})
         self.assertIn("nfreq", merged)
+
+    def test_use_shrink_abfs_is_written(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle, {"use_shrink_abfs": True}, explicit_axes=frozenset({"use_shrink_abfs"})
+        )
+        self.assertTrue(result["applied"]["use_shrink_abfs"])
+        self.assertIn("use_shrink_abfs = t", (bundle / "librpa.in").read_text(encoding="utf-8"))
+
+
+class BasisOverrideTest(unittest.TestCase):
+    STRU = """ATOMIC_SPECIES
+B 10.811 B.upf
+N 14.007 N.upf
+
+NUMERICAL_ORBITAL
+B_old.orb
+N_old.orb
+
+LATTICE_CONSTANT
+1.8897162
+
+LATTICE_VECTORS
+2.5 0.0 0.0
+0.0 2.5 0.0
+0.0 0.0 6.6
+
+ATOMIC_POSITIONS
+Direct
+B
+0.0
+1
+0.0 0.0 0.0 0 0 0
+
+N
+0.0
+1
+0.333 0.333 0.333 0 0 0
+"""
+
+    def test_stages_database_assets_and_rewrites_stru(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            (bundle / "STRU").write_text(self.STRU, encoding="utf-8")
+            assets = root / "assets"
+            assets.mkdir()
+            override = {}
+            for element in ("B", "N"):
+                roles = {}
+                for role, suffix in (("pp", ".upf"), ("nao", ".orb"), ("abf", ".abfs")):
+                    path = assets / f"{element}_{role}{suffix}"
+                    path.write_text(f"{element} {role} payload\n", encoding="utf-8")
+                    roles[role] = str(path)
+                override[element] = roles
+            names = _apply_basis_override(bundle, override)
+            text = (bundle / "STRU").read_text(encoding="utf-8")
+
+        for element, roles in names.items():
+            for role, name in roles.items():
+                self.assertTrue(name.startswith(f"{element}_{role}_"))
+        self.assertIn(names["B"]["pp"], text)
+        self.assertIn(names["B"]["nao"], text)
+        self.assertIn(names["B"]["abf"], text)
+        self.assertNotIn("B_old.orb", text.split("NUMERICAL_ORBITAL")[1].split("LATTICE_CONSTANT")[0])
+        self.assertIn("ABFS_ORBITAL", text)

@@ -28,12 +28,15 @@ runs, duplicate-job protection, version pinning, promotion gates) lives in
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import tarfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping
+
+from .stru import rewrite_assets
 
 from .fast_benchmark import FastCase
 from .parameter_prescriptions import (
@@ -201,6 +204,7 @@ def _apply_definition_to_inputs(
         "n_params_anacon": "n_params_anacon",
         "option_qpe_solver": "option_qpe_solver",
         "use_qpe_adaptive_damp": "use_qpe_adaptive_damp",
+        "use_shrink_abfs": "use_shrink_abfs",
         "abfs_family": None,
         "basis_family": None,
         "nao_family": None,
@@ -411,6 +415,48 @@ def _flatten_input_dir(target: Path) -> None:
     _upsert_librpa_key(input_path, "input_dir", ".")
 
 
+def _apply_basis_override(
+    bundle: Path, override: Mapping[str, Mapping[str, str]]
+) -> dict[str, dict[str, str]]:
+    """Stage database PP/NAO/ABFS files and rewrite the bundle STRU.
+
+    The override is authoritative: every provided role replaces the case
+    asset, and a missing ABFS stays absent (the caller decides whether that is
+    allowed). Each copied file's SHA-256 is verified against its source.
+    """
+    stru_path = bundle / "STRU"
+    if not stru_path.is_file():
+        raise RemoteAdapterError("a basis override requires a STRU in the staged bundle")
+    names: dict[str, dict[str, str]] = {}
+    for element, roles in override.items():
+        names[element] = {}
+        for role in ("pp", "nao", "abf"):
+            source_value = roles.get(role)
+            if not source_value:
+                continue
+            source = Path(source_value)
+            if source.is_symlink() or not source.is_file():
+                raise RemoteAdapterError(f"missing basis asset for {element}/{role}: {source}")
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            name = f"{element}_{role}_{digest[:12]}{source.suffix}"
+            target = bundle / name
+            shutil.copyfile(source, target)
+            if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise RemoteAdapterError(f"staged basis asset changed bytes: {source}")
+            names[element][role] = name
+    pp = {element: roles["pp"] for element, roles in names.items() if "pp" in roles}
+    nao = {element: roles["nao"] for element, roles in names.items() if "nao" in roles}
+    abfs = {element: roles["abf"] for element, roles in names.items() if "abf" in roles}
+    rewritten = rewrite_assets(
+        stru_path.read_text(encoding="utf-8"),
+        pp=pp or None,
+        nao=nao or None,
+        abfs=abfs or None,
+    )
+    stru_path.write_text(rewritten, encoding="utf-8")
+    return names
+
+
 def stage_case_bundle(
     case: FastCase,
     *,
@@ -419,6 +465,7 @@ def stage_case_bundle(
     candidate: dict[str, Any],
     upstream_extras: Iterable[str] = (),
     explicit_axes: frozenset[str] | None = None,
+    basis_override: Mapping[str, Mapping[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Build an immutable, self-contained source bundle for one candidate.
 
@@ -462,6 +509,7 @@ def stage_case_bundle(
     # nested regression-archive layout is normalized before inputs are
     # rewritten for the candidate.
     _flatten_input_dir(target)
+    basis_names = _apply_basis_override(target, basis_override) if basis_override else {}
     report = _apply_definition_to_inputs(target, candidate, explicit_axes)
     staged = sorted(str(path.relative_to(target)) for path in target.rglob("*") if path.is_file())
     return {
@@ -471,6 +519,7 @@ def stage_case_bundle(
         "applied": report["applied"],
         "unapplied": report["unapplied"],
         "preserved": report.get("preserved", {}),
+        "basis_override": basis_names,
         "staged_files": staged,
     }
 
@@ -542,6 +591,7 @@ class ControlledRunAdapter:
         iteration: int,
         changed_axis: str | None = None,
         apply_prescription: bool = True,
+        basis_override: Mapping[str, Mapping[str, str]] | None = None,
     ) -> dict[str, Any]:
         definition = self._resolve_definition(
             candidate, merge_prescription=apply_prescription
@@ -557,6 +607,7 @@ class ControlledRunAdapter:
             # what the case pins (otherwise a round silently runs the
             # prescription defaults instead of the proposed definition).
             explicit_axes=frozenset({changed_axis}) if changed_axis else frozenset(candidate),
+            basis_override=basis_override,
         )
         stages = tuple(staging["stages"])
 
@@ -579,6 +630,7 @@ class ControlledRunAdapter:
                 "stages": list(stages),
                 "applied": staging["applied"],
                 "unapplied": staging["unapplied"],
+                "basis_override": staging.get("basis_override", {}),
                 "resolved_definition": definition,
                 "stage_detail": execution.get("detail"),
             },
