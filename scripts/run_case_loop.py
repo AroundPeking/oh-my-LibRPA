@@ -54,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="JSON definition merged over the continuation seed (e.g. the case's current values)",
     )
+    parser.add_argument(
+        "--gap-reference-ev",
+        type=float,
+        default=None,
+        help="trusted physical GW gap reference (eV); overrides the frozen replay gap",
+    )
     return parser
 
 
@@ -75,17 +81,23 @@ def main() -> int:
         scheduler_max_polls=args.scheduler_max_polls,
     )
     ledger = args.ledger or str(Path(args.artifact_root) / f"{case.case_id}-ledger.json")
+    gap_reference = (
+        args.gap_reference_ev
+        if args.gap_reference_ev is not None
+        else runner.reference_gap_ev()
+    )
     result = run_loop(
         seed,
         runner,
         occupied_bands=None,
-        gap_reference_ev=runner.reference_gap_ev(),
+        gap_reference_ev=gap_reference,
         max_trials=args.max_trials,
         ledger_path=ledger,
     )
     report = result.to_dict()
     if result.records:
         report["reference"] = runner.evaluate_reference(result.records[-1].trial)
+    report["gap_reference_ev"] = gap_reference
     report["execution_profile"] = args.execution_profile
     report["software_profile"] = args.software_profile
     print(json.dumps(report, indent=2, ensure_ascii=False))

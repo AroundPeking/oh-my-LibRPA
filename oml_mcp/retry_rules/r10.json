@@ -1,0 +1,55 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r10",
+  "layer": "any",
+  "title": "Gap is off after the k-grid standard and the smoothness checks",
+  "symptom": "The k-grid is at the standard (solids 8x8x8, 2D 12x12x1) or beyond and the bands show no artifact, but the GW gap differs from the trusted physical reference by more than the tolerance.",
+  "evidence_required": [
+    "trusted physical reference value and its scope",
+    "gap comparison receipt",
+    "basis/PP identity and dimensions of the current and reference definitions",
+    "auxiliary-basis mode and threshold"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "compare against the reference record's own definition (same geometry, PP and basis)",
+      "parameters": [],
+      "direction": "diagnose",
+      "expected_improvement": "separates a stack difference from a definition difference",
+      "guard": "do not compare gaps across different geometries or basis sets as if they were the same observable"
+    },
+    {
+      "action": "switch to the reference record's matched PP/NAO/ABFS set from the database",
+      "parameters": ["basis_family", "nao_family", "abfs_family"],
+      "direction": "switch",
+      "expected_improvement": "removes basis-incompleteness bias when the k-grid and path are not the cause",
+      "guard": "keep the geometry and the PP/NAO pairing; record the new set ids and hashes"
+    },
+    {
+      "action": "enlarge the auxiliary basis at generation (smaller generation-stage exx_pca_threshold or a larger prebuilt ABFS)",
+      "parameters": ["exx_pca_threshold", "abfs_family"],
+      "direction": "decrease",
+      "expected_improvement": "reduces the LRI/GW basis-incompleteness error",
+      "guard": "watch linear dependence; keep the production value at 10 with ABFS_ORBITAL"
+    }
+  ],
+  "stop_condition": "The gap is within tolerance or the basis/ABFS candidate list is exhausted.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (BN k888 validation: gap still 0.29 eV below the database after the k-grid standard)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/kpoint-standard.json",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/exx-pca-threshold.json",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related_known_issues": []
+}

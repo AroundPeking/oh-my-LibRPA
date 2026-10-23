@@ -27,7 +27,7 @@ def valid_rule(rule_id: str = "r1", **overrides):
 class RetryRuleTest(unittest.TestCase):
     def test_all_rules_load_in_order(self):
         rules = load_rules()
-        self.assertEqual(rule_ids(rules), tuple(f"r{index}" for index in range(1, 10)))
+        self.assertEqual(rule_ids(rules), tuple(f"r{index}" for index in range(1, 11)))
         for rule in rules:
             self.assertTrue(rule["symptom"])
             self.assertTrue(rule["candidate_experiments"])
