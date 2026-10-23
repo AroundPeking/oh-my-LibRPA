@@ -288,6 +288,10 @@ If you only open three pages, open these:
 | [`docs/guide/chat-guidance.md`](docs/guide/chat-guidance.md) | What the user should say, what the agent should ask, and how the interaction should feel |
 | [`examples/si-k444-gw/README.md`](examples/si-k444-gw/README.md) | A realistic periodic GW walkthrough with final output expectations |
 
+The [NAO band-unfolding guide](docs/guide/nao-band-unfolding.md) documents the
+cutoff-free translation-projector post-processing used for exact
+primitive/supercell PBE, EXX, and diagonal GW comparisons.
+
 Useful supporting material:
 
 | Path | Purpose |
