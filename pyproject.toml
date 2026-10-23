@@ -16,6 +16,7 @@ dependencies = [
   # message, which drops the domain error text the tool contract and tests rely on.
   "mcp>=2.0,<2.1",
   "numpy>=1.26",
+  "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
