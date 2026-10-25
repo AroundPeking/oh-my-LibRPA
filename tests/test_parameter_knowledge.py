@@ -79,7 +79,7 @@ class ParameterKnowledgeTest(unittest.TestCase):
         libri_expected = {
             "libri_chi0_threshold_C": 1e-4,
             "libri_chi0_threshold_G": 1e-5,
-            "libri_exx_threshold_V": 1e-1,
+            "libri_exx_threshold_V": 1e-2,
             "libri_exx_threshold_C": 1e-4,
             "libri_exx_threshold_D": 1e-4,
             "libri_g0w0_threshold_C": 1e-5,

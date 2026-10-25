@@ -61,6 +61,9 @@ class DefaultsConsistencyTest(unittest.TestCase):
         librpa = TEMPLATE / "librpa.in"
         scf = TEMPLATE / "INPUT_scf"
         self.assertEqual(int(value(librpa, "nfreq")), 16)
+        self.assertEqual(int(value(librpa, "n_params_anacon")), 16)
+        self.assertEqual(value(librpa, "use_qpe_adaptive_damp"), "t")
+        self.assertEqual(float(value(librpa, "libri_exx_threshold_V")), 1e-2)
         self.assertEqual(kpt_grid(TEMPLATE / "KPT_scf"), [8, 8, 8])
         self.assertEqual(float(value(scf, "shrink_abfs_pca_thr")), 1e-4)
         self.assertEqual(float(value(scf, "shrink_lu_inv_thr")), 1e-3)
@@ -75,14 +78,34 @@ class DefaultsConsistencyTest(unittest.TestCase):
 
     def test_review_defaults_match(self):
         self.assertEqual(PRODUCTION_DEFAULTS["nfreq"], 16)
+        self.assertEqual(PRODUCTION_DEFAULTS["n_params_anacon"], 16)
+        self.assertIs(PRODUCTION_DEFAULTS["use_qpe_adaptive_damp"], True)
+        self.assertEqual(PRODUCTION_DEFAULTS["libri_exx_threshold_V"], 1e-2)
         self.assertEqual(PRODUCTION_DEFAULTS["shrink_abfs_pca_thr"], 1e-4)
         self.assertEqual(PRODUCTION_DEFAULTS["scf_kgrid"], [8, 8, 8])
         self.assertIs(PRODUCTION_DEFAULTS["use_fullcoul_exx"], True)
 
     def test_knowledge_defaults_match(self):
         self.assertEqual(lookup("nfreq")["parameter"]["default"], 16)
+        self.assertEqual(lookup("n_params_anacon")["parameter"]["default"], 16)
+        self.assertIs(lookup("use_qpe_adaptive_damp")["parameter"]["default"], True)
         self.assertEqual(lookup("scf_kgrid")["parameter"]["default"], [8, 8, 8])
         self.assertEqual(lookup("shrink_abfs_pca_thr")["parameter"]["default"], 1e-4)
+        self.assertEqual(lookup("libri_exx_threshold_V")["parameter"]["default"], 0.01)
+
+    def test_2d_has_one_gw_prescription_and_the_standard_grid(self):
+        files = sorted(
+            path.name
+            for path in (ROOT / "oml_mcp" / "parameter_prescriptions").glob("strict_2d_gw__*.json")
+        )
+        self.assertEqual(files, ["strict_2d_gw__default.json"])
+        prescription = load_prescription("strict_2d_gw", "default")
+        self.assertEqual(prescription.parameters["in_plane_kgrid"].target, [12, 12])
+        self.assertEqual(prescription.parameters["nfreq"].target, 16)
+        self.assertEqual(prescription.parameters["vacuum"].target, 20.0)
+        self.assertEqual(prescription.parameters["ewald_precision"].target, 1e-8)
+        know = lookup("in_plane_kgrid")["parameter"]["default"]
+        self.assertEqual(know, [12, 12, 1])
 
     def test_skill_template_copies_are_byte_identical(self):
         root = files_under(ROOT / "templates" / "abacus-librpa-gw")

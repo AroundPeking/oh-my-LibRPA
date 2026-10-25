@@ -20,7 +20,7 @@
     "libri_exx_threshold_V": {
       "owner": "librpa",
       "stage": "production",
-      "default": 0.1,
+      "default": 0.01,
       "default_origin": "oml",
       "meaning": "LibRI screening threshold for the Coulomb part of exact exchange."
     },

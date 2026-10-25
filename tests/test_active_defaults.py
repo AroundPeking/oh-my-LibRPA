@@ -113,9 +113,9 @@ class ActiveDefaultsTest(unittest.TestCase):
         required = (
             "tfgrids_type = minimax",
             "nfreq = 16",
-            "n_params_anacon = 6",
+            "n_params_anacon = 16",
             "option_qpe_solver = 0",
-            "use_qpe_adaptive_damp = f",
+            "use_qpe_adaptive_damp = t",
         )
 
         for path in template_paths:

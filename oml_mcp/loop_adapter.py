@@ -212,11 +212,16 @@ class ControlledLoopRunner:
                     "database PP/NAO/ABFS staged; ABFS production contract: "
                     "exx_pca_threshold=10, use_shrink_abfs=t"
                 )
-        if self.policy_mode == "production" and "use_fullcoul_exx" not in exact:
-            # The reviewed production default is full-Coulomb EXX; a case's
-            # cut-Coulomb value must not leak in by inheritance.
-            exact["use_fullcoul_exx"] = True
-            notes.append("production default: use_fullcoul_exx=t")
+        if self.policy_mode == "production":
+            for key, value in (
+                ("use_fullcoul_exx", True),
+                ("n_params_anacon", 16),
+                ("use_qpe_adaptive_damp", True),
+                ("libri_exx_threshold_V", 1e-2),
+            ):
+                if key not in exact:
+                    exact[key] = value
+                    notes.append(f"production default: {key}={value}")
         scf_grid = exact.get("scf_kgrid") or read_case_scf_grid(source.directory)
         shrink_value = exact.get("shrink_abfs_pca_thr")
         if shrink_value is None:
