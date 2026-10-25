@@ -15,6 +15,7 @@ PASS = "PASS"
 FAIL = "FAIL"
 NOT_EVALUATED = "NOT_EVALUATED"
 PRODUCTION = "production"
+SHRINK_STANDARD = 1e-4
 
 
 @dataclass(frozen=True)
@@ -137,10 +138,37 @@ def check_abfs_contract(
     return PolicyFinding(gate, PASS, "prebuilt ABFS uses exx_pca_threshold=10 and shrink")
 
 
+def check_shrink_standard(
+    *,
+    shrink_abfs_pca_thr: float | None,
+    mode: str = PRODUCTION,
+) -> PolicyFinding:
+    gate = "policy.shrink_standard"
+    if mode != PRODUCTION:
+        return _not_evaluated(gate, "replay runs are outside the production policy scope")
+    if shrink_abfs_pca_thr is None:
+        return _not_evaluated(gate, "the shrink threshold was not recorded")
+    try:
+        value = float(shrink_abfs_pca_thr)
+    except (TypeError, ValueError):
+        return PolicyFinding(gate, FAIL, f"invalid shrink_abfs_pca_thr {shrink_abfs_pca_thr!r}", "set it to 1e-4")
+    if value <= 0:
+        return PolicyFinding(gate, FAIL, f"invalid shrink_abfs_pca_thr {shrink_abfs_pca_thr!r}", "set it to 1e-4")
+    if value > SHRINK_STANDARD:
+        return PolicyFinding(
+            gate,
+            FAIL,
+            f"shrink_abfs_pca_thr={shrink_abfs_pca_thr} is looser than the production standard 1e-4",
+            "set shrink_abfs_pca_thr = 1e-4; decrease only through the convergence ladder",
+        )
+    return PolicyFinding(gate, PASS, f"shrink_abfs_pca_thr={shrink_abfs_pca_thr} meets the 1e-4 standard")
+
+
 GATE_IMPLEMENTATIONS: dict[str, Callable[..., PolicyFinding]] = {
     "policy.basis_source": check_basis_source,
     "policy.kpoint_standard": check_kpoint_standard,
     "policy.abfs_contract": check_abfs_contract,
+    "policy.shrink_standard": check_shrink_standard,
 }
 
 
@@ -154,6 +182,7 @@ def run_gates(
     abfs_orbital: bool | None = None,
     exx_pca_threshold: float | None = None,
     use_shrink_abfs: bool | None = None,
+    shrink_abfs_pca_thr: float | None = None,
 ) -> tuple[PolicyFinding, ...]:
     return (
         check_basis_source(database_basis=database_basis, missing_elements=missing_elements, mode=mode),
@@ -164,4 +193,5 @@ def run_gates(
             use_shrink_abfs=use_shrink_abfs,
             mode=mode,
         ),
+        check_shrink_standard(shrink_abfs_pca_thr=shrink_abfs_pca_thr, mode=mode),
     )

@@ -263,7 +263,10 @@ class SlurmExecutor:
             )
             result = self._run(
                 arguments,
-                timeout_seconds=1800,
+                # A converged 8x8x8 SCF can produce >1 GB of reader-v1
+                # payloads; a 30-minute rsync budget was too tight and made a
+                # completed stage look unobservable.
+                timeout_seconds=7200,
             )
         except OMLError:
             shutil.rmtree(temporary)

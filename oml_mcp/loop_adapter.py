@@ -62,6 +62,21 @@ def read_case_scf_grid(source: str | Path) -> list[int] | None:
     return None
 
 
+def read_case_shrink_threshold(source: str | Path) -> float | None:
+    """Read ``shrink_abfs_pca_thr`` from a case ``INPUT_scf``."""
+    path = Path(source) / "INPUT_scf"
+    if not path.is_file():
+        return None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        fields = line.split("#", 1)[0].split()
+        if fields[:1] == ["shrink_abfs_pca_thr"] and len(fields) >= 2:
+            try:
+                return float(fields[1])
+            except ValueError:
+                return None
+    return None
+
+
 class ControlledLoopRunner:
     """Production runner: one definition becomes one controlled cluster run."""
 
@@ -197,6 +212,9 @@ class ControlledLoopRunner:
                     "exx_pca_threshold=10, use_shrink_abfs=t"
                 )
         scf_grid = exact.get("scf_kgrid") or read_case_scf_grid(source.directory)
+        shrink_value = exact.get("shrink_abfs_pca_thr")
+        if shrink_value is None:
+            shrink_value = read_case_shrink_threshold(source.directory)
         policy_inputs = {
             "database_basis": self.use_database_basis,
             "missing_elements": tuple(missing),
@@ -205,6 +223,7 @@ class ControlledLoopRunner:
             "abfs_orbital": has_abf if self.use_database_basis else None,
             "exx_pca_threshold": exact.get("exx_pca_threshold"),
             "use_shrink_abfs": exact.get("use_shrink_abfs"),
+            "shrink_abfs_pca_thr": shrink_value,
         }
         return exact, basis_override, notes, policy_inputs
 

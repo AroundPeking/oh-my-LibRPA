@@ -1,6 +1,6 @@
 import unittest
 
-from oml_mcp.loop_adapter import read_case_scf_grid
+from oml_mcp.loop_adapter import read_case_scf_grid, read_case_shrink_threshold
 from oml_mcp.policy_gates import (
     FAIL,
     GATE_IMPLEMENTATIONS,
@@ -9,6 +9,7 @@ from oml_mcp.policy_gates import (
     check_abfs_contract,
     check_basis_source,
     check_kpoint_standard,
+    check_shrink_standard,
 )
 from oml_mcp.policies import (
     EffectiveDefinition,
@@ -28,9 +29,12 @@ from oml_mcp.references import (
 
 
 class PolicyRegistryTest(unittest.TestCase):
-    def test_loads_the_three_production_policies(self):
+    def test_loads_the_production_policies(self):
         policies = load_policies()
-        self.assertEqual(policy_ids(policies), ("abfs_contract", "basis_source", "kpoint_standard"))
+        self.assertEqual(
+            policy_ids(policies),
+            ("abfs_contract", "basis_source", "kpoint_standard", "shrink_standard"),
+        )
         for policy in policies:
             self.assertEqual(policy.on_violation, "fail_closed")
 
@@ -100,6 +104,15 @@ class PolicyGatesTest(unittest.TestCase):
             PASS,
         )
 
+    def test_shrink_standard(self):
+        self.assertEqual(check_shrink_standard(shrink_abfs_pca_thr=1e-4).status, PASS)
+        self.assertEqual(check_shrink_standard(shrink_abfs_pca_thr=1e-5).status, PASS)
+        loose = check_shrink_standard(shrink_abfs_pca_thr=1e-1)
+        self.assertEqual(loose.status, FAIL)
+        self.assertIn("1e-4", loose.repair)
+        self.assertEqual(check_shrink_standard(shrink_abfs_pca_thr=None).status, NOT_EVALUATED)
+        self.assertEqual(check_shrink_standard(shrink_abfs_pca_thr=1e-1, mode="replay").status, NOT_EVALUATED)
+
 
 class ReferenceVerdictTest(unittest.TestCase):
     def test_physical_claims_require_a_physical_reference(self):
@@ -160,6 +173,21 @@ class CaseGridTest(unittest.TestCase):
             )
             self.assertIsNone(read_case_scf_grid(root))
 
+    def test_reads_the_case_shrink_threshold(self):
+        import pathlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "INPUT_scf").write_text(
+                "INPUT_PARAMETERS\nshrink_abfs_pca_thr 1e-4\n", encoding="utf-8"
+            )
+            self.assertEqual(read_case_shrink_threshold(root), 1e-4)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "INPUT_scf").write_text("INPUT_PARAMETERS\n", encoding="utf-8")
+            self.assertIsNone(read_case_shrink_threshold(root))
+
 
 class PreflightTest(unittest.TestCase):
     def test_all_gates_pass_with_a_physical_reference(self):
@@ -171,6 +199,7 @@ class PreflightTest(unittest.TestCase):
             abfs_orbital=True,
             exx_pca_threshold=10.0,
             use_shrink_abfs=True,
+            shrink_abfs_pca_thr=1e-4,
             value=6.30,
             references=[reference],
         )
@@ -197,10 +226,24 @@ class PreflightTest(unittest.TestCase):
             abfs_orbital=True,
             exx_pca_threshold=10.0,
             use_shrink_abfs=True,
+            shrink_abfs_pca_thr=1e-4,
             require_physical=True,
             references=[replay_reference(6.0, source="replay")],
         )
         self.assertFalse(result.ok)
+
+    def test_loose_shrink_threshold_fails_preflight(self):
+        result = preflight(
+            database_basis=True,
+            scf_kgrid=[8, 8, 8],
+            dimension="3d",
+            abfs_orbital=True,
+            exx_pca_threshold=10.0,
+            use_shrink_abfs=True,
+            shrink_abfs_pca_thr=1e-1,
+        )
+        self.assertFalse(result.ok)
+        self.assertTrue(any("policy.shrink_standard" in reason for reason in result.reasons))
 
 
 if __name__ == "__main__":

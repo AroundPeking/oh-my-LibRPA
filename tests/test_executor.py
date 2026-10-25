@@ -384,7 +384,8 @@ class SlurmExecutorTest(unittest.TestCase):
                     f"{snapshot.parent}/.{snapshot.name}.fetching/",
                 ],
             )
-            self.assertEqual(run.call_args.kwargs["timeout"], 1800)
+            # Large reader-v1 payloads need a two-hour fetch budget.
+            self.assertEqual(run.call_args.kwargs["timeout"], 7200)
             executor.snapshot_run("/work/approved/oml/run-1", snapshot)
             self.assertEqual(run.call_count, 1)
 
