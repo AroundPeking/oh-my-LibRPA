@@ -93,7 +93,7 @@
         0.0,
         1.0
       ],
-      "target": 0.0001,
+      "target": 0.001,
       "per_system_override_rule": "Tighten the shrink threshold when the ABFS set is nearly linearly dependent for a heavy-element system.",
       "rationale": "shrink_lu_inv_thr controls the LU inversion cutoff for the shrunk auxiliary basis; too loose a value corrupts the Coulomb metric.",
       "gate_id": "coulomb.psd_hermitian",

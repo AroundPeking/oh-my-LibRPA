@@ -199,17 +199,28 @@ def _find_entries(route_id: str, material_class: str) -> list[dict[str, Any]]:
         raise ParameterPrescriptionError(
             f"route is not registered for controlled evolution: {route_id}"
         )
+    if (
+        material_class != "default"
+        and material_class not in MATERIAL_CLASS_NAMES
+        and material_class not in SYSTEM_FAMILIES
+    ):
+        raise ParameterPrescriptionError(
+            f"no prescription for route {route_id}, material_class {material_class}"
+        )
     chain: list[dict[str, Any]] = []
     seen: set[str] = set()
     current_class = material_class
     while current_class is not None:
         path = _prescription_path(route_id, current_class)
         if not path.is_file():
-            if current_class == material_class:
+            if current_class == "default":
                 raise ParameterPrescriptionError(
                     f"no prescription for route {route_id}, material_class {material_class}"
                 )
-            break
+            # One 3D default: a registered material class without its own file
+            # resolves to the route default instead of a second value set.
+            current_class = "default"
+            continue
         entry = _load_json(path)
         _validate_prescription(entry)
         if entry["route_id"] != route_id:

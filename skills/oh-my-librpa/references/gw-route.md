@@ -30,7 +30,7 @@ For reused periodic GW cases on the current `df` ABACUS route, reject these stal
 Set or verify these `librpa.in` defaults unless a stronger empirical rule overrides them:
 
 - `task = g0w0`
-- for the current periodic 3D solid lane, start with `nfreq = 24`
+- for the current periodic 3D solid lane, start with `nfreq = 16`; a matched reference definition (for example the BN 24-point frozen reference) may pin 24, and that value must be copied from the reference rather than assumed
 - for routes outside that lane, do not inherit the BN frequency or Pade defaults without a route-specific benchmark
 - for the current periodic 3D solid lane, `n_params_anacon = 6`
 - `option_qpe_solver = 0`

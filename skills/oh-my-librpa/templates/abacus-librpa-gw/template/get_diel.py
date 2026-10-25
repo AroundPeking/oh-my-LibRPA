@@ -27,12 +27,15 @@ def get_param(work_dir : str = './'):
     '''
     get lattice_vector from STRU,
     get fermi_energy(eV) from running_scf.log,
-    get occ_band from band_out.
+    get occ_band from the current OUT.librpa/band_out.txt export, with a
+    fallback to the legacy root-level band_out export.
     '''
     import os
     f_stru = os.path.join(work_dir, 'STRU')
     f_running = os.path.join(work_dir, "OUT.ABACUS/running_scf.log")
-    f_band = os.path.join(work_dir, 'band_out')
+    f_band_current = os.path.join(work_dir, 'OUT.librpa', 'band_out.txt')
+    f_band_legacy = os.path.join(work_dir, 'band_out')
+    f_band = f_band_current if os.path.isfile(f_band_current) else f_band_legacy
 
     lattice_vector = []
     with open(f_stru, 'r') as file:

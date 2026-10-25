@@ -200,9 +200,9 @@ class FakeExecutionTest(unittest.TestCase):
         result = adapter.run_candidate(case=case, candidate={"nfreq": 8}, iteration=1)
 
         resolved = result["detail"]["resolved_definition"]
-        # bn-3d-sym-shrink-g0w0 is the bulk_bn_gw family; its prescription pins
-        # exx_cs_inv_thr to the automatic value for light elements.
-        self.assertEqual(resolved["exx_cs_inv_thr"], -1.0)
+        # Every 3D material class resolves to the single default prescription,
+        # which pins the explicit safe exx_cs_inv_thr for unknown systems.
+        self.assertEqual(resolved["exx_cs_inv_thr"], 1e-5)
 
 
 class CollectOutputsTest(unittest.TestCase):

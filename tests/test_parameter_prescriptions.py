@@ -20,12 +20,14 @@ class ParameterPrescriptionTest(unittest.TestCase):
         self.assertIn("nbands", prescription.parameters)
         self.assertEqual(prescription.parameters["exx_cs_inv_thr"].default, -1.0)
 
-    def test_material_class_override_beats_default(self):
-        prescription = load_prescription("periodic_3d_gw", "transition_metal_oxide_gw")
+    def test_material_class_falls_back_to_the_single_default(self):
+        default = load_prescription("periodic_3d_gw", "default")
+        material = load_prescription("periodic_3d_gw", "transition_metal_oxide_gw")
 
-        self.assertEqual(prescription.parameters["exx_cs_inv_thr"].default, 1e-5)
-        # nbands is not pinned to a numeric value in the material override
-        self.assertIsNone(prescription.parameters["nbands"].target)
+        self.assertEqual(set(material.parameters), set(default.parameters))
+        self.assertEqual(material.parameters["exx_cs_inv_thr"].default, -1.0)
+        self.assertEqual(material.parameters["exx_cs_inv_thr"].target, 1e-5)
+        self.assertEqual(material.parameters["nfreq"].target, 16)
 
     def test_apply_prescription_fills_only_absent_keys(self):
         definition = {"nfreq": 32, "nbands": 48, "screening_kgrid": [4, 4, 4]}
@@ -41,9 +43,9 @@ class ParameterPrescriptionTest(unittest.TestCase):
             result["applied"],
             {
                 "exx_cs_inv_thr": 1e-5,
-                "basis_family": "oncv_pbe_10au_100ry",
+                "basis_family": "dojo_nc_sr_tzdp",
                 "nao_family": "tzdp",
-                "shrink_threshold": 0.1,
+                "shrink_threshold": 0.001,
             },
         )
         self.assertEqual(result["definition"]["nfreq"], 32)
@@ -52,29 +54,18 @@ class ParameterPrescriptionTest(unittest.TestCase):
         self.assertNotIn("nbands", result["applied"])
         self.assertEqual(result["definition"]["nbands"], 48)  # untouched
 
-    def test_each_system_family_pins_its_own_parameters(self):
+    def test_all_system_families_resolve_to_the_single_default(self):
         from oml_mcp.parameter_prescriptions import list_system_families
 
-        seen = {}
+        baseline = apply_prescription("periodic_3d_gw", "default", definition={})["applied"]
+        self.assertEqual(baseline["exx_cs_inv_thr"], 1e-5)
+        self.assertEqual(baseline["nfreq"], 16)
         for family in list_system_families():
-            route = (
-                "molecular_delta_st_rpa"
-                if family == "isolated_molecule_rpa"
-                else "periodic_3d_gw"
-            )
-            result = apply_prescription(route, family, definition={})
-            applied = result["applied"]
-            self.assertTrue(applied, f"{family} must pin at least one parameter")
-            seen[family] = applied
-
-        # Heavy-element and light-element families must NOT share the same EXX policy.
-        self.assertEqual(
-            seen["transition_metal_oxide_gw"]["exx_cs_inv_thr"], 1e-5
-        )
-        self.assertEqual(seen["bulk_bn_gw"]["exx_cs_inv_thr"], -1.0)
-        self.assertNotEqual(
-            seen["transition_metal_oxide_gw"]["nfreq"], seen["bulk_bn_gw"]["nfreq"]
-        )
+            if family == "isolated_molecule_rpa":
+                continue
+            with self.subTest(family=family):
+                result = apply_prescription("periodic_3d_gw", family, definition={})
+                self.assertEqual(result["applied"], baseline)
 
     def test_tune_parameter_is_proposal_only(self):
         proposal = tune_parameter(
