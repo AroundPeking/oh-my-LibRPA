@@ -816,6 +816,14 @@ class ContinuationRewriteTest(unittest.TestCase):
         self.assertTrue(result["applied"]["use_shrink_abfs"])
         self.assertIn("use_shrink_abfs = t", (bundle / "librpa.in").read_text(encoding="utf-8"))
 
+    def test_use_fullcoul_exx_is_written(self):
+        bundle = self._bundle()
+        result = _apply_definition_to_inputs(
+            bundle, {"use_fullcoul_exx": True}, explicit_axes=frozenset({"use_fullcoul_exx"})
+        )
+        self.assertTrue(result["applied"]["use_fullcoul_exx"])
+        self.assertIn("use_fullcoul_exx = t", (bundle / "librpa.in").read_text(encoding="utf-8"))
+
 
 class BasisOverrideTest(unittest.TestCase):
     STRU = """ATOMIC_SPECIES

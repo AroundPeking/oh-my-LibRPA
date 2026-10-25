@@ -205,6 +205,7 @@ def _apply_definition_to_inputs(
         "option_qpe_solver": "option_qpe_solver",
         "use_qpe_adaptive_damp": "use_qpe_adaptive_damp",
         "use_shrink_abfs": "use_shrink_abfs",
+        "use_fullcoul_exx": "use_fullcoul_exx",
         "abfs_family": None,
         "basis_family": None,
         "nao_family": None,

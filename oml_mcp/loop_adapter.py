@@ -23,6 +23,7 @@ from .fast_benchmark import FastCase, evaluate_case_against_reference
 from .loop_runner import LoopError, TrialOutcome
 from .preflight import preflight
 from .profiles import load_profile
+from .review import settings_review
 from .remote_adapter import (
     ControlledExecutionBinding,
     ControlledRunAdapter,
@@ -211,6 +212,11 @@ class ControlledLoopRunner:
                     "database PP/NAO/ABFS staged; ABFS production contract: "
                     "exx_pca_threshold=10, use_shrink_abfs=t"
                 )
+        if self.policy_mode == "production" and "use_fullcoul_exx" not in exact:
+            # The reviewed production default is full-Coulomb EXX; a case's
+            # cut-Coulomb value must not leak in by inheritance.
+            exact["use_fullcoul_exx"] = True
+            notes.append("production default: use_fullcoul_exx=t")
         scf_grid = exact.get("scf_kgrid") or read_case_scf_grid(source.directory)
         shrink_value = exact.get("shrink_abfs_pca_thr")
         if shrink_value is None:
@@ -236,6 +242,7 @@ class ControlledLoopRunner:
         return {
             "ok": result.ok,
             "preflight": result.to_dict(),
+            "review": settings_review(exact, policy_mode=mode or self.policy_mode),
             "effective_definition": exact,
             "basis_override": basis_override,
             "notes": list(notes),
@@ -253,6 +260,15 @@ class ControlledLoopRunner:
         audit = preflight(mode=self.policy_mode, **policy_inputs)
         if not audit.ok:
             raise LoopError("policy preflight failed: " + "; ".join(audit.reasons))
+        review = settings_review(exact, policy_mode=self.policy_mode)
+        if review["needs_review"]:
+            notes.append(
+                "settings review deviations: "
+                + ", ".join(
+                    f"{row['key']}={row['value']} (default {row['default']})"
+                    for row in review["deviations"]
+                )
+            )
         result = self.adapter.run_candidate(
             case=self.case,
             candidate=exact,

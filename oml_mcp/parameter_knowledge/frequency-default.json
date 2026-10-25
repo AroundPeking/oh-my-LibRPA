@@ -1,0 +1,43 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "frequency-default",
+  "title": "Imaginary-frequency grid starts at nfreq = 16",
+  "parameters": {
+    "nfreq": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 16,
+      "default_origin": "oml",
+      "meaning": "Number of imaginary-frequency points for the analytic continuation; the default production value is 16."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "the low-energy GW gap is unstable or the Padé roots are unstable at nfreq = 16",
+      "action": "increase",
+      "effect": "use a denser frequency grid through the convergence ladder",
+      "guard": "record the ladder pair; the BN 24 vs 32 pair was bit-identical while 16/8 were off by ~0.3 eV, so a matched-definition reference may pin 24"
+    }
+  ],
+  "constraints": [
+    "Default production nfreq is 16; a higher value must come from a convergence ladder or a matched reference definition, never from a replay case by inheritance.",
+    "Response cost scales roughly linearly with nfreq, so an unjustified 24 wastes about 1.5x the work."
+  ],
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-23 (16 is generally enough; 24 is not the default)",
+      "accessed": "2026-10-23"
+    },
+    {
+      "kind": "repo",
+      "ref": "oml_mcp/parameter_prescriptions/periodic_3d_gw__default.json",
+      "path": "periodic_3d_gw__default.json",
+      "locator": "nfreq default 16",
+      "accessed": "2026-10-23"
+    }
+  ],
+  "related": {
+    "known_issues": []
+  }
+}

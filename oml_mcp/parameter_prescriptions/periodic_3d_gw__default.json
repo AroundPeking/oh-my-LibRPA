@@ -6,12 +6,12 @@
   "extends": null,
   "parameters": {
     "nfreq": {
-      "default": 24,
+      "default": 16,
       "allowed_range": [
         4,
         128
       ],
-      "target": 24,
+      "target": 16,
       "per_system_override_rule": "Raise for a denser imaginary-frequency grid when the heavy-element tail is slow; the fast benchmark uses 6-8.",
       "rationale": "Frequency grid density controls the accuracy of the screened interaction; small fast cases converge with nfreq 6-8 while production uses ~24.",
       "gate_id": "stage.librpa.completion",

@@ -87,6 +87,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="run the policy preflight audit and exit without submitting",
     )
+    parser.add_argument(
+        "--accept-deviations",
+        action="store_true",
+        help="acknowledge reviewed settings deviations (required when the review card flags any)",
+    )
     return parser
 
 
@@ -111,10 +116,21 @@ def main() -> int:
         use_database_basis=not args.case_basis,
         policy_mode=args.policy_mode,
     )
+    audit = runner.audit(seed, mode=args.policy_mode)
     if args.preflight_only:
-        audit = runner.audit(seed, mode=args.policy_mode)
         print(json.dumps(audit, indent=2, ensure_ascii=False))
         return 0 if audit["ok"] else 2
+    if not audit["ok"]:
+        print(json.dumps(audit, indent=2, ensure_ascii=False))
+        print("preflight failed; refusing to submit", file=sys.stderr)
+        return 2
+    if audit["review"]["needs_review"] and not args.accept_deviations:
+        print(json.dumps(audit, indent=2, ensure_ascii=False))
+        print(
+            "settings review has deviations; review them and pass --accept-deviations",
+            file=sys.stderr,
+        )
+        return 2
     ledger = args.ledger or str(Path(args.artifact_root) / f"{case.case_id}-ledger.json")
     gap_reference = (
         args.gap_reference_ev
