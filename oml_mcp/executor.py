@@ -183,7 +183,8 @@ class SlurmExecutor:
             )
         ssh = self.profile.ssh
         create = self._run(
-            [ssh["ssh_program"], ssh["host"], "mkdir", "--", remote_run_dir]
+            [ssh["ssh_program"], ssh["host"], "mkdir", "--", remote_run_dir],
+            timeout_seconds=120,
         )
         if create.returncode != 0:
             raise OMLError(
@@ -199,7 +200,11 @@ class SlurmExecutor:
                 "--",
                 f"{local_run_dir}/",
                 f"{ssh['host']}:{remote_run_dir}/",
-            ]
+            ],
+            # A database-basis bundle carries several MB of PP/NAO/ABFS
+            # payloads; the 20 s default was only enough for the smallest
+            # replay bundles.
+            timeout_seconds=1800,
         )
         if transfer.returncode != 0:
             raise OMLError(
