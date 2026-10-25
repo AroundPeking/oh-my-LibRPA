@@ -239,12 +239,22 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
             "analytic_continuation",
             "contract.periodic_3d_gw",
         )
-        expected_continuation = {
-            "tfgrids_type": "minimax",
-            "n_params_anacon": 6,
-            "option_qpe_solver": 0,
-            "use_qpe_adaptive_damp": False,
-        }
+        if profile["profile_id"] in {V4_PROFILE_ID, V5_PROFILE_ID}:
+            # Historical generations keep the six-parameter contract they were
+            # validated with; only the current generation moves to the new one.
+            expected_continuation = {
+                "tfgrids_type": "minimax",
+                "n_params_anacon": 6,
+                "option_qpe_solver": 0,
+                "use_qpe_adaptive_damp": False,
+            }
+        else:
+            expected_continuation = {
+                "tfgrids_type": "minimax",
+                "n_params_anacon": 16,
+                "option_qpe_solver": 0,
+                "use_qpe_adaptive_damp": True,
+            }
         if continuation != expected_continuation:
             raise ProfileError("current periodic 3D GW continuation contract has drifted")
         if (

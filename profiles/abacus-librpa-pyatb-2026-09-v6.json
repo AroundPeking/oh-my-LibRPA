@@ -174,9 +174,9 @@
     "periodic_3d_gw": {
       "analytic_continuation": {
         "tfgrids_type": "minimax",
-        "n_params_anacon": 6,
+        "n_params_anacon": 16,
         "option_qpe_solver": 0,
-        "use_qpe_adaptive_damp": false
+        "use_qpe_adaptive_damp": true
       },
       "accepted_frequency_pair": [24, 32],
       "low_energy_window": "VBM-3_through_CBM+3",

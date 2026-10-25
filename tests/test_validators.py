@@ -120,9 +120,9 @@ class WorkflowValidatorTest(unittest.TestCase):
             f"task = {task}",
             "tfgrids_type = minimax",
             "nfreq = 24",
-            "n_params_anacon = 6",
+            "n_params_anacon = 16",
             "option_qpe_solver = 0",
-            "use_qpe_adaptive_damp = f",
+            "use_qpe_adaptive_damp = t",
             "input_dir = dataset",
             "prefix_coul_full = v1_coulomb_full_iq_",
             "prefix_coul_cut = v1_coulomb_cut_iq_",
@@ -624,6 +624,14 @@ class WorkflowValidatorTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_case(root)
+            path = root / "librpa.in"
+            # The v4 generation keeps its six-parameter contract.
+            path.write_text(
+                path.read_text(encoding="utf-8")
+                .replace("n_params_anacon = 16", "n_params_anacon = 6")
+                .replace("use_qpe_adaptive_damp = t", "use_qpe_adaptive_damp = f"),
+                encoding="utf-8",
+            )
             report = validate_case(
                 root,
                 task="gw",
@@ -646,10 +654,14 @@ class WorkflowValidatorTest(unittest.TestCase):
                 root = pathlib.Path(tmpdir)
                 self.make_case(root)
                 path = root / "librpa.in"
+                # Start from the v4 six-parameter contract, then drift one knob.
+                text = (
+                    path.read_text(encoding="utf-8")
+                    .replace("n_params_anacon = 16", "n_params_anacon = 6")
+                    .replace("use_qpe_adaptive_damp = t", "use_qpe_adaptive_damp = f")
+                )
                 path.write_text(
-                    path.read_text(encoding="utf-8").replace(
-                        f"{key} = {old}", f"{key} = {new}"
-                    ),
+                    text.replace(f"{key} = {old}", f"{key} = {new}"),
                     encoding="utf-8",
                 )
                 report = validate_case(
