@@ -25,7 +25,7 @@ def _note(key: str, value: Any, default: Any) -> str:
         return f"nfreq={value} costs about {value / default:.2f}x the default response work"
     if key == "shrink_abfs_pca_thr" and isinstance(value, (int, float)) and value > default:
         return "a looser shrink threshold keeps fewer auxiliary functions and can bias EXX/GW"
-    if key == "scf_kgrid" and isinstance(value, (list, tuple)):
+    if key == "scf_kgrid" and isinstance(value, (list, tuple)) and list(value) != list(default):
         return "the k grid differs from the standard; a ladder step must be declared"
     if key == "use_fullcoul_exx" and value is False:
         return "cut-Coulomb EXX is a different physical definition"
