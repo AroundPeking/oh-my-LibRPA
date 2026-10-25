@@ -13,7 +13,7 @@
     "n_params_anacon": {
       "owner": "librpa",
       "stage": "production",
-      "default": 16,
+      "default": -1,
       "default_origin": "oml",
       "meaning": "Number of Pade parameters for the analytic continuation; with nfreq=16 this uses all frequency points (the LibRPA source default -1 also uses all nfreq points)."
     },
@@ -36,7 +36,7 @@
   "constraints": [
     "Default production nfreq is 16; a higher value must come from a convergence ladder or a matched reference definition, never from a replay case by inheritance.",
     "Response cost scales roughly linearly with nfreq, so an unjustified 24 wastes about 1.5x the work.",
-    "n_params_anacon=16 equals all nfreq=16 points; the LibRPA source default is -1 (all points). The BN 24-point frozen reference pinned 6, so a matched BN reference must copy its own value.",
+    "n_params_anacon=-1 uses all nfreq points; the LibRPA source default is -1 (all points). The BN 24-point frozen reference pinned 6, so a matched BN reference must copy its own value.",
     "use_qpe_adaptive_damp=t is the production default for stability; the LibRPA source default is false."
   ],
   "sources": [

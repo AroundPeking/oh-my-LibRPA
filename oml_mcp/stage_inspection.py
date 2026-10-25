@@ -179,8 +179,26 @@ def _command_gate(
     return _pass(f"stage.{stage}.command", "generated stage command exited successfully", str(path))
 
 
+def _coulomb_psd_gates_at_scf(root: Path) -> list[GateResult]:
+    """Fail fast on a broken Coulomb matrix right after ABACUS.
+
+    The SCF stage may legitimately not carry the reader-v1 Coulomb family
+    (non-RPA lanes); in that case this is a SKIP and the PyATB stage still
+    enforces the family.
+    """
+    if not list(root.glob("v1_coulomb_full_iq_*_rank*.dat")):
+        return [
+            GateResult(
+                gate_id="coulomb.psd_hermitian",
+                status="SKIP",
+                message="no reader-v1 Coulomb blocks are present at the SCF stage",
+            )
+        ]
+    return _coulomb_psd_gates(root)
+
+
 def _scf_gates(root: Path) -> list[GateResult]:
-    return [
+    gates = [
         _completion_log(
             root,
             "scf",
@@ -201,6 +219,8 @@ def _scf_gates(root: Path) -> list[GateResult]:
             repair="rerun the pinned ABACUS SCF producer in a fresh immutable run",
         ),
     ]
+    gates.extend(_coulomb_psd_gates_at_scf(root))
+    return gates
 
 
 def _state_space_gate(root: Path) -> list[GateResult]:

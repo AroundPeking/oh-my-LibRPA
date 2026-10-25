@@ -13,7 +13,10 @@
   },
   "adjust": [],
   "constraints": [
-    "out_librpa_2d_coulomb_method is available only with exx_ewald_dimension=2; out_librpa_3d_coulomb_method only with 3."
+    "out_librpa_2d_coulomb_method is available only with exx_ewald_dimension=2; out_librpa_3d_coulomb_method only with 3.",
+    "Strict-2D GW: set exx_ewald_dimension = 2 and out_librpa_2d_coulomb_method = ewald; ABACUS must also write librpa_2d_coulomb_head.txt (the 2D Coulomb head/moment artifact).",
+    "LibRPA then uses the 2D Ewald Coulomb for Wc and epsilon (use_2d_dielectric = t, use_fullcoul_wc = t); the 2D head/wing is averaged at Wc (rpa_headwing_mode = qavg), not the 3D head/wing path.",
+    "PyATB always writes all k-points (full BZ); never pass IBZ k-points or star weights into the head/wing lane."
   ],
   "sources": [
     {

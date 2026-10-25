@@ -51,9 +51,11 @@ STEP_WEIGHTS: dict[str, int] = {
 
 def _route_gate(stage: str, gate_id: str) -> str:
     """Assign one gate to its scorecard step."""
+    # The Coulomb diagnostic runs right after SCF (fail fast) and again at
+    # PyATB; either way it owns the dedicated Coulomb step, not the stage.
+    if gate_id.startswith("coulomb."):
+        return "coulomb_dataset"
     if stage == "pyatb":
-        if gate_id.startswith("coulomb."):
-            return "coulomb_dataset"
         if gate_id.startswith("stage.state_space."):
             return "handoff"
         return "pyatb"

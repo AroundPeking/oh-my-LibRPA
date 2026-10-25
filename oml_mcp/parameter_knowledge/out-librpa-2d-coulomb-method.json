@@ -21,7 +21,8 @@
   ],
   "constraints": [
     "direct_mixed_fourier is default-off and has no automatic fallback.",
-    "The three direct-mode parameters must each be converged."
+    "The three direct-mode parameters must each be converged.",
+    "Strict-2D production output includes librpa_2d_coulomb_head.txt in addition to the full/cut Coulomb families; LibRPA requires this head/moment artifact for the 2D Wc and epsilon path."
   ],
   "sources": [
     {

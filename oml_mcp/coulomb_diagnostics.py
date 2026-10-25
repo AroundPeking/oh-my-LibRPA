@@ -286,11 +286,12 @@ def inspect_coulomb_psd_hermitian(
                         f"negative_eigenvalue_count={negative_count}",
                         f"eigenvalue_min={min_eigenvalue:.3e}",
                     ],
-                    "do not clip eigenvalues or substitute cut Coulomb. If this is a "
-                    "strict-2D full-Ewald case, switch to the direct_mixed_fourier "
-                    "positive-Gram output; otherwise regenerate the reader-v1 full "
-                    "Coulomb family and verify the auxiliary-basis and symmetry "
-                    "definition before GW.",
+                    "do not clip eigenvalues or substitute cut Coulomb. For a 3D "
+                    "full-Ewald case switch to out_librpa_3d_coulomb_method="
+                    "direct_reciprocal; for strict-2D switch to "
+                    "direct_mixed_fourier (positive Gram). Otherwise regenerate the "
+                    "reader-v1 full Coulomb family and verify the auxiliary-basis and "
+                    "symmetry definition before GW.",
                 )
             )
             continue

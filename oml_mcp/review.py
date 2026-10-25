@@ -14,7 +14,7 @@ from typing import Any, Mapping
 
 PRODUCTION_DEFAULTS: dict[str, Any] = {
     "nfreq": 16,
-    "n_params_anacon": 16,
+    "n_params_anacon": -1,
     "use_qpe_adaptive_damp": True,
     "libri_exx_threshold_V": 1e-2,
     "shrink_abfs_pca_thr": 1e-4,
@@ -26,8 +26,8 @@ PRODUCTION_DEFAULTS: dict[str, Any] = {
 def _note(key: str, value: Any, default: Any) -> str:
     if key == "nfreq" and isinstance(value, (int, float)) and isinstance(default, (int, float)) and value > default:
         return f"nfreq={value} costs about {value / default:.2f}x the default response work"
-    if key == "n_params_anacon" and isinstance(value, (int, float)) and value < default:
-        return "fewer Pade parameters than the default can make the low-energy continuation less stable"
+    if key == "n_params_anacon" and isinstance(value, (int, float)) and value != -1:
+        return "a fixed Pade order differs from -1 (all nfreq points); the BN 24-point reference pinned 6"
     if key == "use_qpe_adaptive_damp" and value is False:
         return "adaptive QPE damping is off; the default keeps it on for stability"
     if key == "libri_exx_threshold_V" and isinstance(value, (int, float)) and value > default:

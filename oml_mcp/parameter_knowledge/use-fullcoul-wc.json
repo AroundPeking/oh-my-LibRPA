@@ -13,7 +13,8 @@
   },
   "adjust": [],
   "constraints": [
-    "The strict-2D analytic head/wing path requires use_fullcoul_wc = t and uses the full 2D Ewald interaction at every finite q."
+    "The strict-2D analytic head/wing path requires use_fullcoul_wc = t and uses the full 2D Ewald interaction at every finite q.",
+    "Strict-2D GW requires use_fullcoul_wc = t so Wc uses the full 2D Ewald Coulomb at every finite q; the 2D head/wing is averaged at Wc (rpa_headwing_mode = qavg)."
   ],
   "sources": [
     {

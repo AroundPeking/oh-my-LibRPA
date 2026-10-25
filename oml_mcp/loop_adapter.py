@@ -215,7 +215,7 @@ class ControlledLoopRunner:
         if self.policy_mode == "production":
             for key, value in (
                 ("use_fullcoul_exx", True),
-                ("n_params_anacon", 16),
+                ("n_params_anacon", -1),
                 ("use_qpe_adaptive_damp", True),
                 ("libri_exx_threshold_V", 1e-2),
             ):

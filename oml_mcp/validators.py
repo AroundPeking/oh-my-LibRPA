@@ -419,7 +419,7 @@ def _periodic_3d_gw_continuation_gate(
             "periodic 3D GW analytic-continuation controls do not match the current benchmark",
             (str(librpa.path), *mismatches),
             (
-                "set tfgrids_type = minimax, n_params_anacon = 16, "
+                "set tfgrids_type = minimax, n_params_anacon = -1, "
                 "option_qpe_solver = 0, and use_qpe_adaptive_damp = t"
             ),
         )

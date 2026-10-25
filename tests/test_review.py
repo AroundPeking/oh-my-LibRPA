@@ -5,7 +5,7 @@ from oml_mcp.review import settings_review
 
 DEFAULTS = {
     "nfreq": 16,
-    "n_params_anacon": 16,
+    "n_params_anacon": -1,
     "use_qpe_adaptive_damp": True,
     "libri_exx_threshold_V": 1e-2,
     "shrink_abfs_pca_thr": 1e-4,

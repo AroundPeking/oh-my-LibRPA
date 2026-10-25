@@ -61,7 +61,7 @@ class DefaultsConsistencyTest(unittest.TestCase):
         librpa = TEMPLATE / "librpa.in"
         scf = TEMPLATE / "INPUT_scf"
         self.assertEqual(int(value(librpa, "nfreq")), 16)
-        self.assertEqual(int(value(librpa, "n_params_anacon")), 16)
+        self.assertEqual(int(value(librpa, "n_params_anacon")), -1)
         self.assertEqual(value(librpa, "use_qpe_adaptive_damp"), "t")
         self.assertEqual(float(value(librpa, "libri_exx_threshold_V")), 1e-2)
         self.assertEqual(kpt_grid(TEMPLATE / "KPT_scf"), [8, 8, 8])
@@ -78,7 +78,7 @@ class DefaultsConsistencyTest(unittest.TestCase):
 
     def test_review_defaults_match(self):
         self.assertEqual(PRODUCTION_DEFAULTS["nfreq"], 16)
-        self.assertEqual(PRODUCTION_DEFAULTS["n_params_anacon"], 16)
+        self.assertEqual(PRODUCTION_DEFAULTS["n_params_anacon"], -1)
         self.assertIs(PRODUCTION_DEFAULTS["use_qpe_adaptive_damp"], True)
         self.assertEqual(PRODUCTION_DEFAULTS["libri_exx_threshold_V"], 1e-2)
         self.assertEqual(PRODUCTION_DEFAULTS["shrink_abfs_pca_thr"], 1e-4)
@@ -87,7 +87,7 @@ class DefaultsConsistencyTest(unittest.TestCase):
 
     def test_knowledge_defaults_match(self):
         self.assertEqual(lookup("nfreq")["parameter"]["default"], 16)
-        self.assertEqual(lookup("n_params_anacon")["parameter"]["default"], 16)
+        self.assertEqual(lookup("n_params_anacon")["parameter"]["default"], -1)
         self.assertIs(lookup("use_qpe_adaptive_damp")["parameter"]["default"], True)
         self.assertEqual(lookup("scf_kgrid")["parameter"]["default"], [8, 8, 8])
         self.assertEqual(lookup("shrink_abfs_pca_thr")["parameter"]["default"], 1e-4)

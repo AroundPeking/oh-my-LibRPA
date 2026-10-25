@@ -120,7 +120,7 @@ class WorkflowValidatorTest(unittest.TestCase):
             f"task = {task}",
             "tfgrids_type = minimax",
             "nfreq = 24",
-            "n_params_anacon = 16",
+            "n_params_anacon = -1",
             "option_qpe_solver = 0",
             "use_qpe_adaptive_damp = t",
             "input_dir = dataset",
@@ -628,7 +628,7 @@ class WorkflowValidatorTest(unittest.TestCase):
             # The v4 generation keeps its six-parameter contract.
             path.write_text(
                 path.read_text(encoding="utf-8")
-                .replace("n_params_anacon = 16", "n_params_anacon = 6")
+                .replace("n_params_anacon = -1", "n_params_anacon = 6")
                 .replace("use_qpe_adaptive_damp = t", "use_qpe_adaptive_damp = f"),
                 encoding="utf-8",
             )
@@ -657,7 +657,7 @@ class WorkflowValidatorTest(unittest.TestCase):
                 # Start from the v4 six-parameter contract, then drift one knob.
                 text = (
                     path.read_text(encoding="utf-8")
-                    .replace("n_params_anacon = 16", "n_params_anacon = 6")
+                    .replace("n_params_anacon = -1", "n_params_anacon = 6")
                     .replace("use_qpe_adaptive_damp = t", "use_qpe_adaptive_damp = f")
                 )
                 path.write_text(

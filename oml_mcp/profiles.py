@@ -251,7 +251,7 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
         else:
             expected_continuation = {
                 "tfgrids_type": "minimax",
-                "n_params_anacon": 16,
+                "n_params_anacon": -1,
                 "option_qpe_solver": 0,
                 "use_qpe_adaptive_damp": True,
             }

@@ -174,7 +174,7 @@
     "periodic_3d_gw": {
       "analytic_continuation": {
         "tfgrids_type": "minimax",
-        "n_params_anacon": 16,
+        "n_params_anacon": -1,
         "option_qpe_solver": 0,
         "use_qpe_adaptive_damp": true
       },

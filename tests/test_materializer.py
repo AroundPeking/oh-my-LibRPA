@@ -41,7 +41,7 @@ def make_periodic_source(root: pathlib.Path) -> None:
                 "task = g0w0",
                 "tfgrids_type = minimax",
                 "nfreq = 24",
-                "n_params_anacon = 16",
+                "n_params_anacon = -1",
                 "option_qpe_solver = 0",
                 "use_qpe_adaptive_damp = t",
                 "input_dir = .",

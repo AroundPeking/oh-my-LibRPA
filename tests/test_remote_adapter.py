@@ -751,7 +751,7 @@ class ContinuationRewriteTest(unittest.TestCase):
         bundle = self._bundle()
         candidate = {
             "tfgrids_type": "minimax",
-            "n_params_anacon": 16,
+            "n_params_anacon": -1,
             "option_qpe_solver": 0,
             "use_qpe_adaptive_damp": True,
         }
@@ -761,7 +761,7 @@ class ContinuationRewriteTest(unittest.TestCase):
         text = (bundle / "librpa.in").read_text(encoding="utf-8")
         self.assertEqual(set(result["applied"]), set(candidate))
         self.assertIn("tfgrids_type = minimax", text)
-        self.assertIn("n_params_anacon = 16", text)
+        self.assertIn("n_params_anacon = -1", text)
         self.assertIn("option_qpe_solver = 0", text)
         self.assertIn("use_qpe_adaptive_damp = t", text)
 
