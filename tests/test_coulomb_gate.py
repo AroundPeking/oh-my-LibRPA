@@ -28,11 +28,19 @@ class CoulombGateTest(unittest.TestCase):
         self.assertEqual(report["verdict"], "FAIL")
         self.assertIn("not Hermitian", " ".join(report["findings"]))
 
-    def test_negative_eigenvalue_fails(self):
+    def test_small_negative_count_is_tolerated(self):
         matrix = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
         report = check_positive_semidefinite(matrix)
-        self.assertFalse(report["pass"])
+        self.assertTrue(report["pass"])
         self.assertEqual(report["negative_count"], 1)
+        self.assertEqual(report["tolerated_negative_count"], 1)
+        self.assertEqual(coulomb_health(matrix)["verdict"], "PASS")
+
+    def test_too_many_negative_eigenvalues_fail(self):
+        matrix = np.diag([1.0] + [-1.0] * 11).astype(complex)
+        report = check_positive_semidefinite(matrix)
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["negative_count"], 11)
         self.assertEqual(coulomb_health(matrix)["verdict"], "FAIL")
 
     def test_cross_construction_agreement(self):

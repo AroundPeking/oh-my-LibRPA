@@ -130,7 +130,7 @@ class DiagnosticBatteryTest(unittest.TestCase):
             root = pathlib.Path(tmpdir)
             _write_scf_run(root)
             # Indefinite Coulomb matrix: eigenvalues [4.0, -1.0]
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
             _write_nscf_run(root)
             _write_preprocess_run(root)
             _write_librpa_run(root)

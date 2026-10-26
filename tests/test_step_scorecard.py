@@ -62,7 +62,7 @@ class StepScorecardTest(unittest.TestCase):
 
             write_coulomb_block(
                 root / "v1_coulomb_full_iq_1_rank0.dat",
-                np.diag([4.0, -641.0]).astype(np.complex128),
+                np.diag([4.0] + [-641.0] * 11).astype(np.complex128),
             )
 
             report = score_run_steps(root)

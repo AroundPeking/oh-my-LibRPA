@@ -87,7 +87,7 @@ class KnownIssueStoreTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             # Indefinite matrix: eigenvalues [4.0, -1.0]
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
 
             report = diagnose_run(root, stage="pyatb")
 
@@ -175,7 +175,7 @@ class KnownIssueCoverageTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             # Two q blocks fail, so the same issue would match twice without dedup.
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
 
             report = diagnose_run(root, stage="pyatb")
 
@@ -185,7 +185,7 @@ class KnownIssueCoverageTest(unittest.TestCase):
     def test_matches_are_ranked_descending(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
 
             report = diagnose_run(root, stage="pyatb")
 
@@ -201,7 +201,7 @@ class ResolutionPlanTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
 
             plan = resolve_run(root, stage="pyatb")
 
@@ -217,7 +217,7 @@ class ResolutionPlanTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
 
             plan = resolve_run(
                 root,
@@ -239,7 +239,7 @@ class ResolutionPlanTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
 
             plan = resolve_run(root, stage="pyatb")
 
@@ -251,7 +251,7 @@ class ResolutionPlanTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            _write_pyatb_run(root, np.diag([4.0, -1.0]))
+            _write_pyatb_run(root, np.diag([4.0] + [-1.0] * 11))
             plan = resolve_run(root, stage="pyatb")
             path = write_resolution_plan(plan, root / "plan.json")
             self.assertTrue(path.is_file())

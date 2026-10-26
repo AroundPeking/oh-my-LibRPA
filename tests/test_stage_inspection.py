@@ -150,7 +150,7 @@ class StageInspectionTest(unittest.TestCase):
                 (root / name).write_bytes(b"data")
             write_coulomb_block(
                 root / "v1_coulomb_full_iq_1_rank0.dat",
-                np.diag([4.0, -9.0]).astype(np.complex128),
+                np.diag([4.0] + [-9.0] * 11).astype(np.complex128),
             )
 
             report = inspect_stage_outputs(root, "pyatb")

@@ -36,7 +36,12 @@ def check_hermitian(values: Any, *, tolerance: float = 1e-8) -> dict[str, Any]:
     return {"pass": residual <= tolerance, "residual": residual, "tolerance": tolerance}
 
 
-def check_positive_semidefinite(values: Any, *, tolerance: float = 1e-10) -> dict[str, Any]:
+def check_positive_semidefinite(
+    values: Any,
+    *,
+    tolerance: float = 1e-10,
+    max_negative_eigenvalues: int = 10,
+) -> dict[str, Any]:
     matrix = _matrix(values)
     hermitian_part = (matrix + matrix.conj().T) / 2.0
     eigenvalues = np.linalg.eigvalsh(hermitian_part)
@@ -44,7 +49,9 @@ def check_positive_semidefinite(values: Any, *, tolerance: float = 1e-10) -> dic
     negative = [float(value) for value in eigenvalues if value < -tolerance * scale]
     near_null = [float(value) for value in eigenvalues if abs(value) <= tolerance * scale]
     return {
-        "pass": not negative,
+        "pass": len(negative) <= max_negative_eigenvalues,
+        "tolerated_negative_count": min(len(negative), max_negative_eigenvalues),
+        "max_negative_eigenvalues": max_negative_eigenvalues,
         "min_eigenvalue": float(eigenvalues.min()),
         "max_eigenvalue": float(eigenvalues.max()),
         "negative": negative[:20],
@@ -80,10 +87,15 @@ def coulomb_health(
     other_construction: Any | None = None,
     hermitian_tolerance: float = 1e-8,
     psd_tolerance: float = 1e-10,
+    max_negative_eigenvalues: int = 10,
 ) -> dict[str, Any]:
     """Return the fullcoul verdict plus the findings that drove it."""
     hermitian = check_hermitian(values, tolerance=hermitian_tolerance)
-    psd = check_positive_semidefinite(values, tolerance=psd_tolerance)
+    psd = check_positive_semidefinite(
+        values,
+        tolerance=psd_tolerance,
+        max_negative_eigenvalues=max_negative_eigenvalues,
+    )
     cross = (
         compare_constructions(values, other_construction)
         if other_construction is not None
@@ -97,7 +109,8 @@ def coulomb_health(
     if not psd["pass"]:
         findings.append(
             f"Coulomb matrix has {psd['negative_count']} negative eigenvalues "
-            f"(minimum {psd['min_eigenvalue']:.3e})"
+            f"(maximum allowed {max_negative_eigenvalues}, "
+            f"minimum {psd['min_eigenvalue']:.3e})"
         )
     if cross is not None and not cross["agree"]:
         findings.append(

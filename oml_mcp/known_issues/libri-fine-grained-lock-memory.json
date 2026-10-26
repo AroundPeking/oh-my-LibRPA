@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "libri-fine-grained-lock-memory",
+  "title": "LibRPA memory bottleneck: build against the LibRI fine_grain_lock branch",
+  "symptom": "A LibRPA stage hits a memory bottleneck (OOM kill, very high peak RSS, or the scheduler memory cap) especially at large k-grid or auxiliary-basis sizes.",
+  "root_cause": "The default LibRI build uses the coarse-grained lock layout; the LibRI `fine_grain_lock` branch provides a lower-memory include/interface for the same LibRPA calculation.",
+  "minimal_fix": "Build LibRPA against that LibRI tree by pointing the include at the fine-grained-lock folder, for example: cmake -DLIBRI_INCLUDE_DIR=../LibRI-fine_grained_lock/include (path relative to the LibRPA build directory). Confirm the folder location on the target host before building; the local LibRI master does not contain this branch.",
+  "validation": "Verify the configured include path is the fine_grain_lock tree, record the LibRI revision, and measure the peak RSS of the same LibRPA stage before and after the rebuild. Re-run the stage gate battery and the Coulomb check with the new build.",
+  "avoid": "Do not point LIBRI_INCLUDE_DIR at a folder from a different LibRI revision, do not mix a fine-grained-lock LibRI with a LibRPA source built against another interface, and do not silently switch builds without recording the revision in provenance.",
+  "source": "zcode-session:session_543df16e8f072cfa35b25d89126b0b92; user instruction 2026-10-26",
+  "confidence": "tentative",
+  "gate_id": "environment.memory",
+  "parameters": {
+    "libri_include_dir": "../LibRI-fine_grained_lock/include (relative to the LibRPA build dir)",
+    "cmake_flag": "-DLIBRI_INCLUDE_DIR=../LibRI-fine_grained_lock/include"
+  }
+}

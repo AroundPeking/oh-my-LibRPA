@@ -37,6 +37,11 @@ COULOMB_MARKER = -20129433
 # absolute threshold.
 DEFAULT_HERMITIAN_RELATIVE_TOLERANCE = 1.0e-9
 DEFAULT_NEGATIVE_EIGENVALUE_RELATIVE_FLOOR = 1.0e-8
+# Up to this many negative eigenvalues per q block are tolerable in practice
+# (user policy 2026-10-26: a few are fine, many are not). The raw diagnostic
+# stays strict by default; the stage/battery applies the tolerance.
+DEFAULT_MAX_NEGATIVE_EIGENVALUES = 0
+STAGE_MAX_NEGATIVE_EIGENVALUES = 10
 
 
 def _pass(gate_id: str, message: str, *evidence: str) -> GateResult:
@@ -45,6 +50,10 @@ def _pass(gate_id: str, message: str, *evidence: str) -> GateResult:
 
 def _fail(gate_id: str, message: str, evidence: list[str], repair: str) -> GateResult:
     return GateResult(gate_id, "FAIL", message, tuple(evidence), repair)
+
+
+def _warn(gate_id: str, message: str, evidence: list[str], repair: str) -> GateResult:
+    return GateResult(gate_id, "WARN", message, tuple(evidence), repair)
 
 
 def _block_pair(index: int, natoms: int) -> tuple[int, int]:
@@ -149,6 +158,7 @@ def inspect_coulomb_psd_hermitian(
     *,
     hermitian_relative_tolerance: float = DEFAULT_HERMITIAN_RELATIVE_TOLERANCE,
     negative_eigenvalue_relative_floor: float = DEFAULT_NEGATIVE_EIGENVALUE_RELATIVE_FLOOR,
+    max_negative_eigenvalues: int = DEFAULT_MAX_NEGATIVE_EIGENVALUES,
 ) -> dict[str, Any]:
     """Run the PSD/Hermitian gate over every reader-v1 full-Coulomb q block.
 
@@ -161,6 +171,7 @@ def inspect_coulomb_psd_hermitian(
     for label, value in {
         "hermitian_relative_tolerance": hermitian_relative_tolerance,
         "negative_eigenvalue_relative_floor": negative_eigenvalue_relative_floor,
+        "max_negative_eigenvalues": max_negative_eigenvalues,
     }.items():
         if not math.isfinite(value) or value < 0.0:
             raise ValueError(f"{label} must be finite and non-negative")
@@ -276,14 +287,15 @@ def inspect_coulomb_psd_hermitian(
                 )
             )
             continue
-        if negative_count > 0:
+        if negative_count > max_negative_eigenvalues:
             gates.append(
                 _fail(
                     gate_id,
-                    "Coulomb q block is not positive-semidefinite",
+                    "Coulomb q block has too many negative eigenvalues",
                     [
                         str(rank0),
                         f"negative_eigenvalue_count={negative_count}",
+                        f"max_negative_eigenvalues={max_negative_eigenvalues}",
                         f"eigenvalue_min={min_eigenvalue:.3e}",
                     ],
                     "do not clip eigenvalues or substitute cut Coulomb. For a 3D "
@@ -292,6 +304,22 @@ def inspect_coulomb_psd_hermitian(
                     "direct_mixed_fourier (positive Gram). Otherwise regenerate the "
                     "reader-v1 full Coulomb family and verify the auxiliary-basis and "
                     "symmetry definition before GW.",
+                )
+            )
+            continue
+        if negative_count > 0:
+            gates.append(
+                _warn(
+                    gate_id,
+                    "Coulomb q block has a small negative eigenvalue count (tolerated)",
+                    [
+                        str(rank0),
+                        f"negative_eigenvalue_count={negative_count}",
+                        f"max_negative_eigenvalues={max_negative_eigenvalues}",
+                        f"eigenvalue_min={min_eigenvalue:.3e}",
+                    ],
+                    "continue; if the count grows above the allowed maximum, switch "
+                    "to the direct positive-Gram construction.",
                 )
             )
             continue

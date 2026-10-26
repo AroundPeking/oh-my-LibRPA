@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .artifacts import inspect_headwing_directory
-from .coulomb_diagnostics import inspect_coulomb_psd_hermitian
+from .coulomb_diagnostics import STAGE_MAX_NEGATIVE_EIGENVALUES, inspect_coulomb_psd_hermitian
 from .models import GateResult
 from .parsers import ParseError
 from .stage_templates import CONTROLLED_PERIODIC_STAGES
@@ -287,8 +287,15 @@ def _state_space_gate(root: Path) -> list[GateResult]:
 
 
 def _coulomb_psd_gates(root: Path) -> list[GateResult]:
-    """Fuse the reference-free Coulomb PSD/Hermitian diagnostic into gates."""
-    report = inspect_coulomb_psd_hermitian(root)
+    """Fuse the reference-free Coulomb PSD/Hermitian diagnostic into gates.
+
+    The acceptance tolerance allows up to ten negative eigenvalues per q block
+    (user policy 2026-10-26); more than that is a defective construction.
+    """
+    report = inspect_coulomb_psd_hermitian(
+        root,
+        max_negative_eigenvalues=STAGE_MAX_NEGATIVE_EIGENVALUES,
+    )
     result: list[GateResult] = []
     for gate_dict in report["gates"]:
         result.append(
