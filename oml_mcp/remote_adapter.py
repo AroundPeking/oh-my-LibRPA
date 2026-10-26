@@ -125,7 +125,11 @@ def _apply_definition_to_inputs(
         "shrink_abfs_pca_thr": "shrink_abfs_pca_thr",
         "exx_pca_threshold": "exx_pca_threshold",
         "out_librpa_3d_coulomb_method": "out_librpa_3d_coulomb_method",
+        "out_librpa_3d_direct_ecut": "out_librpa_3d_direct_ecut",
         "out_librpa_2d_coulomb_method": "out_librpa_2d_coulomb_method",
+        "out_librpa_2d_direct_ecut": "out_librpa_2d_direct_ecut",
+        "out_librpa_2d_direct_kz_order": "out_librpa_2d_direct_kz_order",
+        "out_librpa_2d_direct_gamma_order": "out_librpa_2d_direct_gamma_order",
     }
     explicit = explicit_axes if explicit_axes is not None else frozenset(candidate)
     preserved: dict[str, Any] = {}
