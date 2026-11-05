@@ -1,0 +1,34 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "si-k888-sg15-g0w0-sym",
+  "title": "G0W0 Si k888 with Brillouin-zone symmetry, SG15 3s3p2d, five-stage pipeline",
+  "system": "Si",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "scf",
+    "pyatb",
+    "nscf",
+    "preprocess",
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": null,
+  "reference_status": "REFERENCE_PENDING",
+  "estimated_seconds": 9000,
+  "use_symmetry": true,
+  "headwing": true,
+  "case_class": "validation",
+  "validators": [],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "EXX_band_spin_1.dat",
+    "KS_band_spin_1.dat",
+    "band_structure.png",
+    "librpa.out"
+  ],
+  "upstream_directory": "si-k888-sg15-sym",
+  "note": "Symmetry-on Si G0W0, same physics as si-k888-sg15-g0w0 but with Brillouin-zone symmetry enabled end to end. INPUT_scf uses ABACUS symmetry = 1 (IBZ), INPUT_nscf stays at -1 for the band path, and librpa.in runs use_symmetry_exx/gw = t. Symmetry is the largest single cost switch in the pipeline: with it off the chi0/Wc family loops over the full 8x8x8 grid (512 q), with it on over the IBZ (roughly 20-30 q). The symmetry head/wing lane requires the full-BZ PyATB products (pyatb_librpa_df/velocity_matrix + KS_eigenvector_*), so that directory must stay in input_dir - the opposite of the symmetry-off lane, where its presence silently overrides LibRPA's own head term. nbands 44 equals nAO 44, which is the condition for the symmetry real-space contraction to work. Acceptance is judged on the rendered KS/EXX/GW band figure plus the reference-free gates (bands.qp_correction catches a star-overcounted Sigma_c, which is the known failure mode of this lane); the gap delta against the database 1.0596 eV is advisory. Definition: nfreq 16, minimax, n_params_anacon -1, cut-Coulomb EXX (use_fullcoul_exx f), LU Wc solve (use_cholesky_gw_wc f), matching the archived record."
+}

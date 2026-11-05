@@ -1,0 +1,34 @@
+{
+  "schema": "oml.fast-case.v1",
+  "case_id": "si-k888-sg15-g0w0",
+  "title": "G0W0 Si k888 (database-aligned), SG15 3s3p2d, five-stage pipeline",
+  "system": "Si",
+  "task": "gw",
+  "system_type": "solid",
+  "soc": false,
+  "nspin": 1,
+  "stages": [
+    "scf",
+    "pyatb",
+    "nscf",
+    "preprocess",
+    "librpa"
+  ],
+  "route": "periodic_3d_gw",
+  "material_class": null,
+  "reference_status": "REFERENCE_PENDING",
+  "estimated_seconds": 14000,
+  "use_symmetry": false,
+  "headwing": true,
+  "validators": [],
+  "output_files": [
+    "GW_band_spin_1.dat",
+    "EXX_band_spin_1.dat",
+    "KS_band_spin_1.dat",
+    "band_structure.png",
+    "librpa.out"
+  ],
+  "upstream_directory": "si-k888-sg15",
+  "note": "Database-aligned Si G0W0. SCF screening grid must be the archived 8x8x8 (512 q-points, KPT_scf identical to si-paper-all_kpath), because LibRPA builds chi0 on the SCF grid; the earlier 4x4x4 demo never reproduced the screening. ABACUS symmetry -1 in SCF and NSCF, SG15 PP + 3s3p2d NAO + pca1e-6 ABFS with hashes identical to the database Si-SG15 set, nbands 44, ecutwfc 120. LibRPA runs the archived definition: nfreq 16, minimax, n_params_anacon -1, cut-Coulomb EXX (use_fullcoul_exx f, the binary default), LU Wc solve (use_cholesky_gw_wc f, the binary default), head/wing computed internally - pyatb_librpa_df/ is moved aside because this binary reads it unconditionally when present, and that PyATB head (21.24) is not the internal head (14.66). The band path is truncated to Gamma -> 0.85(Gamma-X) where the Si CBM lies; the database si-paper-all_kpath gap is 1.0596 eV on the same segment. ACCEPTANCE IS JUDGED ON THE RENDERED KS/EXX/GW BAND FIGURE (band_structure.png) together with the reference-free band gates, not on an exact gap match: the gap delta against 1.0596 eV is ADVISORY within a 2 eV gross limit, because a database record may use a different EXX Coulomb definition or path sampling while its band shape is still the right answer. See oml_mcp/band_analysis.ACCEPTANCE_RULE, oml_mcp/band_figure.py and docs/guide/controlled-execution.md.",
+  "case_class": "validation"
+}

@@ -46,7 +46,16 @@ def _state_key(spin: int, kpoint: tuple[float, float, float], band: int) -> tupl
     return spin, *kpoint, band
 
 
-def parse_band_table(path: str | Path, *, quantity: str) -> dict[str, object]:
+def parse_band_table(
+    path: str | Path, *, quantity: str, allow_kpoint_revisits: bool = False
+) -> dict[str, object]:
+    """Parse one LibRPA band table.
+
+    ``allow_kpoint_revisits`` exists for plotting: a high-symmetry path may pass
+    the same node twice (Gamma -> X ... Gamma -> L), and the second visit is a
+    different point on the path, not a duplicate row. Numerical gates must keep
+    the strict default.
+    """
     file_path = Path(path).expanduser().resolve()
     normalized_quantity = quantity.strip().lower()
     if normalized_quantity not in TABLE_NAMES:
@@ -113,7 +122,7 @@ def parse_band_table(path: str | Path, *, quantity: str) -> dict[str, object]:
                 details={"path": str(file_path), "line": line_number},
             )
         kpoint = _normalized_kpoint(raw_kpoint)  # type: ignore[arg-type]
-        if kpoint in seen_kpoints:
+        if kpoint in seen_kpoints and not allow_kpoint_revisits:
             raise ScientificBandError(
                 "DUPLICATE_KPOINT",
                 "band table contains duplicate periodic k-point coordinates",

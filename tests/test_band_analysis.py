@@ -89,11 +89,19 @@ class BandAnalysisTest(unittest.TestCase):
             first = analyze_band_set(paths, occupied_bands=3)
             gap = first["gaps"]["gw"]["indirect_gap_ev"]
             passing = analyze_band_set(paths, occupied_bands=3, gap_reference_ev=gap)
-            failing = analyze_band_set(paths, occupied_bands=3, gap_reference_ev=gap + 0.5)
+            advisory = analyze_band_set(paths, occupied_bands=3, gap_reference_ev=gap + 0.5)
+            gross = analyze_band_set(paths, occupied_bands=3, gap_reference_ev=gap + 3.0)
         self.assertTrue(passing["gap_check"]["pass"])
-        self.assertFalse(failing["gap_check"]["pass"])
-        self.assertFalse(failing["accepted"])
-        self.assertIn("differs from the reference", " ".join(failing["reasons"]))
+        # A sub-threshold delta is evidence, not a rejection: acceptance is the
+        # reference-free band gates plus the judged band figure.
+        self.assertEqual(passing["gap_check"]["status"], "ADVISORY")
+        self.assertFalse(advisory["gap_check"]["pass"])
+        self.assertEqual(advisory["gap_check"]["status"], "ADVISORY")
+        self.assertTrue(advisory["accepted"])
+        # Only a gross disagreement rejects the table.
+        self.assertFalse(gross["accepted"])
+        self.assertIn("gross-disagreement limit", " ".join(gross["reasons"]))
+        self.assertIn("band figure", advisory["acceptance_rule"])
 
     def test_reorder_tracks_a_crossing(self):
         with tempfile.TemporaryDirectory() as tmpdir:

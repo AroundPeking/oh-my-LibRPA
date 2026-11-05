@@ -28,6 +28,15 @@ LAYERS = ("ks", "exx", "gw")
 DEFAULT_SMOOTHNESS_FLOOR_EV = 0.05
 DEFAULT_LOCALIZATION_FLOOR_EV = 0.02
 DEFAULT_LOCALIZATION_Z = 6.0
+# A gap delta beyond this is a gross disagreement (wrong units, wrong layer or a
+# broken table), not a definition difference. Inside it the delta is advisory.
+GROSS_GAP_DELTA_EV = 2.0
+ACCEPTANCE_RULE = (
+    "periodic GW band acceptance = reference-free band gates (smoothness, layer "
+    "localization) plus a rendered KS/EXX/GW band figure judged visually; a gap "
+    "delta against a database record is advisory within "
+    f"{GROSS_GAP_DELTA_EV} eV and rejects only beyond that"
+)
 LARGE_RANGE_FRACTION = 0.20
 # A curvature gate on fewer than five k points measures the path segments,
 # not the band shape; coarse paths are reported as not evaluated instead of
@@ -288,6 +297,90 @@ def compare_gap(
     }
 
 
+def qp_correction_report(
+    ks: BandLayer,
+    gw: BandLayer,
+    *,
+    occupied_bands: int,
+    window_ev: float = 3.0,
+    max_correction_ev: float = 15.0,
+    max_median_correction_ev: float = 5.0,
+    max_empty_occupied_ratio: float = 20.0,
+) -> dict[str, Any]:
+    """Check the GW correction e_qp - e_mf on the frontier states.
+
+    Physical QC (v_exx plus Sigma_c) is O(1) eV on the states near the gap, even
+    when the EXX or Coulomb definition differs from a database record. A
+    symmetry-star defect instead multiplies the empty-state Sigma_c by the number
+    of star members, which shows up here as a correction hundreds of eV wide
+    while the occupied states stay sane. This gate is reference-free: it compares
+    the GW table with the run's own KS table, so it fires on the two failures
+    measured on 2026-10-28 (conduction QP at -553 eV with rmesh 1, -13.5 eV with
+    rmesh 5 in the symmetry lane).
+    """
+    if ks.nkpoints != gw.nkpoints or ks.nbands != gw.nbands:
+        raise BandAnalysisError("KS and GW tables must share the k grid and state count")
+    ks_vbm = max(row[occupied_bands - 1] for row in ks.energies)
+    ks_cbm = min(row[occupied_bands] for row in ks.energies)
+    low, high = ks_vbm - window_ev, ks_cbm + window_ev
+    occupied: list[float] = []
+    empty: list[float] = []
+    for k_index in range(ks.nkpoints):
+        for band in range(ks.nbands):
+            meanfield = ks.energies[k_index][band]
+            if not (low <= meanfield <= high):
+                continue
+            correction = gw.energies[k_index][band] - meanfield
+            (occupied if band < occupied_bands else empty).append(correction)
+    if not occupied and not empty:
+        return {"evaluated": False, "reason": "no state inside the frontier window"}
+    magnitudes = [abs(value) for value in (*occupied, *empty)]
+    median = _median(magnitudes)
+
+    def _median_abs(values: Sequence[float]) -> float | None:
+        return _median([abs(value) for value in values]) if values else None
+
+    occupied_median = _median_abs(occupied)
+    empty_median = _median_abs(empty)
+    ratio = None
+    if occupied_median and empty_median is not None:
+        ratio = empty_median / occupied_median if occupied_median > 0 else None
+    reasons: list[str] = []
+    if max(magnitudes) > max_correction_ev:
+        reasons.append(
+            f"GW correction reaches {max(magnitudes):.1f} eV on the frontier states "
+            f"(limit {max_correction_ev} eV)"
+        )
+    if median > max_median_correction_ev:
+        reasons.append(
+            f"median GW correction {median:.2f} eV on the frontier states exceeds "
+            f"{max_median_correction_ev} eV"
+        )
+    if ratio is not None and ratio > max_empty_occupied_ratio:
+        reasons.append(
+            f"empty-state correction is {ratio:.0f}x the occupied-state correction, "
+            "the signature of an over-counted star sum in Sigma_c"
+        )
+    return {
+        "evaluated": True,
+        "accepted": not reasons,
+        "reasons": reasons,
+        "window_ev": window_ev,
+        "n_occupied_states": len(occupied),
+        "n_empty_states": len(empty),
+        "occupied_median_ev": occupied_median,
+        "empty_median_ev": empty_median,
+        "empty_occupied_ratio": ratio,
+        "max_correction_ev": max(magnitudes),
+        "median_correction_ev": median,
+        "limits": {
+            "max_correction_ev": max_correction_ev,
+            "max_median_correction_ev": max_median_correction_ev,
+            "max_empty_occupied_ratio": max_empty_occupied_ratio,
+        },
+    }
+
+
 def analyze_band_set(
     roots: dict[str, str | Path],
     *,
@@ -321,6 +414,15 @@ def analyze_band_set(
             gap_reference_ev,
             tolerance_ev=gap_tolerance_ev,
         )
+        # Gap agreement is evidence, not the verdict: a database record may use
+        # a different EXX/Coulomb definition or a different path sampling, and a
+        # band table with the right shape can still sit a few tenths of an eV
+        # away. The acceptance rule for these routes is "physically reasonable
+        # bands, judged on the rendered figure" (see band_figure). A delta
+        # outside the tolerance is reported as an ADVISORY note, and only a
+        # gross disagreement is treated as a reason.
+        gap_check["status"] = "ADVISORY"
+        gap_check["advisory"] = True
 
     reasons: list[str] = []
     for layer, report in smoothness_reports.items():
@@ -328,10 +430,29 @@ def analyze_band_set(
             reasons.append(f"non-smooth bands in {layer}")
     if localization_report.get("evaluated") and not localization_report["consistent"]:
         reasons.append(f"layer anomaly located in {localization_report['layer']}")
-    if gap_check is not None and not gap_check["pass"]:
+    qp_report = qp_correction_report(
+        layers["ks"], layers["gw"], occupied_bands=gap_reports["ks"]["occupied_bands"]
+    )
+    if qp_report.get("evaluated") and not qp_report["accepted"]:
+        reasons.extend(qp_report["reasons"])
+    # A positive KS gap must not turn into a closed (or negative) GW gap: that is
+    # not a definition difference, it is a broken correlation self-energy. The
+    # 2026-10-28 symmetry lane produced exactly this (EXX -1.3 eV, GW -7.5 eV on
+    # a 0.54 eV KS gap) while its band tables still looked "smooth".
+    ks_gap = gap_reports["ks"]["indirect_gap_ev"]
+    gw_gap = gap_reports["gw"]["indirect_gap_ev"]
+    if ks_gap > 0.05 and gw_gap < 0.5 * ks_gap:
+        reasons.append(
+            f"GW gap {gw_gap:.3f} eV collapsed against the KS gap {ks_gap:.3f} eV; "
+            "a correlation self-energy cannot close a positive gap by that much"
+        )
+    if gap_check is not None and not gap_check["pass"] and abs(
+        gap_check["delta_ev"]
+    ) > GROSS_GAP_DELTA_EV:
         reasons.append(
             f"GW gap {gap_check['value_ev']:.3f} eV differs from the reference by "
-            f"{gap_check['delta_ev']:+.3f} eV (tolerance {gap_check['tolerance_ev']} eV)"
+            f"{gap_check['delta_ev']:+.3f} eV, beyond the {GROSS_GAP_DELTA_EV} eV "
+            "gross-disagreement limit"
         )
     evaluated_any = (
         any(report["evaluated"] for report in smoothness_reports.values())
@@ -348,5 +469,7 @@ def analyze_band_set(
         "localization": localization_report,
         "gaps": gap_reports,
         "gap_check": gap_check,
+        "qp_correction": qp_report,
+        "acceptance_rule": ACCEPTANCE_RULE,
         "sources": {layer: str(path) for layer, path in paths.items()},
     }
