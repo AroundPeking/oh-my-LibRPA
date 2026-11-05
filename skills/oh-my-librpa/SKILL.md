@@ -19,7 +19,9 @@ inspection, input preparation, static checks, parsing, and plotting.
 
 1. Preserve the user's existing case definition and use a fresh run directory.
 2. Route ABACUS inputs through `oh-my-librpa-abacus-librpa`, then use
-   `abacus-librpa-gw`, `abacus-librpa-rpa`, or `abacus-librpa-debug`.
+   `abacus-librpa-gw`, `abacus-librpa-rpa`, or `abacus-librpa-debug`. When the
+   request also needs optical spectra, exciton binding energies or exciton
+   envelope densities, apply `references/bse-route.md`.
 3. Route FHI-aims inputs through `oh-my-librpa-fhi-aims-g0w0-band` or
    `oh-my-librpa-fhi-aims-qsgw` only when strong FHI-aims markers establish
    ownership.
@@ -56,6 +58,10 @@ numerical, and scientific conclusions separate.
   required same-matrix endpoint test.
 - `references/gw-route.md` — periodic and molecular G0W0 route contracts.
 - `references/rpa-route.md` — RPA total-energy route contracts.
+- `references/bse-route.md` — GW+BSE route: the four `scf -> nscf -> GW -> BSE`
+  stages, the `Wc_iR_*_ifreq_0.mtx` sidecar that stage 4 requires from stage 3,
+  the version-dependent spelling of the W(R) output switch, and the hard
+  boundary that this BSE solves Q = 0 excitons only.
 - `references/regression-route.md` — regression and reference comparison rules.
 - `references/server-profiles.md` — server and execution profile layout.
 - `references/abacus-merge-compat.md` — ABACUS merge compatibility notes.

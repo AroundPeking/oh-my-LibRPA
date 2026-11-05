@@ -53,12 +53,16 @@ If the request is about building or repairing the FHI-aims executable itself, st
 1. Confirm the lane is `FHI-aims + LibRPA`, the intent is single-shot GW, and the system is a periodic solid.
 2. If `control.in` is missing, generate a periodic-solid skeleton from `geometry.in` and the active element list.
 3. If `librpa.in` is missing, create a minimal `task = g0w0` baseline and keep `nfreq` consistent with the FHI-aims setup.
-4. If ABACUS comparison inputs exist, preserve the ABACUS structure, `k_grid`, band path, and band-point counts unless the user explicitly overrides them.
-5. Stage two scripts:
+4. Before staging, audit the LibRPA input with `scripts/verify_librpa_input.py`:
+   - `--dimension 3d --require-cs-threshold --control-in control.in` for a 3D solid;
+   - `--dimension 2d` for a strict-2D case.
+   A failure stops the workflow. Never rebuild `librpa.in` from the driver parameter dump: `cs_R_threshold` is a dump name, the input key is `cs_threshold`, and an unknown key is silently ignored (the default is `1e-6`, not the intended `0`). A 3D run must not carry the strict-2D switches `option_dielect_func = 4` or `use_fullcoul_wc = t`.
+5. If ABACUS comparison inputs exist, preserve the ABACUS structure, `k_grid`, band path, and band-point counts unless the user explicitly overrides them.
+6. Stage two scripts:
    - `run_aims.sh` for the MPI-heavy aims stage
    - `run_librpa.sh` for the OpenMP-heavy LibRPA stage
-6. Keep the executable-path style, partition style, and directory layout from a trusted old case when one exists.
-7. Stop before submission when the user asks for staging only or when route ownership is still ambiguous.
+7. Keep the executable-path style, partition style, and directory layout from a trusted old case when one exists.
+8. Stop before submission when the user asks for staging only or when route ownership is still ambiguous.
 
 ## Verification
 
@@ -66,4 +70,5 @@ If the request is about building or repairing the FHI-aims executable itself, st
 - prove `control.in` uses periodic-solid FHI-aims conventions
 - prove the species blocks come from `defaults_2020/intermediate_gw` when auto-generated
 - prove `run_aims.sh` and `run_librpa.sh` are separate
+- prove `scripts/verify_librpa_input.py` passed on the exact `librpa.in` that will be submitted (including `cs_threshold` and the 3D/2D dielectric switches)
 - prove the ABACUS alignment rule was followed when comparison inputs exist

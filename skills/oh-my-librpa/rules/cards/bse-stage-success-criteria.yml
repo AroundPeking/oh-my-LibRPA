@@ -1,0 +1,61 @@
+- id: bse-gw-wc-sidecar-801
+  scene: Judge whether the LibRPA GW stage produced what the ABACUS BSE stage needs
+  symptom: The BSE stage aborts at start, or runs but produces numbers with no screening
+  root_cause: The BSE kernel does not recompute screening; ESolver_BSE::lri_init reads librpa.d/Wc_iR_<iR>_ifreq_0.mtx and throws "<name> not found!" when the GW stage was not asked to dump W(R)
+  fix:
+    - List the LibRPA output directory and require at least one `Wc_iR_*_ifreq_0.mtx` file with non-zero size
+    - If missing, re-run the GW stage with the W(R) dump enabled for that LibRPA vintage
+    - Use `output_wc_rf t` plus `ifreq_output_wc_end 1` for tutorial-era builds; use `output_Wc_Rf_mat 1` for newer builds where `ifreq_output_wc_end` no longer exists
+    - Probe the LibRPA binary with `grep -c` on both spellings before choosing, instead of guessing from memory
+  verify:
+    - Confirm `energy_qp.txt`, `KS_band_spin_*.txt` and `GW_band_spin_*.txt` were copied into the shared rpa_outdir
+    - Confirm the BSE log reaches the eigenvalue print rather than aborting in lri_init
+    - Confirm the ABACUS input sets `ri_hartree_benchmark` to a value consistent with the producer that wrote the files
+  applies_to:
+    mode: bse
+    stage: librpa
+
+- id: bse-success-802
+  scene: Judge whether the ABACUS BSE stage finished successfully
+  symptom: Need a success signal for the BSE diagonalisation stage
+  root_cause: BSE success is visible from the excitation artifacts and the binding-energy/oscillator-strength prints, not from a generic "finished" line
+  fix:
+    - Check that OUT.bse/trans_dipole_<spin>_<tda|full>.dat exists
+    - Check that OUT.bse/trans_analysis_<spin>_<tda|full>.dat exists
+    - Check that OUT.bse/Excitation_Energy_<label>.dat exists and is non-empty
+    - Check the BSE log for the `Excition binding energies (eV):` line (the misspelling is in the ABACUS source)
+  verify:
+    - Confirm the reported total oscillator strength approaches 1 under the f-sum rule when lr_nstates is -1; a far smaller value means the pair window (nocc/nvirt) is too narrow
+    - Confirm lr_solver and xc_kernel were set together (`elpa` + `bse`), since `lr` alone silently means LR-TDDFT
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-momentum-boundary-803
+  scene: Judge whether a requested exciton-dispersion or exciton group-velocity result is reachable
+  symptom: The request asks for E_exc(Q), exciton group velocities, or an exciton momentum-space spin texture
+  root_cause: The ABACUS BSE two-particle basis couples the electron and hole at the same k, and the BSE input set has no centre-of-mass momentum keyword, so only Q = 0 states are solved; bse_q_approx_mode/threshold only control the auxiliary-basis q-to-k-pair mapping inside the kernel
+  fix:
+    - State the boundary before preparing inputs
+    - Offer what the code can do instead: the Q = 0 spectrum, spin channels (singlet/triplet/rpa/ipa), binding energies, and exciton envelope densities
+    - Treat any required finite-Q capability as a code-development task, not a calculation setting
+  verify:
+    - Confirm `grep -n "ik \* nocc" source/source_lcao/module_bse/hamilt_bse.cpp` shows the shared-k pair index in the source you intend to run
+    - Confirm the exciton energies reported to the user are labelled Q = 0
+  applies_to:
+    mode: bse
+    stage: planning
+
+- id: bse-spin-channel-804
+  scene: Judge whether a spin-resolved exciton channel is actually available
+  symptom: The user wants e(up)h(down) versus e(down)h(up) excitons, or a spin-flip channel
+  root_cause: check_lr_parameters admits nspin 1 and 2, but the grid-based Hartree kernel hardcodes spin index 0 with the comment "only support 1 spin now", and bse_spin_types enumerates singlet/triplet/rpa/ipa rather than spin-resolved electron-hole blocks
+  fix:
+    - Do not promise a spin-resolved exciton block on the strength of nspin = 2 alone
+    - Validate which channel is actually emitted by inspecting OUT.bse/trans_dipole_* and trans_analysis_* before interpreting
+  verify:
+    - Confirm the emitted channel labels match what will appear in the report
+    - If a genuine spin-resolved e-h block is required, treat it as code development and check the kernel first
+  applies_to:
+    mode: bse
+    stage: planning
