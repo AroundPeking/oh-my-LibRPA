@@ -111,9 +111,12 @@ class StageInspectionTest(unittest.TestCase):
             for name in (
                 "KS_eigenvector_0.dat",
                 "v1_Cs_data_0.dat",
-                "v1_coulomb_cut_iq_1_rank0.dat",
             ):
                 (root / name).write_bytes(b"data")
+            write_coulomb_block(
+                root / "v1_coulomb_cut_iq_1_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
             write_coulomb_block(
                 root / "v1_coulomb_full_iq_1_rank0.dat",
                 np.diag([4.0, 9.0]).astype(np.complex128),
@@ -145,9 +148,12 @@ class StageInspectionTest(unittest.TestCase):
             for name in (
                 "KS_eigenvector_0.dat",
                 "v1_Cs_data_0.dat",
-                "v1_coulomb_cut_iq_1_rank0.dat",
             ):
                 (root / name).write_bytes(b"data")
+            write_coulomb_block(
+                root / "v1_coulomb_cut_iq_1_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
             write_coulomb_block(
                 root / "v1_coulomb_full_iq_1_rank0.dat",
                 np.diag([4.0] + [-9.0] * 11).astype(np.complex128),
@@ -184,9 +190,12 @@ class StageInspectionTest(unittest.TestCase):
             for name in (
                 "KS_eigenvector_0.dat",
                 "v1_Cs_data_0.dat",
-                "v1_coulomb_cut_iq_1_rank0.dat",
             ):
                 (root / name).write_bytes(b"data")
+            write_coulomb_block(
+                root / "v1_coulomb_cut_iq_1_rank0.dat",
+                np.diag([4.0, 9.0]).astype(np.complex128),
+            )
             write_coulomb_block(
                 root / "v1_coulomb_full_iq_1_rank0.dat",
                 np.diag([4.0, 9.0]).astype(np.complex128),

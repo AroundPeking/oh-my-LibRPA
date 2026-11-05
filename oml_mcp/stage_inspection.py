@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Iterable
 
 from .artifacts import inspect_headwing_directory
-from .coulomb_diagnostics import STAGE_MAX_NEGATIVE_EIGENVALUES, inspect_coulomb_psd_hermitian
+from .coulomb_diagnostics import (
+    STAGE_MAX_NEGATIVE_EIGENVALUES,
+    inspect_coulomb_psd_hermitian,
+    inspect_cut_coulomb_cholesky,
+)
 from .models import GateResult
 from .parsers import ParseError
 from .stage_templates import CONTROLLED_PERIODIC_STAGES
@@ -286,11 +290,27 @@ def _state_space_gate(root: Path) -> list[GateResult]:
     ]
 
 
+def _librpa_switch(root: Path, key: str) -> bool | None:
+    """Read a ``key = t/f`` switch from the staged ``librpa.in``."""
+    path = root / "librpa.in"
+    if not path.is_file():
+        return None
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        name, separator, value = line.partition("=")
+        if separator and name.strip() == key:
+            token = value.split("#", 1)[0].strip().lower()
+            return token in {"t", "true", "1", "on"}
+    return None
+
+
 def _coulomb_psd_gates(root: Path) -> list[GateResult]:
     """Fuse the reference-free Coulomb PSD/Hermitian diagnostic into gates.
 
     The acceptance tolerance allows up to ten negative eigenvalues per q block
-    (user policy 2026-10-26); more than that is a defective construction.
+    (user policy 2026-10-26); more than that is a defective construction. The
+    truncated (cut) Coulomb is checked separately because LibRPA's Wc Cholesky
+    path needs a positive-definite matrix; when it is not, the switch must be
+    off before the LibRPA stage starts.
     """
     report = inspect_coulomb_psd_hermitian(
         root,
@@ -308,6 +328,12 @@ def _coulomb_psd_gates(root: Path) -> list[GateResult]:
                 measurements=gate_dict.get("measurements"),
             )
         )
+    result.append(
+        inspect_cut_coulomb_cholesky(
+            root,
+            use_cholesky=_librpa_switch(root, "use_cholesky_gw_wc"),
+        )
+    )
     return result
 
 
@@ -558,7 +584,54 @@ def _librpa_gates(root: Path) -> list[GateResult]:
             str(kpath),
             *(str(path) for path in gw_paths),
         )
-    return [completion, gw_gate, shape_gate, *_reported_quantity_gate(root)]
+    return [completion, gw_gate, shape_gate, *_librpa_input_gates(root), *_reported_quantity_gate(root)]
+
+
+def _librpa_input_gates(root: Path) -> list[GateResult]:
+    """Audit the staged librpa.in against the route's dielectric contract.
+
+    A strict-2D input reused for a 3D run, or an input rebuilt from the driver
+    dump (cs_R_threshold is ignored), silently changes the physics; the stage
+    gate must fail before the numbers are used.
+    """
+    from .librpa_input import audit_librpa_in, check_regularization_echo
+
+    path = root / "librpa.in"
+    if not path.is_file():
+        return [
+            GateResult(
+                "librpa.input.parse",
+                "SKIP",
+                "librpa.in was not preserved in the run directory",
+            )
+        ]
+    dimension = "2d" if _librpa_switch(root, "use_2d_dielectric") is True else "3d"
+    report = audit_librpa_in(path, dimension=dimension)
+    gates = [
+        GateResult(
+            finding.gate_id,
+            finding.status,
+            finding.message,
+            repair=finding.repair or None,
+        )
+        for finding in report.findings
+    ]
+    logs = tuple(
+        sorted(root.glob("LibRPA*.out"))
+        + sorted(root.glob("librpa_para_nprocs_*_myid_0.out"))
+    )
+    echo = check_regularization_echo(path, logs)
+    if echo is not None:
+        gates.append(
+            GateResult(
+                echo.gate_id,
+                echo.status,
+                echo.message,
+                (str(path),),
+                echo.repair or None,
+            )
+        )
+    return gates
 
 
 def inspect_stage_outputs(
