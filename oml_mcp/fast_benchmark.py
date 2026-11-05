@@ -41,6 +41,12 @@ from typing import Any, Iterable
 FAST_CASE_SCHEMA = "oml.fast-case.v1"
 FAST_SUITE_SCHEMA = "oml.fast-suite.v1"
 PACKAGED_FAST_CASE_ROOT = Path(__file__).with_name("fast_cases")
+# "fast" cases are seconds-to-minutes demos that the fast loop may run; a
+# "validation" case is a production, reference-matched run whose deliverable is
+# the rendered band figure, so it is kept in the same registry but excluded from
+# the fast benchmark selection.
+CASE_CLASSES = frozenset({"fast", "validation"})
+VALIDATION_MIN_SECONDS = 600
 
 CASE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,79}$")
 
@@ -140,6 +146,7 @@ class FastCase:
     headwing: bool | None = None
     material_class: str | None = None
     estimated_seconds: int = 60
+    case_class: str = "fast"
     note: str | None = None
 
     def __post_init__(self) -> None:
@@ -163,6 +170,15 @@ class FastCase:
             or self.estimated_seconds <= 0
         ):
             raise FastCaseError("fast-case estimated_seconds must be a positive integer")
+        if self.case_class not in CASE_CLASSES:
+            raise FastCaseError(
+                "fast-case case_class must be one of " + ", ".join(sorted(CASE_CLASSES))
+            )
+        if self.case_class == "validation" and self.estimated_seconds < VALIDATION_MIN_SECONDS:
+            raise FastCaseError(
+                "a validation case must declare a realistic estimated_seconds "
+                f"(>= {VALIDATION_MIN_SECONDS}); use case_class fast for demos"
+            )
         for stage in self.stages:
             if stage not in FULL_PIPELINE_STAGES:
                 raise FastCaseError(f"fast-case uses an unknown stage: {stage}")
@@ -223,6 +239,7 @@ def _case_from_json(value: dict[str, Any]) -> FastCase:
         headwing=(None if value.get("headwing") is None else bool(value.get("headwing"))),
         material_class=value.get("material_class"),
         estimated_seconds=int(value.get("estimated_seconds", 60)),
+        case_class=value.get("case_class", "fast"),
         note=value.get("note"),
     )
 
@@ -270,6 +287,8 @@ def select_fast_cases(
     """
     selected = []
     for case in list_fast_cases():
+        if case.case_class != "fast":
+            continue
         if task is not None and case.task != task:
             continue
         if system_type is not None and case.system_type != system_type:

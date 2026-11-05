@@ -59,8 +59,18 @@ class FastCaseRegistryTest(unittest.TestCase):
             load_fast_case("nonexistent-case")
 
     def test_all_cases_are_fast(self):
-        # "fast" is the whole point: every registered case must be seconds-to-minutes.
+        # "fast" is the whole point: every demo case must be seconds-to-minutes.
+        # A validation case is exempt by declaration, but it must then state a
+        # realistic estimate and stay out of the fast benchmark selection.
         for case in list_fast_cases():
+            if case.case_class == "validation":
+                self.assertGreaterEqual(case.estimated_seconds, 600, case.case_id)
+                self.assertNotIn(
+                    case.case_id,
+                    {item.case_id for item in select_fast_cases()},
+                    case.case_id,
+                )
+                continue
             self.assertLessEqual(case.estimated_seconds, 300, case.case_id)
 
     def test_case_selection_filters(self):

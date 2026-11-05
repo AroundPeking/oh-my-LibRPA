@@ -5,6 +5,7 @@ import unittest
 
 
 from oml_mcp.errors import OMLError
+from oml_mcp.stage_templates import render_stage_script
 from oml_mcp.execution_profiles import execution_profile_receipt, load_execution_profile
 
 
@@ -195,6 +196,64 @@ class ExecutionProfileTest(unittest.TestCase):
                 with self.subTest(profile_id=profile_id):
                     with self.assertRaisesRegex(OMLError, "PROFILE_INVALID"):
                         load_execution_profile(profile_id, roots=(root,))
+
+    def test_requires_a_square_librpa_rank_count(self):
+        # LibRPA lays the ranks out on a BLACS square process grid: 2 or 3 ranks
+        # are not usable counts even though Slurm would happily allocate them.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_profile(
+                root,
+                "two-ranks",
+                resources={
+                    "partition": "debug",
+                    "nodes": 1,
+                    "ntasks_per_node": 2,
+                    "cpus_per_task": 8,
+                    "memory_mb": 16000,
+                },
+                runtime={
+                    "python": "/usr/bin/python3",
+                    "mpi_launcher": "/usr/bin/true",
+                    "abacus": "/opt/abacus",
+                    "librpa": "/opt/chi0_main.exe",
+                    "mpi_ranks": 2,
+                    "pyatb_mpi_ranks": 1,
+                    "omp_threads": 8,
+                },
+            )
+            with self.assertRaisesRegex(OMLError, "perfect square"):
+                load_execution_profile("two-ranks", roots=(root,))
+
+    def test_walltime_is_optional_and_absent_header_means_no_limit(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            write_profile(
+                root,
+                "no-limit",
+                resources={
+                    "partition": "debug",
+                    "nodes": 1,
+                    "ntasks_per_node": 1,
+                    "cpus_per_task": 8,
+                    "memory_mb": 16000,
+                },
+                runtime={
+                    "python": "/usr/bin/python3",
+                    "mpi_launcher": "/usr/bin/true",
+                    "abacus": "/opt/abacus",
+                    "librpa": "/opt/chi0_main.exe",
+                    "mpi_ranks": 1,
+                    "pyatb_mpi_ranks": 1,
+                    "omp_threads": 8,
+                },
+            )
+            profile = load_execution_profile("no-limit", roots=(root,))
+            script = render_stage_script(
+                "librpa", run_id="run-x", resources=profile.resources
+            )
+        self.assertEqual(profile.resources["walltime_minutes"], 0)
+        self.assertNotIn("#SBATCH --time", script)
 
     def test_ssh_profile_requires_bounded_remote_fields(self):
         with tempfile.TemporaryDirectory() as tmpdir:

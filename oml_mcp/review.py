@@ -20,6 +20,11 @@ PRODUCTION_DEFAULTS: dict[str, Any] = {
     "shrink_abfs_pca_thr": 1e-4,
     "scf_kgrid": [8, 8, 8],
     "use_fullcoul_exx": True,
+    "use_cholesky_gw_wc": False,
+    "regularization": 1e-12,
+    # Symmetry is the largest cost switch in the whole pipeline: with it off the
+    # LibRPA q loop covers the full Brillouin zone instead of the IBZ.
+    "use_symmetry": True,
 }
 
 
@@ -38,6 +43,25 @@ def _note(key: str, value: Any, default: Any) -> str:
         return "the k grid differs from the standard; a ladder step must be declared"
     if key == "use_fullcoul_exx" and value is False:
         return "cut-Coulomb EXX is a different physical definition"
+    if key == "regularization" and value != default:
+        return "the analytic-continuation Tikhonov penalty differs from the production 1e-12"
+    if key == "use_cholesky_gw_wc" and value is True:
+        return "Cholesky requires a positive-definite cut Coulomb; enable it only after the cut-Coulomb check reports positive definiteness"
+    if key == "use_symmetry" and value is False:
+        return (
+            "symmetry is off, so chi0/Wc loop over the full BZ instead of the IBZ "
+            "(8x8x8: 512 q versus roughly 20-30 IBZ q, about 15x more screening work); "
+            "this is also the only validated lane for EXX/GW in the current stack - the "
+            "symmetry-restored star weights give EXX 3.54 vs 5.52 eV and GW -507 eV on "
+            "Si k888/44 bands"
+        )
+    if key == "use_symmetry" and value is True:
+        return (
+            "symmetry cuts the chi0/Wc loop by about 15x, but the star-restored EXX/GW "
+            "weights are unvalidated in this stack (Si k888/44 bands: EXX 3.54 vs 5.52 eV, "
+            "GW -507 eV, KS exact); require a symmetry on/off pair before accepting a "
+            "symmetry-on GW result"
+        )
     return ""
 
 

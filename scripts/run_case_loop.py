@@ -30,10 +30,13 @@ from oml_mcp.loop_runner import run_loop  # noqa: E402
 
 
 CONTINUATION_SEED = {
+    # Must match the periodic_3d_gw.analytic_continuation contract in the
+    # software profile, which the librpa.periodic_3d_gw_continuation input gate
+    # enforces; a seed that pins n_params_anacon=6 fails materialization.
     "tfgrids_type": "minimax",
-    "n_params_anacon": 6,
+    "n_params_anacon": -1,
     "option_qpe_solver": 0,
-    "use_qpe_adaptive_damp": False,
+    "use_qpe_adaptive_damp": True,
 }
 
 
@@ -97,6 +100,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
+    if args.case_basis and not args.basis_root:
+        print(
+            "refusing --case-basis without --basis-root: the payloads that are actually used "
+            "must be compared with a database element set before any compute",
+            file=sys.stderr,
+        )
+        return 2
     seed = dict(CONTINUATION_SEED)
     if args.seed_file:
         seed.update(json.loads(Path(args.seed_file).read_text(encoding="utf-8")))

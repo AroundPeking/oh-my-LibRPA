@@ -13,9 +13,19 @@ def stage_job_name(run_id: str, stage: str) -> str:
     return f"oml-{run_id}-{stage}"
 
 
-def _walltime(minutes: int) -> str:
-    hours, minute = divmod(minutes, 60)
-    return f"{hours:02d}:{minute:02d}:00"
+def _walltime(resources: Mapping[str, object]) -> str:
+    """Return the ``#SBATCH --time`` line, or nothing when no limit is set.
+
+    Production GW stages on a shared debug partition have no useful upper bound:
+    the runtime of a 512-q LibRPA stage is set by the physics, and a guessed
+    walltime only converts "still running" into "died at 96%". A profile that
+    omits ``walltime_minutes`` (or sets it to 0) asks Slurm for no limit.
+    """
+    minutes = resources.get("walltime_minutes")
+    if minutes is None or int(minutes) <= 0:
+        return ""
+    hours, minute = divmod(int(minutes), 60)
+    return f"#SBATCH --time={hours:02d}:{minute:02d}:00\n"
 
 
 def render_env(
@@ -36,7 +46,7 @@ def render_env(
         "OML_MPI_RANKS": runtime["mpi_ranks"],
         "OML_PYATB_MPI_RANKS": runtime["pyatb_mpi_ranks"],
         "OML_OMP_THREADS": runtime["omp_threads"],
-        "python3_exec": runtime["python"],
+        "python3_exec": runtime.get("pyatb_python", runtime["python"]),
         "mpirun_exec": runtime["mpi_launcher"],
         "abacus_work": runtime["abacus"],
         "librpa_work": runtime["librpa"],
@@ -102,8 +112,7 @@ def render_stage_script(
 #SBATCH --ntasks-per-node={resources['ntasks_per_node']}
 #SBATCH --cpus-per-task={resources['cpus_per_task']}
 #SBATCH --mem={resources['memory_mb']}M
-#SBATCH --time={_walltime(int(resources['walltime_minutes']))}
-#SBATCH --job-name={job_name}
+{_walltime(resources)}#SBATCH --job-name={job_name}
 
 set -euo pipefail
 run_dir="$(pwd -P)"

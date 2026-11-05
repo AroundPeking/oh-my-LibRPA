@@ -47,9 +47,11 @@ def _write_pyatb_run(root: pathlib.Path, coulomb_matrix: np.ndarray) -> None:
         root / "v1_coulomb_full_iq_1_rank0.dat",
         np.asarray(coulomb_matrix, dtype=np.complex128),
     )
+    # The cut family is a separate matrix: keep it positive definite so the
+    # Wc Cholesky gate does not shadow a full-Coulomb defect.
     write_coulomb_block(
         root / "v1_coulomb_cut_iq_1_rank0.dat",
-        np.asarray(coulomb_matrix, dtype=np.complex128),
+        np.diag([4.0, 9.0]).astype(np.complex128),
     )
 
 

@@ -210,6 +210,8 @@ def _apply_definition_to_inputs(
         "use_qpe_adaptive_damp": "use_qpe_adaptive_damp",
         "use_shrink_abfs": "use_shrink_abfs",
         "use_fullcoul_exx": "use_fullcoul_exx",
+        "use_cholesky_gw_wc": "use_cholesky_gw_wc",
+        "regularization": "regularization",
         "libri_exx_threshold_V": "libri_exx_threshold_V",
         "abfs_family": None,
         "basis_family": None,

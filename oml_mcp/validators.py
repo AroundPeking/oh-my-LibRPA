@@ -267,6 +267,80 @@ def _task_gate(librpa: InputDocument, task: str) -> GateResult:
     return _pass("librpa.task", f"LibRPA task is {expected}", str(librpa.path))
 
 
+def _cp_rmesh_gate(abacus: InputDocument, *, task: str) -> GateResult:
+    """The real-space cut-off that carries the head/wing must cover the star sum.
+
+    The 2026-10-28 symmetry lane measured this single switch: with
+    ``rpa_ccp_rmesh_times = 1`` a 4x4x4 symmetry-enabled GW multiplied the
+    empty-state Sigma_c error by ~20 (conduction QP fell to -553 eV) while the
+    same inputs at 5 gave -13.5 eV, and RPA stayed exact in both cases.
+    """
+    checks = (
+        ("rpa_ccp_rmesh_times", 5, 5),
+        ("exx_ccp_rmesh_times", 2, 5),
+    )
+    problems: list[str] = []
+    missing: list[str] = []
+    for key, floor, reference in checks:
+        raw = abacus.value(key)
+        if raw is None:
+            missing.append(f"{key} is not stated (production value {reference})")
+            continue
+        try:
+            value = int(float(raw.strip()))
+        except ValueError:
+            problems.append(f"{key}={raw!r} is not an integer")
+            continue
+        if value < floor:
+            problems.append(f"{key}={value} is below {floor} (production value {reference})")
+    if problems:
+        return _fail(
+            "abacus.cp_rmesh",
+            "the Coulomb real-space cut-off is too small for the head/wing star sum",
+            (str(abacus.path), *problems),
+            "set rpa_ccp_rmesh_times = 5 and exx_ccp_rmesh_times = 2; a too-small rmesh "
+            "amplifies the empty-state correlation self-energy by an order of magnitude "
+            "without touching RPA, so it hides until the GW band table",
+        )
+    if missing:
+        return _warn(
+            "abacus.cp_rmesh",
+            "the Coulomb real-space cut-off is left at the ABACUS default",
+            (str(abacus.path), *missing),
+            "state rpa_ccp_rmesh_times = 5 and exx_ccp_rmesh_times = 2 explicitly so the "
+            "head/wing star sum is not truncated",
+        )
+    return _pass(
+        "abacus.cp_rmesh",
+        "the Coulomb real-space cut-off matches the production value",
+        str(abacus.path),
+    )
+
+
+def _reader_keyword_gate(abacus: InputDocument) -> GateResult:
+    """Reject reader selectors that ABACUS silently ignores.
+
+    ``out_librpa_ver`` is not a keyword: ABACUS drops it without warning, the
+    dataset is written in the legacy naming, and LibRPA asked for v1 either fails
+    or - worse - reads a mismatched Coulomb family.
+    """
+    bogus = ("out_librpa_ver", "rpa_librpa_ver")
+    offenders = [key for key in bogus if abacus.value(key) is not None]
+    if offenders:
+        return _fail(
+            "abacus.reader_keyword",
+            "ABACUS input carries a reader selector that is not a real keyword",
+            (str(abacus.path), *(f"{key}={abacus.value(key)}" for key in offenders)),
+            "use out_librpa_reader_version = 1 (the reader selector ABACUS actually parses); "
+            "an unknown key is dropped silently and leaves a legacy dataset behind",
+        )
+    return _pass(
+        "abacus.reader_keyword",
+        "ABACUS reader selectors are real keywords",
+        str(abacus.path),
+    )
+
+
 def _fullcoul_exx_gate(librpa: InputDocument) -> GateResult:
     raw = librpa.value("use_fullcoul_exx")
     enabled = _bool_value(librpa, "use_fullcoul_exx")
@@ -467,6 +541,7 @@ def _symmetry_gate(
     task: str,
     requested: bool,
     soc: bool,
+    scope: dict[str, object] | None = None,
 ) -> GateResult:
     abacus_symmetry = _int_value(abacus, "symmetry")
     actual_soc = _bool_value(librpa, "use_soc")
@@ -492,12 +567,120 @@ def _symmetry_gate(
                 + ", ".join(f"{key} = {'t' if expected_enabled else 'f'}" for key in keys)
             ),
         )
+    if expected_enabled and task == "gw":
+        # Symmetry-on EXX/GW goes through the star-restored density matrix. The
+        # profile records ONE validated scope for it; anything outside that scope
+        # is unvalidated, and the measured failure is large (Si k888/44 bands:
+        # EXX 3.54 versus 5.52 eV, GW -507 eV, while KS stayed exact).
+        mismatches = _symmetry_scope_mismatches(abacus, librpa, scope)
+        if mismatches:
+            return _fail(
+                "symmetry.alignment",
+                "symmetry is enabled for EXX/GW outside the validated symmetry scope",
+                (str(abacus.path), str(librpa.path), *(mismatches)),
+                "keep ABACUS symmetry = -1 with use_symmetry_exx/gw = f, or extend the "
+                "profile's symmetry_fullq_scope only after a symmetry on/off pair agrees "
+                "(the measured out-of-scope failure is EXX 3.54 vs 5.52 eV and GW -507 eV "
+                "on Si k888/44 bands); symmetry remains exact for the RPA task",
+            )
+        return _warn(
+            "symmetry.alignment",
+            "symmetry is enabled for EXX/GW inside the profile's validated scope",
+            (str(abacus.path), str(librpa.path), f"scope: {scope}"),
+            "keep the settings inside the recorded scope; any change needs a new on/off pair",
+        )
+    if not expected_enabled and task == "gw":
+        # Consistent, but expensive: the whole chi0/Wc family then runs over the
+        # full BZ. Surface the price here so a symmetry-off lane is never an
+        # unnoticed default - the 8x8x8 Si case was 512 q instead of ~20-30 IBZ q.
+        full = _full_bz_q_count(abacus)
+        return _warn(
+            "symmetry.alignment",
+            "LibRPA symmetry is disabled, so chi0/Wc cover the full Brillouin zone",
+            (
+                str(abacus.path),
+                str(librpa.path),
+                f"symmetry={abacus_symmetry!r}",
+                *(f"{key}={'f'}" for key in keys),
+            ),
+            (
+                "enable symmetry (ABACUS symmetry = 1 with use_symmetry_* = t) unless the "
+                "full-q lane is required by the comparison: the q loop then covers the IBZ "
+                "instead of the full BZ"
+                + (f" ({full} q versus roughly 20-30 IBZ q)" if full else "")
+            ),
+        )
     return _pass(
         "symmetry.alignment",
         "ABACUS and LibRPA symmetry settings match the requested SOC lane",
         str(abacus.path),
         str(librpa.path),
     )
+
+
+def _symmetry_scope_mismatches(
+    abacus: InputDocument,
+    librpa: InputDocument,
+    scope: dict[str, object] | None,
+) -> list[str]:
+    """Compare the case against the profile's validated symmetry scope.
+
+    The profile proves symmetry-on EXX/GW only for one (screening grid, nbands,
+    nfreq) combination. Anything else must be refused rather than warned about:
+    the out-of-scope error measured on Si k888/44 bands was 2 eV in EXX and
+    hundreds of eV in GW while KS looked perfect.
+    """
+    if not scope:
+        return ["no validated symmetry scope is recorded in the profile"]
+    mismatches: list[str] = []
+    grid = _kpoint_grid(abacus)
+    if grid is not None and all(size == 1 for size in grid):
+        # A 1x1x1 sampling has exactly one star member, so the star-weight defect
+        # this scope protects against cannot act; such a case is a toy probe.
+        return []
+    scope_grid = scope.get("screening_kgrid")
+    if grid is not None and scope_grid is not None and list(grid) != list(scope_grid):
+        mismatches.append(f"screening kgrid {list(grid)} != validated {list(scope_grid)}")
+    nbands = _int_value(abacus, "nbands")
+    scope_nbands = scope.get("nbands")
+    if nbands is not None and isinstance(scope_nbands, int) and nbands != scope_nbands:
+        mismatches.append(f"nbands {nbands} != validated {scope_nbands}")
+    nfreq = _int_value(librpa, "nfreq")
+    scope_nfreq = scope.get("nfreq")
+    if nfreq is not None and isinstance(scope_nfreq, int) and nfreq != scope_nfreq:
+        mismatches.append(f"nfreq {nfreq} != validated {scope_nfreq}")
+    return mismatches
+
+
+def _kpoint_grid(abacus: InputDocument) -> tuple[int, int, int] | None:
+    path = abacus.path.parent / "KPT_scf"
+    try:
+        lines = [line.split() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except OSError:
+        return None
+    for tokens in reversed(lines):
+        if len(tokens) >= 3 and all(token.replace("-", "").isdigit() for token in tokens[:3]):
+            try:
+                return (int(tokens[0]), int(tokens[1]), int(tokens[2]))
+            except ValueError:
+                return None
+    return None
+
+
+def _full_bz_q_count(abacus: InputDocument) -> int | None:
+    """Return the number of q points a Gamma-centred grid produces, if known."""
+    path = abacus.path.parent / "KPT_scf"
+    try:
+        lines = [line.split() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except OSError:
+        return None
+    for tokens in reversed(lines):
+        if len(tokens) >= 3 and all(token.replace("-", "").isdigit() for token in tokens[:3]):
+            try:
+                return int(tokens[0]) * int(tokens[1]) * int(tokens[2])
+            except ValueError:
+                return None
+    return None
 
 
 def _producer_uses_shrink(abacus: InputDocument) -> bool | None:
@@ -1007,6 +1190,8 @@ def validate_case(
             {"out_librpa_reader_version": "1"},
             label="ABACUS reader-v1 selector",
         ),
+        _reader_keyword_gate(abacus),
+        _cp_rmesh_gate(abacus, task=normalized_task),
         _unsupported_key_gate(librpa, contract["librpa"]["unsupported_oml_keys"]),
         _task_gate(librpa, normalized_task),
         _fullcoul_exx_gate(librpa),
@@ -1050,6 +1235,13 @@ def validate_case(
             task=normalized_task,
             requested=use_symmetry,
             soc=soc,
+            scope=(
+                profile.get("contract", {})
+                .get("periodic_3d_gw", {})
+                .get("symmetry_fullq_scope")
+                if normalized_task == "gw"
+                else None
+            ),
         ),
     ]
     shrink_gate, shrink = _shrink_alignment_gate(abacus, librpa)

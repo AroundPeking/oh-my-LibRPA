@@ -210,6 +210,11 @@ class MaterializerTest(unittest.TestCase):
                 .replace("use_symmetry_gw = f", "use_symmetry_gw = t"),
                 encoding="utf-8",
             )
+            # Symmetry-on EXX/GW is only accepted inside the profile's validated
+            # symmetry scope, which pins the screening grid to 4x4x4.
+            source.joinpath("KPT_scf").write_text(
+                "K_POINTS\n0\nGamma\n4 4 4 0 0 0\n", encoding="utf-8"
+            )
             profile = make_profile(root, source_root)
             plan = plan_case(source, task="gw", system_type="solid", use_symmetry=True)
 

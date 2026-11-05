@@ -130,7 +130,9 @@ class AuditTest(unittest.TestCase):
         report = audit_benchmarks(UPSTREAM_ROOT)
 
         self.assertEqual(report["schema"], "oml.benchmark-audit.v1")
-        self.assertEqual(report["total_cases"], 17)
+        # The census covers every registered case, including the Si
+        # production-validation cases that the fast benchmark selection skips.
+        self.assertEqual(report["total_cases"], 20)
         self.assertGreaterEqual(report["ready_cases"], 14)
         by_id = {row["case_id"]: row for row in report["cases"]}
         self.assertTrue(by_id["bn-3d-sym-shrink-g0w0"]["ready"])

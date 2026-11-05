@@ -75,6 +75,7 @@ class DefaultsConsistencyTest(unittest.TestCase):
         self.assertEqual(value(librpa, "use_symmetry_exx"), "t")
         self.assertEqual(value(librpa, "use_symmetry_gw"), "t")
         self.assertEqual(value(librpa, "replace_w_head"), "t")
+        self.assertEqual(float(value(librpa, "regularization")), 1e-12)
 
     def test_review_defaults_match(self):
         self.assertEqual(PRODUCTION_DEFAULTS["nfreq"], 16)
@@ -84,6 +85,7 @@ class DefaultsConsistencyTest(unittest.TestCase):
         self.assertEqual(PRODUCTION_DEFAULTS["shrink_abfs_pca_thr"], 1e-4)
         self.assertEqual(PRODUCTION_DEFAULTS["scf_kgrid"], [8, 8, 8])
         self.assertIs(PRODUCTION_DEFAULTS["use_fullcoul_exx"], True)
+        self.assertEqual(PRODUCTION_DEFAULTS["regularization"], 1e-12)
 
     def test_knowledge_defaults_match(self):
         self.assertEqual(lookup("nfreq")["parameter"]["default"], 16)
@@ -92,6 +94,7 @@ class DefaultsConsistencyTest(unittest.TestCase):
         self.assertEqual(lookup("scf_kgrid")["parameter"]["default"], [8, 8, 8])
         self.assertEqual(lookup("shrink_abfs_pca_thr")["parameter"]["default"], 1e-4)
         self.assertEqual(lookup("libri_exx_threshold_V")["parameter"]["default"], 0.01)
+        self.assertEqual(lookup("regularization")["parameter"]["default"], 1e-12)
 
     def test_2d_has_one_gw_prescription_and_the_standard_grid(self):
         files = sorted(

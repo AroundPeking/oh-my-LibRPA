@@ -342,3 +342,129 @@ def inspect_coulomb_psd_hermitian(
         "counts": counts,
         "gates": [gate.to_dict() for gate in gates],
     }
+
+
+def cut_cholesky_decision(
+    *, positive_definite: bool, use_cholesky: bool | None
+) -> tuple[str, str, str]:
+    """Decide whether LibRPA's Wc Cholesky path is safe for the cut Coulomb.
+
+    ``use_cholesky`` is the effective ``use_cholesky_gw_wc`` value; ``None``
+    means the input does not state it and the binary default applies.
+    """
+    if not positive_definite:
+        if use_cholesky is True:
+            return (
+                "FAIL",
+                "the cut Coulomb is not positive definite but use_cholesky_gw_wc is enabled",
+                "set use_cholesky_gw_wc = f (the Cholesky factor of the truncated Coulomb "
+                "does not exist); do not clip eigenvalues",
+            )
+        if use_cholesky is None:
+            return (
+                "WARN",
+                "the cut Coulomb is not positive definite and use_cholesky_gw_wc is not stated",
+                "set use_cholesky_gw_wc = f explicitly; the binary default may enable it",
+            )
+        return (
+            "PASS",
+            "the cut Coulomb is not positive definite; Cholesky is disabled",
+            "",
+        )
+    if use_cholesky is False:
+        return (
+            "WARN",
+            "the cut Coulomb is positive definite but use_cholesky_gw_wc is disabled",
+            "set use_cholesky_gw_wc = t: the switch selects the solver for epsilon, not for "
+            "this matrix, so the LU lane can build a garbage Wc silently while Cholesky "
+            "would fail loudly (see known issue pd-cut-coulomb-does-not-vouch-for-epsilon)",
+        )
+    if use_cholesky is None:
+        return (
+            "PASS",
+            "the cut Coulomb is positive definite; Cholesky may be enabled",
+            "set use_cholesky_gw_wc = t to use the Cholesky Wc path",
+        )
+    return ("PASS", "the cut Coulomb is positive definite and Cholesky is enabled", "")
+
+
+def inspect_cut_coulomb_cholesky(
+    root: str | Path,
+    *,
+    use_cholesky: bool | None = None,
+    negative_eigenvalue_relative_floor: float = DEFAULT_NEGATIVE_EIGENVALUE_RELATIVE_FLOOR,
+) -> GateResult:
+    """Check the truncated Coulomb family used by LibRPA's Wc Cholesky path.
+
+    The truncated (cut) Coulomb is not the full Coulomb: the truncation itself
+    makes it indefinite, so a non-PD result here is normal and only means the
+    Cholesky factorisation must be turned off. The full-Coulomb PSD gate is a
+    different question and must not be relaxed by this finding.
+    """
+    gate_id = "coulomb.cut_cholesky"
+    directory = Path(root).expanduser().resolve()
+    paths = sorted(directory.glob("v1_coulomb_cut_iq_*_rank*.dat"))
+    if not paths:
+        return GateResult(
+            gate_id,
+            "SKIP",
+            "no reader-v1 cut-Coulomb family was found",
+        )
+    by_iq: dict[int, Path] = {}
+    for path in paths:
+        match = re.search(r"_iq_(\d+)_rank", path.name)
+        if not match:
+            continue
+        by_iq.setdefault(int(match.group(1)), path)
+    worst_rel = 0.0
+    worst_abs = 0.0
+    total_negative = 0
+    malformed: list[str] = []
+    for iq in sorted(by_iq):
+        path = by_iq[iq]
+        try:
+            block = read_coulomb_block(path)
+        except (OSError, ValueError, struct.error) as exc:
+            malformed.append(f"{path.name}: {exc}")
+            continue
+        matrix = block["values"]
+        eigenvalues = np.linalg.eigvalsh(0.5 * (matrix + matrix.conj().T))
+        largest = float(np.max(np.abs(eigenvalues))) if eigenvalues.size else 0.0
+        floor = negative_eigenvalue_relative_floor * max(largest, 1.0)
+        minimum = float(eigenvalues[0]) if eigenvalues.size else 0.0
+        total_negative += int(np.sum(eigenvalues < -floor))
+        worst_rel = min(worst_rel, minimum / max(largest, 1.0))
+        worst_abs = min(worst_abs, minimum)
+    if malformed:
+        return GateResult(
+            gate_id,
+            "FAIL",
+            "cut-Coulomb q blocks are malformed or unreadable",
+            evidence=tuple(malformed[:5]),
+            repair="regenerate the cut-Coulomb family with out_librpa_reader_version = 1",
+        )
+    positive_definite = worst_rel > -negative_eigenvalue_relative_floor
+    status, message, repair = cut_cholesky_decision(
+        positive_definite=positive_definite, use_cholesky=use_cholesky
+    )
+    return GateResult(
+        gate_id,
+        status,
+        message,
+        evidence=(
+            f"q_blocks={len(by_iq)}",
+            f"min_eigenvalue={worst_abs:.3e}",
+            f"min_relative={worst_rel:.3e}",
+            f"negative_eigenvalues={total_negative}",
+            f"use_cholesky_gw_wc={use_cholesky}",
+        ),
+        repair=repair,
+        measurements={
+            "q_blocks": len(by_iq),
+            "min_eigenvalue": worst_abs,
+            "min_relative_eigenvalue": worst_rel,
+            "negative_eigenvalue_count": total_negative,
+            "positive_definite": positive_definite,
+            "use_cholesky_gw_wc": use_cholesky,
+        },
+    )

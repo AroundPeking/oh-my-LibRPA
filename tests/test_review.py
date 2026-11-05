@@ -11,6 +11,9 @@ DEFAULTS = {
     "shrink_abfs_pca_thr": 1e-4,
     "scf_kgrid": [8, 8, 8],
     "use_fullcoul_exx": True,
+    "use_cholesky_gw_wc": False,
+    "regularization": 1e-12,
+    "use_symmetry": True,
 }
 
 
@@ -27,6 +30,13 @@ class SettingsReviewTest(unittest.TestCase):
         deviation = review["deviations"][0]
         self.assertEqual(deviation["key"], "nfreq")
         self.assertIn("1.50x", deviation["note"])
+
+    def test_symmetry_off_is_flagged_as_the_full_bz_cost(self):
+        review = settings_review({**DEFAULTS, "use_symmetry": False})
+        self.assertTrue(review["needs_review"])
+        deviation = next(row for row in review["deviations"] if row["key"] == "use_symmetry")
+        self.assertIn("full BZ", deviation["note"])
+        self.assertIn("512 q", deviation["note"])
 
     def test_loose_shrink_is_flagged(self):
         review = settings_review({**DEFAULTS, "shrink_abfs_pca_thr": 1e-1})

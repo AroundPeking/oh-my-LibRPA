@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 
-from .band_analysis import BandAnalysisError, analyze_band_set
+from .band_analysis import GROSS_GAP_DELTA_EV, BandAnalysisError, analyze_band_set
+from .band_figure import DEFAULT_FIGURE_NAME, render_band_figure
 from .coulomb_gate import CoulombGateError, coulomb_health
 from .retry_rules import RetryRuleError, load_rules, lookup
 
@@ -109,8 +110,15 @@ def analyze_outcome(
     occupied_bands: int | None = None,
     gap_reference_ev: float | None = None,
     gap_tolerance_ev: float = 0.2,
+    figure_path: str | Path | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    """Return ``(band_analysis, coulomb_health)``; either may be ``None``."""
+    """Return ``(band_analysis, coulomb_health)``; either may be ``None``.
+
+    When the KS/EXX/GW tables are present the band figure is rendered next to
+    them: for the periodic GW routes the figure - not the gap number - is what
+    the run is judged on, so a missing or unrenderable figure is reported in the
+    analysis instead of being silently skipped.
+    """
     artifacts = outcome.artifacts or {}
     analysis = None
     if all(key in artifacts for key in ("ks", "exx", "gw")):
@@ -123,6 +131,24 @@ def analyze_outcome(
             )
         except BandAnalysisError as exc:
             raise LoopError(f"band analysis failed: {exc}") from exc
+        destination = (
+            Path(figure_path)
+            if figure_path is not None
+            else Path(artifacts["gw"]).with_name(DEFAULT_FIGURE_NAME)
+        )
+        try:
+            analysis["figure"] = render_band_figure(
+                {key: artifacts[key] for key in ("ks", "exx", "gw")},
+                destination,
+                occupied_bands=occupied_bands,
+                reference_gap_ev=gap_reference_ev,
+            )
+        except (BandAnalysisError, OSError, RuntimeError) as exc:
+            analysis["figure"] = {"path": str(destination), "error": str(exc)}
+            analysis["accepted"] = False
+            analysis["reasons"] = list(analysis.get("reasons", ())) + [
+                f"band figure could not be rendered: {exc}"
+            ]
     coulomb = None
     if outcome.coulomb:
         try:
@@ -157,7 +183,14 @@ def diagnose(
             extent = localization["exx_minus_ks"]["classification"]
             return "r2" if extent == "large_range" else "r3"
         gap_check = analysis.get("gap_check")
-        if gap_check is not None and not gap_check["pass"]:
+        # A sub-threshold gap delta is advisory (a database record may use a
+        # different EXX/Coulomb definition); only a gross disagreement is worth
+        # spending another definition on.
+        if (
+            gap_check is not None
+            and not gap_check["pass"]
+            and abs(gap_check.get("delta_ev", 0.0)) > GROSS_GAP_DELTA_EV
+        ):
             return "r7"
         if not analysis["accepted"]:
             # A non-smooth KS layer or an unmatched artifact: no rule claims it.

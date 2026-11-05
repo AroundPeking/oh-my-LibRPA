@@ -219,6 +219,59 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(self.gate(report, "pyatb.headwing").status, "PASS")
         self.assertEqual(self.gate(report, "pyatb.alignment").status, "PASS")
 
+    def test_symmetry_on_outside_the_validated_scope_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "KPT_scf").write_text(
+                "K_POINTS\n0\nGamma\n8 8 8 0 0 0\n", encoding="utf-8"
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+        failing = self.gate(report, "symmetry.alignment")
+        self.assertEqual(failing.status, "FAIL")
+        self.assertIn("validated symmetry scope", failing.message)
+        self.assertIn("[8, 8, 8]", " ".join(failing.evidence))
+
+    def test_cp_rmesh_gate_rejects_a_truncated_real_space_cutoff(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            default_report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+            truncated = root / "INPUT_scf"
+            truncated.write_text(
+                truncated.read_text(encoding="utf-8")
+                + "rpa_ccp_rmesh_times 1\nexx_ccp_rmesh_times 1\n",
+                encoding="utf-8",
+            )
+            truncated_report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+        self.assertEqual(self.gate(default_report, "abacus.cp_rmesh").status, "WARN")
+        failing = self.gate(truncated_report, "abacus.cp_rmesh")
+        self.assertEqual(failing.status, "FAIL")
+        self.assertIn("rpa_ccp_rmesh_times=1", " ".join(failing.evidence))
+
+    def test_reader_keyword_gate_rejects_a_selector_abacus_does_not_parse(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            scf = root / "INPUT_scf"
+            scf.write_text(
+                scf.read_text(encoding="utf-8") + "out_librpa_ver 1\n", encoding="utf-8"
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+
+        failing = self.gate(report, "abacus.reader_keyword")
+        self.assertEqual(failing.status, "FAIL")
+        self.assertIn("out_librpa_reader_version", failing.repair)
+
     def test_nbands_consistency_gate_accepts_unpinned_and_uniformly_pinned_inputs(self):
         with tempfile.TemporaryDirectory() as unpinned_tmp, tempfile.TemporaryDirectory() as pinned_tmp:
             unpinned = pathlib.Path(unpinned_tmp)

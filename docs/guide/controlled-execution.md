@@ -81,6 +81,67 @@ group mean is preserved. This pattern is reported as
 wavefunction-subspace verification. The diagnostic never converts a historical
 statewise mismatch into scientific acceptance.
 
+### LibRPA resource shape
+
+Three rules, each paid for with a lost run:
+
+- **Rank counts must be square.** LibRPA's BLACS layer builds a square process
+  grid, so `runtime.mpi_ranks` must be 1, 4, 9, 16, ... A profile with 2 or 3
+  ranks is rejected with `PROFILE_INVALID`.
+- **On one node use one rank and all the cores as threads.** The per-task cost
+  tracks `omp_threads` far more than rank count (reference: 4x128 threads at
+  ~145 s/task; ours at 4x12: ~1350 s/task). That means one rank with
+  `omp_threads = MKL_NUM_THREADS = cpus-per-task` set to the node share the job is
+  allowed to take - the share is a profile setting, not a fixed rule.
+- **No walltime on an unlimited partition.** Omitting `resources.walltime_minutes`
+  (or setting 0) renders no `#SBATCH --time`, so the debug partition's unlimited
+  limit applies. A guessed walltime only converts "still running" into "killed
+  at 96%".
+
+### Reference-free GW sanity gates
+
+Two failure classes are caught without any reference value, because both show up
+as an impossible correction on the run's own KS table:
+
+- `bands.qp_correction`: on the frontier states (VBM-3 eV .. CBM+3 eV) the
+  correction `e_qp - e_mf` must stay within 15 eV max and 5 eV median, and the
+  empty-state median must not exceed 20x the occupied-state median. A
+  symmetry-enabled GW whose star sum over-counts `Sigma_c` shows up here as
+  hundreds of eV on the empty states while the occupied states look fine.
+- gap collapse: when the KS gap is positive, the GW gap may not fall below half
+  of it. A correlation self-energy cannot close a 0.54 eV gap into -7.5 eV.
+
+Both fire on real failures measured on 2026-10-28 (conduction QP -553 eV with a
+truncated `rpa_ccp_rmesh_times`, -13.5 eV at the production value, and -3.5 keV
+from a PyATB head/wing override), and both pass the database reference. They sit
+next to two input gates that remove the upstream causes: `abacus.cp_rmesh`
+(`rpa_ccp_rmesh_times >= 5`, `exx_ccp_rmesh_times >= 2`) and
+`abacus.reader_keyword` (rejects `out_librpa_ver`, a key ABACUS silently drops,
+so the dataset stays legacy while LibRPA reads it as v1).
+
+### Band figure is the acceptance artifact
+
+A gap number on its own is not evidence that a band table is physical: it hides a
+collapsed dispersion, a layer anomaly, or one absurd eigenvalue, and a database
+record can legitimately differ by a few tenths of an eV because of its EXX
+Coulomb definition or its path sampling. The rule for every periodic GW case is
+therefore:
+
+- the run must produce a rendered KS/EXX/GW band figure (`band_structure.png`,
+  three panels, energies referenced to each layer's own VBM) next to the band
+  tables; `analyze_outcome` renders it automatically and an unrenderable figure
+  fails the trial;
+- acceptance is decided on that figure together with the reference-free band
+  gates (smoothness, layer localization) - a human or the visual judge reads the
+  figure, not the gap alone;
+- the gap delta against a database record is `ADVISORY`: it is reported with the
+  figure as context, and only a delta beyond `GROSS_GAP_DELTA_EV` (2 eV, i.e.
+  wrong units or a broken layer) rejects the table.
+
+`oml_mcp/band_figure.py` holds the renderer, `oml_mcp/band_analysis.ACCEPTANCE_RULE`
+carries the rule text into every analysis report, and
+`scripts/plot_band_triple.py` renders a figure for an existing run directory.
+
 The empty-state axis has one finite-basis endpoint rule. When both runs use the
 same positive `band_out` basis dimension, the coarse run uses fewer states, and
 the fine run has `nbands` exactly equal to that basis dimension, the axis passes

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -18,6 +19,9 @@ REMOTE_PATH_PATTERN = re.compile(r"^/[A-Za-z0-9_./-]+$")
 ENVIRONMENT_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 REQUIRED_RUNTIME_STRINGS = ("python", "mpi_launcher", "abacus", "librpa")
 REQUIRED_RUNTIME_INTS = ("mpi_ranks", "pyatb_mpi_ranks", "omp_threads")
+# Optional: the PyATB stage may need a different interpreter from the one that
+# runs the LibRPA-side helpers (a compiled pyatb extension is version-pinned).
+OPTIONAL_RUNTIME_STRINGS = ("pyatb_python",)
 PLACEHOLDER_FRAGMENTS = ("/path/to/", "your-", "replace-me", "example.invalid")
 SECRET_ENVIRONMENT_FRAGMENTS = ("PASSWORD", "PASSWD", "TOKEN", "SECRET", "OTP", "PRIVATE_KEY")
 MANAGED_ENVIRONMENT_NAMES = {
@@ -228,12 +232,28 @@ def load_execution_profile(
         "ntasks_per_node",
         "cpus_per_task",
         "memory_mb",
-        "walltime_minutes",
     ):
         value = resources_raw.get(key)
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
             raise _profile_error(f"resources.{key} must be a positive integer", profile_path)
         resources[key] = value
+    # No walltime is the production default: a solved-physics stage has no
+    # useful upper bound, and a guessed limit only converts "still running" into
+    # "killed at 96%". A positive value is honoured when the cluster needs one.
+    walltime = resources_raw.get("walltime_minutes")
+    if walltime is None:
+        resources["walltime_minutes"] = 0
+    elif (
+        not isinstance(walltime, int)
+        or isinstance(walltime, bool)
+        or walltime < 0
+    ):
+        raise _profile_error(
+            "resources.walltime_minutes must be a non-negative integer (0 = no limit)",
+            profile_path,
+        )
+    else:
+        resources["walltime_minutes"] = walltime
 
     runtime_raw = data.get("runtime")
     if not isinstance(runtime_raw, dict):
@@ -249,6 +269,13 @@ def load_execution_profile(
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
             raise _profile_error(f"runtime.{key} must be a positive integer", profile_path)
         runtime[key] = value
+    for key in OPTIONAL_RUNTIME_STRINGS:
+        value = runtime_raw.get(key)
+        if value is None:
+            continue
+        if not isinstance(value, str) or not value or not Path(value).is_absolute():
+            raise _profile_error(f"runtime.{key} must be an absolute path", profile_path)
+        runtime[key] = value
     allocated_ranks = int(resources["nodes"]) * int(resources["ntasks_per_node"])
     if runtime["mpi_ranks"] != allocated_ranks:
         raise _profile_error("runtime.mpi_ranks must equal nodes times ntasks_per_node", profile_path)
@@ -256,6 +283,19 @@ def load_execution_profile(
         raise _profile_error("runtime.pyatb_mpi_ranks exceeds the Slurm allocation", profile_path)
     if runtime["omp_threads"] != resources["cpus_per_task"]:
         raise _profile_error("runtime.omp_threads must equal resources.cpus_per_task", profile_path)
+    # LibRPA's ScaLAPACK/BLACS layer lays the processes out on a square process
+    # grid, so a non-square rank count leaves ranks idle or makes the grid
+    # degenerate. 1, 4, 9, 16, ... are the usable counts; on a single node the
+    # production choice is one rank with every core behind it as OMP threads,
+    # because the per-task cost tracks threads far more than ranks.
+    ranks = int(runtime["mpi_ranks"])
+    if int(math.isqrt(ranks)) ** 2 != ranks:
+        raise _profile_error(
+            "runtime.mpi_ranks must be a perfect square (1, 4, 9, 16, ...) for the "
+            "LibRPA BLACS process grid; on one node prefer 1 rank with all cores as "
+            "OMP threads",
+            profile_path,
+        )
 
     sources = _validate_programs(
         data.get("sources"),
