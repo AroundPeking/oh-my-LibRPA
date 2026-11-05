@@ -7,6 +7,7 @@ from oml_mcp.policy_gates import (
     NOT_EVALUATED,
     PASS,
     check_abfs_contract,
+    check_basis_identity,
     check_basis_source,
     check_kpoint_standard,
     check_shrink_standard,
@@ -33,7 +34,7 @@ class PolicyRegistryTest(unittest.TestCase):
         policies = load_policies()
         self.assertEqual(
             policy_ids(policies),
-            ("abfs_contract", "basis_source", "kpoint_standard", "shrink_standard"),
+            ("abfs_contract", "basis_identity", "basis_source", "kpoint_standard", "shrink_standard"),
         )
         for policy in policies:
             self.assertEqual(policy.on_violation, "fail_closed")
@@ -77,6 +78,28 @@ class PolicyGatesTest(unittest.TestCase):
         self.assertEqual(missing.status, FAIL)
         self.assertIn("abacus-librpa-gw-basis-skill", missing.repair)
         self.assertEqual(check_basis_source(database_basis=True, mode="replay").status, NOT_EVALUATED)
+
+    def test_basis_identity(self):
+        expected = {"B/nao": "a" * 64, "N/nao": "b" * 64}
+        self.assertEqual(
+            check_basis_identity(expected_basis=expected, observed_basis=dict(expected)).status,
+            PASS,
+        )
+        mismatch = check_basis_identity(
+            expected_basis=expected,
+            observed_basis={"B/nao": "c" * 64, "N/nao": "b" * 64},
+        )
+        self.assertEqual(mismatch.status, FAIL)
+        self.assertIn("B/nao", mismatch.message)
+        missing = check_basis_identity(
+            expected_basis=expected, observed_basis={"B/nao": "a" * 64}
+        )
+        self.assertEqual(missing.status, FAIL)
+        self.assertIn("N/nao", missing.message)
+        self.assertEqual(
+            check_basis_identity(expected_basis=None, observed_basis={}).status,
+            NOT_EVALUATED,
+        )
 
     def test_kpoint_standard(self):
         self.assertEqual(check_kpoint_standard(scf_kgrid=[8, 8, 8], dimension="3d").status, PASS)

@@ -1,0 +1,29 @@
+{
+  "schema_version": "oml.policy.v1",
+  "id": "basis_identity",
+  "title": "The PP/NAO/ABFS actually used must equal the selected database element set",
+  "rule": "Every run that names a database element set must hash the PP/NAO/ABFS payloads it will actually use and compare them with the selected set. A mismatch, a missing payload, or several competing payloads for one element/role blocks the run, including replay and reused-data runs. Declaring a database basis is not evidence that the computation used it.",
+  "scope": {
+    "routes": [
+      "*"
+    ],
+    "stage": "preflight"
+  },
+  "enforcement": {
+    "kind": "gate",
+    "id": "policy.basis_identity"
+  },
+  "on_violation": "fail_closed",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-26: 对齐基组赝势，输入实际计算前都要检查",
+      "accessed": "2026-10-26"
+    },
+    {
+      "kind": "database_record",
+      "ref": "data/calculations/3d/BN/bn-paper-sg15 (B-SG15-4a1c4e291908, N-SG15-da2244926434)",
+      "accessed": "2026-10-26"
+    }
+  ]
+}

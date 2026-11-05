@@ -20,7 +20,9 @@ from .control import ControlledExecutionService
 from .evolution_runner import load_reference_texts
 from .execution_profiles import load_execution_profile
 from .fast_benchmark import FastCase, evaluate_case_against_reference
+from .input_identity import expected_basis_hashes, expected_set_ids, file_sha256, observed_basis
 from .loop_runner import LoopError, TrialOutcome
+from .orbital_info import OrbitalInfoError, parse_orbital_header
 from .preflight import preflight
 from .profiles import load_profile
 from .review import settings_review
@@ -29,7 +31,7 @@ from .remote_adapter import (
     ControlledRunAdapter,
     locate_case_source,
 )
-from .stru import species
+from .stru import StruError, atom_counts, species
 
 
 BAND_KEYS = {
@@ -107,14 +109,12 @@ class ControlledLoopRunner:
         self.require_abf = require_abf
         self.use_database_basis = use_database_basis
         self.policy_mode = policy_mode
-        self.registry = None
-        if use_database_basis:
-            if not basis_root:
-                raise LoopError(
-                    "the LibRPA-database basis is the default; pass a basis library root "
-                    "(or set OML_BASIS_LIBRARY_ROOT), or opt out with use_database_basis=False"
-                )
-            self.registry = load_registry(basis_root)
+        self.registry = load_registry(basis_root) if basis_root else None
+        if use_database_basis and self.registry is None:
+            raise LoopError(
+                "the LibRPA-database basis is the default; pass a basis library root "
+                "(or set OML_BASIS_LIBRARY_ROOT), or opt out with use_database_basis=False"
+            )
         approved_helpers = (
             load_profile(profile_id=software_profile_id)["contract"]["workflow_helpers"]
             if software_profile_id is not None
@@ -174,13 +174,19 @@ class ControlledLoopRunner:
         notes: list[str] = []
         missing: list[str] = []
         has_abf = False
+        identity_expected: dict[str, str] | None = None
+        identity_observed: dict[str, str] | None = None
+        identity_duplicates: dict[str, tuple[str, ...]] | None = None
         source = locate_case_source(self.case, self.upstream_root)
         if self.use_database_basis:
             stru_path = source.directory / "STRU"
             if not stru_path.is_file():
                 raise LoopError("the database basis override needs a STRU in the case source")
-            elements = [element for element, _, _ in species(stru_path.read_text(encoding="utf-8"))]
+            stru_text = stru_path.read_text(encoding="utf-8")
+            elements = [element for element, _, _ in species(stru_text)]
             override: dict[str, dict[str, str]] = {}
+            orbital_paths: dict[str, Path] = {}
+            resolved_sets: dict[str, Any] = {}
             for element in dict.fromkeys(elements):
                 try:
                     element_set = resolve_set(
@@ -192,6 +198,7 @@ class ControlledLoopRunner:
                 except BasisRegistryError:
                     missing.append(element)
                     continue
+                resolved_sets[element] = element_set
                 roles: dict[str, str] = {}
                 for role in ("pp", "nao", "abf"):
                     asset = element_set.asset(role)
@@ -199,9 +206,41 @@ class ControlledLoopRunner:
                         continue
                     verify_asset(asset)
                     roles[role] = str(asset.path)
+                    if role == "nao":
+                        orbital_paths[element] = asset.path
                 override[element] = roles
                 has_abf = has_abf or "abf" in roles
             basis_override = override
+            if resolved_sets:
+                # The staged payloads are the resolved database files, so the
+                # identity evidence is the hash of each asset actually copied.
+                identity_expected = expected_basis_hashes(resolved_sets)
+                identity_observed = {
+                    f"{element}/{role}": file_sha256(Path(path))
+                    for element, roles in override.items()
+                    for role, path in roles.items()
+                }
+                identity_duplicates = {}
+            if orbital_paths:
+                # A partial nbands window with a larger NAO silently drops the
+                # high bands LibRPA needs; derive the full basis dimension.
+                try:
+                    counts = atom_counts(stru_text)
+                    nbasis = sum(
+                        count
+                        * parse_orbital_header(orbital_paths[element]).basis_dimension_for(
+                            soc=self.case.soc
+                        )
+                        for element, count in counts.items()
+                    )
+                except (StruError, OrbitalInfoError, KeyError):
+                    nbasis = None
+                if nbasis:
+                    if exact.get("nbands") != nbasis:
+                        notes.append(
+                            f"nbands set to the full database basis dimension {nbasis}"
+                        )
+                    exact["nbands"] = nbasis
             if has_abf:
                 # A prebuilt database ABFS is used through ABFS_ORBITAL; the
                 # production contract then screens the PCA basis out and keeps
@@ -218,6 +257,8 @@ class ControlledLoopRunner:
                 ("n_params_anacon", -1),
                 ("use_qpe_adaptive_damp", True),
                 ("libri_exx_threshold_V", 1e-2),
+                ("use_cholesky_gw_wc", False),
+                ("regularization", 1e-12),
             ):
                 if key not in exact:
                     exact[key] = value
@@ -226,6 +267,31 @@ class ControlledLoopRunner:
         shrink_value = exact.get("shrink_abfs_pca_thr")
         if shrink_value is None:
             shrink_value = read_case_shrink_threshold(source.directory)
+        if not self.use_database_basis and self.registry is not None:
+            # Case-bundled (or reused-data) payloads are used as-is, so this is
+            # where the database set has to be compared with what is on disk.
+            observed = observed_basis(source.directory)
+            resolved: dict[str, Any] = {}
+            for element in observed.by_element():
+                try:
+                    resolved[element] = resolve_set(
+                        self.registry,
+                        element,
+                        family=self.basis_family,
+                        require_abf=self.require_abf,
+                    )
+                except BasisRegistryError:
+                    continue
+            if resolved:
+                identity_expected = expected_basis_hashes(resolved)
+                identity_observed = observed.hashes
+                identity_duplicates = observed.duplicates
+                notes.append(
+                    "basis identity checked against database sets "
+                    + ", ".join(
+                        f"{element}={set_id}" for element, set_id in expected_set_ids(resolved).items()
+                    )
+                )
         policy_inputs = {
             "database_basis": self.use_database_basis,
             "missing_elements": tuple(missing),
@@ -235,6 +301,9 @@ class ControlledLoopRunner:
             "exx_pca_threshold": exact.get("exx_pca_threshold"),
             "use_shrink_abfs": exact.get("use_shrink_abfs"),
             "shrink_abfs_pca_thr": shrink_value,
+            "expected_basis": identity_expected,
+            "observed_basis": identity_observed,
+            "observed_duplicates": identity_duplicates,
         }
         return exact, basis_override, notes, policy_inputs
 

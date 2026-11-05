@@ -8,7 +8,7 @@ blocks a production run, and NOT_EVALUATED is never treated as a pass.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 
 PASS = "PASS"
@@ -164,8 +164,54 @@ def check_shrink_standard(
     return PolicyFinding(gate, PASS, f"shrink_abfs_pca_thr={shrink_abfs_pca_thr} meets the 1e-4 standard")
 
 
+def check_basis_identity(
+    *,
+    expected_basis: Mapping[str, str] | None,
+    observed_basis: Mapping[str, str] | None,
+    observed_duplicates: Mapping[str, Sequence[str]] | None = None,
+    mode: str = PRODUCTION,
+) -> PolicyFinding:
+    """Require the payloads actually used to equal the selected element sets.
+
+    Unlike the other gates this one is not relaxed in replay mode: a replay or
+    a reused data set still runs on real files, and a number computed from a
+    different PP/NAO/ABFS is not comparable to the record it names.
+    """
+    gate = "policy.basis_identity"
+    if not expected_basis:
+        return _not_evaluated(gate, "no database element set was resolved for the identity check")
+    if observed_basis is None:
+        return _not_evaluated(gate, "the payloads used by the run were not inspected")
+    problems: list[str] = []
+    duplicates = observed_duplicates or {}
+    for key in sorted(expected_basis):
+        if key in duplicates:
+            problems.append(f"{key}: several payloads with different hashes")
+            continue
+        if key not in observed_basis:
+            problems.append(f"{key}: missing")
+            continue
+        if observed_basis[key] != expected_basis[key]:
+            problems.append(f"{key}: {observed_basis[key]} != {expected_basis[key]}")
+    if problems:
+        return PolicyFinding(
+            gate,
+            FAIL,
+            "the PP/NAO/ABFS used by the run do not match the selected element set: "
+            + "; ".join(problems),
+            "stage the exact database payloads (or regenerate the data with them) before any compute; "
+            "run scripts/verify_case_inputs.py on the case",
+        )
+    return PolicyFinding(
+        gate,
+        PASS,
+        f"all {len(expected_basis)} PP/NAO/ABFS payload(s) match the selected element set",
+    )
+
+
 GATE_IMPLEMENTATIONS: dict[str, Callable[..., PolicyFinding]] = {
     "policy.basis_source": check_basis_source,
+    "policy.basis_identity": check_basis_identity,
     "policy.kpoint_standard": check_kpoint_standard,
     "policy.abfs_contract": check_abfs_contract,
     "policy.shrink_standard": check_shrink_standard,
@@ -183,9 +229,18 @@ def run_gates(
     exx_pca_threshold: float | None = None,
     use_shrink_abfs: bool | None = None,
     shrink_abfs_pca_thr: float | None = None,
+    expected_basis: Mapping[str, str] | None = None,
+    observed_basis: Mapping[str, str] | None = None,
+    observed_duplicates: Mapping[str, Sequence[str]] | None = None,
 ) -> tuple[PolicyFinding, ...]:
     return (
         check_basis_source(database_basis=database_basis, missing_elements=missing_elements, mode=mode),
+        check_basis_identity(
+            expected_basis=expected_basis,
+            observed_basis=observed_basis,
+            observed_duplicates=observed_duplicates,
+            mode=mode,
+        ),
         check_kpoint_standard(scf_kgrid=scf_kgrid, dimension=dimension, mode=mode),
         check_abfs_contract(
             abfs_orbital=abfs_orbital,
