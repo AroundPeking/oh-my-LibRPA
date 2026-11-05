@@ -1,0 +1,22 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "case-basis-vs-db-reference-mismatch",
+  "title": "A reused data set or --case-basis run is compared with a database record that binds a different PP/NAO/ABFS",
+  "symptom": "A LibRPA-only rerun on an existing BN data set produced a GW gap of 6.12 eV while the bn-paper-sg15 record reports 6.32 eV. The case data used a 2s2p1d NAO and no prebuilt ABFS, while the record binds B/N-SG15 (3s3p2d NAO, pca1e-6 ABFS). The 0.20 eV difference is a basis difference, not a LibRPA setting difference.",
+  "root_cause": "The run was launched with --case-basis and --policy-mode replay. --case-basis disabled database staging, and replay skipped the production-only basis_source/kpoint gates. No gate hashed the payloads that were actually used, so a declared basis was mistaken for evidence of the basis used.",
+  "minimal_fix": "Before any compute, run scripts/verify_case_inputs.py --case <dir> --basis-root <LibRPA-database> --basis-family SG15. It hashes every PP/NAO/ABFS on disk and compares it with the element set bound to the reference record. If the case binds a different set, regenerate the DFT data with the database payloads (or do not compare with that record). The loop now runs policy.basis_identity, which fails on a mismatch in every mode, including replay.",
+  "validation": "The verifier on bn-k222-sym-v1-shrink-head-g0w0 reports B/N NAO mismatches and missing ABFS, and reports the case shrink_abfs_pca_thr=0.1 as below the 1e-4 standard. A database-aligned bundle must report match=yes for every element/role before submission.",
+  "avoid": "Do not use --case-basis for a run that will be compared with a database reference. Do not use --policy-mode replay for new physical compute. Do not treat a declared basis, a STRU element name, or a matching pseudopotential as evidence that the NAO/ABFS match; only the hashes of the files actually read are evidence.",
+  "source": "zcode conversation 2026-10-26 (user: 对齐基组赝势，输入实际计算前都要检查); run librpa-only-20261026 (case basis 2s2p1d); database record bn-paper-sg15",
+  "confidence": "established",
+  "gate_id": "policy.basis_identity",
+  "parameters": {
+    "case_nao": "B/N_gga_8au_100Ry_2s2p1d.orb",
+    "reference_nao": "B/N_gga_8au_100Ry_3s3p2d.orb",
+    "reference_abfs": "B/N_3s3p2d1f1g_pca1e-6.abfs",
+    "reference_set_ids": {
+      "B": "B-SG15-4a1c4e291908",
+      "N": "N-SG15-da2244926434"
+    }
+  }
+}

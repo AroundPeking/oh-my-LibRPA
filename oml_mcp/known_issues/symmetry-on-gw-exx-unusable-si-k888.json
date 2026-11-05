@@ -1,0 +1,21 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-on-gw-exx-unusable-si-k888",
+  "title": "Symmetry-on EXX/GW is unusable in this stack: Si k888/44 bands gives EXX 3.54 and GW -507 eV while KS is exact",
+  "symptom": "Si 8x8x8, 44 bands, 794 auxiliary functions, symmetry 1 end to end (29 IBZ k, 29 Coulomb q blocks, 'Head/wing symmetry: use direct full-BZ PyATB WFC and velocity for 512 k-star members'). The KS table reproduces the archived reference exactly (gap 0.5606 eV), but EXX comes out at 3.5389 eV against the archived 5.5162 eV, and every GW state collapses (gap -506.8 eV, frontier corrections up to 3653 eV, median 718 eV). RPA under the same symmetry is exact to 5e-9 Ha.",
+  "root_cause": "Not the star factor. The BLACS restore in LibRPA master_ghj 7e40c5bb multiplies by star_factor = 1/|star| (src/core/meanfield_mpi.cpp:833). ABACUS already writes IBZ occupations that carry the star weight (Si k888 band_out: 0.113281 = 2*29/512, 0.453125 = 2*116/512, i.e. 2*|star|/n_k_full), so that division is the correct normalisation and the serial path's star_factor = 1.0 is the one that would over-count. A k444 symmetry A/B on the same dataset settled it: with the stock binary EXX = 4.472 eV; with star_factor forced to 1.0 the EXX table collapses (VBM -79 eV, gap +20.3 eV) while GW stays garbage (-427 eV). So the star factor is not the defect, and EXX is still ~1.6 eV short of the symmetry-off value (6.07 eV with use_fullcoul_exx=t) for a reason that is still open - most likely the q-star handling in the EXX branch rather than the k-star density matrix.",
+  "minimal_fix": "Keep the symmetry lane out of production: ABACUS symmetry = -1 with use_symmetry_exx/gw = f (the archived si-paper-all_kpath lane), or run symmetry only for the RPA task where it is exact. Do not 'fix' the star factor - it was measured to make EXX worse. The next probe is to compare the EXX-only layer (task=exx, no vxc/QP) between symmetry on and off on the same 4x4x4 dataset and look at the q-star weights in the EXX branch.",
+  "validation": "The acceptance test is a symmetry on/off pair on the same inputs: KS, EXX and GW gaps must agree to the profile's tolerance (the full-q symmetry check uses 1e-4 eV for the gap) and bands.qp_correction must pass in both lanes. Until that pair exists, a symmetry-on GW result is unverified no matter how healthy the KS table looks.",
+  "avoid": "Do not read a correct KS gap as evidence that the symmetry lane works, and do not 'optimise' a GW run by enabling symmetry to save the q loop - it costs 2 eV in EXX and hundreds of eV in GW. Also do not generalise the profile's BN k444/26-band symmetry PASS to other systems or basis sizes.",
+  "source": "run-20261029T060007Z-6a4d38d727 (symmetry on, log 'Chi0 kBLACS GF symmetry restore: on', EXX 3.5389, GW -506.8) versus run-20261028T091941Z-4217995169 (symmetry off); source read at LibRPA master_ghj 7e40c5bb, ABACUS master_ghj 1648a8a34.",
+  "confidence": "established",
+  "gate_id": "bands.qp_correction",
+  "parameters": {
+    "ks_gap_ev": "0.5606 (matches reference)",
+    "exx_gap_ev": "3.5389 versus reference 5.5162",
+    "gw_gap_ev": "-506.83",
+    "required_lane": "ABACUS symmetry -1 with use_symmetry_exx/gw = f",
+    "code_site": "src/core/meanfield_mpi.cpp:833 star_factor = 1/|star| versus src/core/meanfield.cpp:199 star_factor = 1.0",
+    "measured_ab": "k444 symmetry-on, same dataset: stock EXX 4.472 / patched(star_factor=1.0) EXX 20.323 / symmetry-off reference EXX 6.07 (use_fullcoul_exx=t); GW -445.6 (stock) and -427.1 (patched), KS 0.543 in all three"
+  }
+}

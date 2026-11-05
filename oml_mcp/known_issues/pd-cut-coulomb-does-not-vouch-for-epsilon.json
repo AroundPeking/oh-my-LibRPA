@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "pd-cut-coulomb-does-not-vouch-for-epsilon",
+  "title": "Garbage GW with healthy KS/EXX is a head-wing or screening-grid defect, not a licence to switch the Wc solver",
+  "symptom": "Si GW (4x4x4 screening grid, PyATB head/wing present) produced Re(Sigc) ~ -1e4 eV with Im(Sigc) ~ -0.4 Re(Sigc) while the same run's KS and EXX tables were physical. The q=1 cut Coulomb was Hermitian and positive definite (min eigenvalue +6e-6 against max 1.52e4). Turning use_cholesky_gw_wc on made the Wc build succeed without any warning and changed nothing: the GW table still read -3484 eV.",
+  "root_cause": "Neither the cut-Coulomb spectrum nor the Wc solver decides this case. LibRPA's Wc/EXX lane is driven by the dielectric head/wing and by the mean-field k grid that carries chi0. In this run the head came from pyatb_librpa_df/ (head(iw=0) = 21.24) instead of LibRPA's internal head term (14.66), and chi0 sat on a 4x4x4 grid instead of the archived 8x8x8. Both defects corrupt eps(q) while leaving the KS eigenproblem and the bare-Coulomb exchange intact, which is exactly the observed signature. Note that the binary default is use_cholesky_gw_wc = off (general LU) and the archived si-paper-all_kpath reference ran successfully with that default.",
+  "minimal_fix": "Diagnose in this order: (1) confirm the log shows '* Success: calculate head term.' rather than 'Reading head/wing input from ./pyatb_librpa_df/', (2) confirm the SCF KPT matches the archived screening grid (8x8x8 for the Si record), (3) confirm the EXX definition matches the reference (use_fullcoul_exx = f for the archived run, whose default is off). Only after those are aligned is the Wc solver worth touching, and then only as a diagnostic.",
+  "validation": "With the internal head term and the 8x8x8 grid, head(iw=0) = 14.674 versus 14.663 in the archived log, and the GW band table must land near the frozen reference gap (1.0596 eV) instead of showing O(1e4 eV) offsets.",
+  "avoid": "Do not read a positive-definite cut Coulomb as evidence that the LU lane is safe or unsafe, and do not expect a solver switch to repair a wrong head/wing: the Cholesky lane ran clean here and still returned garbage.",
+  "source": "oml Si runs run-20261028T045618Z-5ee12440b4 (LU and Cholesky, both garbage) and run-20261028T091941Z-4217995169, 2026-10-28; reference TABLE/Table_04_GW_comparison/Si__src_all_kpath/librpa.in has no solver key at all.",
+  "confidence": "established",
+  "parameters": {
+    "use_cholesky_gw_wc": "binary default off; not the discriminator for this failure mode",
+    "diagnostic_order": "head/wing source -> screening k grid -> EXX Coulomb definition -> solver"
+  }
+}

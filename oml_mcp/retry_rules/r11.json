@@ -1,0 +1,50 @@
+{
+  "schema_version": "oml.retry-rule.v1",
+  "id": "r11",
+  "layer": "gw",
+  "title": "Wc build stops because the cut Coulomb is not positive definite",
+  "symptom": "LibRPA aborts the GW step with 'the matrix is not positive definite info:1' at epsilon_solver_coulwc while use_cholesky_gw_wc is enabled.",
+  "evidence_required": [
+    "the LibRPA switch value from the staged librpa.in",
+    "the cut-Coulomb spectrum (v1_coulomb_cut_iq_*) and the failing q index",
+    "the stage log line naming epsilon_solver_coulwc",
+    "the basis/ABFS identities of the run"
+  ],
+  "candidate_experiments": [
+    {
+      "action": "turn off the Cholesky factorisation of Wc",
+      "parameters": ["use_cholesky_gw_wc"],
+      "direction": "disable",
+      "expected_improvement": "removes the requirement that the truncated Coulomb be positive definite, which is not guaranteed by construction",
+      "guard": "do not clip or shift cut-Coulomb eigenvalues; do not switch the full-Coulomb construction to hide the cut-family indefiniteness"
+    },
+    {
+      "action": "inspect the cut-Coulomb eigen-spectrum before LibRPA and record the decision",
+      "parameters": [],
+      "direction": "diagnose",
+      "expected_improvement": "separates an indefinite cut family from a corrupt or mis-indexed matrix so the switch is data-driven",
+      "guard": "a PASS on the full-Coulomb PSD gate does not authorize Cholesky for Wc; they are different matrix families"
+    }
+  ],
+  "stop_condition": "The GW stage completes with the cut-Coulomb decision recorded, or the cut-Coulomb inputs are shown to be corrupt.",
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-27: cut coulomb 不正定就提前关掉 cholesky，否则开启",
+      "accessed": "2026-10-27"
+    },
+    {
+      "kind": "parameter_knowledge",
+      "ref": "oml_mcp/parameter_knowledge/cholesky-gw-wc.json",
+      "accessed": "2026-10-27"
+    },
+    {
+      "kind": "known_issue",
+      "ref": "oml_mcp/known_issues/cut-coulomb-nonpd-cholesky-wc.json",
+      "accessed": "2026-10-27"
+    }
+  ],
+  "related_known_issues": [
+    "cut-coulomb-nonpd-cholesky-wc"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "analytic-continuation-penalty-echo",
+  "title": "The regularization penalty must be echoed by the LibRPA driver dump",
+  "symptom": "The analytic continuation is supposed to use a 1e-12 Tikhonov penalty, but if the build does not parse regularization the run silently uses 0 and nothing in the numbers looks wrong.",
+  "root_cause": "The input key is regularization; LibRPA ignores keys it does not know. The audited builds (LibRPA-v0.7.0-dd169fa1, librpa-metallic-unified-20261026, master_ghj) expose the Tikhonov argument only through TFGrids::generate_minimax(..., regulation) -> get_minimax_grid -> gx_minimax_grid_wrp (commit 5711b2cb) and their options structs did not show an input field, so the build must prove it parsed the key.",
+  "minimal_fix": "Write regularization = 1e-12 in librpa.in (the oml template and production defaults do). The stage gate librpa.input.penalty_echo requires the LibRPA driver parameter dump to echo regularization = 1e-12; if the dump lacks it, the build ignored the key and the run must not be accepted.",
+  "validation": "Run one 16-point continuation; grep the LibRPA rank-0 output for 'regularization = 1e-12'. The oml stage gate checks the same line. A model comparison must pair 0 and 1e-12 with every other key identical.",
+  "avoid": "Do not accept a run because the input contains regularization; only the driver dump proves the build read it. Do not use a guessed alias such as regulation for the input key.",
+  "source": "user instruction 2026-10-28 (\u89e3\u6790\u5ef6\u62d3\u6539\u4e3a\u52a0\u60e9\u7f5a\u9879\uff0c\u7cfb\u6570 1e-12\uff0cn_params_anacon=-1 \u7528 nfreq \u4e2a\u70b9); LibRPA commit 5711b2cb; source audit of LibRPA-v0.7.0-dd169fa1, librpa-metallic-unified-20261026 and master_ghj",
+  "confidence": "established",
+  "gate_id": "librpa.input.penalty_echo",
+  "parameters": {
+    "penalty_coefficient": 1e-12,
+    "n_params_anacon": -1,
+    "semantics": "-1 uses all nfreq points for the analytic continuation",
+    "exposed_builds": "none of the audited builds"
+  }
+}

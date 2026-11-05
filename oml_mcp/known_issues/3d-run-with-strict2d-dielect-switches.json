@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "3d-run-with-strict2d-dielect-switches",
+  "title": "A 3D FHI-aims + LibRPA run reused the strict-2D librpa.in (option_dielect_func=4, use_fullcoul_wc=t)",
+  "symptom": "High-energy states become NaN (k22 state 41), low states are off by 0.1-1 eV, and the Gamma gap is 5.36 eV instead of 7.45 eV, while the input still looks plausible.",
+  "root_cause": "large_sym/small_sym were built from band_large/librpa.in, which carries the strict-2D switches option_dielect_func = 4 and use_fullcoul_wc = t. Using the untruncated full Coulomb for Wc in a 3D system breaks the correlation self-energy.",
+  "minimal_fix": "Use the 3D production base: option_dielect_func = 3, use_fullcoul_wc = f, cs_threshold = 0, use_shrink_abfs = t, use_shrink_chi = f. Before submission run scripts/verify_librpa_input.py --librpa-in librpa.in --dimension 3d --require-cs-threshold; it fails on option_dielect_func = 4 or use_fullcoul_wc = t in a 3D input.",
+  "validation": "Line-by-line diff the 'Begin driver parameters' dump of the candidate against the reference and confirm that only the intended switches differ (for example the symmetry switches). The audit must PASS with the 3D base and FAIL when the strict-2D base is passed with --dimension 3d.",
+  "avoid": "Do not reuse a strict-2D input for a 3D system, do not infer the route from the input file name, and do not compare symmetry variants without diffing the full driver parameter dump first.",
+  "source": "zcode-session sess_9ca55f52-6c4e-40f6-ae36-644a748323f1 (chunks 22-23); user instruction 2026-10-28",
+  "confidence": "established",
+  "gate_id": "librpa.input.dielect",
+  "parameters": {
+    "3d": {"option_dielect_func": 3, "use_fullcoul_wc": false},
+    "strict_2d": {"option_dielect_func": 4, "use_fullcoul_wc": true, "rpa_headwing_mode": "qavg", "use_2d_dielectric": true}
+  }
+}

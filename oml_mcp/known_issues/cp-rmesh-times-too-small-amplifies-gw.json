@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "cp-rmesh-times-too-small-amplifies-gw",
+  "title": "rpa_ccp_rmesh_times below 5 truncates the R grid that the head/wing star sum needs",
+  "symptom": "The same 4x4x4 symmetry-enabled Si GW gave a conduction QP minimum of -553 eV with rpa_ccp_rmesh_times = 1 and -13.5 eV with 5, while the RPA total energy and the KS eigenvalues were identical in both runs (EcRPA -0.369963006 vs -0.369963165 Ha, KS gap 0.6176 eV). EXX moved from 5.8333 to 6.0758 eV, i.e. towards the full-Coulomb value.",
+  "root_cause": "The head/wing and the star expansion are built on the auxiliary basis over a real-space R grid whose extent follows rpa_ccp_rmesh_times. With rmesh = 1 the three-centre integrals are cut so early that the star sum over equivalent R images is incomplete; RPA (which does not use the star-expanded W(R)) cannot see the truncation, so the defect only surfaces in the GW empty-state correlation.",
+  "minimal_fix": "State rpa_ccp_rmesh_times = 5 and exx_ccp_rmesh_times = 2 explicitly in INPUT_scf for every GW case; the archived database recipes use exactly those values. The gate abacus.cp_rmesh fails an explicit value below 5 (or 2 for the EXX counter) and warns when the key is absent.",
+  "validation": "Re-run the same case at rmesh 1 and 5 and compare: the RPA energy must be unchanged to ~1e-6 Ha while the conduction QP minimum must shrink by about an order of magnitude, which shows the switch acts on the star sum only. The fixed lane must then pass bands.qp_correction.",
+  "avoid": "Do not use RPA agreement as evidence that the R grid is adequate for GW, and do not tune rmesh to chase a GW number - it is a completeness requirement, not a convergence knob.",
+  "source": "session_305ffdef14668b700904b084ce79cbfe (2026-10-28), cases si_k444_sym rmesh A/B; archived Si recipe uses rpa_ccp_rmesh_times 5 / exx_ccp_rmesh_times 2.",
+  "confidence": "established",
+  "gate_id": "abacus.cp_rmesh",
+  "parameters": {
+    "rpa_ccp_rmesh_times": "5",
+    "exx_ccp_rmesh_times": "2"
+  }
+}

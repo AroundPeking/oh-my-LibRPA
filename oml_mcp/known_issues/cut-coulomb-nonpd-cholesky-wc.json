@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "cut-coulomb-nonpd-cholesky-wc",
+  "title": "LibRPA Wc fails on a non-positive-definite cut Coulomb while use_cholesky_gw_wc is enabled",
+  "symptom": "LibRPA stops at Wc(q) with 'the matrix is not positive definite info:1' and 'Error on MPI rank 0: info !=0', after chi0 and the dielectric matrix have completed. The full-Coulomb PSD gate can be PASS at the same time.",
+  "root_cause": "LibRPA factorises the truncated (cut) Coulomb for Wc. The truncation makes that matrix indefinite even when the full Coulomb is positive semidefinite, so use_cholesky_gw_wc = t has no Cholesky factor. The preprocess PSD gate only inspected v1_coulomb_full_iq_* and could not see this.",
+  "minimal_fix": "After the Coulomb stage and before LibRPA, inspect v1_coulomb_cut_iq_* (scripts/check_cut_coulomb.py --run-dir <run>). If the cut Coulomb is not positive definite, set use_cholesky_gw_wc = f in librpa.in; if it is positive definite, set t. Never clip eigenvalues and never relax the full-Coulomb gate for this.",
+  "validation": "BN SG15 3s3p2d / pca1e-6, 8x8x8, 29 q blocks: cut-Coulomb minimum relative eigenvalue -1.0 with 35-40 negative eigenvalues per q, while the direct full Coulomb is PSD. Setting use_cholesky_gw_wc = f is the only change needed for the Wc stage.",
+  "avoid": "Do not switch out_librpa_3d_coulomb_method to direct_reciprocal believing it fixes the cut family: the direct Gram fixes the full matrix, not the truncated one. Do not enable Cholesky because the full-Coulomb gate passed. Do not clip the cut-Coulomb eigenvalues or substitute the full matrix.",
+  "source": "user instruction 2026-10-27 (cut Coulomb 不正定就提前关掉 cholesky，否则开启); runs 1819 (Ewald, failed at q=2) and 1826/1828 (direct full, cut still indefinite)",
+  "confidence": "established",
+  "gate_id": "coulomb.cut_cholesky",
+  "parameters": {
+    "librpa_switch": "use_cholesky_gw_wc",
+    "enabled_value": "t",
+    "disabled_value": "f",
+    "fail_symptom": "epsilon_solver_coulwc: the matrix is not positive definite info:1"
+  }
+}

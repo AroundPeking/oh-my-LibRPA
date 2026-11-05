@@ -3,7 +3,7 @@
   "id": "r7",
   "layer": "any",
   "title": "Bands are smooth but the gap differs from the reference",
-  "symptom": "The smoothness and localization gates pass, but the GW gap differs from the trusted reference by more than the tolerance (default 0.2 eV).",
+  "symptom": "The smoothness and localization gates pass, but the GW gap differs from the trusted reference by more than the gross-disagreement limit (2 eV). Sub-threshold deltas are ADVISORY, not a rejection: a database record may use a different EXX Coulomb definition or path sampling, so the band figure decides acceptance.",
   "evidence_required": [
     "PBE/EXX/GW indirect and direct gaps",
     "trusted reference value and its source",

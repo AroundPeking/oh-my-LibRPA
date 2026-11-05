@@ -1,0 +1,17 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-off-is-a-cost-decision-not-a-default",
+  "title": "LibRPA defaults to symmetry off, so aligning to an archived symmetry = -1 input silently costs the whole full-BZ q loop",
+  "symptom": "The Si 8x8x8 G0W0 case (44 bands, 794 auxiliary functions) ran with ABACUS symmetry -1 and use_symmetry_exx/gw = f. Every gate passed: the two sides were consistent. The stage then spent ~14 min per frequency time grid in chi0, twice, and projected 15-18 h on a full node, because chi0/Wc loop over 512 q instead of the IBZ.",
+  "root_cause": "The LibRPA binary defaults are use_symmetry_exx/gw/rpa = OFF, and ABACUS's own default symmetry = 1 is what the archived record overrides with -1. The oml symmetry gate only verified consistency (ABACUS symmetry matches use_symmetry_*), so a self-consistent symmetry-off lane looked like a pass, and the archived record's -1 was copied into the case as if it were a requirement rather than a choice with a 15x price. Symmetry is the single largest cost switch in the pipeline.",
+  "minimal_fix": "Treat symmetry as a production default that is ON (use_symmetry in the review card), and treat 'off' as a deviation that must be acknowledged with a reason: the gate now warns with the concrete q counts (8x8x8: 512 q versus roughly 20-30 IBZ q), and the review card lists use_symmetry=false as a deviation. When symmetry is on, keep the full-BZ PyATB products in input_dir (the star-expansion lane reads them); when it is off, keep them out (their presence overrides LibRPA's own head term).",
+  "validation": "With symmetry on, the LibRPA log reports the IBZ q count instead of 512, the chi0/Wc phases shrink by about the star factor, and bands.qp_correction still passes - the star-overcount failure mode of this lane is exactly what that gate watches.",
+  "avoid": "Do not copy an archived symmetry = -1 input without asking whether the record needed the full-q control lane; do not treat 'both sides say off' as evidence that symmetry should be off.",
+  "source": "run-20261028T091941Z-4217995169 (symmetry off, ~14 min per chi0 time grid, projected 15-18 h) versus the same case relaunched as si-k888-sg15-g0w0-sym; binary defaults in src/api/options.cpp.",
+  "confidence": "established",
+  "parameters": {
+    "use_symmetry": "production default on; off is a reviewable deviation",
+    "si_8x8x8_full_bz_q": "512",
+    "si_8x8x8_ibz_q": "~20-30"
+  }
+}

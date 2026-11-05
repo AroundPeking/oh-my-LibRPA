@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "database-gw-record-uses-cut-coulomb-exx-default",
+  "title": "The archived database GW records run with the binary defaults: cut-Coulomb EXX and an LU Wc solve",
+  "symptom": "Si k444 with use_fullcoul_exx = t gave an EXX gap of 6.07 eV while the database si-paper-all_kpath record gives 5.516 eV on the same path segment; forcing nfreq = 24 instead of 16 also moved the frequency grid away from the archived runs. Both looked like numerical disagreement but were definition changes.",
+  "root_cause": "The archived cases ship a minimal librpa.in (task, nfreq = 16, option_dielect_func = 3, replace_w_head = t, use_scalapack_gw_wc = t, parallel_routing, thresholds, use_shrink_abfs) and therefore inherit the binary defaults for everything else: use_fullcoul_exx = f (exchange from the cut Coulomb), use_cholesky_gw_wc = f (general LU for the Wc solve) and n_params_anacon = -1. OML's production rewrite fills the same keys with its own defaults (use_fullcoul_exx = t) and a non-default nfreq from the case bundle, so a run can be numerically healthy yet describe a different definition than the record it is compared against.",
+  "minimal_fix": "Before comparing with a database record, read that record's own inputs and adopt its definition: state use_fullcoul_exx, nfreq, n_params_anacon, use_qpe_adaptive_damp and use_cholesky_gw_wc explicitly with the record's values (f, 16, -1, t, f for si-paper-all_kpath) instead of letting the production rewrite fill them. Treat the resulting settings as the validation definition and report any intentional deviation next to the band figure.",
+  "validation": "The dielectric head term reproduces the archived log (head(iw=0) 14.6630 for Si k888) and the EXX gap lands on the record value (5.516 eV) rather than ~0.55 eV above it; only then is a GW gap delta meaningful.",
+  "avoid": "Do not attribute a 0.5 eV gap difference to convergence or to the band path before checking the EXX Coulomb definition, and do not silently override an archived definition in the name of a 'better' default.",
+  "source": "oml Si runs run-20261028T045618Z-5ee12440b4 (fullcoul_exx=t, nfreq=24) and run-20261028T091941Z-4217995169 (reference definition), 2026-10-28; driver defaults in src/api/options.cpp (use_fullcoul_exx = OFF, use_cholesky_gw_wc = OFF).",
+  "confidence": "established",
+  "parameters": {
+    "use_fullcoul_exx": "f to match the archived 3D GW records",
+    "use_cholesky_gw_wc": "f to match the archived 3D GW records",
+    "n_params_anacon": "-1 to match the archived 3D GW records",
+    "nfreq": "16 for si-paper-all_kpath"
+  }
+}

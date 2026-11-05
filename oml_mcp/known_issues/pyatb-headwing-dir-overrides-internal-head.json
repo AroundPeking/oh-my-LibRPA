@@ -1,0 +1,16 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "pyatb-headwing-dir-overrides-internal-head",
+  "title": "A pyatb_librpa_df/ directory in input_dir silently replaces LibRPA's own head term, even with use_pyatb = f",
+  "symptom": "Si k444 GW with use_pyatb = f still logged 'Reading head/wing input from ./pyatb_librpa_df/' and 'Using PyATB head/wing input on the active LibRPA k-list with 64 k-points', and used head(iw=0) = 21.24 instead of the internal 14.66 that the archived Si run reports. KS and EXX tables were physical; the GW table was not (Re(Sigc) ~ -1e4 eV) until the directory was removed.",
+  "root_cause": "driver/read_data.cpp takes the PyATB head/wing branch purely on the existence of pyatb_librpa_df/velocity_matrix; use_pyatb is not consulted there. When the directory is absent LibRPA falls back to the root-level velocity_matrix and computes the head term itself from the SCF k grid ('* Success: calculate head term.'), which is what the archived database runs do. The OML pyatb stage writes pyatb_librpa_df/ by design, so a stage-ordered run that leaves it in place does not reproduce the archived head/wing lane.",
+  "minimal_fix": "Before the LibRPA stage, keep the PyATB products out of input_dir (move pyatb_librpa_df aside, retaining it for audit) and place the velocity matrix at the root as velocity_matrix so the internal head branch can run. Verify the log prints '* Success: calculate head term.' with head(iw=0) at the physical static dielectric constant, and that 'Reading head/wing input' is absent.",
+  "validation": "Si 8x8x8 SG15: internal head(iw=0) = 14.674 versus 14.663 in the archived si-paper-all_kpath log; the GW band table must then sit within O(0.1 eV) of the frozen reference gap instead of O(1e4 eV) offsets.",
+  "avoid": "Do not read use_pyatb = f as 'the PyATB head/wing is ignored' - the directory presence decides. Do not delete the directory without copying velocity_matrix to the root, or LibRPA aborts with 'Cannot find moment files for head/wing calculation'.",
+  "source": "oml Si runs run-20261028T045618Z-5ee12440b4 (directory present) and run-20261028T091941Z-4217995169 (directory moved aside), 2026-10-28; reference log TABLE/Table_04_GW_comparison/Si__src_all_kpath/librpa.out.",
+  "confidence": "established",
+  "parameters": {
+    "pyatb_dir": "must not exist in input_dir when the internal head/wing lane is wanted",
+    "root_velocity": "velocity_matrix from the PyATB stage, same SCF k grid"
+  }
+}

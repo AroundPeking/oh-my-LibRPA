@@ -1,0 +1,18 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "symmetry-gw-empty-state-sigma-star-overcount",
+  "title": "Symmetry-enabled GW can multiply the empty-state Sigma_c by the star count while RPA and EXX stay exact",
+  "symptom": "Si 4x4x4 / 2s2p1d (26 NAO) with symmetry 1 and the full-BZ PyATB head/wing in place: LibRPA finishes without an error, the valence QP energies look reasonable (VBM 5.16 vs KS 6.31), but every conduction QP energy on all 27 path k-points collapses to -200..-553 eV. With rpa_ccp_rmesh_times raised from 1 to 5 the conduction minimum moves to -13.5 eV (still broken, but ~20x smaller). The same 4x4x4 dataset with symmetry off gives a physical gap of 1.2636 eV, and the RPA total energy is identical in both lanes to 5e-9 Ha.",
+  "root_cause": "The defect is confined to the GW real-space star sum, not to the symmetry framework, the mean field, or the reader. RPA is exact under symmetry, EXX is sane, and only the empty-state correlation part scales like the number of BZ star members (the observed factor is close to n_k = 64). A too-small rpa_ccp_rmesh_times truncates the R grid that the star sum runs over and amplifies the same error by about 20x, which is why the first measurements looked like a factor-60 blowup.",
+  "minimal_fix": "Do not ship a symmetry-enabled GW number until the empty-state check below passes. Keep rpa_ccp_rmesh_times = 5 and exx_ccp_rmesh_times = 2, use the full-BZ PyATB head/wing, and prefer the verified 8x8x8 / 44-band configuration for symmetry-on GW; for 4x4x4 use the symmetry-off lane, which reproduces the physical gap.",
+  "validation": "Gate the output with bands.qp_correction: on the frontier states the GW correction e_qp - e_mf must stay within 15 eV max / 5 eV median, the empty-state median must not exceed 20x the occupied-state median, and a positive KS gap (0.54 eV here) must not collapse to a negative GW gap -7.47 eV. The 2026-10-28 symmetry run trips the correction magnitude and the gap-collapse check, the database reference passes both.",
+  "avoid": "Do not read 'the run finished and the valence bands look right' as a pass; the empty-state Sigma_c is exactly the part that breaks. Do not blame the symmetry framework (RPA under symmetry is exact) and do not treat rmesh alone as the fix.",
+  "source": "session_305ffdef14668b700904b084ce79cbfe (2026-10-28): 4x4x4/26-NAO symmetry lane, rmesh 1 -> -553 eV, rmesh 5 -> -13.5 eV, symmetry off -> 1.2636 eV; tables in cases/gw_symp and cases/gw.",
+  "confidence": "established",
+  "gate_id": "bands.qp_correction",
+  "parameters": {
+    "observed_factor": "conduction QP collapse ~583 eV on a 1.26 eV scale",
+    "rmesh_effect": "rpa_ccp_rmesh_times 1 -> 5 shrinks the error from -553 eV to -13.5 eV",
+    "verified_lane": "8x8x8 / 44 bands, KS 0.5606 / EXX 5.5161 / GW 1.0596"
+  }
+}

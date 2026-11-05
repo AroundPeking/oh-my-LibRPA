@@ -1,0 +1,66 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "cholesky-gw-wc",
+  "title": "use_cholesky_gw_wc follows the cut-Coulomb definiteness, not a fixed default",
+  "parameters": {
+    "use_cholesky_gw_wc": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": false,
+      "default_origin": "oml",
+      "meaning": "Use the Cholesky factorisation to build Wc from chi0. It requires the truncated (cut) Coulomb to be positive definite. The binary default is off (general LU), and the archived database runs (e.g. si-paper-all_kpath) use that default successfully, so the switch is a numerical choice for the epsilon solve, not a correctness certificate in either direction: with Cholesky off LibRPA solves epsilon X = sqrt(Vc) by LU, and with it on the ELPA sqrt path is used. Neither repairs a wrong dielectric head/wing or a wrong screening grid."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "the cut Coulomb is positive definite and the Wc stage is a runtime bottleneck",
+      "action": "set use_cholesky_gw_wc = t",
+      "effect": "use the Cholesky Wc path instead of general LU",
+      "guard": "only with a recorded cut-Coulomb check that reports positive definiteness; rerun the Wc correctness gates"
+    },
+    {
+      "symptom": "LibRPA aborts at Wc with 'the matrix is not positive definite info:1'",
+      "action": "set use_cholesky_gw_wc = f",
+      "effect": "fall back to the LU solve that the archived database runs use",
+      "guard": "do not clip eigenvalues, do not switch the full-Coulomb construction to hide the cut-family indefiniteness; if the GW table then shows O(1e3 eV) sigma, audit the head/wing source and the screening grid before blaming the solver"
+    }
+  ],
+  "constraints": [
+    "The decision is data-driven: inspect v1_coulomb_cut_iq_* at the Coulomb stage and write the switch before the LibRPA stage starts.",
+    "The full-Coulomb PSD gate is a different matrix family; a PASS there does not authorize Cholesky for Wc.",
+    "The built LibRPA default in the current profile is f (LU), which is what the archived reference runs used.",
+    "Neither solver choice fixes a defective dielectric: garbage GW with healthy KS/EXX points at the head/wing source or the screening k grid (see known issue pd-cut-coulomb-does-not-vouch-for-epsilon).",
+    "BN 8x8x8 with SG15 3s3p2d and pca1e-6 gives a strongly indefinite cut Coulomb (min relative eigenvalue -1.0), so the switch must be f there."
+  ],
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-27: cut coulomb 不正定就提前关掉 cholesky，否则开启",
+      "accessed": "2026-10-27"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/librpa.in",
+      "path": "templates/abacus-librpa-gw/template/librpa.in",
+      "locator": "use_cholesky_gw_wc = f",
+      "accessed": "2026-10-27"
+    },
+    {
+      "kind": "known_issue",
+      "ref": "oml_mcp/known_issues/cut-coulomb-nonpd-cholesky-wc.json",
+      "accessed": "2026-10-27"
+    },
+    {
+      "kind": "known_issue",
+      "ref": "oml_mcp/known_issues/pd-cut-coulomb-does-not-vouch-for-epsilon.json",
+      "accessed": "2026-10-28"
+    }
+  ],
+  "related": {
+    "known_issues": [
+      "cut-coulomb-nonpd-cholesky-wc",
+      "pd-cut-coulomb-does-not-vouch-for-epsilon",
+      "cholesky-to-lu-completes-not-correct"
+    ]
+  }
+}

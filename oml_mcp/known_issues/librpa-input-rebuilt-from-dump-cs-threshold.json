@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "librpa-input-rebuilt-from-dump-cs-threshold",
+  "title": "Rebuilding librpa.in from the driver dump drops cs_threshold and silently restores the 1e-6 default",
+  "symptom": "The input looks like the reference, but MgO e_exx(Gamma, state 1) changes from -206.87 to -105.97 eV and the gap from 7.54 to 1.80 eV. LiH is misleading: cs_threshold 0 and 1e-6 give bit-identical task=exx output.",
+  "root_cause": "LibRPA's input key is cs_threshold, while the driver parameter dump prints it as cs_R_threshold. A file rebuilt from the dump therefore drops the line; LibRPA silently ignores the unknown key and falls back to the cs_threshold default 1e-6, which filters RI coefficients the reference keeps.",
+  "minimal_fix": "Always submit the original librpa.in; never rebuild it from the 'Begin driver parameters' dump. Audit the exact file with scripts/verify_librpa_input.py --librpa-in librpa.in --dimension 3d --require-cs-threshold. The audit rejects cs_R_threshold, dump-shaped files, and a missing cs_threshold.",
+  "validation": "The audit fails on cs_R_threshold and on a file containing the driver-dump header. A clean 3D input with cs_threshold = 0, option_dielect_func = 3 and use_fullcoul_wc = f passes.",
+  "avoid": "Do not copy the parameter dump into an input, do not rely on LibRPA's silent unknown-key handling, and do not accept a missing threshold because a second material happened to be insensitive to it.",
+  "source": "zcode-session sess_9ca55f52-6c4e-40f6-ae36-644a748323f1 (chunks 19, 22-23); user instruction 2026-10-28",
+  "confidence": "established",
+  "gate_id": "librpa.input.dump_alias",
+  "parameters": {
+    "dump_name": "cs_R_threshold",
+    "input_key": "cs_threshold",
+    "default_after_drop": "1e-6",
+    "intended_value": "0"
+  }
+}

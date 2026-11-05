@@ -1,0 +1,15 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "no-walltime-limit-on-unlimited-partitions",
+  "title": "Do not impose walltimes on physics-limited stages: an unlimited partition gains nothing from one",
+  "symptom": "A 512-q Si G0W0 stage was submitted with --time=12:00:00 chosen from an SCF-based estimate. It was still in the Sigma pass (i_tau 8/16) when Slurm killed it at 09:04, after 8 h 19 min, with no KS/EXX/GW band tables written - all of that compute was lost.",
+  "root_cause": "The stage runtime is set by the physics (q-points x frequency points x bands), not by a schedule the operator can predict in advance. On a partition whose limit is infinite a walltime therefore has no upside and one clear downside: it converts a slow-but-finishing run into a total loss.",
+  "minimal_fix": "Omit resources.walltime_minutes from the execution profile (or set it to 0). The profile loader normalises a missing value to 0 and the stage template then emits no #SBATCH --time, so Slurm applies the partition limit. Only state a walltime on a partition that requires one, and then size it from a measured per-task time x task count, never from another stage's runtime.",
+  "validation": "squeue shows TIME_LIMIT = UNLIMITED for the stage, the stage script contains no #SBATCH --time line, and the run reaches COMMAND_COMPLETED instead of dying on the limit.",
+  "avoid": "Do not 'be safe' with a walltime on an unlimited partition, and do not derive it from the SCF (39 min) when LibRPA is 20x longer.",
+  "source": "job 1895 killed by TIME LIMIT at 2026-10-29T09:04 (12 h) versus job 1902 submitted with TIME_LIMIT UNLIMITED on the same run.",
+  "confidence": "established",
+  "parameters": {
+    "resources.walltime_minutes": "omit or 0 for no limit"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "oml.known-issue.v1",
+  "issue_id": "librpa-cost-scales-with-total-threads-not-ranks",
+  "title": "LibRPA wants a square rank count with threads behind OMP, and never a guessed walltime",
+  "symptom": "Si 8x8x8 (512 q), 44 bands, 6 band-path k-points: 4 MPI ranks x 12 threads took 1350-1400 s per libRI cal_Sigc task and the stage was killed at a self-imposed 12 h walltime inside the Sigma pass (i_tau 8/16), leaving no band table. A rerun with 2 ranks x 48 threads improved chi0 only from ~7 min to ~4.7 min per time grid, i.e. nowhere near the 4x that the thread count suggests.",
+  "root_cause": "Two independent resource mistakes. (1) The BLACS/ScaLAPACK layer in LibRPA lays processes out on a square process grid, so the usable rank counts are 1, 4, 9, 16, ...; 2 or 3 ranks leave the grid degenerate and waste workers. (2) The per-task cost tracks threads far more than ranks - the archived reference ran 4 ranks x 128 threads at ~145 s per task - so on a single 96-core node the right shape is ONE rank with all cores as OMP/MKL threads, not four skinny ranks. On top of that the stage walltime was picked from an SCF-based guess (SCF was 39 min, LibRPA needed 20x that), which converted 'still running' into 'dead at 96%'.",
+  "minimal_fix": "Run LibRPA as 1 MPI rank with OMP_NUM_THREADS = MKL_NUM_THREADS = cpus-per-task, and size cpus-per-task to the share of the node this job is allowed to take rather than to the whole machine. Profiles now reject non-square mpi_ranks (PROFILE_INVALID) and accept an omitted walltime_minutes, which renders no #SBATCH --time at all. If a multi-rank run is ever needed, use 4 or 9 ranks, never 2 or 3.",
+  "validation": "Check the per-task wall time in the log after the first few tasks: the square-and-threads configuration should report a few hundred seconds per task on 512 q instead of 1300-1400, and the stage status file must reach COMMAND_COMPLETED with KS/EXX/GW band tables present.",
+  "avoid": "Do not 'add more ranks' to speed LibRPA up, do not use a rank count that is not a perfect square, and do not set a walltime from an estimate of another stage - the debug partition has no limit, so an over-large walltime costs nothing while an under-sized one destroys hours of work. Do not request the whole node for a single stage unless that share was agreed.",
+  "source": "job 1895 (4x12, killed at 12 h in i_tau 8/16), job 1898 (2x48, chi0 4.7 min per time grid), job 1902 (1x96, unlimited) on run-20261028T091941Z-4217995169; reference per-task times from TABLE/Table_04_GW_comparison/Si__src_all_kpath/librpa.out.",
+  "confidence": "established",
+  "parameters": {
+    "mpi_ranks": "must be a perfect square; 1 on a single node",
+    "omp_threads": "= cpus-per-task, sized to the job's share of the node",
+    "walltime": "omit it; the debug partition is unlimited",
+    "si_512q_4x12_task_seconds": "1350-1400",
+    "si_512q_reference_4x128_task_seconds": "145"
+  }
+}

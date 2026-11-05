@@ -1,0 +1,58 @@
+{
+  "schema_version": "oml.parameter-knowledge.v1",
+  "id": "analytic-continuation-penalty",
+  "title": "Analytic continuation uses the minimax grid with a 1e-12 Tikhonov penalty",
+  "parameters": {
+    "regularization": {
+      "owner": "librpa",
+      "stage": "production",
+      "default": 1e-12,
+      "default_origin": "user",
+      "meaning": "Tikhonov penalty coefficient applied to the minimax time-frequency grid used by the analytic continuation. The production value is 1e-12."
+    }
+  },
+  "adjust": [
+    {
+      "symptom": "the analytic continuation oscillates or produces unstable quasiparticle roots",
+      "action": "increase",
+      "effect": "a larger Tikhonov penalty stabilizes the fit",
+      "guard": "record the paired run; do not change the coefficient together with nfreq"
+    },
+    {
+      "symptom": "the continuation is visibly over-smoothed and the near-gap states lose structure",
+      "action": "decrease",
+      "effect": "a smaller penalty follows the data more closely",
+      "guard": "stop at 1e-12 for production unless a convergence pair shows an improvement"
+    }
+  ],
+  "constraints": [
+    "n_params_anacon = -1 uses all nfreq points for the continuation (the documented LibRPA default); do not set a fixed Pade order in production.",
+    "The penalty is applied to the minimax grid construction (TFGrids::generate_minimax -> get_minimax_grid); the input key is regularization.",
+    "LibRPA ignores unknown keys, so the run log must echo regularization = 1e-12; the stage gate checks the driver parameter dump.",
+    "Changing the coefficient changes the continuation, not the time-frequency data; keep every other key identical in a comparison pair."
+  ],
+  "sources": [
+    {
+      "kind": "user_policy",
+      "ref": "conversation 2026-10-28: 解析延拓全部改成加惩罚项，系数 1e-12，n_params_anacon=-1 用 nfreq 个点",
+      "accessed": "2026-10-28"
+    },
+    {
+      "kind": "repo",
+      "ref": "LibRPA commit 5711b2cb (expose the complete get_minimax_grid argument list for Tikhonov regularization)",
+      "accessed": "2026-10-28"
+    },
+    {
+      "kind": "repo",
+      "ref": "templates/abacus-librpa-gw/template/librpa.in",
+      "path": "templates/abacus-librpa-gw/template/librpa.in",
+      "locator": "regularization = 1e-12",
+      "accessed": "2026-10-28"
+    }
+  ],
+  "related": {
+    "known_issues": [
+      "analytic-continuation-penalty-echo"
+    ]
+  }
+}
