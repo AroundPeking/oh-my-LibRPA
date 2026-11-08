@@ -1,0 +1,7 @@
+interface:
+  display_name: "ABACUS SCF Convergence"
+  short_description: "Stabilize ABACUS SCF convergence"
+  default_prompt: "Use $abacus-scf-convergence to diagnose this ABACUS SCF convergence problem with logs and occupation checks."
+
+policy:
+  allow_implicit_invocation: true

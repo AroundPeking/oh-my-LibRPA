@@ -79,6 +79,23 @@ Use this branch when the user wants directories and scripts prepared first, then
   - `parallel_routing = libri`
   - `binary_input = t`
 
+## Symmetry And BZ Sampling
+
+- Treat `periodic_gw_optimize_kgrid_symmetry = none/inverse/all` as the
+  FHI-aims `bz_sampling` q-point mapping choice only: `none` is unreduced,
+  `inverse` pairs `q` with `-q`, and `all` uses the full spatial group to form
+  the smallest irreducible q region.
+- `stru_out` contains the spatial symmetry operations in all three modes.
+- LibRPA independently uses those operations only when the applicable
+  `use_symmetry_exx`, `use_symmetry_rpa`, and `use_symmetry_gw` switches are
+  enabled.
+- For the currently validated reader-v1 production route, prefer `inverse`
+  unless the exact FHI-aims and LibRPA revisions pass a same-case `all` versus
+  `inverse` EXX/GW regression. This is an interface-compatibility guard, not a
+  statement that `all` is physically invalid.
+- Record both the q mapping from `bz_sampling_out` and the symmetry operations
+  from `stru_out`; do not use either one as evidence for the other.
+
 ## Submission Rules
 
 - Submit only through Slurm:

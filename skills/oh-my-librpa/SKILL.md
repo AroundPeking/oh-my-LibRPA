@@ -32,6 +32,15 @@ inspection, input preparation, static checks, parsing, and plotting.
 6. Before submission, run the existing static preflight and record executable
    paths, hashes, source revisions, scheduler resources, and the duplicate-job
    check.
+7. Before any GW or RPA calculation, query the LibRPA materials database through
+   its MCP server for similar materials: `search_materials` for the same or a
+   related material, `list_basis_sets(element=...)` for every recorded
+   PP/NAO/ABFS/for_aux set, `get_material(record_id)` for the exact `set_id` per
+   species. Reuse the hash-matched element bundle and recorded parameters when
+   they exist; generate a new set only when the database has no match, and say
+   which query established the gap. After a calculation is accepted, archive it
+   with `librpa-database-intake` — a result that lives only in the material run
+   folder is invisible to the next case.
 
 ## Spin And SOC
 
@@ -63,5 +72,9 @@ numerical, and scientific conclusions separate.
   the version-dependent spelling of the W(R) output switch, and the hard
   boundary that this BSE solves Q = 0 excitons only.
 - `references/regression-route.md` — regression and reference comparison rules.
+- `references/ws2-2d-qsgw-g0w0-hr.md` — WS2 2D standard recipe: one `qsgw` task
+  carrying the band channel, G0W0 eqp and QSGW bands together, H(R) and
+  Sigma(R, iw) for ML, the shifted 2 eV cut, the `use_kpara_scf_eigvec=f`
+  requirement, and the k10/k20 database comparison.
 - `references/server-profiles.md` — server and execution profile layout.
 - `references/abacus-merge-compat.md` — ABACUS merge compatibility notes.

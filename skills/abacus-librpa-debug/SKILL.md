@@ -7,6 +7,8 @@ description: Diagnose ABACUS + LibRPA RPA/GW failures from logs and inputs. Use 
 
 Before treating an ABACUS+LibRPA failure as a physics/input issue, apply `skills/abacus-librpa-version-guard/` when execution provenance matters. Mismatched binaries can reject or misread pinned parameters, so check server source revisions against the MCP profile before redesigning inputs.
 
+For slow, stalled, or underutilized LibRPA stages, apply `$librpa-openmp-mkl-threading` before changing physics inputs or declaring an application failure.
+
 Locate the failing stage first, then provide targeted fixes. Avoid broad blind modifications.
 
 ## Diagnosis Order
@@ -16,6 +18,7 @@ Locate the failing stage first, then provide targeted fixes. Avoid broad blind m
 3. Check whether inputs are mixed from different workflow chains.
 4. Check stale-output contamination from previous runs.
 5. Check missing or conflicting threshold parameters.
+6. For LibRPA performance failures, check MPI ranks per node, `OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `MKL_DYNAMIC`, nested-team limits, and measured utilization at the same application stage.
 
 ## Common Issues
 

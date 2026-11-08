@@ -1,0 +1,4 @@
+interface:
+  display_name: "PBE 与全电子 Head 筛选赝势"
+  short_description: "按 PBE 能带与全电子响应选择匹配 GW 的赝势和 TZDP 基组"
+  default_prompt: "使用 $abacus-pp-pbe-head-screening，为指定材料先检查同赝势 PW/NAO 和 aims 全电子 PBE，再比较同定义 head，最后选择匹配的 GW 表示。"

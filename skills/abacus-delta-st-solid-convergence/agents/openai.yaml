@@ -1,0 +1,4 @@
+interface:
+  display_name: "ABACUS Delta-ST Solid Convergence"
+  short_description: "Periodic Delta-ST solid convergence and screening"
+  default_prompt: "Prepare, submit, audit, or document a periodic ABACUS Delta-Sternheimer plus LibRPA solid calculation using analytic head/wing and an FD8 atomic reference."

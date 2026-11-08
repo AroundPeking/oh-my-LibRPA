@@ -11,6 +11,22 @@ Status: partially captured from the user's current teaching notes. Keep exact wo
 
 ## Prerequisites
 
+- This is a **missing-asset generation recipe**, not a step to run for every
+  material. First query the LibRPA materials database through its MCP server:
+  `list_basis_sets(element=...)` for every recorded PP/NAO/ABFS/for_aux set and
+  its payload hashes, `search_materials(...)` for a related material that
+  already binds one, `get_material(record_id)` for the exact `set_id`. Reuse a
+  hash-matched element bundle instead of regenerating. An absent catalog link
+  or a missing original for_aux log is not proof that the asset does not
+  exist, so re-query by element before starting a run.
+- The retired local trees `2d_gw_pp_basis_library` and
+  `2d_gw/pp_basis_library` must not be referenced: all 263 of their
+  PP/NAO/ABFS payloads were confirmed present in the database by hash and the
+  directories were deleted on 2026-11-05.
+- A wrapper failure must be distinguished from a native export failure before
+  any retry, and a completed export is archived into the database with
+  `librpa-database-intake` rather than left in the material run folder.
+
 - Use `abacus_abf_gen` from branch `develop`.
 - Use the input under `/home/ghj/basis_abacus/SIAB/abfs/abacus_abfs/Ca` on `66` only as a template reference.
 - Do not describe that path as the direct input source for every case; instead, write a fresh template for the target atom by following the same pattern.
@@ -47,7 +63,7 @@ Status: partially captured from the user's current teaching notes. Keep exact wo
 12. The usual value for this parameter is:
    - `exx_pca_threshold = 1e-4`
 13. In this special ABACUS branch, turning on `rpa` in `INPUT` makes ABACUS generate the auxiliary basis automatically.
-14. Other `INPUT` parameters should otherwise stay the same as the chosen template.
+14. Preserve the reviewed template settings for a matched control. For a new PP/element, verify its cutoff, cell units/size, electron count, spin and solver compatibility before inheriting numeric values. The Ca sample is a starting example, not universal convergence evidence; do not silently change an existing accepted control.
 15. Prepare the basis used for auxiliary-basis generation from the GW basis by adding `for_aux`.
 16. The `for_aux` strategy depends on the highest angular momentum already present in the production GW basis:
    - if the production basis stops at `d`, add one extra `f` orbital and one extra `g` orbital
@@ -57,24 +73,32 @@ Status: partially captured from the user's current teaching notes. Keep exact wo
    - `...1f -> ...1f1g`
 18. These extra auxiliary-only channels are used only when generating `.abfs`.
 19. Do not put those extra `for_aux` channels into the numerical orbital set used in the final GW calculation.
-20. Use a single-atom `STRU` template:
+20. For an auxiliary-basis convergence test when the production orbital basis stops at `d`, do not use an increasingly small `exx_pca_threshold` as the primary enlargement ladder. Hold `exx_pca_threshold = 1e-4` fixed and increase the auxiliary-generation angular hierarchy in two controlled steps:
+   - intermediate: append one smooth auxiliary-only `f` channel, `...3d -> ...3d1f`
+   - endpoint: append one smooth auxiliary-only `g` channel to the same intermediate basis, `...3d1f -> ...3d1f1g`
+21. Keep the pseudopotential, physical production orbital, radial cutoff, Gaussian construction rule, generator binary, box, grid, and all downstream RPA settings fixed between the `1f` and `1f1g` points. Record the generated `.abfs` hash and actual `naux` for each point.
+22. Distinguish the two thresholds explicitly:
+   - `exx_pca_threshold` controls generation of the product-PCA `.abfs` and is fixed at `1e-4` in this angular-hierarchy test
+   - LibRPA `sqrt_coulomb_threshold` controls spectral handling of the Coulomb matrix and must remain at its separately validated fixed value
+23. Accept `1f -> 1f1g` convergence only when the molecular and atomic absolute RPA correlation energies and their binding/dissociation combination pass the declared tolerance, and when the full-Coulomb spectrum and retained rank remain numerically stable. Adding `g` is not accepted merely because it increases `naux`; reject or diagnose the point if it introduces new negative or near-null Coulomb directions.
+24. Use a single-atom `STRU` template:
    - one atom only
-   - orthogonal `15 x 15 x 15` lattice
+   - reviewed target-specific cell with explicit lattice units; the historical orthogonal `15 x 15 x 15` cell is a template example, not a universal acceptance requirement
    - replace the element name with the target element
    - replace the pseudopotential filename with the matching target-element pseudopotential
    - replace the orbital filename with the matching target-element `for_aux` orbital
    - atomic position at `0 0 0`
-21. Use the `k111` `KPT` template from the reference workflow.
-22. Run `ABACUS` to produce `*.abfs`.
-23. Use the `66` server sample script shape as the reference.
-24. In the current `Ca` sample directory, the script is named `run_HR.sh`.
-25. Its essential logic is:
+25. Use the `k111` `KPT` template from the reference workflow.
+26. Run `ABACUS` to produce `*.abfs`.
+27. Use the `66` server sample script shape as the reference.
+28. In the current `Ca` sample directory, the script is named `run_HR.sh`.
+29. Its essential logic is:
    - request one node
    - set `OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK`
    - define the ABACUS executable path
    - launch one ABACUS rank with `mpirun -n 1 -ppn 1 ... > abfs.out`
-26. `SBATCH` resource lines should be adjusted per server; for this auxiliary-generation workflow, one node is usually enough.
-27. The exact shell command can stay encapsulated in the submission script; for this recipe, the minimum requirement is only that one ABACUS run is launched and finishes.
+30. `SBATCH` resource lines should be adjusted per server; for this auxiliary-generation workflow, one node is usually enough.
+31. The exact shell command can stay encapsulated in the submission script; for this recipe, the minimum requirement is only that one ABACUS run is launched and finishes.
 
 ## Preferred `for_aux` orbital route for `1f1g`
 
@@ -150,7 +174,7 @@ Instead, multiply it by a smooth window in the last `15%` of the radial box:
 - start cutoff window at `0.85 * rcut`
 - use a quintic smoothstep so the value goes smoothly to `0` at `rcut`
 
-### Local helper in this repo
+### Helper Source And Remote Execution
 
 The repo-local helper script:
 
@@ -165,18 +189,24 @@ can:
 - write a new `.orb`
 - print the chosen Gaussian exponents and peak radii as JSON
 
-Example:
+The macOS path above is the source location, not an execution instruction.
+Transfer a hash-pinned copy and the matched inputs to the approved server.
+Run the following inside the prepared remote shell, with `REMOTE_HELPER`
+set to the verified deployed script path; use `ghj-remote-ssh` for host setup.
+Keep local work to inspection, transfer, parsing and plotting.
+
+Remote example:
 
 ```bash
-python3 /Users/ghj/code/oh-my-librpa/scripts/generate_gaussian_aux_orb.py \
+python3 "${REMOTE_HELPER:?set verified remote helper path}" \
   --input Si_gga_8au_100Ry_3s3p2d.orb \
   --output Si_gga_8au_100Ry_3s3p2d1f1g_gaus.orb
 ```
 
-Broader-tail example:
+Remote broader-tail example (a separate controlled recipe, not an automatic retry):
 
 ```bash
-python3 /Users/ghj/code/oh-my-librpa/scripts/generate_gaussian_aux_orb.py \
+python3 "${REMOTE_HELPER:?set verified remote helper path}" \
   --input Ga_gga_10au_150Ry_4s4p3d.orb \
   --output Ga_gga_10au_150Ry_4s4p3d1f1g_gaus_extend.orb \
   --mode extend
@@ -198,7 +228,7 @@ Observed sample files:
 - `Ca_gga_10au_150Ry_6s3p2d1f1g.orb`
 - `Ca_ONCV_PBE-1.0.upf`
 
-Observed sample `INPUT` highlights:
+Observed sample `INPUT` highlights (Ca only; target-PP cutoff and box convergence must be established separately):
 
 - `calculation scf`
 - `ecutwfc 150`
@@ -345,14 +375,14 @@ where `314` and `309` are the angular-degeneracy-weighted totals from the header
 
 - Check that the generation `STRU` is a single-atom structure for the target element.
 - Check that the generation `STRU` does not contain `ABFS_ORBITAL`.
-- Check that the generation `STRU` uses an orthogonal `15 x 15 x 15` box and puts the single target atom at `0 0 0`.
+- Check that the generation `STRU` matches the reviewed target-specific cell, explicit units and atomic position. The historical `15 x 15 x 15` box with atom at `0 0 0` is an example; a reviewed alternative cell must not be rejected solely for differing from it.
 - Check that the pseudopotential files used for `.abfs` generation are exactly the same as the later GW run.
 - Check that the `NUMERICAL_ORBITAL` files used for `.abfs` generation are exactly the same as the later GW run, except for the extra `for_aux` channels used only during `.abfs` generation.
-- Check that the `for_aux` basis naming really reflects the original basis plus `1f1g`.
+- Check that the `for_aux` name and actual header reflect only the channels added by the selected recipe: physical d-ending basis adds f/g; physical f-ending basis adds g only. An explicitly authorized intermediate f-only control remains distinct. Do not reject a correct g-only extension or change existing physical f functions.
 - Check that the `k111` `KPT` template is used.
 - Check that `rpa` is enabled in `INPUT`, because this custom ABACUS branch generates `.abfs` through that path.
 - Check that `exx_pca_threshold` is set intentionally; the usual value taught by the user is `1e-4`.
-- Check that the extra `f` and `g` channels are present only in the auxiliary-generation basis, not in the final GW numerical orbitals.
+- Check that newly added auxiliary-only channels appear only in the generation basis; preserve all original physical channels exactly. A physical f orbital remains in the final GW basis and must not be removed as if it were auxiliary-only.
 - For Gaussian-style `1f1g`, check that the added `f/g` channels remain smooth and do not show obvious short-wavelength oscillations near the origin.
 - For Gaussian-style `1f1g`, prefer `g` channels with `0` significant nodes and reject obviously multi-node or strongly oscillatory `g` shapes.
 - For Gaussian-style `1f1g`, if adding `g` later worsens the downstream behavior or clearly harms occupied-state quality, drop the `g` channel instead of keeping it by default.

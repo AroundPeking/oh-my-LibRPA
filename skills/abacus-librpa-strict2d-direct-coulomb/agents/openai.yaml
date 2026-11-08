@@ -1,0 +1,3 @@
+interface:
+  display_name: "ABACUS strict-2D direct Coulomb"
+  short_description: "Converge and validate positive direct 2D Coulomb output"

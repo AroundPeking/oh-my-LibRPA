@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa-abacus-librpa
-description: Stack-layer workflow for ABACUS to LibRPA cases. Use when users provide ABACUS-style inputs such as INPUT/INPUT_scf/INPUT_nscf/KPT/STRU, or ask to run, validate, or debug LibRPA starting from ABACUS outputs. Route inside this layer to the existing GW, RPA, or Debug skills instead of mixing ABACUS conventions with FHI-aims workflows.
+description: Use when ABACUS inputs, reader-v1 handoffs, producer outputs, or ABACUS-to-LibRPA failures are involved, especially with INPUT, KPT, STRU, GW, RPA, or Debug cases.
 ---
 
 # oh-my-librpa-abacus-librpa
@@ -17,6 +17,7 @@ Treat this skill as the ABACUS-side router below the top-level `oh-my-librpa` en
 
 - Confirm the case is ABACUS-based before proceeding.
 - Apply `skills/abacus-librpa-version-guard/` before any compute, audit, debug, restart, or result interpretation. Physics runs are server-side by default and must match the pinned ABACUS `master_ghj`, LibRPA `v0.7.0`, and when used PyATB `enable_head_wing` profile unless a reproduction exception is recorded.
+- Apply `$librpa-openmp-mkl-threading` before preparing, submitting, restarting, or diagnosing the LibRPA stage. This is mandatory even when the upstream producer is ABACUS.
 - Classify the task as:
   - `GW`
   - `RPA`
@@ -66,5 +67,11 @@ If ABACUS canonical markers are absent and the case instead has stronger FHI-aim
 - Audit copied bundles instead of blindly reusing stale outputs.
 - Check server executable provenance and source SHAs against the MCP profile before submission; do not rely on unverified binaries.
 - Run static checks before submission.
+- When editing ABACUS source, INPUT metadata, reader-v1 producer output, or the ABACUS/LibRPA handoff, **REQUIRED SUB-SKILL:** use `abacus-development-conventions`. Split implementation fragments must use responsibility-based names; do not use opaque sequence names such as `impl_00` or `impl_01`.
+- Treat an INPUT rename as one contract across the public keyword, `Input_Item`, the backing `Input_para`/runtime member, defaults, serialized keys, generated documentation, tests, and every runtime read. Keep each identifier in that contract within 15 characters, and do not leave a long internal member after shortening the public spelling.
+- For any rename, inspect the writer/producer and every reader/consumer, run a repository-wide `rg` check for old and new spellings, and verify that only intentional compatibility aliases remain. Check duplicate registration, case variants, default and unknown-key behavior, and restart/serialization paths when present.
+- When resolving a PR conflict, inspect both sides and the producer/consumer contract; never resolve by blindly taking `ours` or `theirs`. Remove every conflict marker, then repeat the static and residual-name checks.
+- When source, INPUT metadata, or documentation changes, inspect Read the Docs jobs separately (including `abacus-develop` and `abacus-rtd` when configured); a green code check does not close the documentation gate.
+- Keep ABACUS producer MPI/OpenMP/MKL settings separate from the LibRPA stage. For one LibRPA MPI rank per node, require `OMP_NUM_THREADS == MKL_NUM_THREADS == SLURM_CPUS_PER_TASK`; never inherit an unexplained `MKL_NUM_THREADS=1`.
 - On any server, confirm that ABACUS and LibRPA were built against the same latest LibRI with the nearest-fix bugfix. If the host has a site-specific LibRI root, record it in the host profile instead of assuming a cross-server default.
 - Keep the conversation operational and report `what was done`, `what was observed`, and `what is next`.

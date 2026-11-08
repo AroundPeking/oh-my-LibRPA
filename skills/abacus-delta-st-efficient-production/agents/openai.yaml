@@ -1,0 +1,4 @@
+interface:
+  display_name: "Delta-ST Efficient Production"
+  short_description: "Keep Delta-ST jobs within wall-time limits"
+  default_prompt: "Choose an efficient, physically equivalent MPI/OpenMP layout for this molecular or solid Delta-ST calculation, verify it with a pilot, and enforce a 24-hour completion gate."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ABACUS 分子 Delta-ST 收敛"
+  short_description: "规范分子和原子 Delta-ST RPA 收敛测试"
+  default_prompt: "Use $abacus-delta-st-molecular-convergence to plan and validate a molecular Delta-ST RPA convergence campaign."

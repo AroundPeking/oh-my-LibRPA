@@ -1,0 +1,4 @@
+interface:
+  display_name: "ABACUS LibRPA Strict 2D GW"
+  short_description: "Prepare and validate strict-2D Ewald and analytic head/wing GW."
+  default_prompt: "Prepare or audit an ABACUS+LibRPA strict-2D Ewald and analytic head/wing calculation using the current master_ghj workflow."

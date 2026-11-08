@@ -5,7 +5,24 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 
 # ABACUS + LibRPA GW
 
+Before choosing or generating PP/NAO/ABFS inputs, query the LibRPA materials
+database through its MCP server (`list_basis_sets` for the element,
+`search_materials` for a related or the same material, `get_material` for the
+exact `set_id`). The database at `https://github.com/AroundPeking/LibRPA-database`
+is the single source of element assets; the retired local
+`2d_gw_pp_basis_library` / `2d_gw/pp_basis_library` trees were verified
+payload-by-payload and deleted on 2026-11-05. Reuse hash-matched element
+bundles across materials; an asset missing from an index listing is not proof
+that it does not exist, so re-query by element before declaring a gap. After a
+calculation is accepted, archive it with `librpa-database-intake` rather than
+leaving it only in the material run folder. Material Coulomb/Cs/shrink and
+wavefunction handoffs remain same-producer data, not transferable element assets.
+
 Before any GW compute, restart, audit, debug, or result interpretation, apply `skills/abacus-librpa-version-guard/`. Real physics compute must run on a server by default, using the pinned ABACUS `master_ghj`, LibRPA `v0.7.0`, and PyATB `enable_head_wing` profile unless a recorded reproduction exception applies.
+
+Before preparing or submitting the LibRPA stage, apply `$librpa-openmp-mkl-threading`. Do not reuse the ABACUS producer's thread environment as the LibRPA environment without revalidating the rank layout.
+
+Before each new DF job, apply the `research-hpc-orchestrator` skill's `references/df-live-partition-selection.md`. Select among live feasible CPU partitions, including available `48cp1`/`48cp2`, without asking again or inheriting the producer's partition. Bind the selected full-node thread/memory shape into scripts, manifests and runtime guards before submission; do not mutate an existing immutable job.
 
 Execution order depends on system type:
 
@@ -16,10 +33,11 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
 
 ## Required Checks
 
-- Verify `nbands` in both `INPUT_scf` and `INPUT_nscf` is equal to the basis-function count.
+- For a full-AO baseline, set `nbands` in `INPUT_scf` and `INPUT_nscf` equal to the basis-function count. This is a baseline convention, not a mathematical requirement. For an explicitly requested empty-state control, permit occupied states < `nbands` <= `nbasis`, retain every AO coefficient, and validate the rectangular state-by-AO handoff end to end.
 - Verify `INPUT_scf` and `INPUT_nscf` use the same `nbands`.
+- In reduced-state controls, align `band_out`, occupations, Vxc, path metadata, SCF/path eigenvectors, full-grid PyATB and both state axes of velocity matrices. Never crop the AO or auxiliary dimensions, overwrite the full-state reference, or treat a plotted/output band window as an internal screening cutoff. Check the actual source: a chi0-only band option need not limit Sigma or head/wing. Honor runtime guards that disable optimizations requiring complete AO band space, and compare the control on matched algorithm/software and frequency definitions. Stability after truncation is not empty-state convergence.
 - Compute basis-function count from `.orb` files using angular-momentum degeneracy (`s=1`, `p=3`, `d=5`, `f=7`, ...), multiply by radial multiplicity, sum over all atoms in the primitive cell, and multiply by `2` when SOC is enabled.
-- Cross-check the final `nbands` against `NBASE` in ABACUS output.
+- Cross-check the physical AO count against `NBASE`/`NLOCAL` and the state count against `NBANDS` in ABACUS output separately. Require equality only for a full-AO baseline.
 - Verify spin/SOC settings are aligned across files:
   - collinear spin without SOC -> `nspin = 2`, `lspinorb = 0`
   - noncollinear with SOC -> `nspin = 4`, `lspinorb = 1`
@@ -40,8 +58,9 @@ If the case uses a locally merged ABACUS checkout or locally patched helper scri
   - `get_diel.py`, `perform.sh`, `preprocess_abacus_for_librpa_band.py`, `run_abacus.sh`, `output_librpa.py`, `plot_gw_band_paper.py`
   - `.orb`, `.abfs`, `.upf`
 - For server runs, prefer a materialized host profile (`env.sh`) with explicit `python3_exec`, executable paths, launcher paths, and any required `.bashrc` / conda activation steps instead of relying on implicit login-shell luck.
+- When the user authorizes PyATB or a path NSCF on a login node (only for work expected to finish within 30 minutes; anything longer or uncertain must go through Slurm per `ghj-remote-ssh`), inspect the account cgroup memory limit before launch.  A login cgroup can be far smaller than node memory.  If a single ABACUS process has a material fraction of that limit, serialize all PyATB/path-NSCF launches with a shared `flock` lock; do not run independent materials concurrently.  Preserve an OOM-killed work directory and its exit receipt, then retry only the incomplete stage after the placement cause is established.
 - For server runs, record ABACUS, LibRPA, and when used PyATB source SHAs, then compare them with the MCP profile before submission. Stop on mismatched or unknown versions unless the user explicitly confirms a reproduction exception.
-- For server Slurm submissions, probe the target server and partition for node shape before submission, then verify the batch script against those live facts. For `1 MPI rank/node`, `--cpus-per-task` and `OMP_NUM_THREADS` should use the full discovered per-node core count, and `--mem` should use the full discovered per-node `RealMemory` in MB unless the user explicitly requests a smaller allocation.
+- For server Slurm submissions, probe the target server and partition for node shape before submission, then verify the batch script against those live facts. For `1 MPI rank/node`, `--cpus-per-task`, `OMP_NUM_THREADS`, and `MKL_NUM_THREADS` must use the full discovered per-node core count, with `MKL_DYNAMIC=FALSE`; `--mem` should use the full discovered per-node `RealMemory` in MB unless the user explicitly requests a smaller allocation. Keep `OMP_MAX_ACTIVE_LEVELS=1` unless a source-backed test requires nested teams.
 - Build ABACUS and LibRPA against current `abacusmodeling/LibRI` and `abacusmodeling/LibComm` branch `fix_status` unless the user explicitly asks for an older dependency snapshot.
 - For pinned ABACUS `master_ghj` plus LibRPA `v0.7.0`, default to reader-v1 handoff:
   - ABACUS SCF producer: `out_librpa_reader_version 1`
@@ -167,6 +186,23 @@ Use the following alignment for spin-sensitive GW workflows:
 - Current LibRPA maps `pyatb_librpa_df/k_path_info` onto its active k-list; keep `pyatb_librpa_df` internally consistent and do not rewrite it into an IBZ/star-weighted payload by default
 - Keep root `stru_out`, `band_out`, `k_path_info`, `velocity_matrix`, and `KS_eigenvector_*.dat` consistent with the same ABACUS run; current LibRPA rebuilds symmetry rotations from `stru_out`
 - Never overwrite those root files with the full-BZ `pyatb_librpa_df/*` copies unless the user explicitly asks for a root-level replacement and understands the symmetry mismatch risk
+- Enforce the producer-local symmetry contract: `stru_out`, IBZ eigenvectors,
+  Coulomb/LRI/shrink files, symmetry sidecars, and PyATB must all come from the
+  same producer.  The PyATB validation record must name that exact producer.
+- Check the symmetry-operation rows in `stru_out`; reject a symmetry case whose
+  `stru_out` was replaced by a full-q file without those rows.
+- For an older ABACUS writer, a unit-corrected `stru_out` is acceptable only
+  when it is derived from the same producer and accompanied by an immutable
+  receipt containing original/corrected SHA256 values and a passed validation.
+  A file copied from another producer is never an acceptable correction.
+- Before accepting symmetry for a new material or PP/NAO/ABFS chain, compare
+  one matched symmetry calculation against a full-q control using identical
+  raw/compressed auxiliary dimensions, band source, LibRPA binary, frequency
+  grid, continuation, and all non-symmetry settings.  Compare occupied bands
+  plus the first PBE-indexed conduction branch over the full path.  Ignore
+  unstable high-unoccupied Padé roots for this gate, but report them separately.
+- A successful solver or agreement in another material is not a symmetry
+  validation for the current producer chain.
 
 ## Default Shrink Strategy
 
