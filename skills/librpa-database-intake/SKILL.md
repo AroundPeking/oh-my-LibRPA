@@ -62,7 +62,12 @@ directly — always a branch plus PR. CI enforces the same gates on the PR.
 
 ## Phase A: discover and validate
 
-Read `README.md` and `references/database.md` in the repository first.
+Read `README.md` and `references/database.md` in the database repository
+(`AroundPeking/LibRPA-database`) first. Paths such as `scripts/library.py`,
+`scripts/build_indexes.py`, `scripts/export_missing_evidence.py`,
+`scripts/verify_post_sync.py`, `scripts/generate_band_figures.py` and
+`database/archive-completeness.json` below are repository paths, not files
+shipped inside this skill.
 
 For each candidate:
 
