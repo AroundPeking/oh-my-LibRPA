@@ -77,8 +77,8 @@ For GW requests, set:
 - `parallel_routing = libri`
 - `vq_threshold = 0`
 - `sqrt_coulomb_threshold = 0`
-- `use_fullcoul_exx = f`
-- Set `use_fullcoul_exx = t` only for an explicitly requested full-Coulomb EXX definition, and compare it only with a definition-matched benchmark.
+- `use_fullcoul_exx = t`
+- `t` is the oml default (user decision 2026-10-23). Use `use_fullcoul_exx = f` only for an explicitly requested cut-Coulomb EXX definition, and compare it only with a definition-matched benchmark.
 - `use_kpara_scf_eigvec = t`
 - `libri_chi0_collect_max_bytes = 2147483648`
 - `output_gw_sigc_mat_rf = f`
