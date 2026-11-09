@@ -104,6 +104,32 @@ def definition_digest(definition: Mapping[str, Any]) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+def _figure_title(analysis: dict[str, Any], occupied_bands: int | None) -> str:
+    """Name the figure the way a database record names it, not by run hash."""
+    material = analysis.get("material") or analysis.get("system") or "band structure"
+    suffix = f"{occupied_bands} occupied" if occupied_bands else "occupancy from the table"
+    return f"{material} ({suffix})"
+
+
+def _scf_kpt_for(artifacts: Mapping[str, Any]) -> Path | None:
+    """Locate the KPT of the self-consistent run so the mesh dots are real.
+
+    Only path samples whose fractional k coincides with that mesh carry its
+    information; without the file the figure is still correct but shows plain
+    curves, which is why a missing KPT must not silently become empty dots.
+    """
+    for key in ("scf_kpt", "kpt_scf"):
+        candidate = artifacts.get(key)
+        if candidate and Path(candidate).is_file():
+            return Path(candidate)
+    band = artifacts.get("ks")
+    if band:
+        sibling = Path(band).parent / "KPT_scf"
+        if sibling.is_file():
+            return sibling
+    return None
+
+
 def analyze_outcome(
     outcome: TrialOutcome,
     *,
@@ -141,7 +167,8 @@ def analyze_outcome(
                 {key: artifacts[key] for key in ("ks", "exx", "gw")},
                 destination,
                 occupied_bands=occupied_bands,
-                reference_gap_ev=gap_reference_ev,
+                title=_figure_title(analysis, occupied_bands),
+                scf_kpt=_scf_kpt_for(artifacts),
             )
         except (BandAnalysisError, OSError, RuntimeError) as exc:
             analysis["figure"] = {"path": str(destination), "error": str(exc)}

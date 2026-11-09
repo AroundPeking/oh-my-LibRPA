@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 from oml_mcp.band_analysis import ACCEPTANCE_RULE, analyze_band_set
-from oml_mcp.band_figure import DEFAULT_FIGURE_NAME, render_band_figure
+from oml_mcp.band_figure import DEFAULT_FIGURE_NAME, SIDECAR_NAME, render_band_figure
 
 
 def write_band(path: pathlib.Path, rows, *, occupations) -> None:
@@ -43,14 +43,67 @@ class BandFigureTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp.cleanup()
 
-    def test_render_writes_a_png_and_reports_each_layer(self) -> None:
+    def test_render_writes_the_database_figure_set_and_reports_each_layer(self) -> None:
+        # The acceptance artifact is the set the database record will carry:
+        # one SVG per method plus the audit sidecars, not a single PNG.
         target = self.root / "figure" / DEFAULT_FIGURE_NAME
         report = render_band_figure(self.paths, target, occupied_bands=2)
-        self.assertTrue(target.is_file())
-        self.assertGreater(target.stat().st_size, 5000)
+        self.assertTrue(target.is_dir())
+        for layer in ("ks", "exx", "gw"):
+            figure = target / f"{layer}_frontier.svg"
+            self.assertTrue(figure.is_file(), figure)
+            text = figure.read_text(encoding="utf-8")
+            self.assertGreater(len(text), 4000)
+            self.assertIn("<svg", text)
+            self.assertTrue((target / f"{layer}_frontier.json").is_file())
+        self.assertTrue((target / SIDECAR_NAME).is_file())
         self.assertEqual(report["layers"], ["ks", "exx", "gw"])
         self.assertEqual(report["occupied_bands"], 2)
         self.assertAlmostEqual(report["gaps_ev"]["gw"], 1.8 - 0.9, places=6)
+        self.assertEqual(report["render_standard"], "LibRPA-database scripts/plot_bands.py")
+
+    def test_the_figure_is_vendored_at_a_recorded_upstream_commit(self) -> None:
+        # The rendering rules come from the database; if that file is edited in
+        # place the figures and the records they back can drift apart.
+        from oml_mcp import band_frontier
+
+        self.assertRegex(band_frontier.UPSTREAM_COMMIT, r"^[0-9a-f]{40}$")
+        self.assertEqual(band_frontier.UPSTREAM_PATH, "scripts/plot_bands.py")
+        self.assertEqual(band_frontier.METHOD_STYLE["GW"][0], "#E64B35")
+
+    def test_a_legacy_png_path_lands_in_the_figure_directory(self) -> None:
+        # Callers that still pass band_structure.png must not write a lone PNG
+        # beside a figure set that no record can consume.
+        legacy = self.root / "run" / "band_structure.png"
+        report = render_band_figure(self.paths, legacy, occupied_bands=2)
+        figure_dir = pathlib.Path(report["path"])
+        self.assertTrue(figure_dir.is_dir())
+        self.assertEqual(figure_dir.name, DEFAULT_FIGURE_NAME)
+        self.assertTrue((figure_dir / "gw_frontier.svg").is_file())
+
+    def test_scf_mesh_dots_mark_only_the_grid_coincident_path_points(self) -> None:
+        # The fixture path is (0,0,0), (0.25,0,0), (0.5,0,0.5): all three sit on a
+        # 4x4x4 Gamma-centred mesh (k*n integral), so all three carry mesh data and
+        # all three must be dotted. An off-grid row would not be.
+        (self.root / "KPT_scf").write_text(
+            "K_POINTS\n0\nGamma\n4 4 4 0 0 0\n", encoding="utf-8"
+        )
+        target = self.root / "figure-dots" / DEFAULT_FIGURE_NAME
+        report = render_band_figure(
+            self.paths, target, occupied_bands=2, scf_kpt=self.root / "KPT_scf"
+        )
+        self.assertEqual(report["methods"]["GW"]["scf_grid_rows"], [1, 2, 3])
+        self.assertEqual(report["methods"]["KS"]["scf_grid_rows"], [1, 2, 3])
+        svg = (target / "gw_frontier.svg").read_text(encoding="utf-8")
+        self.assertIn("GW-grid-dots", svg)
+
+    def test_without_a_kpt_file_no_dots_are_claimed(self) -> None:
+        target = self.root / "figure-nodots" / DEFAULT_FIGURE_NAME
+        report = render_band_figure(self.paths, target, occupied_bands=2)
+        self.assertIsNone(report["scf_grid"])
+        self.assertEqual(report["methods"]["GW"]["scf_grid_rows"], [])
+        svg = (target / "gw_frontier.svg").read_text(encoding="utf-8")
+        self.assertNotIn("GW-grid-dots", svg)
 
     def test_acceptance_rule_names_the_figure_and_advisory_gap(self) -> None:
         self.assertIn("band figure", ACCEPTANCE_RULE)

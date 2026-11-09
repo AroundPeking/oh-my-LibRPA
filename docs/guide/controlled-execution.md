@@ -127,10 +127,19 @@ record can legitimately differ by a few tenths of an eV because of its EXX
 Coulomb definition or its path sampling. The rule for every periodic GW case is
 therefore:
 
-- the run must produce a rendered KS/EXX/GW band figure (`band_structure.png`,
-  three panels, energies referenced to each layer's own VBM) next to the band
-  tables; `analyze_outcome` renders it automatically and an unrenderable figure
-  fails the trial;
+- the run must produce the LibRPA-database band figure set
+  (`band_figures/{ks,exx,gw}_frontier.svg` plus their JSON sidecars and one
+  `band_frontier_metadata.json`) next to the band tables. The rules are
+  vendored from `AroundPeking/LibRPA-database` `scripts/plot_bands.py` at a
+  recorded commit (`oml_mcp/band_frontier.py`), so the artifact a trial is
+  judged on is the same object a database record carries: a frozen raw band
+  window of 3 occupied + 4 empty bands by default, per-k energy-rank ordering
+  inside each manifold, alignment to the sampled-path VBM of that window, a
+  break in the polyline at every non-finite state, and a filled dot on the
+  path samples that coincide with the self-consistent mesh. `analyze_outcome`
+  renders it automatically and an unrenderable figure fails the trial. Do not
+  substitute an "every band within N eV" window: a window that moves with the
+  data can hide the band that moved;
 - acceptance is decided on that figure together with the reference-free band
   gates (smoothness, layer localization) - a human or the visual judge reads the
   figure, not the gap alone;

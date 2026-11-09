@@ -26,7 +26,7 @@
     "GW_band_spin_1.dat",
     "EXX_band_spin_1.dat",
     "KS_band_spin_1.dat",
-    "band_structure.png",
+    "band_figures/gw_frontier.svg",
     "librpa.out"
   ],
   "upstream_directory": "si-k888-sg15-sym",
