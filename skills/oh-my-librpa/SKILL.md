@@ -34,12 +34,19 @@ stay true* on the way.
    for current symmetry handoff, and copy no legacy symmetry sidecars.
 3. Keep PP, NAO, ABFS, k mesh, spin, symmetry, solver, and executable identity
    fixed unless the requested test changes that variable.
-4. **Say where the basis comes from and how big it is, before any compute.**
-   Never let a run start on a basis the user has not been shown. State, per
-   species: the database element set id (or that the payloads are case-bundled
-   and match no single set), the pseudopotential file, the NAO shell string and
-   basis functions per atom, the auxiliary basis shell string and its dimension
-   per atom, and the totals `nbasis` / `naux` for the structure. Under the MCP
+4. **Say what the basis contains and what it has produced, before any compute.**
+   Never let a run start on a basis the user has not been shown. The identity of
+   a basis is its valence electron count, its sizes and its results - not its
+   database id. State, per species: the pseudopotential's valence electron count,
+   the NAO shell string and functions per atom, the auxiliary shell string and
+   functions per atom, the totals `nbasis` / `naux` for the structure, and which
+   archived calculations already used the set with their headline result. The
+   id, file names and SHA-256s go underneath as provenance, never first. For
+   example:
+
+   `Si: 4 valence electrons, 3s3p2d, 22 functions per atom, 397 auxiliary functions per atom. 2 calculations: Si GW gap 1.06 eV; SiC GW gap 2.26 eV.`
+
+   Under the MCP
    harness this is enforced: `prepare_run` writes the disclosure, `describe_basis`
    shows it, `acknowledge_basis` records the digest the user accepted, and
    `submit_stage` refuses (`BASIS_NOT_ACKNOWLEDGED`) until that exists. Do not

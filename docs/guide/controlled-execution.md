@@ -37,12 +37,19 @@ At preparation and before every submission, OML checks the pinned source SHAs an
 2. Review the immutable plan digest and call `prepare_run(source_path, plan_digest, execution_profile_id)`.
    Preparation writes `.oml/basis.json` into the run and returns it as `basis_disclosure`.
 3. Call read-only `describe_basis(run_id, ...)` and show the user exactly what the run
-   will use: for every species, where the pseudopotential, numerical orbital and
-   auxiliary basis come from (`database set <id>` with its family and validation
-   scope, or `run-bundled files` when no single database set matches), each file
-   name and SHA-256, the NAO shell string and dimension per atom, the ABF channel
-   counts and auxiliary dimension per atom, and the totals `nbasis` / `naux` for
-   this structure. Then call `acknowledge_basis` with the digest that was shown
+   will use. It returns `statement`, the rendered block, and that is what to
+   paste: per species, how many valence electrons the pseudopotential keeps, the
+   NAO shell string and functions per atom, the auxiliary shell string and
+   functions per atom, the totals `nbasis` / `naux` for this structure, and what
+   the set has already produced. Example line:
+
+   `Si: 4 valence electrons, 3s3p2d, 22 functions per atom, 397 auxiliary functions per atom. 2 calculations: Si GW gap 1.06 eV; SiC GW gap 2.26 eV.`
+
+   The payload file names, SHA-256s and the database set id follow underneath as
+   provenance. Put the id last, not first: it is bookkeeping, and two sets of the
+   same element are told apart by their sizes and their results.
+
+   Then call `acknowledge_basis` with the digest that was shown
    and the name of the person who reviewed it. `submit_stage` refuses to run until
    that acknowledgement exists and matches the current disclosure digest, so a
    basis changed after the fact invalidates the earlier answer. OML does not pick
