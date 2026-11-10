@@ -102,6 +102,22 @@ class PayloadFactsTest(unittest.TestCase):
         self.assertEqual(shell_string(channels), "3s3p2d")
         self.assertEqual(dimension_from_channels(channels), 22)
 
+    def test_a_zero_channel_is_not_a_shell(self) -> None:
+        # Generators write every l up to Lmax, so headers say "Forbital--> 0".
+        # Rendering that as "3s3p2d0f0g" would claim f and g functions.
+        path = self.write(
+            "zero.orb",
+            "Number of Sorbital-->       3\n"
+            "Number of Porbital-->       3\n"
+            "Number of Dorbital-->       2\n"
+            "Number of Forbital-->       0\n"
+            "Number of Gorbital-->       0\n",
+        )
+        channels = orbital_channels(path)
+        self.assertEqual(channels, {"S": 3, "P": 3, "D": 2})
+        self.assertEqual(shell_string(channels), "3s3p2d")
+        self.assertEqual(payload_facts(path, "nao")["dimension_per_atom"], 22)
+
     def test_auxiliary_basis_keeps_the_high_channels(self) -> None:
         # The library index has dropped J/K for 60 auxiliary bases; the file is
         # the authority, so the label must count them.

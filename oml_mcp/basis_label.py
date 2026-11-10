@@ -64,15 +64,21 @@ def valence_electrons(pseudopotential: str | Path) -> int | float | None:
 
 
 def orbital_channels(path: str | Path, *, limit_bytes: int = 65536) -> dict[str, int]:
-    """Return ``{"S": 3, "P": 3, "D": 2}`` from an ABACUS .orb or .abfs header."""
+    """Return ``{"S": 3, "P": 3, "D": 2}`` from an ABACUS .orb or .abfs header.
+
+    Zero channels are dropped. Generators write every l up to Lmax, so several
+    headers say ``Number of Forbital--> 0``; keeping that would render as
+    ``3s3p2d0f0g`` and claim f and g functions the set does not have.
+    """
     try:
         text = Path(path).read_text(errors="replace")[:limit_bytes]
     except OSError as exc:
         raise BasisLabelError(f"cannot read {path}: {exc}") from exc
     channels = {letter: int(count) for letter, count in _CHANNEL.findall(text)}
-    if not channels:
+    nonzero = {letter: count for letter, count in channels.items() if count}
+    if not nonzero:
         raise BasisLabelError(f"{path}: no angular-momentum channels in the header")
-    return {letter: channels[letter] for letter in _ANGULAR_ORDER if letter in channels}
+    return {letter: nonzero[letter] for letter in _ANGULAR_ORDER if letter in nonzero}
 
 
 def dimension_from_channels(channels: Mapping[str, int]) -> int:
