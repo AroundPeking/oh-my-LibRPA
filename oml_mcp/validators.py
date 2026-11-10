@@ -247,6 +247,106 @@ def _nbands_consistency_gate(case_root: Path) -> GateResult:
     )
 
 
+# A band path is an interpolation between high-symmetry nodes, so the sampling
+# between two nodes is the only thing that makes the curve visible. The database
+# records use 20-21 points per segment (25 of 26 archived paths; the one outlier
+# is a 10). A path with a handful of points draws straight lines across a
+# dispersion and hides any structure between them - the Si k444 demo used 1 point
+# per segment, which is why its 6-point curve says almost nothing.
+MIN_POINTS_PER_SEGMENT = 10
+TYPICAL_POINTS_PER_SEGMENT = 20
+
+
+def _band_path_density_gate(case_root: Path) -> GateResult:
+    """Require the band path to sample each high-symmetry segment properly.
+
+    A dispersion computed on five or six points is still "a band structure", so
+    no other gate catches it: the table is finite, the figure renders, the gap
+    is right at the nodes. It only fails at the thing a band figure is for -
+    showing what happens between them.
+    """
+    gate = "band_path.sampling"
+    path = case_root / "KPT_nscf"
+    if not path.is_file():
+        return _skip(gate, "KPT_nscf is not part of this case")
+    try:
+        document = parse_abacus_kpt(path)
+    except ParseError as exc:
+        return _fail(
+            gate,
+            "KPT_nscf is not a parseable ABACUS k-point file",
+            (str(path), str(exc)),
+            "fix the KPT_nscf syntax before running the band stage",
+        )
+    if document.get("mode") == "explicit":
+        # An explicit list is not interpolated: ABACUS computes exactly those k
+        # points, so the "path" is however many rows the file has. The Si k444
+        # demo listed six, which drew six straight lines across Gamma-X.
+        count = len(document.get("points") or [])
+        if count < TYPICAL_POINTS_PER_SEGMENT:
+            return _fail(
+                gate,
+                f"KPT_nscf lists {count} k points in explicit mode, so the band "
+                "figure has no sampling between them",
+                (str(path), f"mode=explicit, points={count}"),
+                "write the path in ABACUS Line mode with about "
+                f"{TYPICAL_POINTS_PER_SEGMENT} points per high-symmetry segment; an "
+                "explicit list is not interpolated and produces a straight-line figure",
+            )
+        return _pass(
+            gate,
+            f"KPT_nscf lists {count} explicit k points",
+            str(path),
+        )
+    if document.get("mode") != "path":
+        return _skip(gate, "KPT_nscf is not a band path")
+    segments = [int(value) for value in document.get("segments") or []]
+    if not segments:
+        return _fail(
+            gate,
+            "the band path declares no segment sampling",
+            (str(path),),
+            "write a point count per high-symmetry node",
+        )
+    # The last node has no segment of its own; ABACUS still expects a number
+    # there, conventionally 1.
+    interior = segments[:-1] if segments[-1] <= 1 else segments
+    if not interior:
+        return _fail(
+            gate,
+            "the band path has a single node, so there is no segment to sample",
+            (str(path),),
+            "give the path at least two high-symmetry nodes",
+        )
+    thin = [value for value in interior if value < MIN_POINTS_PER_SEGMENT]
+    total = 1 + sum(interior)
+    if thin:
+        return _fail(
+            gate,
+            f"the band path samples {min(thin)} point(s) on some segment; "
+            f"the database records use about {TYPICAL_POINTS_PER_SEGMENT}",
+            (str(path), f"segments={segments}", f"total points={total}"),
+            f"raise the per-node counts to about {TYPICAL_POINTS_PER_SEGMENT} "
+            "(ABACUS reads the number after each coordinate as the count for that "
+            "segment); a sparse path draws straight lines across the dispersion",
+        )
+    if min(interior) < TYPICAL_POINTS_PER_SEGMENT:
+        return _warn(
+            gate,
+            f"the band path samples {min(interior)} points per segment, below the "
+            f"usual {TYPICAL_POINTS_PER_SEGMENT}",
+            (str(path), f"segments={segments}", f"total points={total}"),
+            f"raise it to about {TYPICAL_POINTS_PER_SEGMENT} if the figure needs to "
+            "show structure between the nodes",
+        )
+    return _pass(
+        gate,
+        f"the band path samples at least {min(interior)} points per segment "
+        f"({total} points in total)",
+        str(path),
+    )
+
+
 def _task_gate(librpa: InputDocument, task: str) -> GateResult:
     actual = (librpa.value("task") or "").strip().lower()
     expected = "rpa" if task == "rpa" else "g0w0"
@@ -1178,6 +1278,7 @@ def validate_case(
     gates: list[GateResult] = [
         _duplicates_gate(abacus, librpa),
         _nbands_consistency_gate(case_root),
+        _band_path_density_gate(case_root),
         _value_gate(
             abacus,
             "abacus.producer",

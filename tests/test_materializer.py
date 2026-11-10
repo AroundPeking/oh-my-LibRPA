@@ -33,7 +33,12 @@ def make_periodic_source(root: pathlib.Path) -> None:
         encoding="utf-8",
     )
     (root / "KPT_scf").write_text("K_POINTS\n0\nGamma\n2 2 2 0 0 0\n", encoding="utf-8")
-    (root / "KPT_nscf").write_text("K_POINTS\n1\nDirect\n0 0 0 1\n", encoding="utf-8")
+    # A band path with the database's sampling density: an explicit single point
+    # would (correctly) fail the band_path.sampling gate now.
+    (root / "KPT_nscf").write_text(
+        "K_POINTS\n2\nLine\n0.000 0.000 0.000 20\n0.500 0.000 0.500 1\n",
+        encoding="utf-8",
+    )
     # A realistic STRU: the numerical orbital and auxiliary basis blocks are what
     # a GW run actually opens, and the basis disclosure reads them.
     (root / "STRU").write_text(

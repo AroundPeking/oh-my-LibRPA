@@ -140,6 +140,18 @@ next to two input gates that remove the upstream causes: `abacus.cp_rmesh`
 `abacus.reader_keyword` (rejects `out_librpa_ver`, a key ABACUS silently drops,
 so the dataset stays legacy while LibRPA reads it as v1).
 
+### The band path has to be sampled
+
+A band path is an interpolation between high-symmetry nodes, so the number of
+points *between* two nodes is the only thing that makes a dispersion visible.
+The database records use about 20 points per segment (25 of 26 archived paths;
+one uses 10). `band_path.sampling` refuses a path under 10 points per segment
+and warns under 20.
+
+This is not cosmetic. The Si k444 demo listed six explicit k points across
+Γ→0.425(Γ–X), so its band figure was five straight lines: the table was finite,
+the gap at the nodes was right, and nothing else caught it.
+
 ### Band figure is the acceptance artifact
 
 A gap number on its own is not evidence that a band table is physical: it hides a

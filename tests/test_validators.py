@@ -219,6 +219,56 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(self.gate(report, "pyatb.headwing").status, "PASS")
         self.assertEqual(self.gate(report, "pyatb.alignment").status, "PASS")
 
+    def test_a_sparse_band_path_is_refused(self):
+        # The Si k444 demo drew six points across a whole Gamma-X segment, so the
+        # curve was six straight lines. A dispersion that sparse still has a
+        # finite table and a correct gap at the nodes, which is why nothing else
+        # caught it.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "KPT_nscf").write_text(
+                "K_POINTS\n6\nLine\n"
+                + "".join(f"0.{i} 0.0 0.{i} 1\n" for i in range(6)),
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=False, stage="input"
+            )
+        failing = self.gate(report, "band_path.sampling")
+        self.assertEqual(failing.status, "FAIL")
+        self.assertIn("database records use about 20", failing.message)
+        self.assertIn("straight lines", failing.repair)
+
+    def test_a_database_density_path_passes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "KPT_nscf").write_text(
+                "K_POINTS\n3\nLine\n"
+                "0.000 0.000 0.000 20  # G\n"
+                "0.375 0.375 0.750 20  # K\n"
+                "0.500 0.500 0.500 1   # L\n",
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=False, stage="input"
+            )
+        self.assertEqual(self.gate(report, "band_path.sampling").status, "PASS")
+
+    def test_a_thin_but_usable_path_warns(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "KPT_nscf").write_text(
+                "K_POINTS\n2\nLine\n0.0 0.0 0.0 12\n0.5 0.0 0.5 1\n",
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=False, stage="input"
+            )
+        self.assertEqual(self.gate(report, "band_path.sampling").status, "WARN")
+
     def test_symmetry_on_outside_the_validated_scope_is_refused(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
