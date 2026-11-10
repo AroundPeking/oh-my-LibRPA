@@ -672,7 +672,7 @@ def _symmetry_gate(
         # profile records ONE validated scope for it; anything outside that scope
         # is unvalidated, and the measured failure is large (Si k888/44 bands:
         # EXX 3.54 versus 5.52 eV, GW -507 eV, while KS stayed exact).
-        mismatches = _symmetry_scope_mismatches(abacus, librpa, scope)
+        mismatches, unverified = _symmetry_scope_mismatches(abacus, librpa, scope)
         if mismatches:
             return _fail(
                 "symmetry.alignment",
@@ -683,11 +683,28 @@ def _symmetry_gate(
                 "(the measured out-of-scope failure is EXX 3.54 vs 5.52 eV and GW -507 eV "
                 "on Si k888/44 bands); symmetry remains exact for the RPA task",
             )
+        if unverified:
+            return _warn(
+                "symmetry.alignment",
+                "symmetry is enabled for EXX/GW but part of the requirement could "
+                "not be checked here",
+                (str(abacus.path), str(librpa.path), *unverified),
+                "stage the STRU assets next to INPUT_scf so nbands can be compared "
+                "with the physical basis dimension, or verify it before submitting",
+            )
         return _warn(
             "symmetry.alignment",
-            "symmetry is enabled for EXX/GW inside the profile's validated scope",
-            (str(abacus.path), str(librpa.path), f"scope: {scope}"),
-            "keep the settings inside the recorded scope; any change needs a new on/off pair",
+            "symmetry is enabled for EXX/GW and the case satisfies the recorded "
+            "requirements (nbands equals the basis dimension, nfreq is a supported "
+            "minimax count)",
+            (
+                str(abacus.path),
+                str(librpa.path),
+                f"nbands={_int_value(abacus, 'nbands')}",
+                f"nfreq={_int_value(librpa, 'nfreq')}",
+            ),
+            "keep nbands equal to the basis dimension and nfreq on a supported "
+            "minimax count; a new (material, grid) still needs its own on/off pair",
         )
     if not expected_enabled and task == "gw":
         # Consistent, but expensive: the whole chi0/Wc family then runs over the
@@ -722,41 +739,50 @@ def _symmetry_scope_mismatches(
     abacus: InputDocument,
     librpa: InputDocument,
     scope: dict[str, object] | None,
-) -> list[str]:
-    """Check the properties that made symmetry-on wrong, not a benchmark's settings.
+) -> tuple[list[str], list[str]]:
+    """Return ``(mismatches, unverified)`` for the recorded symmetry requirements.
 
-    The recorded scope was a single benchmark: bulk BN, k444, 26 bands, nfreq 24.
-    Comparing a case against those four numbers refuses every other legitimate
-    symmetry calculation - including the Si k444/44-band case that later measured
-    correct - because the numbers came from the one run that happened to be
-    validated, not from anything about symmetry.
+    The scope used to be one benchmark - bulk BN, k444, 26 bands, nfreq 24 - and
+    every case was compared against those four numbers. That refused legitimate
+    work: the Si k444/44-band case measured correct (GW 1.1189 eV, Gamma
+    degeneracy intact) and would still have been rejected for not being that
+    benchmark. The numbers came from the one run that happened to be validated,
+    not from anything about symmetry.
 
-    What the measured failure actually required, and what is checked here:
+    What the measured failures actually shared, and what is checked here:
 
-    * ``nbands`` must equal the physical basis dimension. The old failures were
-      all on a truncated state space, and a truncated space corrupts the
-      star-restored EXX/GW while leaving KS exact.
-    * ``nfreq`` must be a count the chosen frequency grid supports. A minimax
-      grid only defines certain sizes; anything else is not a coarser answer but
-      an undefined one.
-    * the screening grid must match what the producer wrote, which the
-      ``shrink``/``bz_sampling`` gates already cover.
+    * ``nbands`` must equal the physical basis dimension. Every old failure ran a
+      truncated state space, and truncation corrupts the star-restored EXX/GW
+      while leaving KS exact.
+    * ``nfreq`` must be a count the pinned minimax grid defines. Anything else is
+      not a coarser answer but an undefined one.
 
-    A 1x1x1 sampling has a single star member, so the defect this protects
-    against cannot act and the case is a toy probe.
+    ``unverified`` holds the things that could not be checked because the bundle
+    does not carry the payloads yet. Being unable to check is neither a pass nor
+    a failure, and reporting it separately keeps it from being silently either.
     """
     if not scope:
-        return ["no validated symmetry scope is recorded in the profile"]
+        return ["no validated symmetry scope is recorded in the profile"], []
     mismatches: list[str] = []
+    unverified: list[str] = []
     grid = _kpoint_grid(abacus)
-    if grid is not None and all(size == 1 for size in grid):
-        return []
+    single_star = grid is not None and all(size == 1 for size in grid)
     nbands = _int_value(abacus, "nbands")
     basis_dimension = _physical_basis_dimension(abacus)
-    if basis_dimension is not None and nbands is not None and nbands != basis_dimension:
+    if basis_dimension is None and nbands is not None:
+        unverified.append(
+            "the physical basis dimension is not computable here (the STRU assets "
+            "are not in this directory), so nbands cannot be verified"
+        )
+    elif basis_dimension is not None and nbands is not None and nbands != basis_dimension:
         mismatches.append(
             f"nbands {nbands} != the physical basis dimension {basis_dimension}"
         )
+    # With one k point every star has a single member, so the star-weight defect
+    # cannot act; the state-space check above still can, so only the rest is
+    # skipped for such a toy probe.
+    if single_star:
+        return mismatches, unverified
     nfreq = _int_value(librpa, "nfreq")
     supported = scope.get("minimax_nfreq_supported")
     if nfreq is not None and isinstance(supported, list) and supported:
@@ -765,7 +791,7 @@ def _symmetry_scope_mismatches(
                 f"nfreq {nfreq} is not a minimax count this build defines "
                 f"({', '.join(str(value) for value in supported)})"
             )
-    return mismatches
+    return mismatches, unverified
 
 
 def _physical_basis_dimension(abacus: InputDocument) -> int | None:

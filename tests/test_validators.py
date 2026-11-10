@@ -308,6 +308,49 @@ class WorkflowValidatorTest(unittest.TestCase):
         self.assertEqual(gate.status, "FAIL")
         self.assertIn("physical basis dimension", " ".join(gate.evidence))
 
+    def test_an_unverifiable_state_space_warns_instead_of_passing_silently(self):
+        # A bundle may omit payloads at the input stage. Being unable to check is
+        # neither a pass nor a failure, but it must not read as verified.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            self.make_case(root)
+            (root / "KPT_scf").write_text(
+                "K_POINTS\n0\nGamma\n4 4 4 0 0 0\n", encoding="utf-8"
+            )
+            (root / "INPUT_scf").write_text(
+                (root / "INPUT_scf").read_text().replace(
+                    "symmetry 1", "symmetry 1\nnbands 44"
+                ),
+                encoding="utf-8",
+            )
+            report = validate_case(
+                root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+            )
+        gate = self.gate(report, "symmetry.alignment")
+        self.assertEqual(gate.status, "WARN")
+        self.assertIn("could not be checked", gate.message)
+        self.assertIn("cannot be verified", " ".join(gate.evidence))
+
+    def test_a_supported_minimax_count_passes_and_an_unsupported_one_fails(self):
+        for nfreq, expected in ((16, "WARN"), (17, "FAIL")):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                root = pathlib.Path(tmpdir)
+                self.make_case(root)
+                (root / "KPT_scf").write_text(
+                    "K_POINTS\n0\nGamma\n4 4 4 0 0 0\n", encoding="utf-8"
+                )
+                (root / "librpa.in").write_text(
+                    (root / "librpa.in").read_text().replace(
+                        "nfreq = 24", f"nfreq = {nfreq}"
+                    ),
+                    encoding="utf-8",
+                )
+                report = validate_case(
+                    root, task="gw", system_type="solid", use_symmetry=True, stage="input"
+                )
+            with self.subTest(nfreq=nfreq):
+                self.assertEqual(self.gate(report, "symmetry.alignment").status, expected)
+
     def test_cp_rmesh_gate_rejects_a_truncated_real_space_cutoff(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
