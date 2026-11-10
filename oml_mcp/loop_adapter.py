@@ -19,6 +19,7 @@ from .basis_registry import (
     BasisAmbiguityError,
     BasisRegistryError,
     describe_set,
+    load_calculation_records,
     load_registry,
     resolve_set,
     verify_asset,
@@ -122,6 +123,8 @@ class ControlledLoopRunner:
         self.use_database_basis = use_database_basis
         self.policy_mode = policy_mode
         self.registry = load_registry(basis_root) if basis_root else None
+        # The archive's records turn a set id into "what did this basis produce".
+        self.basis_records = load_calculation_records(basis_root) if basis_root else ()
         if use_database_basis and self.registry is None:
             raise LoopError(
                 "the LibRPA-database basis is the default; pass a basis library root "
@@ -196,6 +199,10 @@ class ControlledLoopRunner:
                 raise LoopError("the database basis override needs a STRU in the case source")
             stru_text = stru_path.read_text(encoding="utf-8")
             elements = [element for element, _, _ in species(stru_text)]
+            try:
+                structure_counts = atom_counts(stru_text)
+            except StruError:
+                structure_counts = {}
             override: dict[str, dict[str, str]] = {}
             orbital_paths: dict[str, Path] = {}
             resolved_sets: dict[str, Any] = {}
@@ -208,10 +215,22 @@ class ControlledLoopRunner:
                         family=self.basis_family,
                         require_abf=self.require_abf,
                         set_id=self.basis_sets.get(element),
+                        records=self.basis_records,
+                        atom_count=structure_counts.get(element),
                     )
                 except BasisAmbiguityError as exc:
                     # Not "missing": every candidate is usable, nothing chose one.
-                    ambiguous[element] = [describe_set(item) for item in exc.candidates]
+                    ambiguous[element] = [
+                        described
+                        or describe_set(
+                            item,
+                            records=self.basis_records,
+                            atom_count=structure_counts.get(element),
+                        )
+                        for item, described in zip(
+                            exc.candidates, exc.described or (None,) * len(exc.candidates)
+                        )
+                    ]
                     continue
                 except BasisRegistryError:
                     missing.append(element)
@@ -302,7 +321,17 @@ class ControlledLoopRunner:
                     # Cannot compare the payloads against "some" set without
                     # choosing one; report the candidates instead of claiming an
                     # identity that was never established.
-                    ambiguous[element] = [describe_set(item) for item in exc.candidates]
+                    ambiguous[element] = [
+                        described
+                        or describe_set(
+                            item,
+                            records=self.basis_records,
+                            atom_count=structure_counts.get(element),
+                        )
+                        for item, described in zip(
+                            exc.candidates, exc.described or (None,) * len(exc.candidates)
+                        )
+                    ]
                     continue
                 except BasisRegistryError:
                     continue
@@ -336,7 +365,9 @@ class ControlledLoopRunner:
         if self.use_database_basis and self.registry is not None:
             wanted = {name for name, _, _ in species(stru_text)}
             self.last_basis_candidates = {
-                element: [describe_set(item) for item in candidates]
+                element: [
+                    describe_set(item, records=self.basis_records) for item in candidates
+                ]
                 for element, candidates in sorted(self.registry.items())
                 if element in wanted
             }

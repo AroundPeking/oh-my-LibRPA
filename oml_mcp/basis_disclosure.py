@@ -28,6 +28,12 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from .basis_label import (
+    BasisLabelError,
+    historical_uses,
+    label_for_set,
+    payload_facts,
+)
 from .basis_registry import ElementSet, file_sha256
 from .orbital_info import OrbitalInfoError, parse_orbital_header
 from .stru import StruError, atom_counts, sections, species
@@ -105,6 +111,7 @@ def build_basis_disclosure(
     run_dir: str | Path,
     *,
     registry: Mapping[str, tuple[ElementSet, ...]] | None = None,
+    records: tuple[dict[str, Any], ...] | list[dict[str, Any]] = (),
     soc: bool = False,
 ) -> dict[str, Any]:
     """Describe the basis a run directory will actually submit, or raise.
@@ -179,19 +186,16 @@ def build_basis_disclosure(
                 "sha256": digest,
                 "size_bytes": path.stat().st_size,
             }
-            if role in {"nao", "abf"}:
-                try:
-                    header = parse_orbital_header(path)
-                except OrbitalInfoError as exc:
-                    raise BasisDisclosureError(
-                        f"{element}/{role}: cannot read {name}: {exc}"
-                    ) from exc
-                payload["shells"] = header.shell_summary()
-                payload["lmax"] = header.lmax
-                payload["radial_counts"] = {
-                    f"l={l}": count for l, count in sorted(header.radial_counts.items())
-                }
-                payload["dimension_per_atom"] = header.basis_dimension_for(soc=soc)
+            # Sizes come from the bytes that will actually be read. The library
+            # index disagrees with its own files for 60 auxiliary bases (it omits
+            # the J/K channels), so quoting the index would misreport the basis.
+            try:
+                facts = payload_facts(path, role)
+            except BasisLabelError as exc:
+                raise BasisDisclosureError(f"{element}/{role}: {exc}") from exc
+            for key in ("valence_electrons", "shells", "channels", "dimension_per_atom"):
+                if key in facts:
+                    payload[key] = facts[key]
             entry["payloads"][role] = payload
 
         database_set, match_note = _match_database_set(registry, element, hashes)
@@ -239,6 +243,15 @@ def build_basis_disclosure(
         else:
             entry["auxiliary_dimension_total"] = None
             missing_auxiliary.append(element)
+        entry["label"] = label_for_set(
+            element,
+            valence=entry["payloads"].get("pp", {}).get("valence_electrons"),
+            nao=entry["payloads"].get("nao"),
+            abf=entry["payloads"].get("abf"),
+            uses=historical_uses(records, (entry["provenance"] or {}).get("set_id")),
+            atom_count=atoms or None,
+        )
+        entry["label_sentence"] = entry["label"]["sentence"]
         per_element[element] = entry
 
     complete = bool(total_basis) and not missing_auxiliary and bool(counts)
@@ -303,7 +316,12 @@ def disclosure_digest(disclosure: Mapping[str, Any]) -> str:
 
 
 def format_basis_disclosure(disclosure: Mapping[str, Any]) -> str:
-    """Render the disclosure as the plain block a user reads before approving."""
+    """Render the disclosure the way a person reads it: what, how big, what for.
+
+    The ids come last and are labelled as ids. A user deciding between two
+    element sets needs the valence count, the basis size and what the set has
+    already produced; the hash suffix on a family name is bookkeeping.
+    """
     lines: list[str] = []
     structure = disclosure.get("structure", {})
     lines.append(
@@ -312,44 +330,63 @@ def format_basis_disclosure(disclosure: Mapping[str, Any]) -> str:
     )
     lines.append("")
     for element, entry in disclosure.get("elements", {}).items():
+        label = entry.get("label") or {}
+        if label.get("sentence"):
+            lines.append(f"  {label['sentence']}")
+        else:
+            lines.append(
+                f"  {element}: {entry.get('atom_count')} atom(s), "
+                f"{entry.get('basis_dimension_per_atom')} basis functions/atom"
+            )
         provenance = entry.get("provenance", {})
         payloads = entry.get("payloads", {})
+        pp = payloads.get("pp")
+        nao = payloads.get("nao")
+        abf = payloads.get("abf")
         lines.append(
-            f"  {element}: {entry.get('atom_count')} atom(s), "
-            f"{entry.get('basis_dimension_per_atom')} basis functions/atom"
+            "    files: "
+            + ", ".join(
+                value
+                for value in (
+                    f"PP {pp['file_name']}" if pp else None,
+                    f"NAO {nao['file_name']}" if nao else None,
+                    f"ABF {abf['file_name']}" if abf else "no ABF",
+                )
+                if value
+            )
         )
         if provenance.get("matched_database_set"):
             lines.append(
-                f"    source: database set {provenance.get('set_id')} "
+                f"    from: LibRPA-database set {provenance.get('set_id')} "
                 f"(family {provenance.get('family')!r})"
             )
         else:
-            lines.append("    source: run-bundled files (no single database set matches)")
-        pp = payloads.get("pp")
-        if pp:
-            lines.append(f"    PP  {pp['file_name']}  sha256 {pp['sha256'][:16]}…")
-        nao = payloads.get("nao")
-        if nao:
             lines.append(
-                f"    NAO {nao['file_name']}  shells {nao.get('shells')}  "
-                f"dim {nao['dimension_per_atom']}/atom"
+                "    from: the case bundle (these payloads are not one database set)"
             )
-        abf = payloads.get("abf")
-        if abf:
+        for role, payload in (("PP", pp), ("NAO", nao), ("ABF", abf)):
+            if not payload:
+                continue
+            digest = (payload.get("sha256") or "")[:16]
+            extra = payload.get("shells")
             lines.append(
-                f"    ABF {abf['file_name']}  shells {abf.get('shells')}  "
-                f"naux {abf['dimension_per_atom']}/atom"
+                f"    {role} sha256 {digest}…"
+                + (f"  shells {extra}" if extra else "")
             )
-        else:
-            lines.append("    ABF none declared (shrink basis absent)")
         lines.append(
-            f"    total: nbasis {entry.get('basis_dimension_total')}"
+            f"    this structure: {entry.get('basis_dimension_total')} orbital functions"
             + (
-                f", naux {entry.get('auxiliary_dimension_total')}"
+                f", {entry.get('auxiliary_dimension_total')} auxiliary functions"
                 if entry.get("auxiliary_dimension_total") is not None
-                else ""
+                else ", no auxiliary basis"
             )
         )
+        for use in label.get("uses") or []:
+            result = use.get("result") or "no reported number"
+            lines.append(
+                f"    used by {use.get('record_id')} ({use.get('material')}, "
+                f"{use.get('dimension')}): {result}"
+            )
         lines.append("")
     totals = disclosure.get("totals", {})
     lines.append(
@@ -363,7 +400,7 @@ def format_basis_disclosure(disclosure: Mapping[str, Any]) -> str:
         )
     if totals.get("elements_without_database_set"):
         lines.append(
-            "  no single database set matched: "
+            "  not one database set: "
             + ", ".join(totals["elements_without_database_set"])
         )
     lines.append("")

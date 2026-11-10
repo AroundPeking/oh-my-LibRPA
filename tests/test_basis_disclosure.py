@@ -150,7 +150,11 @@ class BasisAmbiguityTest(unittest.TestCase):
         self.assertEqual(
             caught.exception.candidate_ids(), ("Si-Dojo-bbbb", "Si-SG15-aaaa")
         )
-        self.assertIn("Refusing to choose one", str(caught.exception))
+        # The message has to be usable by a person: sizes and results, not ids.
+        message = str(caught.exception)
+        self.assertIn("Refusing to choose for you", message)
+        self.assertIn("orbital functions per atom", message)
+        self.assertIn("set_id:", message)
 
     def test_an_explicit_set_id_selects_it(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

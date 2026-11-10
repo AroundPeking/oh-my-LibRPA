@@ -113,6 +113,27 @@ def _load_set(path: Path, root: Path) -> ElementSet:
     )
 
 
+def load_calculation_records(root: str | Path) -> tuple[dict[str, Any], ...]:
+    """Load the archive's ``record.json`` files, for the usage half of a label.
+
+    Missing records are not an error: a basis library checked out without the
+    calculation archive still has usable size facts, and the label says no
+    calculation has used a set rather than inventing one.
+    """
+    calculations = Path(root) / "data" / "calculations"
+    if not calculations.is_dir():
+        return ()
+    records: list[dict[str, Any]] = []
+    for path in sorted(calculations.glob("*/*/*/record.json")):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(value, dict):
+            records.append(value)
+    return tuple(records)
+
+
 def load_registry(root: str | Path) -> dict[str, tuple[ElementSet, ...]]:
     """Load every element set under ``<root>/data/elements``."""
     root = Path(root)
@@ -150,17 +171,38 @@ class BasisAmbiguityError(BasisRegistryError):
     only on synthetic ones.
     """
 
-    def __init__(self, element: str, candidates: tuple[ElementSet, ...], message: str) -> None:
+    def __init__(
+        self,
+        element: str,
+        candidates: tuple[ElementSet, ...],
+        message: str,
+        *,
+        described: tuple[dict[str, Any], ...] = (),
+    ) -> None:
         super().__init__(message)
         self.element = element
         self.candidates = candidates
+        self.described = described
 
     def candidate_ids(self) -> tuple[str, ...]:
         return tuple(item.set_id for item in self.candidates)
 
 
-def describe_set(element_set: ElementSet) -> dict[str, Any]:
-    """Return the provenance and size of one element set, with no judgement."""
+def describe_set(
+    element_set: ElementSet,
+    *,
+    records: Iterable[Mapping[str, Any]] | None = None,
+    atom_count: int | None = None,
+) -> dict[str, Any]:
+    """Return the provenance, the human-readable size facts and who used it.
+
+    ``records`` are database calculation records; when given, the description
+    says which calculations already ran with this set and what gap they got,
+    because that is how a user judges a basis. Without them the size facts are
+    still complete and the usage line says so.
+    """
+    from .basis_label import historical_uses, label_for_set, payload_facts
+
     described: dict[str, Any] = {
         "set_id": element_set.set_id,
         "element": element_set.element,
@@ -178,7 +220,25 @@ def describe_set(element_set: ElementSet) -> dict[str, Any]:
         }
         if asset.dimensions:
             entry["dimensions"] = dict(asset.dimensions)
+        try:
+            entry.update(payload_facts(asset.path, role))
+        except Exception as exc:  # a payload we cannot parse must not be silent
+            entry["facts_error"] = str(exc)
         described["roles"][role] = entry
+
+    pp = described["roles"].get("pp") or {}
+    nao = described["roles"].get("nao") or {}
+    abf = described["roles"].get("abf") or {}
+    uses = historical_uses(records or (), element_set.set_id)
+    described["label"] = label_for_set(
+        element_set.element,
+        valence=pp.get("valence_electrons"),
+        nao=nao or None,
+        abf=abf or None,
+        uses=uses,
+        atom_count=atom_count,
+    )
+    described["label_sentence"] = described["label"]["sentence"]
     return described
 
 
@@ -189,6 +249,8 @@ def resolve_set(
     family: str | None = None,
     require_abf: bool = False,
     set_id: str | None = None,
+    records: Iterable[Mapping[str, Any]] = (),
+    atom_count: int | None = None,
 ) -> ElementSet:
     """Resolve one element to a concrete set; ``abfs_default`` keeps the set's own ABFS.
 
@@ -231,15 +293,24 @@ def resolve_set(
             )
         return exact[0]
     if len(filtered) > 1:
-        listed = ", ".join(
-            f"{item.set_id} (family={item.family!r})" for item in filtered
+        # The candidates are described by what they cost and what they produced,
+        # not by their hash-suffixed ids: "Si: 4 valence electrons, 44 orbital
+        # functions, 794 auxiliary functions, 2 archived calculations (GW gap
+        # 1.06 eV)" is a choice a person can make; "Si-SG15-e11ce28df010" is not.
+        described = [
+            describe_set(item, records=records, atom_count=atom_count) for item in filtered
+        ]
+        listed = "\n".join(
+            f"  - {entry['label_sentence']}\n    set_id: {entry['set_id']}"
+            for entry in described
         )
         raise BasisAmbiguityError(
             element,
             tuple(filtered),
-            f"element {element} matches {len(filtered)} database sets: {listed}. "
-            "Refusing to choose one: name the set explicitly "
-            f"(set_id={filtered[0].set_id!r} is one candidate).",
+            f"{element} can use {len(filtered)} database basis sets. Pick one:\n"
+            + listed
+            + "\nRefusing to choose for you: pass set_id explicitly.",
+            described=tuple(described),
         )
     return filtered[0]
 

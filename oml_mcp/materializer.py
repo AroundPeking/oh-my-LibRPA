@@ -276,6 +276,26 @@ def _copy_manifest(source: Path, target: Path, manifest: tuple[dict[str, Any], .
         shutil.copy2(resolved, destination, follow_symlinks=False)
 
 
+def _archive_records(profile: ExecutionProfile) -> tuple[dict[str, Any], ...]:
+    """Records of the basis library the profile points at, for the usage line.
+
+    The disclosure says which calculations already used a set. That needs the
+    archive's record.json files, which live beside the element library under the
+    same root. A profile without a basis root simply gets no usage line.
+    """
+    from .basis_registry import load_calculation_records
+
+    root = profile.runtime.get("basis_library_root") or profile.environment.get(
+        "OML_BASIS_LIBRARY_ROOT"
+    )
+    if not root:
+        return ()
+    try:
+        return load_calculation_records(root)
+    except OSError:
+        return ()
+
+
 def _materialized_manifest(run_dir: Path) -> tuple[dict[str, Any], ...]:
     items = []
     for path in sorted(run_dir.rglob("*"), key=lambda item: item.relative_to(run_dir).as_posix()):
@@ -424,7 +444,11 @@ def prepare_run(
         # The basis a run will submit is a scientific decision, so it is
         # disclosed here, inside the immutable run, and its digest is what a
         # human acknowledges before any stage is submitted.
-        disclosure = build_basis_disclosure(temporary_dir, soc=bool(plan.options["soc"]))
+        disclosure = build_basis_disclosure(
+            temporary_dir,
+            records=_archive_records(profile),
+            soc=bool(plan.options["soc"]),
+        )
         disclosure["digest"] = disclosure_digest(disclosure)
         write_disclosure(temporary_dir, disclosure)
         env_path = oml_dir / "env.sh"
