@@ -269,20 +269,44 @@ class WorkflowValidatorTest(unittest.TestCase):
             )
         self.assertEqual(self.gate(report, "band_path.sampling").status, "WARN")
 
-    def test_symmetry_on_outside_the_validated_scope_is_refused(self):
+    def test_symmetry_on_with_a_truncated_state_space_is_refused(self):
+        # What the measured failures had in common was a truncated state space,
+        # not a particular (grid, nbands, nfreq) triple. The Si k444 case that
+        # measured correct used 44 bands at nfreq 16 on k444 - every number
+        # outside the old "validated scope" - so refusing on those numbers was
+        # refusing a good calculation.
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
             self.make_case(root)
+            # Give the case a real STRU/NAO pair so the basis dimension is
+            # knowable, then truncate nbands below it.
+            (root / "STRU").write_text(
+                "ATOMIC_SPECIES\nSi 28 Si.upf\n\nNUMERICAL_ORBITAL\nSi.orb\n",
+                encoding="utf-8",
+            )
+            (root / "Si.orb").write_text(
+                "Number of Sorbital-->  3\nNumber of Porbital-->  3\n"
+                "Number of Dorbital-->  2\n",
+                encoding="utf-8",
+            )
+            (root / "Si.upf").write_text("pseudo\n", encoding="utf-8")
+            (root / "INPUT_scf").write_text(
+                (root / "INPUT_scf").read_text().replace(
+                    "symmetry 1", "symmetry 1\nnbands 3"
+                ),
+                encoding="utf-8",
+            )
+            # Not 1x1x1: a single k point has one star member, so the defect this
+            # gate protects against cannot act and the check is skipped.
             (root / "KPT_scf").write_text(
-                "K_POINTS\n0\nGamma\n8 8 8 0 0 0\n", encoding="utf-8"
+                "K_POINTS\n0\nGamma\n4 4 4 0 0 0\n", encoding="utf-8"
             )
             report = validate_case(
                 root, task="gw", system_type="solid", use_symmetry=True, stage="input"
             )
-        failing = self.gate(report, "symmetry.alignment")
-        self.assertEqual(failing.status, "FAIL")
-        self.assertIn("validated symmetry scope", failing.message)
-        self.assertIn("[8, 8, 8]", " ".join(failing.evidence))
+        gate = self.gate(report, "symmetry.alignment")
+        self.assertEqual(gate.status, "FAIL")
+        self.assertIn("physical basis dimension", " ".join(gate.evidence))
 
     def test_cp_rmesh_gate_rejects_a_truncated_real_space_cutoff(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -292,32 +292,30 @@ def _validate_contract(profile: dict[str, Any], *, schema_version: int) -> None:
             ):
                 raise ProfileError("current LibRPA upstream baseline identity has drifted")
             if profile["profile_id"] == V6_PROFILE_ID:
-                expected_symmetry_scope = {
-                    "material": "bulk BN",
-                    "screening_kgrid": [4, 4, 4],
-                    "nbands": 26,
-                    "basis_dimension": 26,
-                    "nfreq": 24,
-                    "tfgrids_type": "minimax",
-                    "n_params_anacon": 6,
-                    "option_qpe_solver": 0,
-                    "use_shrink_abfs": True,
-                    "headwing": False,
-                    "reader_format": "v1",
-                }
-                expected_symmetry_evidence = {
-                    "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
-                    "comparison_sha256": "472582f1dcc359c9d1177e3f161f7405247998a4baac781b35b1312604d95815",
-                }
+                # The symmetry acceptance is a requirement plus the cases that
+                # established it, not one benchmark's four numbers. Pinning the
+                # numbers made every other legitimate symmetry case "drift":
+                # Si k444/44 bands measured correct and was still refused,
+                # because it was not bulk BN with 26 bands at nfreq 24.
+                scope = periodic_gw.get("symmetry_fullq_scope") or {}
+                requirement = scope.get("requirement")
+                example = scope.get("validated_example") or {}
+                also = scope.get("measured_also_correct") or {}
                 if (
                     periodic_gw.get("symmetry_fullq_status") != "PASS"
                     or periodic_gw.get("symmetry_fullq_tolerance_ev") != 0.0001
-                    or periodic_gw.get("symmetry_fullq_scope") != expected_symmetry_scope
-                    or periodic_gw.get("symmetry_fullq_evidence")
-                    != expected_symmetry_evidence
+                    or not isinstance(requirement, str)
+                    or "basis dimension" not in requirement
+                    or not isinstance(scope.get("minimax_nfreq_supported"), list)
+                    or example.get("benchmark_id")
+                    != "fisherd-bn-k444-symmetry-fullq-20260906"
+                    or also.get("result", {}).get("gamma_degeneracy_split_ev") != 0.0
                 ):
                     raise ProfileError(
-                        "v6 periodic 3D GW symmetry/full-q acceptance has drifted"
+                        "v6 periodic 3D GW symmetry/full-q acceptance has drifted: the "
+                        "scope must state the requirement (nbands equals the basis "
+                        "dimension), the supported minimax counts, the validated example "
+                        "and the case that was also measured correct"
                     )
     symmetry = _require_mapping(contract, "symmetry", "contract")
     if symmetry.get("source") != "stru_out":

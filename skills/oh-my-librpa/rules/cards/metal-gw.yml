@@ -1,0 +1,99 @@
+- id: metal-gw-failures-401
+  scene: A finite-temperature metallic GW run terminates or produces a band that must not be reported
+  symptom: The job dies at a stage whose error text is unfamiliar, or it exits normally with a visibly jagged near-Fermi band
+  root_cause: >-
+    Metallic runs have a small set of determinate failure points that all occur after large
+    amounts of work has already been paid for. Each signature maps to one cause; none of them
+    means the method is wrong.
+  fix:
+    - >-
+      "thermal Wc requires compatible square BLACS descriptors" -> the MPI grid is not square.
+      Use 4, 9, 16, 25 ranks; 8 factors to 2x4 and fails here after the whole chi0 stage.
+    - >-
+      "No Coulomb reader v1 files found with prefix v1_coulomb_full_iq_" -> either
+      out_librpa_3d_coulomb_method direct_reciprocal is set (that branch returns early and writes
+      only the cut prefix) or the NSCF never produced the full prefix. Remove the option and
+      rerun the NSCF.
+    - >-
+      "thermal GW bosonic sample missing from chi0 frequency grid" -> response rpa_wmax differs
+      from GW w_wmax. Regenerate both grids with equal w_max.
+    - >-
+      "external thermal grid wmax does not cover the SCF transition range" -> the grid is
+      narrower than max(E)-min(E) over the SCF grid. Regenerate with a larger wmax.
+    - >-
+      "external thermal grid requires SCF eigenvalues and an FD reference" -> input_fixed is
+      missing thermal_occupation_v1.dat. Write it from the first five lines plus the band counts
+      of band_out.txt.
+    - >-
+      "Cannot find moment files for head/wing calculation" -> rpa_out_vel was not set in the
+      NSCF input, so velocity_matrix does not exist.
+    - >-
+      "metallic static complete-Wc intraband coefficients are unavailable" -> a v0.8.0-class
+      regression: use_2d_gamma_wing_projection gates the wing projection behind use_2d_dielectric,
+      so a 3D metal skips it and static_intraband_chi0v_wing_ stays empty (size 0 != nbody).
+      Use a branch where wing_mu_to_lambda runs under replace_w_head and option_dielect_func == 3
+      alone, or drop the use_2d_dielectric conjunct in the gate.
+    - >-
+      "metallic static 2D Schur 1/q coefficient is not positive real" -> the guard scales by
+      max(1.0, abs(v)), which turns a relative criterion into an absolute 1e-8 one for values of
+      order 1e2; an IBZ/k-star-averaged chi0 carries about 2e-4 non-Hermiticity. Compare abs(Im)
+      against max(1e-8, 1e-6 * max(abs(v), abs(kappa))) and also address the upstream
+      non-Hermiticity.
+    - >-
+      "Finite-temperature GW is not yet supported for this input: a complete SCF k grid is
+      required" -> an older build rejected any IBZ SCF grid outright. Newer builds accept it when
+      use_symmetry_gw is on; check the source, not the message.
+    - >-
+      Exit in about 0 s with no log -> duplicate contradictory keys in INPUT (for example two rpa
+      lines). Deduplicate.
+    - >-
+      FHI-aims "malloc(): unsorted double linked list corrupted" or SIGSEGV right after
+      "Post-SCF correlation calculation starts" with shrink enabled -> librpa_shrink.f90
+      declares ZHEEV WORK as real*8; it must be complex*16. The compile only warns under
+      -fallow-argument-mismatch and the heap corruption appears after every shrink log line
+      looks correct. np = 1 may pass by luck, np >= 2 fails. Audit shows this is the only
+      one of the eight ZHEEV calls in the tree with the wrong WORK type.
+    - >-
+      FHI-aims "freq_grid_type is not minimax" -> stock FHI-aims forces minimax for output
+      librpa, and minimax aborts on metals. A four-line read_control.f90 change is required to
+      allow GL for the file-export route while keeping the programming interface pinned to
+      minimax.
+  verify:
+    - Match the observed error text against this list before changing physics inputs
+    - Confirm the fix removed the signature rather than merely moving it to a later stage
+  applies_to:
+    mode: gw
+    system_type: metal_3d
+
+- id: metal-gw-acceptance-402
+  scene: A metallic GW job finished; decide whether the band can be reported
+  symptom: The job exits 0 and writes GW_band_spin files, but the near-Fermi curves still look rough
+  root_cause: >-
+    Completion is necessary, not sufficient. The native driver writes unregularized
+    Thiele-Pade continuation, which is not the reportable artifact, and several numerical
+    guards can pass while the spectrum remains unusable.
+  fix:
+    - Require libRPA finished successfully and a nonzero, finite GW band table
+    - Require Wing_lambda diagnostics exactly once; its absence means wing_mu_to_lambda never ran
+    - >-
+      Report the band from the regularized replay, not from the native table: every positive
+      Matsubara sample as a fit point, parameter count equal to the sample count, penalty 1e-12,
+      broadening 1e-3 eV, and the same damped nonlinear QP equation.
+    - Label native and replayed output separately; never interchange them
+    - >-
+      Preserve raw band indices and path order; do not sort, smooth, or re-root to obtain
+      continuity.
+    - >-
+      Treat high empty-band excursions as a disclosed continuation limitation, not a reason to
+      reshape the curve.
+  verify:
+    - >-
+      Adjacent-k QP-correction step below 0.05 eV within +/-1 eV of the Fermi level on the
+      replayed band
+    - Frontier-bandwidth GW/PBE ratio inside 1.0-1.3
+    - >-
+      Every reported number traceable to either the native table or the replay, stated
+      explicitly
+  applies_to:
+    mode: gw
+    system_type: metal_3d

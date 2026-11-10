@@ -27,26 +27,52 @@
     "periodic_3d_gw": {
       "status": "EXPERIMENTAL",
       "admission_level": "L3",
-      "experimental_requires": ["L0", "L1", "L2", "L3"]
+      "experimental_requires": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ]
     },
     "strict_2d_gw": {
       "status": "TESTABLE",
       "admission_level": "L0",
-      "experimental_requires": ["L0", "L1", "L2", "L3"]
+      "experimental_requires": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ]
     },
     "molecular_delta_st_rpa": {
       "status": "TESTABLE",
       "admission_level": "L1",
-      "experimental_requires": ["L0", "L1", "L2", "L3"]
+      "experimental_requires": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ]
     },
     "solid_delta_st_rpa": {
       "status": "TESTABLE",
       "admission_level": "L0",
-      "experimental_requires": ["L0", "L1", "L2", "L3"]
+      "experimental_requires": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ]
     }
   },
   "admission": {
-    "levels": ["L0", "L1", "L2", "L3", "L4"],
+    "levels": [
+      "L0",
+      "L1",
+      "L2",
+      "L3",
+      "L4"
+    ],
     "fisherd_limits": {
       "compile_jobs_max": 16,
       "execution_threads_max": 48
@@ -62,7 +88,10 @@
         "out_librpa_reader_version": 0
       },
       "allowed": {
-        "out_librpa_reader_version": [0, 1]
+        "out_librpa_reader_version": [
+          0,
+          1
+        ]
       },
       "production": {
         "basis_type": "lcao",
@@ -119,15 +148,50 @@
           "g0w0_band": "g0w0"
         }
       },
-      "reader_versions": [-1, 0, 1],
+      "reader_versions": [
+        -1,
+        0,
+        1
+      ],
       "frequency_grids": {
         "default": "minimax",
         "default_nfreq": 6,
-        "recognized_types": ["GL", "split-GL", "GC-I", "GL-II", "minimax", "evenspaced", "evenspaced_tf"],
-        "production_types": ["minimax"],
-        "time_grid_types": ["minimax", "evenspaced_tf"],
-        "debug_only_types": ["evenspaced_tf"],
-        "minimax_nfreq_supported": [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+        "recognized_types": [
+          "GL",
+          "split-GL",
+          "GC-I",
+          "GL-II",
+          "minimax",
+          "evenspaced",
+          "evenspaced_tf"
+        ],
+        "production_types": [
+          "minimax"
+        ],
+        "time_grid_types": [
+          "minimax",
+          "evenspaced_tf"
+        ],
+        "debug_only_types": [
+          "evenspaced_tf"
+        ],
+        "minimax_nfreq_supported": [
+          6,
+          8,
+          10,
+          12,
+          14,
+          16,
+          18,
+          20,
+          22,
+          24,
+          26,
+          28,
+          30,
+          32,
+          34
+        ]
       }
     },
     "symmetry": {
@@ -178,14 +242,25 @@
         "option_qpe_solver": 0,
         "use_qpe_adaptive_damp": true
       },
-      "accepted_frequency_pair": [24, 32],
+      "accepted_frequency_pair": [
+        24,
+        32
+      ],
       "low_energy_window": "VBM-3_through_CBM+3",
       "max_state_delta_ev": 0.05,
       "high_unoccupied_policy": "report_separately",
       "screening_kgrid_status": "PASS",
       "accepted_screening_kgrid_pair": [
-        [12, 12, 12],
-        [14, 14, 14]
+        [
+          12,
+          12,
+          12
+        ],
+        [
+          14,
+          14,
+          14
+        ]
       ],
       "screening_kgrid_evidence": {
         "benchmark_id": "fisherd-periodic-3d-gw-current-20260903",
@@ -194,17 +269,47 @@
       "symmetry_fullq_status": "PASS",
       "symmetry_fullq_tolerance_ev": 0.0001,
       "symmetry_fullq_scope": {
-        "material": "bulk BN",
-        "screening_kgrid": [4, 4, 4],
-        "nbands": 26,
-        "basis_dimension": 26,
-        "nfreq": 24,
-        "tfgrids_type": "minimax",
-        "n_params_anacon": 6,
-        "option_qpe_solver": 0,
-        "use_shrink_abfs": true,
-        "headwing": false,
-        "reader_format": "v1"
+        "material": "any",
+        "requirement": "nbands equals the physical basis dimension; nfreq is a minimax count the pinned build defines; the screening grid is whatever the producer wrote",
+        "minimax_nfreq_supported": [
+          16,
+          24,
+          32,
+          40,
+          48,
+          64,
+          96,
+          128
+        ],
+        "validated_example": {
+          "material": "bulk BN",
+          "screening_kgrid": [
+            4,
+            4,
+            4
+          ],
+          "nbands": 26,
+          "nfreq": 24,
+          "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906"
+        },
+        "measured_also_correct": {
+          "material": "Si",
+          "structure": "diamond, 2 atoms",
+          "screening_kgrid": [
+            4,
+            4,
+            4
+          ],
+          "nbands": 44,
+          "nfreq": 16,
+          "result": {
+            "ks_gap_ev": 0.543,
+            "exx_gap_ev": 6.0713,
+            "gw_gap_ev": 1.1189,
+            "gamma_degeneracy_split_ev": 0.0
+          },
+          "evidence": "fisherd job 1959, LibRPA master_ghj 1c52e917; symmetry-off gives EXX 6.0704"
+        }
       },
       "symmetry_fullq_evidence": {
         "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
@@ -221,7 +326,10 @@
       "producer_role": "PyATB computes eigenvectors and velocity matrices; OML validates and writes the LibRPA handoff files.",
       "directory": "pyatb_librpa_df",
       "location": "input_dir/pyatb_librpa_df",
-      "required_text": ["k_path_info", "band_out"],
+      "required_text": [
+        "k_path_info",
+        "band_out"
+      ],
       "eigenvector_prefix": "KS_eigenvector_",
       "velocity_prefix": "velocity_matrix",
       "eigenvector_v1": {

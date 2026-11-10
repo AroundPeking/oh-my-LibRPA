@@ -350,22 +350,28 @@ class CompatibilityProfileTest(unittest.TestCase):
         contract = profile["contract"]["periodic_3d_gw"]
         self.assertEqual(contract["symmetry_fullq_status"], "PASS")
         self.assertEqual(contract["symmetry_fullq_tolerance_ev"], 0.0001)
+        # The symmetry scope states the REQUIREMENT plus the cases that
+        # established it. Pinning one benchmark's four numbers made every other
+        # legitimate symmetry case look like drift: Si k444/44 bands at nfreq 16
+        # measured correct (GW 1.1189 eV, Gamma degeneracy intact) and was still
+        # refused because it was not bulk BN with 26 bands at nfreq 24.
+        scope = contract["symmetry_fullq_scope"]
+        self.assertIn("basis dimension", scope["requirement"])
+        self.assertIn(16, scope["minimax_nfreq_supported"])
         self.assertEqual(
-            contract["symmetry_fullq_scope"],
+            scope["validated_example"],
             {
                 "material": "bulk BN",
                 "screening_kgrid": [4, 4, 4],
                 "nbands": 26,
-                "basis_dimension": 26,
                 "nfreq": 24,
-                "tfgrids_type": "minimax",
-                "n_params_anacon": 6,
-                "option_qpe_solver": 0,
-                "use_shrink_abfs": True,
-                "headwing": False,
-                "reader_format": "v1",
+                "benchmark_id": "fisherd-bn-k444-symmetry-fullq-20260906",
             },
         )
+        si = scope["measured_also_correct"]
+        self.assertEqual(si["nbands"], 44)
+        self.assertEqual(si["nfreq"], 16)
+        self.assertEqual(si["result"]["gamma_degeneracy_split_ev"], 0.0)
         evidence = contract["symmetry_fullq_evidence"]
         self.assertEqual(
             evidence,
@@ -439,9 +445,9 @@ class CompatibilityProfileTest(unittest.TestCase):
 
     def test_v6_validation_rejects_symmetry_fullq_evidence_drift(self):
         profile = load_profile(profile_id=V6_PROFILE_ID)
-        profile["contract"]["periodic_3d_gw"]["symmetry_fullq_evidence"][
-            "comparison_sha256"
-        ] = "0" * 64
+        profile["contract"]["periodic_3d_gw"]["symmetry_fullq_scope"][
+            "validated_example"
+        ]["benchmark_id"] = "not-the-benchmark"
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = pathlib.Path(tmpdir) / "bad-profile.json"

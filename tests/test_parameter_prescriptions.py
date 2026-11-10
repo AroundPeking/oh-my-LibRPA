@@ -46,6 +46,11 @@ class ParameterPrescriptionTest(unittest.TestCase):
                 "basis_family": "dojo_nc_sr_tzdp",
                 "nao_family": "tzdp",
                 "shrink_threshold": 0.001,
+                # scf_thr/scf_nmax now have prescriptions too: the archived
+                # inputs often carry neither, which leaves ABACUS at its loose
+                # default and puts that noise in chi0.
+                "scf_thr": 1e-6,
+                "scf_nmax": 150,
             },
         )
         self.assertEqual(result["definition"]["nfreq"], 32)

@@ -20,6 +20,12 @@ ROUTE_MUTATION_AXES = {
             "shrink_threshold",
             "exx_cs_inv_thr",
             "basis_family",
+            # The SCF residual is the noise floor of chi0, so it is a parameter a
+            # controlled run may legitimately vary - and one it must be able to
+            # prescribe at all, because the archived inputs often leave it at the
+            # loose ABACUS default.
+            "scf_thr",
+            "scf_nmax",
         }
     ),
     "strict_2d_gw": frozenset(

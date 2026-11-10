@@ -69,6 +69,38 @@ stay true* on the way.
    with `librpa-database-intake` — a result that lives only in the material run
    folder is invisible to the next case.
 
+## What a case must satisfy before it is worth running
+
+These were measured while running real systems, and each one is now enforced;
+knowing them is what lets a case be built correctly the first time instead of
+after a failed run.
+
+1. **nbands equals the physical basis dimension.** Sum the NAO dimension over
+   atoms (`sum(count * (2l+1))` from each `.orb`). A truncated state space
+   corrupts the star-restored EXX/GW while KS stays exact, which is the
+   signature that cost a symmetry investigation. `symmetry.alignment` compares a
+   hand-written `nbands` against what the STRU and the `.orb` actually give.
+2. **nfreq is 16 by default**, not whatever an archived record used. The
+   prescription carries 16 and `librpa.frequency_grid` only accepts counts the
+   pinned minimax build defines. Copying `nfreq 24` from a paper record is a
+   choice, not a requirement.
+3. **scf_thr 1e-6, scf_nmax 150.** Archived inputs frequently declare neither,
+   which leaves ABACUS at its loose default and puts that residual into chi0.
+   The prescription now carries both.
+4. **The band path samples about 20 points per segment.** The database records
+   use 20-21 (25 of 26 archived paths). A path with a handful of points draws
+   straight lines across a dispersion while every other gate stays green;
+   `band_path.sampling` refuses under 10 and warns under 20. An explicit k list
+   is not interpolated at all, so the same rule applies to it.
+5. **A basis label reports per-atom sizes.** "697 auxiliary functions" means per
+   atom; the structure total is that times the atom count. Zero channels
+   (`3s3p2d0f0g`) are not shells and are never displayed.
+6. **A database record is a starting point, not a specification.** Take its
+   STRU, its basis payloads and its band path; take the user's requested k mesh;
+   take OML's defaults for everything the user did not name. Do not copy a
+   record's nfreq/nbands wholesale, and do not treat its settings as a boundary -
+   the symmetry scope records a requirement, not one benchmark's numbers.
+
 ## Which sub-route
 
 Every one of these is a leaf of this entry and carries the same back-pointer.

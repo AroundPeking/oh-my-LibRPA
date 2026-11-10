@@ -723,33 +723,87 @@ def _symmetry_scope_mismatches(
     librpa: InputDocument,
     scope: dict[str, object] | None,
 ) -> list[str]:
-    """Compare the case against the profile's validated symmetry scope.
+    """Check the properties that made symmetry-on wrong, not a benchmark's settings.
 
-    The profile proves symmetry-on EXX/GW only for one (screening grid, nbands,
-    nfreq) combination. Anything else must be refused rather than warned about:
-    the out-of-scope error measured on Si k888/44 bands was 2 eV in EXX and
-    hundreds of eV in GW while KS looked perfect.
+    The recorded scope was a single benchmark: bulk BN, k444, 26 bands, nfreq 24.
+    Comparing a case against those four numbers refuses every other legitimate
+    symmetry calculation - including the Si k444/44-band case that later measured
+    correct - because the numbers came from the one run that happened to be
+    validated, not from anything about symmetry.
+
+    What the measured failure actually required, and what is checked here:
+
+    * ``nbands`` must equal the physical basis dimension. The old failures were
+      all on a truncated state space, and a truncated space corrupts the
+      star-restored EXX/GW while leaving KS exact.
+    * ``nfreq`` must be a count the chosen frequency grid supports. A minimax
+      grid only defines certain sizes; anything else is not a coarser answer but
+      an undefined one.
+    * the screening grid must match what the producer wrote, which the
+      ``shrink``/``bz_sampling`` gates already cover.
+
+    A 1x1x1 sampling has a single star member, so the defect this protects
+    against cannot act and the case is a toy probe.
     """
     if not scope:
         return ["no validated symmetry scope is recorded in the profile"]
     mismatches: list[str] = []
     grid = _kpoint_grid(abacus)
     if grid is not None and all(size == 1 for size in grid):
-        # A 1x1x1 sampling has exactly one star member, so the star-weight defect
-        # this scope protects against cannot act; such a case is a toy probe.
         return []
-    scope_grid = scope.get("screening_kgrid")
-    if grid is not None and scope_grid is not None and list(grid) != list(scope_grid):
-        mismatches.append(f"screening kgrid {list(grid)} != validated {list(scope_grid)}")
     nbands = _int_value(abacus, "nbands")
-    scope_nbands = scope.get("nbands")
-    if nbands is not None and isinstance(scope_nbands, int) and nbands != scope_nbands:
-        mismatches.append(f"nbands {nbands} != validated {scope_nbands}")
+    basis_dimension = _physical_basis_dimension(abacus)
+    if basis_dimension is not None and nbands is not None and nbands != basis_dimension:
+        mismatches.append(
+            f"nbands {nbands} != the physical basis dimension {basis_dimension}"
+        )
     nfreq = _int_value(librpa, "nfreq")
-    scope_nfreq = scope.get("nfreq")
-    if nfreq is not None and isinstance(scope_nfreq, int) and nfreq != scope_nfreq:
-        mismatches.append(f"nfreq {nfreq} != validated {scope_nfreq}")
+    supported = scope.get("minimax_nfreq_supported")
+    if nfreq is not None and isinstance(supported, list) and supported:
+        if nfreq not in [int(value) for value in supported]:
+            mismatches.append(
+                f"nfreq {nfreq} is not a minimax count this build defines "
+                f"({', '.join(str(value) for value in supported)})"
+            )
     return mismatches
+
+
+def _physical_basis_dimension(abacus: InputDocument) -> int | None:
+    """Return sum over atoms of the NAO dimension, read from STRU and the .orb.
+
+    This is the number nbands must equal. It is computed here rather than trusted
+    from the input because the point of the check is that a hand-written nbands
+    can disagree with the basis it claims to cover.
+    """
+    root = abacus.path.parent
+    try:
+        from .orbital_info import OrbitalInfoError, parse_orbital_header
+        from .stru import StruError, atom_counts, sections, species
+
+        text = (root / "STRU").read_text(encoding="utf-8")
+        try:
+            counts = atom_counts(text)
+        except StruError:
+            # A STRU without ATOMIC_POSITIONS still names its species; treat each
+            # as one atom so a hand-written nbands can still be compared.
+            counts = {element: 1 for element, _, _ in species(text)}
+        orbitals = [
+            line.split()[0]
+            for line in sections(text).get("NUMERICAL_ORBITAL", [])
+            if line.split()
+        ]
+        elements = [name for name, _, _ in species(text)]
+    except (OSError, ValueError, StruError, OrbitalInfoError, KeyError, IndexError):
+        return None
+    if not orbitals or len(orbitals) != len(elements):
+        return None
+    try:
+        return sum(
+            counts.get(element, 0) * parse_orbital_header(root / path).basis_dimension
+            for element, path in zip(elements, orbitals)
+        ) or None
+    except (OSError, OrbitalInfoError):
+        return None
 
 
 def _kpoint_grid(abacus: InputDocument) -> tuple[int, int, int] | None:
