@@ -5,6 +5,11 @@ description: Use when preparing, running, auditing, or documenting ABACUS Delta-
 
 # ABACUS Molecular Delta-ST Convergence
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Use one controlled protocol for every molecule and all atomic fragments. Treat solver completion, numerical convergence, and agreement with a reference as three separate conclusions.
 
 Before submitting work, also apply:

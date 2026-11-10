@@ -5,6 +5,11 @@ description: GW toolchain installation (OneAPI, GCC, ELPA, LibXC, LibRPA, FHI-ai
 
 # GW Toolchain - Remote Server Installation
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Automated installation workflow for compiling FHI-aims, LibRPA, PYATB, and ABACUS on remote Linux servers. Automatically detects server environment (CPU architecture, existing installations, OneAPI versions) and adapts the installation process accordingly.
 
 ## How It Works

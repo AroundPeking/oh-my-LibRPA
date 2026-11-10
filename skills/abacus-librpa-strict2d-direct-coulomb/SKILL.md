@@ -5,6 +5,11 @@ description: Use when a strict-2D ABACUS+LibRPA full-Ewald auxiliary Coulomb mat
 
 # ABACUS + LibRPA strict-2D direct Coulomb
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Use this skill together with `abacus-librpa-strict2d-ewald-headwing`. It changes only how ABACUS writes the **full** strict-2D auxiliary Coulomb matrix; it does not replace the PyATB head/wing or LibRPA GW gates.
 
 ## Decide whether to use it

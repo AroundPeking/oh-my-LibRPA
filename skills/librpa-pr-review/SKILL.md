@@ -1,6 +1,6 @@
 ---
 name: librpa-pr-review
-description: "Use when preparing, reviewing, revising, or comparing LibRPA pull requests against AESM-Group/LibRPA master and AroundPeking/LibRPA master_ghj. Covers approval gates, public PR wording, private validation evidence, and thirdparty exclusions."
+description: "Use ONLY for LibRPA pull-request work (not for running a calculation — that is `oh-my-librpa`). Use when preparing, reviewing, revising, or comparing LibRPA pull requests against AESM-Group/LibRPA master and AroundPeking/LibRPA master_ghj. Covers approval gates, public PR wording, private validation evidence, and thirdparty exclusions."
 agent_created: true
 ---
 

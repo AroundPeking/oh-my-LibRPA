@@ -5,7 +5,14 @@ description: Use when ABACUS inputs, reader-v1 handoffs, producer outputs, or AB
 
 # oh-my-librpa-abacus-librpa
 
-Treat this skill as the ABACUS-side router below the top-level `oh-my-librpa` entrypoint.
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
+This file is the ABACUS-side router below the top-level `oh-my-librpa` entrypoint:
+route ABACUS inputs here first, then pick a leaf (`abacus-librpa-gw`,
+`abacus-librpa-rpa`, `abacus-librpa-debug`).
 
 ## Environment gate (mandatory first step)
 

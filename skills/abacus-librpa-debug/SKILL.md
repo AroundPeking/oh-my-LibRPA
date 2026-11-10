@@ -5,6 +5,11 @@ description: Diagnose ABACUS + LibRPA RPA/GW failures from logs and inputs. Use 
 
 # ABACUS + LibRPA Debug
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Before treating an ABACUS+LibRPA failure as a physics/input issue, apply `skills/abacus-librpa-version-guard/` when execution provenance matters. Mismatched binaries can reject or misread pinned parameters, so check server source revisions against the MCP profile before redesigning inputs.
 
 For slow, stalled, or underutilized LibRPA stages, apply `$librpa-openmp-mkl-threading` before changing physics inputs or declaring an application failure.

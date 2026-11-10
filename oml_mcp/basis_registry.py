@@ -144,9 +144,10 @@ class BasisAmbiguityError(BasisRegistryError):
 
     The basis is a scientific decision, not a lookup: two element sets differ
     in pseudopotential family, NAO size and auxiliary basis, so picking the
-    first alphabetically is picking a different calculation. Nineteen of the
-    thirty-two elements in the shipped library have more than one usable set,
-    so this happens on real cases, not only on synthetic ones.
+    first alphabetically is picking a different calculation. Twenty-three of the
+    thirty-two elements in the shipped library have more than one usable set (19
+    once an auxiliary basis is required), so this happens on real cases, not
+    only on synthetic ones.
     """
 
     def __init__(self, element: str, candidates: tuple[ElementSet, ...], message: str) -> None:

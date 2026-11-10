@@ -5,6 +5,11 @@ description: Use when planning, submitting, or recovering molecular, atomic, or 
 
 # Efficient Delta-ST Production
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Choose a physically equivalent parallel layout from measured equation throughput. Never submit a full molecule series or canonical-q array from node availability alone.
 
 Also use `research-hpc-orchestrator` for provenance and duplicate prevention. Use `abacus-delta-st-molecular-convergence` or `abacus-delta-st-solid-convergence` for the physical convergence protocol.

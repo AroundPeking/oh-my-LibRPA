@@ -1,6 +1,6 @@
 ---
 name: librpa-database-intake
-description: Use when adding a completed ABACUS+LibRPA or FHI-aims+LibRPA calculation (band structure, large-system GW, RPA energy, or reader conversion) to the LibRPA materials database — validating the run scientifically, building the record, passing every repository gate, and submitting it as a pull request. Also covers catalog regeneration, evidence rules, and the post-merge external-archive sync.
+description: Archive only — not for running calculations (that is `oh-my-librpa`). Use when adding a completed ABACUS+LibRPA or FHI-aims+LibRPA calculation (band structure, large-system GW, RPA energy, or reader conversion) to the LibRPA materials database — validating the run scientifically, building the record, passing every repository gate, and submitting it as a pull request. Also covers catalog regeneration, evidence rules, and the post-merge external-archive sync.
 ---
 
 # LibRPA Database Intake

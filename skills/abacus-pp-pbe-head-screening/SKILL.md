@@ -5,6 +5,11 @@ description: Use when selecting GTH, SG15, or PseudoDojo pseudopotentials and ma
 
 # PBE 与全电子 head 联合筛选赝势
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 ## 先查 LibRPA 数据库
 
 元素资产的唯一来源是 LibRPA 数据库（`https://github.com/AroundPeking/LibRPA-database`），

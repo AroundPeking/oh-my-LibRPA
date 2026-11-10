@@ -5,6 +5,11 @@ description: Use when diagnosing or stabilizing ABACUS SCF convergence failures,
 
 # ABACUS SCF Convergence
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Use this skill to diagnose ABACUS SCF non-convergence without changing the physical target. The core rule is: read the real logs first, identify the intended charge/spin/occupation state, then change one convergence control at a time.
 
 This skill distills the ABACUS convergence manual `~/Downloads/ABACUS收敛性问题解决手册.md` by Zhou Weiqing, for ABACUS v3.5.0 and later. For parameter defaults and the full scenario table, read `references/abacus-scf-convergence-manual.md`.

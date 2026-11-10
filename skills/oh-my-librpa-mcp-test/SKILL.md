@@ -1,6 +1,6 @@
 ---
 name: oh-my-librpa-mcp-test
-description: Opt-in experimental OML MCP harness for admission, controlled execution, and benchmark testing.
+description: Opt-in only; the GW/RPA lane is `oh-my-librpa`. Opt-in experimental OML MCP harness for admission, controlled execution, and benchmark testing.
 ---
 
 # Oh-My-LibRPA MCP Test

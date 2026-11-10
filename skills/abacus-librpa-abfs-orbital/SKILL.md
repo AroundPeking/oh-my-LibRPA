@@ -5,6 +5,11 @@ description: Obtain, select, validate, or document ABFS_ORBITAL inputs for ABACU
 
 # ABACUS + LibRPA ABFS_ORBITAL
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Use this skill when the task is specifically about auxiliary-basis files and `ABFS_ORBITAL`, not the full GW route.
 
 ## Reuse-first entrypoint

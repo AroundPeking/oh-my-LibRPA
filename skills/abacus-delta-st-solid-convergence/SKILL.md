@@ -5,6 +5,11 @@ description: Use when preparing, submitting, auditing, comparing, or documenting
 
 # ABACUS Solid Delta-ST Convergence
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Use this workflow for periodic insulating solids and their isolated atomic references. Keep solver completion, numerical convergence, and agreement with literature as separate conclusions.
 
 Before submitting work, also apply:

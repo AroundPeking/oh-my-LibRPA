@@ -5,6 +5,11 @@ description: Use when preparing, submitting, or diagnosing LibRPA jobs whose per
 
 # LibRPA OpenMP and MKL Threading
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Keep the MPI layout, OpenMP team, and MKL team explicit. Do not inherit FHI-aims or ABACUS producer settings without checking the LibRPA stage.
 
 This guard applies to LibRPA regardless of whether the producer is ABACUS or FHI-aims. Treat producer and LibRPA resource environments as separate stages.

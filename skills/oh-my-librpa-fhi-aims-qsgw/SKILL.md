@@ -5,9 +5,16 @@ description: Stack-layer workflow for FHI-aims -> LibRPA QSGW/G0W0 cases. Use wh
 
 # oh-my-librpa-fhi-aims-qsgw
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Treat existing case directories as the source of truth when the user says `follow`, `mirror`, `same settings`, or `same path as Si/MgO/...`.
 
-Treat this skill as the FHI-aims-side router below the top-level `oh-my-librpa` entrypoint.
+This file is the FHI-aims-side router below the top-level `oh-my-librpa` entrypoint:
+route FHI-aims inputs here, then pick `oh-my-librpa-fhi-aims-g0w0-band` for
+single-shot G0W0 or stay here for staged QSGW campaigns.
 
 If the request is about building or repairing the FHI-aims executable itself rather than preparing or running a case, stop and hand the task to `skills/fhi-aims-build/`.
 

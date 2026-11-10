@@ -2,8 +2,9 @@
 
 The basis is a scientific decision, not a lookup detail: two element sets differ
 in pseudopotential family, NAO size and auxiliary basis, and the resulting gap
-can differ by an eV. Nineteen of the thirty-two elements in the shipped database
-library have more than one usable set, so "take the first one" is never safe.
+can differ by an eV. Twenty-three of the thirty-two elements in the shipped
+database library have more than one usable set (19 once an auxiliary basis is
+required), so "take the first one" is never safe.
 
 This module therefore builds one machine-readable disclosure per prepared run:
 

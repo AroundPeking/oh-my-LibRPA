@@ -5,6 +5,11 @@ description: ABACUS + LibRPA GW workflow guidance and static input checks. Use w
 
 # ABACUS + LibRPA GW
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Before choosing or generating PP/NAO/ABFS inputs, query the LibRPA materials
 database through its MCP server (`list_basis_sets` for the element,
 `search_materials` for a related or the same material, `get_material` for the

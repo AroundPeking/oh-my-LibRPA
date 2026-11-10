@@ -5,6 +5,11 @@ description: Use when generating or regenerating ABACUS numerical atomic orbital
 
 # SIAB Generate Orbitals
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Generate ABACUS numerical atomic orbitals (.orb) using SIAB workflow:
 ABACUS PW dimer calculations → SA (Simulated Annealing) optimization → .orb conversion.
 

@@ -5,6 +5,11 @@ description: Use when users ask for periodic-solid FHI-aims + LibRPA single-shot
 
 # oh-my-librpa-fhi-aims-g0w0-band
 
+> **Entry point:** this is a sub-route of `oh-my-librpa`. Load
+> `oh-my-librpa` first — it fixes the version profile, PP/NAO/ABFS identity,
+> k-mesh and spin/symmetry contract that this file assumes. If you arrived
+> here without loading it, go back and load it before acting.
+
 Treat this as the periodic-solid `FHI-aims + LibRPA` single-shot GW lane. The route name preserves the older user-facing term, but LibRPA 0.7.0 input uses `task = g0w0`.
 
 If the request is about QSGW-family tasks such as `qsgw_band`, `qsgw_band0`, `qsgw`, or `qsgwa`, stop and hand the task to `skills/oh-my-librpa-fhi-aims-qsgw/`.

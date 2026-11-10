@@ -186,8 +186,9 @@ A GW gap depends on which pseudopotential, which numerical orbital and which
 auxiliary basis the run opened, so OML treats the basis as a decision, not a
 lookup. Two rules follow.
 
-**It does not choose.** The shipped library has more than one usable set for 19
-of its 32 elements (Si: ONCV and SG15; N: GTH, ONCV and SG15; O: three). When
+**It does not choose.** The shipped library has more than one usable set for 23 of its 32 elements,
+and still 19 once an auxiliary basis is required (Si: ONCV and SG15; N: GTH,
+ONCV and SG15; O: three). When
 a species matches several sets and no family or set id was given, the basis gate
 fails and lists every candidate with its family; nothing is submitted. Choose one
 with `--basis-set ELEMENT=SET_ID` (MCP: `basis_sets`). A family alone is allowed
