@@ -211,6 +211,11 @@ def label_for_set(
     pieces: list[str] = []
     if valence is not None:
         pieces.append(f"{valence} valence electrons")
+    elif nao is not None:
+        # A basis is normally judged by its valence count. Saying nothing would
+        # read as "none", which is wrong: the pseudopotential simply does not
+        # declare it in a field this reader understands.
+        pieces.append("valence electron count not declared by the pseudopotential")
     nao_dim = (nao or {}).get("dimension_per_atom")
     abf_dim = (abf or {}).get("dimension_per_atom")
     if atom_count:

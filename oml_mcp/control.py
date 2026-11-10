@@ -10,6 +10,7 @@ from typing import Any
 from .basis_disclosure import (
     DISCLOSURE_RELATIVE_PATH,
     disclosure_digest,
+    format_basis_disclosure,
     read_disclosure,
     summarise_disclosure,
 )
@@ -255,6 +256,10 @@ class ControlledExecutionService:
         return {
             "run_id": run_id,
             "disclosure": disclosure,
+            # The exact block a user reads and approves. Returning the rendered
+            # text keeps the caller from paraphrasing it into something the
+            # digest does not describe.
+            "statement": format_basis_disclosure(disclosure),
             "summary": summarise_disclosure(disclosure),
             "disclosure_digest": current,
             "acknowledged": acknowledged,
