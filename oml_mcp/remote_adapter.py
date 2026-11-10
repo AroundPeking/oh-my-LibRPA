@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping
 
+from .errors import OMLError
 from .stru import rewrite_assets
 
 from .fast_benchmark import FastCase
@@ -801,6 +802,25 @@ class ControlledExecutionBinding:
         plan_digest = receipt["plan_digest"]
         detail: list[dict[str, Any]] = []
         diagnostics: dict[str, Any] | None = None
+
+        # Fast stages may run on the login node without going through
+        # submit_stage, so the basis acknowledgement has to be checked here too.
+        # Without this a login-node placement would be the one way to spend
+        # compute on a basis nobody approved.
+        local_run_dir = receipt.get("local_run_dir")
+        if local_run_dir and hasattr(self.service, "describe_basis"):
+            described = self.service.describe_basis(run_id)
+            if not described.get("submit_allowed"):
+                raise OMLError(
+                    "BASIS_NOT_ACKNOWLEDGED",
+                    "the basis of this run has not been acknowledged by a human",
+                    evidence=(run_id, described.get("disclosure_digest", "")),
+                    recovery=(
+                        "call describe_basis to show the PP/NAO/ABFS and their sizes, "
+                        "then acknowledge_basis with that digest"
+                    ),
+                    details={"basis_disclosure": described.get("disclosure")},
+                )
 
         policy = self.login_node or LoginNodePolicy(enabled=False)
         placements = {p.stage: p for p in plan_stage_placement(stages, login_node=policy)}

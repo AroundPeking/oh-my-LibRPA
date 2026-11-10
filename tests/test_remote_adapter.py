@@ -259,6 +259,29 @@ class ControlledExecutionBindingTest(unittest.TestCase):
         binding = ControlledExecutionBinding(service=service, sleep=lambda _: None)
         return binding, service
 
+    def test_login_node_placement_still_requires_the_basis_acknowledgement(self):
+        # A login-node stage never calls submit_stage, so it was the one path
+        # that could spend compute on a basis nobody approved.
+        from oml_mcp.errors import OMLError
+        from oml_mcp.stage_execution import LoginNodePolicy
+
+        binding, service = self._binding(
+            stage_states={"pyatb": "PASSED"}, inspections={}
+        )
+        service.describe_basis = lambda run_id: {
+            "run_id": run_id,
+            "submit_allowed": False,
+            "disclosure_digest": "d" * 64,
+            "disclosure": {"totals": {"nbasis": 44}},
+        }
+        binding.login_node = LoginNodePolicy(
+            enabled=True, ssh_host="example", allowed_stages=("pyatb",)
+        )
+        with self.assertRaisesRegex(OMLError, "BASIS_NOT_ACKNOWLEDGED"):
+            binding.run_stages(
+                {"run_id": "run-1", "plan_digest": "d", "local_run_dir": "/tmp"}, ("pyatb",)
+            )
+
     def test_all_stages_pass_and_report_success(self):
         stages = ("scf", "pyatb")
         binding, service = self._binding(

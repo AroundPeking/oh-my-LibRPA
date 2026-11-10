@@ -8,6 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .basis_disclosure import (
+    build_basis_disclosure,
+    disclosure_digest,
+    write_disclosure,
+)
 from .errors import OMLError
 from .execution_profiles import ExecutionProfile
 from .parsers import ParseError, parse_abacus_input, parse_bool, parse_int, parse_librpa_input
@@ -419,12 +424,6 @@ def prepare_run(
         # The basis a run will submit is a scientific decision, so it is
         # disclosed here, inside the immutable run, and its digest is what a
         # human acknowledges before any stage is submitted.
-        from .basis_disclosure import (
-            build_basis_disclosure,
-            disclosure_digest,
-            write_disclosure,
-        )
-
         disclosure = build_basis_disclosure(temporary_dir, soc=bool(plan.options["soc"]))
         disclosure["digest"] = disclosure_digest(disclosure)
         write_disclosure(temporary_dir, disclosure)
