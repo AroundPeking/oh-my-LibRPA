@@ -34,7 +34,41 @@ def make_periodic_source(root: pathlib.Path) -> None:
     )
     (root / "KPT_scf").write_text("K_POINTS\n0\nGamma\n2 2 2 0 0 0\n", encoding="utf-8")
     (root / "KPT_nscf").write_text("K_POINTS\n1\nDirect\n0 0 0 1\n", encoding="utf-8")
-    (root / "STRU").write_text("ATOMIC_SPECIES\nSi 28 Si.upf\n", encoding="utf-8")
+    # A realistic STRU: the numerical orbital and auxiliary basis blocks are what
+    # a GW run actually opens, and the basis disclosure reads them.
+    (root / "STRU").write_text(
+        "\n".join(
+            (
+                "ATOMIC_SPECIES",
+                "Si 28 Si.upf",
+                "",
+                "NUMERICAL_ORBITAL",
+                "Si.orb",
+                "",
+                "ABFS_ORBITAL",
+                "Si.abfs",
+                "",
+                "LATTICE_CONSTANT",
+                "1.8897261254578281",
+                "",
+                "LATTICE_VECTORS",
+                "0.0 2.715 2.715",
+                "2.715 0.0 2.715",
+                "2.715 2.715 0.0",
+                "",
+                "ATOMIC_POSITIONS",
+                "Direct",
+                "Si",
+                "0.0",
+                "2",
+                "0.0 0.0 0.0",
+                "0.25 0.25 0.25",
+                "",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     (root / "librpa.in").write_text(
         "\n".join(
             (
@@ -67,10 +101,28 @@ def make_periodic_source(root: pathlib.Path) -> None:
         + "\n",
         encoding="utf-8",
     )
+    orbital_header = (
+        "---------------------------------------------------------------------------\n"
+        "Element                     Si\n"
+        "Lmax                        1\n"
+        "Number of Sorbital-->       2\n"
+        "Number of Porbital-->       1\n"
+        "---------------------------------------------------------------------------\n"
+        "SUMMARY  END\n"
+    )
+    auxiliary_header = (
+        "---------------------------------------------------------------------------\n"
+        "Element                     Si\n"
+        "Lmax                        1\n"
+        "Number of Sorbital-->       3\n"
+        "Number of Porbital-->       1\n"
+        "---------------------------------------------------------------------------\n"
+        "SUMMARY  END\n"
+    )
     for name, content in (
         ("Si.upf", "pseudo\n"),
-        ("Si.orb", "orbital\n"),
-        ("Si.abfs", "auxiliary\n"),
+        ("Si.orb", orbital_header),
+        ("Si.abfs", auxiliary_header),
     ):
         (root / name).write_text(content, encoding="utf-8")
     template = pathlib.Path(__file__).resolve().parents[1] / "templates" / "abacus-librpa-gw" / "template"

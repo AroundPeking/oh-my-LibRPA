@@ -72,7 +72,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--basis-family",
         default=None,
-        help="preferred element-set family (e.g. SG15); default is the deterministic first usable set",
+        help="restrict the element sets to one family (e.g. SG15); does not choose among several sets of that family",
+    )
+    parser.add_argument(
+        "--basis-set",
+        action="append",
+        default=[],
+        metavar="ELEMENT=SET_ID",
+        help=(
+            "choose the database element set for one species (repeatable). "
+            "Required when the library offers several usable sets: OML reports them "
+            "and refuses to pick a pseudopotential family on its own"
+        ),
+    )
+    parser.add_argument(
+        "--list-basis-candidates",
+        action="store_true",
+        help="only report the database sets available for each species, then exit",
     )
     parser.add_argument(
         "--case-basis",
@@ -110,6 +126,13 @@ def main() -> int:
     seed = dict(CONTINUATION_SEED)
     if args.seed_file:
         seed.update(json.loads(Path(args.seed_file).read_text(encoding="utf-8")))
+    basis_sets = {}
+    for item in args.basis_set:
+        if "=" not in item:
+            print(f"--basis-set expects ELEMENT=SET_ID, got {item!r}", file=sys.stderr)
+            return 2
+        element, _, set_id = item.partition("=")
+        basis_sets[element.strip()] = set_id.strip()
     case = load_fast_case(args.case)
     runner = ControlledLoopRunner(
         case=case,
@@ -123,10 +146,14 @@ def main() -> int:
         scheduler_max_polls=args.scheduler_max_polls,
         basis_root=args.basis_root,
         basis_family=args.basis_family,
+        basis_sets=basis_sets,
         use_database_basis=not args.case_basis,
         policy_mode=args.policy_mode,
     )
     audit = runner.audit(seed, mode=args.policy_mode)
+    if args.list_basis_candidates:
+        print(json.dumps(audit.get("basis_candidates", {}), indent=2, ensure_ascii=False))
+        return 0
     if args.preflight_only:
         print(json.dumps(audit, indent=2, ensure_ascii=False))
         return 0 if audit["ok"] else 2

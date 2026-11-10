@@ -139,14 +139,63 @@ def _family_match(requested: str, element_set: ElementSet) -> bool:
     return bool(family) and (family == wanted or family in wanted or wanted in _normalize_family(element_set.set_id))
 
 
+class BasisAmbiguityError(BasisRegistryError):
+    """Raised when more than one database set matches and nobody chose one.
+
+    The basis is a scientific decision, not a lookup: two element sets differ
+    in pseudopotential family, NAO size and auxiliary basis, so picking the
+    first alphabetically is picking a different calculation. Nineteen of the
+    thirty-two elements in the shipped library have more than one usable set,
+    so this happens on real cases, not only on synthetic ones.
+    """
+
+    def __init__(self, element: str, candidates: tuple[ElementSet, ...], message: str) -> None:
+        super().__init__(message)
+        self.element = element
+        self.candidates = candidates
+
+    def candidate_ids(self) -> tuple[str, ...]:
+        return tuple(item.set_id for item in self.candidates)
+
+
+def describe_set(element_set: ElementSet) -> dict[str, Any]:
+    """Return the provenance and size of one element set, with no judgement."""
+    described: dict[str, Any] = {
+        "set_id": element_set.set_id,
+        "element": element_set.element,
+        "family": element_set.family,
+        "validation_scope": element_set.validation_scope,
+        "source": dict(element_set.source or {}),
+        "roles": {},
+    }
+    for role, asset in sorted(element_set.files.items()):
+        entry: dict[str, Any] = {
+            "path": str(asset.path),
+            "file_name": asset.path.name,
+            "sha256": asset.sha256,
+            "size_bytes": asset.size_bytes if asset.size_bytes is not None else asset.path.stat().st_size,
+        }
+        if asset.dimensions:
+            entry["dimensions"] = dict(asset.dimensions)
+        described["roles"][role] = entry
+    return described
+
+
 def resolve_set(
     registry: Mapping[str, tuple[ElementSet, ...]],
     element: str,
     *,
     family: str | None = None,
     require_abf: bool = False,
+    set_id: str | None = None,
 ) -> ElementSet:
-    """Resolve one element to a concrete set; ``abfs_default`` keeps the set's own ABFS."""
+    """Resolve one element to a concrete set; ``abfs_default`` keeps the set's own ABFS.
+
+    ``set_id`` is the only way to choose between several matching sets. Without
+    it an ambiguous element raises ``BasisAmbiguityError`` instead of silently
+    taking the first candidate: the caller (a human, through the reported
+    candidates) is the one that decides.
+    """
     candidates = registry.get(element)
     if not candidates:
         raise BasisRegistryError(BUILD_SKILL_HINT.format(element=element))
@@ -170,6 +219,27 @@ def resolve_set(
                 f"element {element} has no set with an auxiliary basis; "
                 "generate the ABFS with the abacus-librpa-gw-basis-skill method"
             )
+    if set_id is not None:
+        exact = [item for item in filtered if item.set_id == set_id]
+        if not exact:
+            available = sorted(item.set_id for item in filtered)
+            raise BasisRegistryError(
+                f"element {element} has no usable set {set_id!r}"
+                + (f" for family {family!r}" if family else "")
+                + f"; usable sets: {available}"
+            )
+        return exact[0]
+    if len(filtered) > 1:
+        listed = ", ".join(
+            f"{item.set_id} (family={item.family!r})" for item in filtered
+        )
+        raise BasisAmbiguityError(
+            element,
+            tuple(filtered),
+            f"element {element} matches {len(filtered)} database sets: {listed}. "
+            "Refusing to choose one: name the set explicitly "
+            f"(set_id={filtered[0].set_id!r} is one candidate).",
+        )
     return filtered[0]
 
 

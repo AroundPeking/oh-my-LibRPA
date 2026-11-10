@@ -279,6 +279,7 @@ def _materialized_manifest(run_dir: Path) -> tuple[dict[str, Any], ...]:
             Path(".oml/env.sh"),
             Path(".oml/execution.json"),
             Path(".oml/plan.json"),
+            Path(".oml/basis.json"),
         } or relative.parts[:2] == (".oml", "stages")
         if not path.is_file() or (relative.parts[:1] == (".oml",) and not controlled_metadata):
             continue
@@ -415,6 +416,18 @@ def prepare_run(
             json.dumps(execution_receipt, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+        # The basis a run will submit is a scientific decision, so it is
+        # disclosed here, inside the immutable run, and its digest is what a
+        # human acknowledges before any stage is submitted.
+        from .basis_disclosure import (
+            build_basis_disclosure,
+            disclosure_digest,
+            write_disclosure,
+        )
+
+        disclosure = build_basis_disclosure(temporary_dir, soc=bool(plan.options["soc"]))
+        disclosure["digest"] = disclosure_digest(disclosure)
+        write_disclosure(temporary_dir, disclosure)
         env_path = oml_dir / "env.sh"
         env_path.write_text(
             render_env(
@@ -485,4 +498,8 @@ def prepare_run(
         "remote_run_dir": remote_run_dir,
         "stages": list(plan.stages),
         "state": "RUN_PREPARED",
+        # Submission is blocked until a human acknowledges this digest.
+        "basis_disclosure": disclosure,
+        "basis_disclosure_digest": disclosure.get("digest"),
+        "basis_acknowledged": False,
     }

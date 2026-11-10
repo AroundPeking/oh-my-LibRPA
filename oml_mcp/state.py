@@ -121,6 +121,13 @@ class StateStore:
                     report_json TEXT NOT NULL,
                     inspected_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS basis_acknowledgements (
+                    run_id TEXT PRIMARY KEY REFERENCES runs(run_id),
+                    disclosure_digest TEXT NOT NULL,
+                    acknowledged_at TEXT NOT NULL,
+                    acknowledged_by TEXT NOT NULL,
+                    note TEXT
+                );
                 CREATE TABLE IF NOT EXISTS scientific_reports (
                     report_id TEXT PRIMARY KEY,
                     run_id TEXT NOT NULL REFERENCES runs(run_id),
@@ -646,6 +653,65 @@ class StateStore:
         if cursor.rowcount != 1:
             return self.get_attempt(attempt_id)
         return self.get_attempt(attempt_id)
+
+    def acknowledge_basis(
+        self,
+        *,
+        run_id: str,
+        disclosure_digest: str,
+        acknowledged_by: str,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        """Record that a named human accepted this exact basis disclosure.
+
+        The digest is what makes the acknowledgement meaningful: acknowledging
+        "the basis" without binding it to the bytes a run will use would let a
+        different basis be substituted after the answer was given. A second
+        acknowledgement for the same run only displaces the first when the
+        digest is the same, so an accidental repeat is idempotent while a
+        changed basis forces a new answer.
+        """
+        if not acknowledged_by.strip():
+            raise OMLError(
+                "BASIS_ACK_REQUIRES_IDENTITY",
+                "a basis acknowledgement must name who gave it",
+                evidence=(run_id,),
+                recovery="pass acknowledged_by with the person who reviewed the disclosure",
+            )
+        now = utc_now()
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT disclosure_digest FROM basis_acknowledgements WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            if row is not None and row["disclosure_digest"] != disclosure_digest:
+                raise OMLError(
+                    "BASIS_ACK_STALE",
+                    "the acknowledged basis is not the basis this run now carries",
+                    evidence=(run_id, str(row["disclosure_digest"]), disclosure_digest),
+                    recovery="re-read the disclosure and acknowledge the current one",
+                )
+            connection.execute(
+                """
+                INSERT INTO basis_acknowledgements (
+                    run_id, disclosure_digest, acknowledged_at, acknowledged_by, note
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(run_id) DO UPDATE SET
+                    acknowledged_at = excluded.acknowledged_at,
+                    acknowledged_by = excluded.acknowledged_by,
+                    note = excluded.note
+                """,
+                (run_id, disclosure_digest, now, acknowledged_by.strip(), note),
+            )
+            connection.commit()
+        return self.get_basis_acknowledgement(run_id) or {}
+
+    def get_basis_acknowledgement(self, run_id: str) -> dict[str, Any] | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM basis_acknowledgements WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        return dict(row) if row is not None else None
 
     def record_observation(
         self,

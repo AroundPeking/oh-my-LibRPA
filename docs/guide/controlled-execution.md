@@ -35,12 +35,26 @@ At preparation and before every submission, OML checks the pinned source SHAs an
 
 1. Use `inspect_profile`, `ingest_case`, `plan_case`, and input-stage `validate_case`.
 2. Review the immutable plan digest and call `prepare_run(source_path, plan_digest, execution_profile_id)`.
-3. Call `submit_stage` for exactly one stage. It transactionally rejects stale plans, wrong order, passed stages, and equivalent active or unobservable jobs.
-4. Call read-only `get_status`. It observes `squeue` and falls back to `sacct`; it does not mark scientific success or change SQLite state.
-5. At a terminal scheduler state (`COMPLETED`, `FAILED`, or `CANCELLED`), call `inspect_stage`. It records the observation, creates a bounded remote snapshot where needed, applies fixed artifact gates, and writes an immutable PASS/FAIL receipt. Failed or cancelled scheduler states are always forced to FAIL even if partial artifacts look complete.
-6. Repeat in order. Before `librpa`, OML runs the complete `pre_librpa` cross-dataset validation.
-7. After the final accepted LibRPA snapshot, call `finalize_case` with registered benchmark and optional convergence-bundle IDs. It records a scientific report bound to the final attempt and immutable manifest.
-8. Call `score_case` at any point to inspect hard gates, scientific status, component scores, retries, and remaining work.
+   Preparation writes `.oml/basis.json` into the run and returns it as `basis_disclosure`.
+3. Call read-only `describe_basis(run_id, ...)` and show the user exactly what the run
+   will use: for every species, where the pseudopotential, numerical orbital and
+   auxiliary basis come from (`database set <id>` with its family and validation
+   scope, or `run-bundled files` when no single database set matches), each file
+   name and SHA-256, the NAO shell string and dimension per atom, the ABF channel
+   counts and auxiliary dimension per atom, and the totals `nbasis` / `naux` for
+   this structure. Then call `acknowledge_basis` with the digest that was shown
+   and the name of the person who reviewed it. `submit_stage` refuses to run until
+   that acknowledgement exists and matches the current disclosure digest, so a
+   basis changed after the fact invalidates the earlier answer. OML does not pick
+   a pseudopotential family on its own: when the library offers several usable
+   sets for an element it reports the candidates and the policy gate fails with
+   them listed. Choose one with `basis_sets` / `--basis-set ELEMENT=SET_ID`.
+4. Call `submit_stage` for exactly one stage. It transactionally rejects stale plans, wrong order, passed stages, unacknowledged bases, and equivalent active or unobservable jobs.
+5. Call read-only `get_status`. It observes `squeue` and falls back to `sacct`; it does not mark scientific success or change SQLite state.
+6. At a terminal scheduler state (`COMPLETED`, `FAILED`, or `CANCELLED`), call `inspect_stage`. It records the observation, creates a bounded remote snapshot where needed, applies fixed artifact gates, and writes an immutable PASS/FAIL receipt. Failed or cancelled scheduler states are always forced to FAIL even if partial artifacts look complete.
+7. Repeat in order. Before `librpa`, OML runs the complete `pre_librpa` cross-dataset validation.
+8. After the final accepted LibRPA snapshot, call `finalize_case` with registered benchmark and optional convergence-bundle IDs. It records a scientific report bound to the final attempt and immutable manifest.
+9. Call `score_case` at any point to inspect hard gates, scientific status, component scores, retries, and remaining work.
 
 If `sbatch` times out after a submission may have reached Slurm, the attempt remains `UNKNOWN`. A later explicit `submit_stage` call queries both `squeue` and `sacct` using the unique full `run_id + stage` job name. One matching job is attached to the original attempt and multiple matches remain blocked. Absence is accepted only after two complete `squeue+sacct` observations at least five minutes apart. The attempt then becomes `FAILED`, but OML still preserves that run directory: a retry requires a new `prepare_run` receipt and fresh run directory.
 
@@ -165,6 +179,31 @@ same evaluator version. This prevents a changed scientific rule from silently
 mixing old and new verdicts in one report.
 
 If an approved reference is absent, definitions differ, or any required convergence axis is absent, numerical/scientific validity remains `NOT_EVALUATED`. Explicit QPE, non-finite, analytic-continuation, unstable-root, state-set, or complete convergence failures produce `FAIL`. A successful scheduler exit or `LIBRPA_PASSED` is not a scientific-validity claim. Frozen replays under `benchmarks/replays/` protect these semantics during harness evolution.
+
+## The basis is disclosed, never chosen
+
+A GW gap depends on which pseudopotential, which numerical orbital and which
+auxiliary basis the run opened, so OML treats the basis as a decision, not a
+lookup. Two rules follow.
+
+**It does not choose.** The shipped library has more than one usable set for 19
+of its 32 elements (Si: ONCV and SG15; N: GTH, ONCV and SG15; O: three). When
+a species matches several sets and no family or set id was given, the basis gate
+fails and lists every candidate with its family; nothing is submitted. Choose one
+with `--basis-set ELEMENT=SET_ID` (MCP: `basis_sets`). A family alone is allowed
+when it leaves exactly one set.
+
+**It tells you, and waits.** `prepare_run` writes `.oml/basis.json` and returns it
+as `basis_disclosure`: per species the set id and its recorded validation scope
+(or `run-bundled` when the payloads do not hash-match one set), each payload's
+file name, size and SHA-256, the NAO shell string and dimension per atom, the ABF
+channel counts and auxiliary dimension per atom, and the totals `nbasis` / `naux`
+for this structure. `describe_basis` reads it back; `acknowledge_basis` records
+who accepted that digest. `submit_stage` refuses to run (`BASIS_NOT_ACKNOWLEDGED`)
+until the acknowledgement exists and matches the digest of the disclosure on
+disk, which is itself covered by the run manifest - so a basis swapped after the
+answer invalidates it. An `INCOMPLETE` disclosure (no readable orbital header, no
+auxiliary basis for a species) cannot be acknowledged at all.
 
 ## Live Acceptance
 

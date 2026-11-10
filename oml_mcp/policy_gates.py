@@ -42,11 +42,33 @@ def check_basis_source(
     *,
     database_basis: bool | None,
     missing_elements: Sequence[str] = (),
+    ambiguous_elements: Mapping[str, Sequence[Mapping[str, object]]] | None = None,
     mode: str = PRODUCTION,
 ) -> PolicyFinding:
     gate = "policy.basis_source"
     if mode != PRODUCTION:
         return _not_evaluated(gate, "replay runs are outside the production policy scope")
+    if ambiguous_elements:
+        # Not a missing element: every candidate would work, and choosing one
+        # changes the pseudopotential, the orbital size and the auxiliary basis.
+        # Refuse and hand the decision back.
+        listing = "; ".join(
+            f"{element}: "
+            + ", ".join(
+                f"{item.get('set_id')} (family {item.get('family')!r})"
+                for item in candidates
+            )
+            for element, candidates in ambiguous_elements.items()
+        )
+        return PolicyFinding(
+            gate,
+            FAIL,
+            f"the basis library offers several usable sets for {list(ambiguous_elements)} "
+            f"and none was chosen: {listing}",
+            "choose one set per element explicitly (basis_sets / --basis-set "
+            "element=set_id) after checking the family against the case; OML does not "
+            "pick a pseudopotential family on the user's behalf",
+        )
     if missing_elements:
         return PolicyFinding(
             gate,
@@ -223,6 +245,7 @@ def run_gates(
     mode: str = PRODUCTION,
     database_basis: bool | None = None,
     missing_elements: Sequence[str] = (),
+    ambiguous_elements: Mapping[str, Sequence[Mapping[str, object]]] | None = None,
     scf_kgrid: Sequence[int] | None = None,
     dimension: str | None = None,
     abfs_orbital: bool | None = None,
@@ -234,7 +257,12 @@ def run_gates(
     observed_duplicates: Mapping[str, Sequence[str]] | None = None,
 ) -> tuple[PolicyFinding, ...]:
     return (
-        check_basis_source(database_basis=database_basis, missing_elements=missing_elements, mode=mode),
+        check_basis_source(
+            database_basis=database_basis,
+            missing_elements=missing_elements,
+            ambiguous_elements=ambiguous_elements,
+            mode=mode,
+        ),
         check_basis_identity(
             expected_basis=expected_basis,
             observed_basis=observed_basis,

@@ -33,6 +33,15 @@ def synthetic_scientific_result() -> dict:
 
 
 class ControlledExecutionTest(unittest.TestCase):
+    def acknowledge(self, service, run):
+        """Acknowledge the basis of a freshly prepared run (test shorthand)."""
+        service.acknowledge_basis(
+            run["run_id"],
+            disclosure_digest_value=run["basis_disclosure_digest"],
+            acknowledged_by="test-fixture",
+        )
+        return run
+
     def prepare(self, root: pathlib.Path):
         source_root = root / "sources"
         source = source_root / "si"
@@ -42,7 +51,98 @@ class ControlledExecutionTest(unittest.TestCase):
         service = ControlledExecutionService(profile)
         service.executor.verify_versions = lambda: {"verdict": "match", "components": {}}
         run = service.prepare_run(source, plan.digest)
+        # The basis disclosure is written during preparation and must be
+        # acknowledged by a human before any stage is submitted.
+        service.acknowledge_basis(
+            run["run_id"],
+            disclosure_digest_value=run["basis_disclosure_digest"],
+            acknowledged_by="test-fixture",
+            note="fixture acknowledges the declared basis so submit tests stay about submission",
+        )
         return source, profile, plan, service, run
+
+    def _prepare_unacknowledged(self, root: pathlib.Path):
+        """Prepare a run without acknowledging its basis."""
+        source_root = root / "sources"
+        source = source_root / "si"
+        make_periodic_source(source)
+        profile = make_profile(root, source_root)
+        plan = plan_case(source, task="gw", system_type="solid")
+        service = ControlledExecutionService(profile)
+        service.executor.verify_versions = lambda: {"verdict": "match", "components": {}}
+        run = service.prepare_run(source, plan.digest)
+        return source, profile, plan, service, run
+
+    def test_submission_is_refused_until_the_basis_is_acknowledged(self):
+        # The whole point of the disclosure: no compute before a human has been
+        # told where the PP/NAO/ABFS come from and how large the basis is.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self._prepare_unacknowledged(root)
+            with patch("oml_mcp.executor.subprocess.run") as execute:
+                execute.return_value = subprocess.CompletedProcess([], 0, "12345\n", "")
+                with self.assertRaisesRegex(OMLError, "BASIS_NOT_ACKNOWLEDGED"):
+                    service.submit_stage(run["run_id"], "scf", plan.digest)
+                execute.assert_not_called()
+
+    def test_describe_basis_returns_the_disclosure_and_blocks_by_default(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, _, service, run = self._prepare_unacknowledged(root)
+            described = service.describe_basis(run["run_id"])
+        self.assertFalse(described["acknowledged"])
+        self.assertFalse(described["submit_allowed"])
+        self.assertIn("nbasis", described["summary"])
+        self.assertEqual(
+            described["disclosure_digest"], run["basis_disclosure_digest"]
+        )
+
+    def test_acknowledging_a_different_digest_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, _, service, run = self._prepare_unacknowledged(root)
+            with self.assertRaisesRegex(OMLError, "BASIS_ACK_MISMATCH"):
+                service.acknowledge_basis(
+                    run["run_id"],
+                    disclosure_digest_value="0" * 64,
+                    acknowledged_by="test-fixture",
+                )
+
+    def test_acknowledgement_requires_a_name(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, _, service, run = self._prepare_unacknowledged(root)
+            with self.assertRaisesRegex(OMLError, "BASIS_ACK_REQUIRES_IDENTITY"):
+                service.acknowledge_basis(
+                    run["run_id"],
+                    disclosure_digest_value=run["basis_disclosure_digest"],
+                    acknowledged_by="   ",
+                )
+
+    def test_a_changed_basis_invalidates_an_earlier_acknowledgement(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self._prepare_unacknowledged(root)
+            self.acknowledge(service, run)
+            # Rewrite the disclosure as if the basis had been swapped in place.
+            path = pathlib.Path(run["local_run_dir"]) / ".oml" / "basis.json"
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["totals"]["nbasis"] = 999
+            path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            with patch("oml_mcp.executor.subprocess.run") as execute:
+                execute.return_value = subprocess.CompletedProcess([], 0, "12345\n", "")
+                with self.assertRaisesRegex(OMLError, "BASIS_NOT_ACKNOWLEDGED"):
+                    service.submit_stage(run["run_id"], "scf", plan.digest)
+                execute.assert_not_called()
+
+    def test_an_acknowledged_run_still_submits(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            _, _, plan, service, run = self.prepare(root)
+            with patch("oml_mcp.executor.subprocess.run") as execute:
+                execute.return_value = subprocess.CompletedProcess([], 0, "12345\n", "")
+                attempt = service.submit_stage(run["run_id"], "scf", plan.digest)
+        self.assertEqual(attempt["scheduler_id"], "12345")
 
     def test_submit_rechecks_manifest_and_records_scheduler_id(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -509,7 +609,7 @@ class ControlledExecutionTest(unittest.TestCase):
                 first_run["run_id"], "scf", plan.digest
             )
             service.store.mark_attempt_submitted(first["attempt_id"], "12345")
-            second_run = service.prepare_run(source, plan.digest)
+            second_run = self.acknowledge(service, service.prepare_run(source, plan.digest))
             service.executor.submit = lambda *_args, **_kwargs: (_ for _ in ()).throw(
                 AssertionError("duplicate must be rejected before sbatch")
             )
@@ -848,7 +948,7 @@ class ControlledExecutionTest(unittest.TestCase):
                 },
             }
             service.executor.verify_versions = lambda: prepared
-            run = service.prepare_run(source, plan.digest)
+            run = self.acknowledge(service, service.prepare_run(source, plan.digest))
             service.executor.verify_versions = lambda: changed
 
             with self.assertRaisesRegex(OMLError, "BINARY_MISMATCH"):
@@ -877,7 +977,7 @@ class ControlledExecutionTest(unittest.TestCase):
             service.executor.sync_run = lambda *_: None
             service.executor.verify_remote_bundle = lambda *_: {"verdict": "match"}
             service.executor.submit = lambda *_args, **_kwargs: "67890"
-            run = service.prepare_run(source, plan.digest)
+            run = self.acknowledge(service, service.prepare_run(source, plan.digest))
             preprocess_attempt = None
             for stage in ("scf", "pyatb", "nscf", "preprocess"):
                 attempt = service.store.authorize_submission(run["run_id"], stage, plan.digest)

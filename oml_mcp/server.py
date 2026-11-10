@@ -546,6 +546,52 @@ def build_server() -> MCPServer:
         )
 
     @server.tool(
+        name="describe_basis",
+        description=(
+            "Show exactly which pseudopotential, numerical orbital and auxiliary basis "
+            "a prepared run will use: where each file comes from, its file name and "
+            "SHA-256, the shell string, and the basis/auxiliary dimension per atom and "
+            "in total. Read-only. A run cannot be submitted until this disclosure is "
+            "acknowledged, so this is the call that has to happen before any compute."
+        ),
+        annotations=_read_only_annotations(),
+        structured_output=True,
+    )
+    def describe_basis(run_id: str, execution_profile_id: str) -> dict[str, Any]:
+        """Return the stored basis disclosure and whether it is acknowledged."""
+        return _controlled_call(
+            lambda: _controlled_service(execution_profile_id).describe_basis(run_id)
+        )
+
+    @server.tool(
+        name="acknowledge_basis",
+        description=(
+            "Record that a named human accepted the basis shown by describe_basis for "
+            "this run. The caller must echo the digest it was given: an acknowledgement "
+            "that does not name the bytes cannot authorise them, and a basis changed "
+            "after the fact invalidates an earlier acknowledgement."
+        ),
+        annotations=_write_annotations(idempotent=True),
+        structured_output=True,
+    )
+    def acknowledge_basis(
+        run_id: str,
+        disclosure_digest: str,
+        acknowledged_by: str,
+        execution_profile_id: str,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        """Bind one acknowledgement to one exact basis disclosure."""
+        return _controlled_call(
+            lambda: _controlled_service(execution_profile_id).acknowledge_basis(
+                run_id,
+                disclosure_digest_value=disclosure_digest,
+                acknowledged_by=acknowledged_by,
+                note=note,
+            )
+        )
+
+    @server.tool(
         name="submit_stage",
         description="Submit exactly one generated stage after provenance, version, order, and duplicate-job gates.",
         annotations=_write_annotations(idempotent=False),

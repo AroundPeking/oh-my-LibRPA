@@ -15,7 +15,14 @@ import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
-from .basis_registry import BasisRegistryError, load_registry, resolve_set, verify_asset
+from .basis_registry import (
+    BasisAmbiguityError,
+    BasisRegistryError,
+    describe_set,
+    load_registry,
+    resolve_set,
+    verify_asset,
+)
 from .control import ControlledExecutionService
 from .evolution_runner import load_reference_texts
 from .execution_profiles import load_execution_profile
@@ -97,6 +104,7 @@ class ControlledLoopRunner:
         scheduler_max_polls: int | None = None,
         basis_root: str | Path | None = None,
         basis_family: str | None = None,
+        basis_sets: Mapping[str, str] | None = None,
         require_abf: bool = True,
         use_database_basis: bool = True,
         policy_mode: str = "production",
@@ -106,6 +114,10 @@ class ControlledLoopRunner:
             raise LoopError(f"execution profile {execution_profile_id} is disabled")
         service = ControlledExecutionService(profile, profile_id=software_profile_id)
         self.basis_family = basis_family
+        # element -> database set id, one entry per species. Required whenever an
+        # element matches more than one usable set: the basis is a scientific
+        # decision and OML refuses to make it on the user's behalf.
+        self.basis_sets = dict(basis_sets or {})
         self.require_abf = require_abf
         self.use_database_basis = use_database_basis
         self.policy_mode = policy_mode
@@ -187,6 +199,7 @@ class ControlledLoopRunner:
             override: dict[str, dict[str, str]] = {}
             orbital_paths: dict[str, Path] = {}
             resolved_sets: dict[str, Any] = {}
+            ambiguous: dict[str, list[dict[str, Any]]] = {}
             for element in dict.fromkeys(elements):
                 try:
                     element_set = resolve_set(
@@ -194,7 +207,12 @@ class ControlledLoopRunner:
                         element,
                         family=self.basis_family,
                         require_abf=self.require_abf,
+                        set_id=self.basis_sets.get(element),
                     )
+                except BasisAmbiguityError as exc:
+                    # Not "missing": every candidate is usable, nothing chose one.
+                    ambiguous[element] = [describe_set(item) for item in exc.candidates]
+                    continue
                 except BasisRegistryError:
                     missing.append(element)
                     continue
@@ -280,6 +298,12 @@ class ControlledLoopRunner:
                         family=self.basis_family,
                         require_abf=self.require_abf,
                     )
+                except BasisAmbiguityError as exc:
+                    # Cannot compare the payloads against "some" set without
+                    # choosing one; report the candidates instead of claiming an
+                    # identity that was never established.
+                    ambiguous[element] = [describe_set(item) for item in exc.candidates]
+                    continue
                 except BasisRegistryError:
                     continue
             if resolved:
@@ -295,6 +319,7 @@ class ControlledLoopRunner:
         policy_inputs = {
             "database_basis": self.use_database_basis,
             "missing_elements": tuple(missing),
+            "ambiguous_elements": {key: value for key, value in ambiguous.items()},
             "scf_kgrid": scf_grid,
             "dimension": ROUTE_DIMENSIONS.get(self.case.route),
             "abfs_orbital": has_abf if self.use_database_basis else None,
@@ -305,6 +330,16 @@ class ControlledLoopRunner:
             "observed_basis": identity_observed,
             "observed_duplicates": identity_duplicates,
         }
+        self.last_ambiguous_elements = ambiguous
+        # Every usable set per species, so a caller can show the choice that has
+        # to be made instead of only failing on it.
+        if self.use_database_basis and self.registry is not None:
+            wanted = {name for name, _, _ in species(stru_text)}
+            self.last_basis_candidates = {
+                element: [describe_set(item) for item in candidates]
+                for element, candidates in sorted(self.registry.items())
+                if element in wanted
+            }
         return exact, basis_override, notes, policy_inputs
 
     def audit(
@@ -319,6 +354,8 @@ class ControlledLoopRunner:
             "review": settings_review(exact, policy_mode=mode or self.policy_mode),
             "effective_definition": exact,
             "basis_override": basis_override,
+            "basis_candidates": dict(getattr(self, "last_basis_candidates", {}) or {}),
+            "ambiguous_elements": dict(getattr(self, "last_ambiguous_elements", {}) or {}),
             "notes": list(notes),
         }
 

@@ -7,6 +7,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from .basis_disclosure import (
+    DISCLOSURE_RELATIVE_PATH,
+    disclosure_digest,
+    read_disclosure,
+    summarise_disclosure,
+)
 from .errors import OMLError
 from .evals import score_run
 from .execution_profiles import (
@@ -229,6 +235,118 @@ class ControlledExecutionService:
                 recovery="preserve this run for diagnosis and prepare a fresh run from reviewed inputs",
             )
 
+    def describe_basis(self, run_id: str) -> dict[str, Any]:
+        """Return the basis this run will submit, without submitting anything."""
+        run = self.store.get_run(run_id)
+        run_dir = Path(run["local_run_dir"]).resolve()
+        disclosure = read_disclosure(run_dir)
+        if disclosure is None:
+            raise OMLError(
+                "BASIS_DISCLOSURE_MISSING",
+                "this run carries no basis disclosure, so its basis is unknown",
+                evidence=(run_id, str(run_dir / DISCLOSURE_RELATIVE_PATH)),
+                recovery="prepare a fresh run: a run without a disclosure cannot be submitted",
+            )
+        acknowledgement = self.store.get_basis_acknowledgement(run_id)
+        current = disclosure_digest(disclosure)
+        acknowledged = bool(
+            acknowledgement and acknowledgement["disclosure_digest"] == current
+        )
+        return {
+            "run_id": run_id,
+            "disclosure": disclosure,
+            "summary": summarise_disclosure(disclosure),
+            "disclosure_digest": current,
+            "acknowledged": acknowledged,
+            "acknowledgement": acknowledgement,
+            "submit_allowed": acknowledged,
+        }
+
+    def acknowledge_basis(
+        self,
+        run_id: str,
+        *,
+        disclosure_digest_value: str,
+        acknowledged_by: str,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        """Record a human's acceptance of this exact basis disclosure.
+
+        The caller must echo the digest it was shown: an acknowledgement that
+        does not name the bytes cannot authorise them.
+        """
+        run = self.store.get_run(run_id)
+        run_dir = Path(run["local_run_dir"]).resolve()
+        disclosure = read_disclosure(run_dir)
+        if disclosure is None:
+            raise OMLError(
+                "BASIS_DISCLOSURE_MISSING",
+                "this run carries no basis disclosure, so there is nothing to acknowledge",
+                evidence=(run_id,),
+                recovery="prepare a fresh run",
+            )
+        if disclosure.get("status") == "INCOMPLETE":
+            raise OMLError(
+                "BASIS_DISCLOSURE_INCOMPLETE",
+                "this run's basis cannot be fully described, so there is nothing "
+                "meaningful to approve",
+                evidence=(
+                    run_id,
+                    "; ".join(disclosure.get("warnings", ())) or "unknown reason",
+                ),
+                recovery=(
+                    "fix the case first: a GW run needs a STRU with NUMERICAL_ORBITAL and "
+                    "an auxiliary basis for every species"
+                ),
+                details={"basis_disclosure": disclosure},
+            )
+        current = disclosure_digest(disclosure)
+        if disclosure_digest_value.strip() != current:
+            raise OMLError(
+                "BASIS_ACK_MISMATCH",
+                "the acknowledged digest is not this run's basis disclosure",
+                evidence=(disclosure_digest_value.strip(), current, run_id),
+                recovery="read the disclosure again and acknowledge the digest you were shown",
+            )
+        record = self.store.acknowledge_basis(
+            run_id=run_id,
+            disclosure_digest=current,
+            acknowledged_by=acknowledged_by,
+            note=note,
+        )
+        return {
+            "run_id": run_id,
+            "disclosure_digest": current,
+            "summary": summarise_disclosure(disclosure),
+            "acknowledgement": record,
+            "submit_allowed": True,
+        }
+
+    def _require_basis_acknowledgement(self, run_id: str, run_dir: Path) -> dict[str, Any]:
+        """Refuse to submit until the current disclosure has been acknowledged."""
+        disclosure = read_disclosure(run_dir)
+        if disclosure is None:
+            raise OMLError(
+                "BASIS_DISCLOSURE_MISSING",
+                "this run carries no basis disclosure, so its basis was never stated",
+                evidence=(run_id,),
+                recovery="prepare a fresh run; do not submit an undisclosed basis",
+            )
+        current = disclosure_digest(disclosure)
+        acknowledgement = self.store.get_basis_acknowledgement(run_id)
+        if acknowledgement is None or acknowledgement["disclosure_digest"] != current:
+            raise OMLError(
+                "BASIS_NOT_ACKNOWLEDGED",
+                "the basis of this run has not been acknowledged by a human",
+                evidence=(run_id, current, summarise_disclosure(disclosure)),
+                recovery=(
+                    "call describe_basis to show where the PP/NAO/ABFS come from and how "
+                    "large they are, then acknowledge_basis with that digest"
+                ),
+                details={"basis_disclosure": disclosure, "disclosure_digest": current},
+            )
+        return acknowledgement
+
     def submit_stage(self, run_id: str, stage: str, plan_digest: str) -> dict[str, Any]:
         with self.store.submission_lock(run_id, stage):
             return self._submit_stage_locked(run_id, stage, plan_digest)
@@ -237,6 +355,7 @@ class ControlledExecutionService:
         self, run_id: str, stage: str, plan_digest: str
     ) -> dict[str, Any]:
         run, plan, run_dir = self._load_receipts(run_id, plan_digest)
+        self._require_basis_acknowledgement(run_id, run_dir)
         active = self.store.active_attempt(run_id, stage)
         if active is not None and not active["scheduler_id"]:
             previous = self.store.latest_observation(active["attempt_id"])

@@ -48,6 +48,8 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "evaluate_admission",
                 "propose_evolution_candidate",
                 "prepare_run",
+                "describe_basis",
+                "acknowledge_basis",
                 "submit_stage",
                 "get_status",
                 "inspect_stage",
@@ -59,6 +61,9 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(word in tool.name for tool in tools for word in forbidden))
         by_name = {tool.name: tool for tool in tools}
         read_only = {
+            # describe_basis only reads the stored disclosure; acknowledge_basis
+            # writes the record, so only the former is read-only.
+            "describe_basis",
             "inspect_profile",
             "inspect_admission_manifest",
             "inspect_route_benchmark",
@@ -257,7 +262,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                     called = await session.call_tool("inspect_profile", {})
 
         self.assertEqual(initialized.server_info.name, "oh-my-librpa")
-        self.assertEqual(len(listed.tools), 27)
+        self.assertEqual(len(listed.tools), 29)
         self.assertFalse(called.is_error)
         self.assertEqual(called.structured_content["components"]["librpa"]["ref"], "master_ghj")
 
@@ -348,6 +353,20 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
             def prepare_run(self, source_path, plan_digest):
                 return {"operation": "prepare", "source_path": source_path, "plan_digest": plan_digest}
 
+            def describe_basis(self, run_id):
+                return {"operation": "describe_basis", "run_id": run_id}
+
+            def acknowledge_basis(
+                self, run_id, *, disclosure_digest_value, acknowledged_by, note=None
+            ):
+                return {
+                    "operation": "acknowledge_basis",
+                    "run_id": run_id,
+                    "disclosure_digest": disclosure_digest_value,
+                    "acknowledged_by": acknowledged_by,
+                    "note": note,
+                }
+
             def submit_stage(self, run_id, stage, plan_digest):
                 return {"operation": "submit", "run_id": run_id, "stage": stage, "plan_digest": plan_digest}
 
@@ -381,6 +400,21 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 "prepare_run",
                 {"source_path": "/approved/source", "plan_digest": "a" * 64, "execution_profile_id": "hpc"},
                 "prepare",
+            ),
+            (
+                "describe_basis",
+                {"run_id": "run-1", "execution_profile_id": "hpc"},
+                "describe_basis",
+            ),
+            (
+                "acknowledge_basis",
+                {
+                    "run_id": "run-1",
+                    "disclosure_digest": "b" * 64,
+                    "acknowledged_by": "reviewer",
+                    "execution_profile_id": "hpc",
+                },
+                "acknowledge_basis",
             ),
             (
                 "submit_stage",
@@ -424,10 +458,10 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
                 result = await self.call(name, arguments)
                 self.assertEqual(result["operation"], operation)
 
-        self.assertEqual([item.args[0] for item in service.call_args_list], ["hpc"] * 6)
+        self.assertEqual([item.args[0] for item in service.call_args_list], ["hpc"] * 8)
         self.assertEqual(
             [item.kwargs.get("initialize_state", True) for item in service.call_args_list],
-            [True, True, False, True, True, False],
+            [True, True, True, True, False, True, True, False],
         )
 
     async def test_controlled_tool_returns_stable_structured_profile_error(self):
