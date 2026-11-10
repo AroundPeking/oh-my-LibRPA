@@ -1,9 +1,8 @@
 """Turn an element set into the sentence a person can actually judge.
 
-A database set id such as ``Si-SG15-e11ce28df010`` says nothing about the
-calculation: it is a hash suffix on a family name. The three facts that decide
-whether a basis is the right one for a case, and that a user can check in
-seconds, are what this module assembles:
+An id that is only a family name plus a hash says nothing about the calculation.
+The three facts that decide whether a basis is the right one for a case, and
+that a user can check in seconds, are what this module assembles:
 
 * how many electrons the pseudopotential keeps in the valence (Si: 4),
 * how large the numerical orbital is (Si: 3s3p2d, 22 functions per atom),

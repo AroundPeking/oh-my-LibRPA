@@ -296,7 +296,7 @@ def resolve_set(
         # The candidates are described by what they cost and what they produced,
         # not by their hash-suffixed ids: "Si: 4 valence electrons, 44 orbital
         # functions, 794 auxiliary functions, 2 archived calculations (GW gap
-        # 1.06 eV)" is a choice a person can make; "Si-SG15-e11ce28df010" is not.
+        # 1.06 eV)" is a choice a person can make; a hash-suffixed family name is not.
         described = [describe_set(item, records=records) for item in filtered]
         listed = "\n".join(
             f"  - {entry['label_sentence']}\n    set_id: {entry['set_id']}"
