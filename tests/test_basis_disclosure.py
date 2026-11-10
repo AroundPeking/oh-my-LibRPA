@@ -246,8 +246,11 @@ class BasisDisclosureTest(unittest.TestCase):
         self.assertIn("2s1p", text)
         self.assertIn("nbasis", text)
         summary = summarise_disclosure(disclosure)
-        self.assertIn("database set Si-SG15-aaaa", summary)
+        # The summary is what reaches a chat reply or an error message, so it
+        # carries the same facts as the printed block rather than the set id.
         self.assertIn("nbasis=", summary)
+        self.assertIn("10 orbital functions", summary)
+        self.assertNotIn("Si-SG15-aaaa", summary)
 
     def test_a_partial_match_is_not_reported_as_a_full_one(self) -> None:
         # The run carries an ABFS the matching set does not list: the pp and NAO

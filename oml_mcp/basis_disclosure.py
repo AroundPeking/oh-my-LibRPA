@@ -433,36 +433,38 @@ def read_disclosure(run_dir: str | Path) -> dict[str, Any] | None:
 
 
 def summarise_disclosure(disclosure: Mapping[str, Any]) -> str:
-    """One-paragraph statement of where the basis comes from and how big it is."""
-    parts: list[str] = []
+    """One paragraph: what the basis contains, how big it is, what it produced.
+
+    This is the string that ends up in an error message or a chat reply, so it
+    has to be usable without the ids: two sets of the same element are told
+    apart by their valence count, their sizes and their results, not by the
+    hash suffix on the name.
+    """
     totals = disclosure.get("totals", {})
     structure = disclosure.get("structure", {})
+    parts: list[str] = []
     for element, entry in disclosure.get("elements", {}).items():
-        provenance = entry.get("provenance", {})
+        label = entry.get("label") or {}
+        if label.get("sentence"):
+            parts.append(label["sentence"])
+            continue
         payloads = entry.get("payloads", {})
         nao = payloads.get("nao") or {}
         abf = payloads.get("abf") or {}
-        origin = (
-            f"database set {provenance.get('set_id')}"
-            if provenance.get("matched_database_set")
-            else "run-bundled files (no single database set matches)"
-        )
         parts.append(
-            f"{element} x{entry.get('atom_count')}: {origin}; "
-            f"PP {payloads.get('pp', {}).get('file_name')}; "
-            f"NAO {nao.get('file_name')} {nao.get('shells')} "
-            f"({nao.get('dimension_per_atom')}/atom); "
-            f"ABF {abf.get('file_name', 'none')}"
+            f"{element} x{entry.get('atom_count')}: "
+            f"NAO {nao.get('shells')} ({nao.get('dimension_per_atom')}/atom); "
+            f"ABF "
             + (
-                f" {abf.get('shells')} ({abf.get('dimension_per_atom')}/atom)"
+                f"{abf.get('shells')} ({abf.get('dimension_per_atom')}/atom)"
                 if abf
-                else ""
+                else "none"
             )
         )
     return (
         f"{structure.get('atom_count', '?')} atoms, "
         f"nbasis={totals.get('nbasis')}, naux={totals.get('naux')}. "
-        + " | ".join(parts)
+        + " ".join(parts)
     )
 
 
