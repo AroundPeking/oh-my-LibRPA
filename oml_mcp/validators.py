@@ -417,27 +417,54 @@ def _cp_rmesh_gate(abacus: InputDocument, *, task: str) -> GateResult:
     )
 
 
-def _reader_keyword_gate(abacus: InputDocument) -> GateResult:
-    """Reject reader selectors that ABACUS silently ignores.
+# ABACUS drops an unknown INPUT key silently and only fails much later with a
+# generic "Bad parameter", so a case can look validated and die at the first SCF
+# step. This list is the keys that are known to be dead in the pinned stack: each
+# one was either never a keyword or was removed from ABACUS while archived inputs
+# still carry it. It is a denylist of measured names, not a claim that every other
+# key is valid - enumerating valid keywords reliably would need ABACUS's own
+# parameter registry, and the binary's string table does not contain them
+# (nbands, ecutwfc, symmetry and calculation are all absent from it).
+DEAD_ABACUS_KEYS = {
+    # reader selectors that were never parsed
+    "out_librpa_ver": "out_librpa_reader_version",
+    "rpa_librpa_ver": "out_librpa_reader_version",
+    # removed from ABACUS; the archived bulk-BN input still carries all three and
+    # the pinned build rejects it with "Bad parameter"
+    "cs_inv_thr": "exx_cs_inv_thr",
+    "exx_use_ewald": "exx_ewald_dimension",
+    "exx_spencer_type": None,
+}
 
-    ``out_librpa_ver`` is not a keyword: ABACUS drops it without warning, the
-    dataset is written in the legacy naming, and LibRPA asked for v1 either fails
-    or - worse - reads a mismatched Coulomb family.
+
+def _reader_keyword_gate(abacus: InputDocument) -> GateResult:
+    """Reject ABACUS INPUT keys that the pinned stack does not parse.
+
+    Measured failures behind this list: ``out_librpa_ver`` was never a keyword (so
+    ABACUS silently kept writing the legacy dataset), and the archived bulk-BN
+    input carries ``cs_inv_thr``, ``exx_use_ewald`` and ``exx_spencer_type``,
+    none of which the pinned ABACUS defines - it aborts with "Bad parameter"
+    after the job has already started.
     """
-    bogus = ("out_librpa_ver", "rpa_librpa_ver")
-    offenders = [key for key in bogus if abacus.value(key) is not None]
+    offenders = [key for key in DEAD_ABACUS_KEYS if abacus.value(key) is not None]
     if offenders:
+        hints = "; ".join(
+            f"{key} -> {DEAD_ABACUS_KEYS[key]}" if DEAD_ABACUS_KEYS[key] else f"{key} has no replacement"
+            for key in offenders
+        )
         return _fail(
             "abacus.reader_keyword",
-            "ABACUS input carries a reader selector that is not a real keyword",
-            (str(abacus.path), *(f"{key}={abacus.value(key)}" for key in offenders)),
-            "use out_librpa_reader_version = 1 (the reader selector ABACUS actually parses); "
-            "an unknown key is dropped silently and leaves a legacy dataset behind",
+            "ABACUS input carries keys this build does not parse",
+            (str(abacus.path), *offenders),
+            "remove or rename the keys: " + hints + ". ABACUS drops an unknown key "
+            "silently and fails later with a generic 'Bad parameter', after the job "
+            "has started",
         )
     return _pass(
         "abacus.reader_keyword",
-        "ABACUS reader selectors are real keywords",
+        "ABACUS input carries no key known to be dead in the pinned stack",
         str(abacus.path),
+        f"{len(DEAD_ABACUS_KEYS)} dead keys checked",
     )
 
 
