@@ -21,7 +21,7 @@ PRODUCTION_DEFAULTS: dict[str, Any] = {
     "scf_kgrid": [8, 8, 8],
     "use_fullcoul_exx": True,
     "use_cholesky_gw_wc": False,
-    "regularization": 1e-12,
+    "minimax_regulation": 1e-12,
     # Symmetry is the largest cost switch in the whole pipeline: with it off the
     # LibRPA q loop covers the full Brillouin zone instead of the IBZ.
     "use_symmetry": True,
@@ -43,7 +43,7 @@ def _note(key: str, value: Any, default: Any) -> str:
         return "the k grid differs from the standard; a ladder step must be declared"
     if key == "use_fullcoul_exx" and value is False:
         return "cut-Coulomb EXX is a different physical definition"
-    if key == "regularization" and value != default:
+    if key == "minimax_regulation" and value != default:
         return "the analytic-continuation Tikhonov penalty differs from the production 1e-12"
     if key == "use_cholesky_gw_wc" and value is True:
         return "Cholesky requires a positive-definite cut Coulomb; enable it only after the cut-Coulomb check reports positive definiteness"

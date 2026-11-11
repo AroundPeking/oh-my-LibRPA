@@ -13,22 +13,33 @@
     mode: gw
     stage: scf
 
-- id: gw-pyatb-success-602
-  scene: Judge whether the pyatb dielectric-data stage finished successfully
-  symptom: Need a generic success signal after the `pyatb` stage
-  root_cause: pyatb success is best judged by the generated `pyatb_librpa_df` payload rather than a fragile single log string
+- id: gw-headwing-bundle-success-602
+  scene: Judge whether an auxiliary head/wing bundle is complete enough to use
+  symptom: Need a generic success signal for the optional external-optical-data stage
+  root_cause: >-
+    The bundle is best judged by its payload rather than a fragile single log
+    string. The driver looks for `headwing_bundle/` first and falls back to the
+    historical `pyatb_librpa_df/` name, so a dataset can carry either spelling.
   fix:
-    - Check that the `pyatb_librpa_df` directory exists
-    - Check that `pyatb_librpa_df/band_out` exists
-    - Check that `pyatb_librpa_df/velocity_matrix` exists
-    - Check that at least one `pyatb_librpa_df/KS_eigenvector_*.dat` file exists
+    - Check that `headwing_bundle/` or `pyatb_librpa_df/` exists inside the input directory
+    - Check that its `band_out` exists
+    - Check that its `velocity_matrix` exists
+    - Check that at least one `KS_eigenvector_*.dat` file exists
+    - >-
+      Prefer the native route instead when the producer wrote `H(R)`, `S(R)` and
+      `r(R)` from the same run as the bands; the bundle is then unnecessary.
+      See `native-velocity-boundary-501`.
   verify:
     - Confirm the directory is non-empty
     - Confirm `velocity_matrix` is non-zero size
     - Confirm representative eigenvector files are non-zero size
+    - >-
+      Confirm the bundle's `band_out` occupations agree with the SCF ones; a
+      bundle written at lower precision or with a different occupation count
+      changes the physical system, not just the velocity source
   applies_to:
     mode: gw
-    stage: pyatb
+    stage: headwing_bundle
 
 - id: gw-nscf-success-603
   scene: Judge whether ABACUS NSCF finished successfully
@@ -77,7 +88,7 @@
 - id: gw-librpa-running-606
   scene: Judge whether LibRPA is still running normally
   symptom: LibRPA is the only stage in the standard GW chain that usually needs explicit running-state checks
-  root_cause: `pyatb` and `preprocess` are usually short, while LibRPA is long-running enough to require progress-aware monitoring
+  root_cause: The head/wing bundle and preprocess stages are usually short, while LibRPA is long-running enough to require progress-aware monitoring
   fix:
     - Check that a rank-0 LibRPA output file exists, such as `librpa_para_nprocs_*_myid_0.out` or `LibRPA*.out`
     - Check that the rank-0 output does not yet contain `Timer stop:  total.` or `libRPA finished successfully`

@@ -116,7 +116,7 @@ Pick by what the request actually asks for; load only what you pick.
 | `abacus-pp-pbe-head-screening` | choosing GTH/SG15/PseudoDojo PP + TZDP orbitals, PBE-vs-aims head check |
 | `abacus-librpa-abfs-orbital` | `.abfs` / `ABFS_ORBITAL` — where to get them, how to write them |
 | `siab-generate-orbitals` | generating or regenerating `.orb` with SIAB (dimer PW + SA) |
-| `abacus-librpa-strict2d-ewald-headwing` | 2D production GW: 2D Ewald, analytic Gamma head/wing, PyATB |
+| `abacus-librpa-strict2d-ewald-headwing` | 2D production GW: 2D Ewald, analytic Gamma head/wing, native or bundle velocity |
 | `abacus-librpa-strict2d-direct-coulomb` | the full-Ewald 2D Coulomb matrix is indefinite or cutoff-sensitive |
 | `abacus-delta-st-solid-convergence` | periodic-solid Delta-Sternheimer RPA protocol |
 | `abacus-delta-st-molecular-convergence` | molecular Delta-Sternheimer RPA, box/FD-grid/binding energy |
@@ -177,16 +177,36 @@ contract, not a third workflow.
 
 Read `rules/cards/metal-gw.yml` for the enumerated failure signatures
 (`metal-gw-failures-401`) and the acceptance gates
-(`metal-gw-acceptance-402`) before interpreting any metal band.
+(`metal-gw-acceptance-402`) before interpreting any metal band. Read
+`rules/cards/metal-headwing-velocity.yml` for where the intraband term enters in
+each of the four dimensionality/occupation cases (`metal-headwing-spaces-502`),
+what the metal-specific symmetry requirements are (`metal-symmetry-requirements-503`),
+and when LibRPA can compute the head/wing velocity itself instead of reading an
+external file (`native-velocity-boundary-501`).
+
+## Velocity source
+
+`g0w0_headwing_velocity` selects `file` (default) or `native`. Prefer `native`
+whenever the producer writes `H(R)`, `S(R)` and `r(R)` from the same run that
+wrote the bands and eigenvectors: LibRPA differentiates those blocks in the
+loaded mean-field frame, so no external optical code is needed. The native route
+requires `use_kpara_scf_eigvec = f`, a full-mesh or SOC-symmetric k treatment,
+and wavefunctions from the same execution as the matrices; each violation aborts
+in preflight. `option_dielect_func = 6` is a preset that selects native and
+resolves to the numerical option 3.
+
+The external `velocity_matrix` and `mommat_ks_kpt_*` readers remain the general
+route for datasets produced elsewhere. On a shared mean field the two routes
+agree to about 1e-5 eV in the quasiparticle energies.
 
 ## Spin And SOC
 
 - Nonmagnetic collinear: `nspin = 1`, `lspinorb = 0`.
 - Magnetic collinear without SOC: `nspin = 2`, `lspinorb = 0`; keep both spin
-  channels consistent in ABACUS outputs, PyATB, preprocessing, and LibRPA.
+  channels consistent in ABACUS outputs, the velocity source, and LibRPA.
 - Noncollinear or SOC: use the reviewed `nspin = 4` route, disable the periodic
   spatial-symmetry lane unless that exact combination has separate evidence,
-  and keep PyATB's `use_soc` convention consistent.
+  and keep the velocity source's spin convention consistent.
 
 An MCP `ROUTE_NOT_EXECUTABLE` or unregistered historical profile means only
 that the experimental executor lacks coverage. It is not evidence that the

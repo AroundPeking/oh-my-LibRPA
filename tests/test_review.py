@@ -12,7 +12,7 @@ DEFAULTS = {
     "scf_kgrid": [8, 8, 8],
     "use_fullcoul_exx": True,
     "use_cholesky_gw_wc": False,
-    "regularization": 1e-12,
+    "minimax_regulation": 1e-12,
     "use_symmetry": True,
 }
 

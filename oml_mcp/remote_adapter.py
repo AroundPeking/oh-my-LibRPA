@@ -212,7 +212,7 @@ def _apply_definition_to_inputs(
         "use_shrink_abfs": "use_shrink_abfs",
         "use_fullcoul_exx": "use_fullcoul_exx",
         "use_cholesky_gw_wc": "use_cholesky_gw_wc",
-        "regularization": "regularization",
+        "minimax_regulation": "minimax_regulation",
         "libri_exx_threshold_V": "libri_exx_threshold_V",
         "abfs_family": None,
         "basis_family": None,

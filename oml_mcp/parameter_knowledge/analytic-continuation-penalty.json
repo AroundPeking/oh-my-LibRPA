@@ -3,7 +3,7 @@
   "id": "analytic-continuation-penalty",
   "title": "Analytic continuation uses the minimax grid with a 1e-12 Tikhonov penalty",
   "parameters": {
-    "regularization": {
+    "minimax_regulation": {
       "owner": "librpa",
       "stage": "production",
       "default": 1e-12,
@@ -27,7 +27,7 @@
   ],
   "constraints": [
     "n_params_anacon = -1 uses all nfreq points for the continuation (the documented LibRPA default); do not set a fixed Pade order in production.",
-    "The penalty is applied to the minimax grid construction (TFGrids::generate_minimax -> get_minimax_grid); the input key is regularization.",
+    "The penalty is applied to the minimax grid construction (TFGrids::generate_minimax -> get_minimax_grid); the input key is minimax_regulation.",
     "LibRPA ignores unknown keys, so the run log must echo regularization = 1e-12; the stage gate checks the driver parameter dump.",
     "Changing the coefficient changes the continuation, not the time-frequency data; keep every other key identical in a comparison pair."
   ],

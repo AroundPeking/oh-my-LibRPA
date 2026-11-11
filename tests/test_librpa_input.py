@@ -113,15 +113,15 @@ class RegularizationEchoTest(unittest.TestCase):
     def test_echo_must_match_the_input(self):
         from oml_mcp.librpa_input import check_regularization_echo
 
-        librpa = _write(self.root, "task = g0w0\nregularization = 1e-12\n")
+        librpa = _write(self.root, "task = g0w0\nminimax_regulation = 1e-12\n")
         log = self.root / "LibRPA.1.out"
         log.write_text(
-            "Begin driver parameters\nregularization = 1e-12\nEnd control parameters\n",
+            "Begin driver parameters\nminimax_regulation = 1e-12\nEnd control parameters\n",
             encoding="utf-8",
         )
         self.assertEqual(check_regularization_echo(librpa, (log,)).status, "PASS")
         log.write_text(
-            "Begin driver parameters\nregularization = 0\nEnd control parameters\n",
+            "Begin driver parameters\nminimax_regulation = 0\nEnd control parameters\n",
             encoding="utf-8",
         )
         self.assertEqual(check_regularization_echo(librpa, (log,)).status, "FAIL")
@@ -129,7 +129,7 @@ class RegularizationEchoTest(unittest.TestCase):
     def test_missing_line_in_a_dump_fails(self):
         from oml_mcp.librpa_input import check_regularization_echo
 
-        librpa = _write(self.root, "task = g0w0\nregularization = 1e-12\n")
+        librpa = _write(self.root, "task = g0w0\nminimax_regulation = 1e-12\n")
         log = self.root / "LibRPA.1.out"
         log.write_text(
             "Begin driver parameters\nnfreq = 16\nEnd control parameters\n",
@@ -139,10 +139,10 @@ class RegularizationEchoTest(unittest.TestCase):
         self.assertEqual(finding.status, "FAIL")
         self.assertIn("may ignore", finding.message)
 
-    def test_regularization_value_is_validated(self):
-        negative = _write(self.root, "task = g0w0\nregularization = -1e-12\n", "negative.in")
+    def test_the_penalty_value_is_validated(self):
+        negative = _write(self.root, "task = g0w0\nminimax_regulation = -1e-12\n", "negative.in")
         self.assertFalse(audit_librpa_in(negative, dimension="3d").ok)
-        deviating = _write(self.root, "task = g0w0\nregularization = 1e-13\n", "deviate.in")
+        deviating = _write(self.root, "task = g0w0\nminimax_regulation = 1e-13\n", "deviate.in")
         report = audit_librpa_in(deviating, dimension="3d")
         self.assertTrue(report.ok)
         self.assertIn("librpa.input.penalty", [f.gate_id for f in report.findings])

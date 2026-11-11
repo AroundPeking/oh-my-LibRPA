@@ -232,7 +232,10 @@ def audit_librpa_in(
                 "write cs_threshold explicitly (the production 3D reference uses 0)",
             )
         )
-    penalty = keys.get("regularization")
+    # The penalty is ``minimax_regulation``. ``regularization`` was never a key
+    # this parser read - LibRPA drops unknown input silently, so a template that
+    # wrote it used 0.0 while the gate reported 1e-12.
+    penalty = keys.get("minimax_regulation")
     if penalty is not None:
         try:
             penalty_value = float(penalty)
@@ -241,7 +244,7 @@ def audit_librpa_in(
                 Finding(
                     "librpa.input.penalty",
                     "FAIL",
-                    f"regularization={penalty!r} is not a number",
+                    f"minimax_regulation={penalty!r} is not a number",
                     "write the Tikhonov coefficient as a positive float (production 1e-12)",
                 )
             )
@@ -251,7 +254,7 @@ def audit_librpa_in(
                     Finding(
                         "librpa.input.penalty",
                         "FAIL",
-                        f"regularization={penalty_value} is negative",
+                        f"minimax_regulation={penalty_value} is negative",
                         "use a non-negative Tikhonov coefficient (production 1e-12)",
                     )
                 )
@@ -260,7 +263,7 @@ def audit_librpa_in(
                     Finding(
                         "librpa.input.penalty",
                         "WARN",
-                        f"regularization={penalty_value} differs from the production 1e-12",
+                        f"minimax_regulation={penalty_value} differs from the production 1e-12",
                         "use 1e-12 unless a paired run shows that another value is needed",
                     )
                 )
@@ -307,22 +310,22 @@ def check_regularization_echo(
     """Require the LibRPA driver dump to echo the declared regularization.
 
     LibRPA ignores unknown input keys. If the build does not know
-    ``regularization``, the run silently uses 0 and nothing in the output looks
-    wrong. The driver parameter dump is written by the build itself, so the
+    ``minimax_regulation``, the run silently uses 0 and nothing in the output
+    looks wrong. The driver parameter dump is written by the build itself, so the
     declared value must appear there.
     """
     try:
         keys, _, _ = parse_librpa_in(librpa_path)
     except OSError:
         return None
-    if "regularization" not in keys:
+    if "minimax_regulation" not in keys:
         return None
     try:
-        target = float(keys["regularization"])
+        target = float(keys["minimax_regulation"])
     except ValueError:
         return None
     pattern = re.compile(
-        r"(?i)\b(regularization|regulation)\s*=\s*([0-9eE+.+-]+)"
+        r"(?i)\b(minimax_regulation)\s*=\s*([0-9eE+.+-]+)"
     )
     seen: list[float] = []
     dump_seen = False
@@ -345,24 +348,24 @@ def check_regularization_echo(
             return Finding(
                 "librpa.input.penalty_echo",
                 "FAIL",
-                f"the driver dump reports regularization={mismatched[0]!r} but the input declares {target!r}",
+                f"the driver dump reports minimax_regulation={mismatched[0]!r} but the input declares {target!r}",
                 "stage the input that matches the submitted run; do not mix librpa.in files",
             )
         return Finding(
             "librpa.input.penalty_echo",
             "PASS",
-            f"the driver dump echoes regularization={target:g}",
+            f"the driver dump echoes minimax_regulation={target:g}",
         )
     if dump_seen:
         return Finding(
             "librpa.input.penalty_echo",
             "FAIL",
-            "the driver parameter dump does not contain regularization; the build may ignore the key",
-            "confirm the LibRPA build exposes the regularization input, or do not claim the penalty was applied",
+            "the driver parameter dump does not contain minimax_regulation; the build may ignore the key",
+            "confirm the LibRPA build exposes minimax_regulation, or do not claim the penalty was applied",
         )
     return Finding(
         "librpa.input.penalty_echo",
         "WARN",
-        "no LibRPA driver parameter dump was found to confirm the regularization",
+        "no LibRPA driver parameter dump was found to confirm the minimax_regulation",
         "keep the LibRPA rank-0 output in the run directory",
     )

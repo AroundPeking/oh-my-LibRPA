@@ -295,7 +295,7 @@ class ControlledLoopRunner:
                 ("use_qpe_adaptive_damp", True),
                 ("libri_exx_threshold_V", 1e-2),
                 ("use_cholesky_gw_wc", False),
-                ("regularization", 1e-12),
+                ("minimax_regulation", 1e-12),
             ):
                 if key not in exact:
                     exact[key] = value

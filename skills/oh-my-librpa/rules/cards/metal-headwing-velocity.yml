@@ -1,0 +1,182 @@
+- id: native-velocity-boundary-501
+  scene: Preparing a head/wing calculation and deciding whether LibRPA can compute the velocity itself
+  symptom: >-
+    The user asks to drop the external velocity file, or a native run aborts in
+    the localized-velocity preflight, or an IBZ run is rejected for lacking SOC
+    magnetic symmetry
+  root_cause: >-
+    `g0w0_headwing_velocity = native` differentiates H(R), S(R) and r(R) in the
+    loaded mean-field eigenframe and therefore needs four things at once: the
+    four real-space matrix files, the complete AO x band frame of every k point
+    on the rank that owns it, a wavefunction set produced by the same ABACUS run
+    as those matrices, and a k-space treatment that is either full-mesh or
+    symmetry-restorable through SOC magnetic symmetry. Each missing item aborts
+    in preflight rather than producing a wrong number, so the abort text names
+    the constraint.
+  fix:
+    - >-
+      Prefer native whenever the producer writes H(R)/S(R)/r(R) from the same
+      run that also writes band_out and the KS eigenvectors. Set
+      `g0w0_headwing_velocity = native` (or `option_dielect_func = 6`, which
+      selects native and resolves to numerical option 3).
+    - >-
+      Point the driver at the four CSR blocks with `g0w0_fn_hr`,
+      `g0w0_fn_hr_spin1` (nspin = 2), `g0w0_fn_sr`, `g0w0_fn_rr`, and declare
+      their units with `g0w0_hr_unit` and `g0w0_rr_unit`. ABACUS writes
+      `hrs1_nao.csr`, `hrs2_nao.csr`, `srs1_nao.csr`, `rr.csr` with
+      `out_mat_hs2` and `out_mat_r`; the H and S blocks carry a
+      `CSR Format` section, the r blocks use the older `STEP:` header, and both
+      are readable.
+    - >-
+      Set `use_kpara_scf_eigvec = f`. Native needs the full AO x band frame per
+      k point; k-point-parallel distribution is genuinely incompatible, not
+      conservatively rejected.
+    - >-
+      Keep the wavefunctions and the H/S/R/r blocks from one ABACUS execution.
+      Mixing a freshly recomputed set of matrices with an archived wavefunction
+      set fails the metric check at about 1e-4 even when both are individually
+      converged. When a dataset cannot be regenerated, stay on
+      `g0w0_headwing_velocity = file`.
+    - >-
+      An IBZ SCF grid is accepted only when the state is a spinor with SOC
+      magnetic symmetry; a scalar non-SOC IBZ run is rejected. Run the full mesh
+      or stay on the file route.
+    - >-
+      `task = rpa` never calls the native preparation. Native applies to
+      `g0w0` and `g0w0_band` only.
+    - >-
+      Keep the external-file route available. `velocity_matrix` and
+      `mommat_ks_kpt_*` remain the general text readers for datasets produced by
+      another optical code, and `g0w0_headwing_velocity` still defaults to
+      `file` so existing inputs keep their meaning.
+  verify:
+    - >-
+      The native preflight prints its four invariants; require metric below
+      1e-6, H(R) frame residual times energy below 1e-4 eV, Hermiticity below
+      1e-8, and imaginary velocity diagonal below 1e-8 Ha Bohr.
+    - >-
+      On a dataset that supports both routes, native versus file agrees to
+      about 1e-5 eV in the quasiparticle energies when the mean field is shared;
+      the head agrees to about 1e-5 and falls off as the frequency rises.
+    - >-
+      A native-versus-file difference of 1e-4 or larger on a shared mean field is
+      a real discrepancy, not the expected agreement, and must be explained
+      before the band is reported.
+  applies_to:
+    mode: gw
+    system_type: metal_3d
+
+- id: metal-headwing-spaces-502
+  scene: Deciding where the intraband term enters for a given dimensionality and occupation character
+  symptom: >-
+    The run aborts on a Schur positivity gate, or a metal band is produced
+    without any analytic Gamma treatment, or the 3D and 2D metal results differ
+    by far more than the dimensionality change should allow
+  root_cause: >-
+    There are four cases, not four methods. They are one block inversion read at
+    different orders in the transfer momentum, with the intraband term present or
+    absent. The order of the singular Coulomb eigenvalue fixes which orders
+    survive; the occupation character fixes whether the intraband head and wing
+    are non-zero.
+  fix:
+    - >-
+      Three-dimensional insulator: the singular eigenvalue is 4 pi / q^2 and the
+      internand term vanishes, so replace the head of the dielectric matrix and
+      multiply by the bare Coulomb afterwards. No complete-Wc average runs on
+      this branch.
+    - >-
+      Two-dimensional insulator: the singular eigenvalue is 2 pi / q, the
+      macroscopic dielectric function approaches unity linearly, and the
+      correlation interaction has a finite limit. Replacing only the dielectric
+      head and then multiplying by the divergent bare interaction is wrong here;
+      average the complete correlation interaction instead, with the analytic
+      radial kernels.
+    - >-
+      Three-dimensional metal: the intraband head multiplies 4 pi / q^2, so the
+      denominator gains a q^-2 order and the intraband wing screened by the
+      regular body adds to it; a q^-1 order appears from intraband wing times
+      regular wing. Both must be present. Replacing the head alone is a plausible
+      but wrong screening length.
+    - >-
+      Two-dimensional metal: the same construction one order lower. The stored
+      denominator is D/q with D = S_{-1} + S_0 q + S_1 q^2, where S_{-1} is the
+      intraband coefficient minus the screened intraband wing, S_0 is the
+      identity plus a direction-dependent wing term, and S_1 is the regular
+      Schur tensor with the in-plane identity subtracted. The constant one in
+      S_0 is the identity term of the dielectric head, not a free parameter.
+    - >-
+      Do not evaluate the dynamic intraband head at zero bosonic frequency. The
+      static mode is a different limit of the same finite-q expression, obtained
+      by expanding numerator and denominator together; it carries the
+      occupation derivative with no velocity factor. The two limits do not
+      commute, and the interband head is a third object whose denominator is an
+      energy gap and which therefore contributes at every frequency.
+    - >-
+      The q^-2 (3D) and q^-1 (2D) coefficients must be positive real; a
+      non-positive or appreciably complex value means the assumed metallic
+      screening branch is not valid for this input.
+  verify:
+    - >-
+      Confirm the run prints the metallic static route marker for the correct
+      dimensionality, and that its background-only sibling did not run instead.
+    - >-
+      Read the printed Schur diagnostics: the intraband weight, the local field,
+      and the resulting coefficient. A gate failure with only the final
+      coefficient reported cannot be attributed.
+    - >-
+      For the 2D metal, record explicitly that the finite-q reference comparison
+      has not been validated; every 2D metallic number is a diagnostic until it
+      is.
+  applies_to:
+    mode: gw
+    system_type: metal_2d
+
+- id: metal-symmetry-requirements-503
+  scene: Running a metal GW with LibRPA spatial symmetry enabled, or comparing symmetry on against symmetry off
+  symptom: >-
+    Occupations appear constant across the mesh, a degenerate pair gives
+    basis-dependent intraband weights, the symmetry-on and symmetry-off runs
+    disagree by far more than round-off, or the q-star restore aborts asking for
+    the original ABF shell basis
+  root_cause: >-
+    A metal breaks three assumptions that hold for an insulator: occupations
+    depend on k, degenerate subspaces straddle the chemical potential, and the
+    singular channel and intraband weight are not symmetry-invariant scalars.
+  fix:
+    - >-
+      Index the occupation array by (k, band), never by a flattened band index.
+      For an insulator every row is identical and a flat buffer is a harmless
+      no-op; for a metal it silently drops the k dependence. Recover the
+      full-Brillouin-zone occupation from the stored weight by dividing by the
+      irreducible weight and by the number of full-zone k points.
+    - >-
+      Group numerically degenerate states and evaluate the occupation derivative
+      once on the group mean energy, and exclude interband pairs inside one group
+      from the interband sum. Otherwise the intraband weight depends on whichever
+      eigenvectors the solver returned inside that subspace.
+    - >-
+      Restore the full crystal q star before assembling the head and wings; the
+      regular body and regular wings may be assembled from representatives but
+      the singular channel and the intraband weight may not. The restore requires
+      the original ABF shell basis, so declaring the auxiliary basis without
+      shell metadata aborts it.
+    - >-
+      Carry the Fermi-Dirac reference (chemical potential and kBT, or the beta
+      that encodes them) with the data end to end, and require the product of
+      the grid beta and the reference kBT to equal one. The response grid, the
+      GW grid and the producer smearing must all encode one temperature.
+  verify:
+    - >-
+      Check that occupations vary across the mesh at fixed band; a metal with
+      k-independent occupations is a sign the wrong index was used.
+    - >-
+      Compare the symmetry-on and symmetry-off runs on the same producer and
+      state the largest difference among the near-gap bands. A difference far
+      above the meV level is a symmetry-validation failure and must be reported
+      as one, not averaged away.
+    - >-
+      Confirm the q-star restore reports the original shell basis, and that the
+      Fermi-Dirac product check passes rather than being disabled.
+  applies_to:
+    mode: gw
+    system_type: metal_3d
