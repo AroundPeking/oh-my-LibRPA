@@ -433,7 +433,9 @@ DEAD_ABACUS_KEYS = {
     # the pinned build rejects it with "Bad parameter"
     "cs_inv_thr": "exx_cs_inv_thr",
     "exx_use_ewald": "exx_ewald_dimension",
-    "exx_spencer_type": None,
+    # Spencer is a *value* of exx_singularity_correction, not a separate switch:
+    # the accepted values are spencer, revised_spencer, massidda, limits, carrier.
+    "exx_spencer_type": "exx_singularity_correction = spencer",
 }
 
 
