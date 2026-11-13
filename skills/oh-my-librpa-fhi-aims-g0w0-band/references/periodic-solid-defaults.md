@@ -81,9 +81,46 @@ The default reasoning is:
 
 `run_aims.sh` should look like:
 
+- `export FORT_BUFFERED=TRUE` before the launch (see below)
 - MPI launch for FHI-aims
 - `OMP_NUM_THREADS=1` unless the user explicitly asks otherwise
 - no chained LibRPA stage in the same script by default
+
+### Fortran output buffering
+
+FHI-aims writes its Coulomb export one complex number per `WRITE` call. At 128
+atoms that is about 9.7e8 calls (`mod_librpa_ext.f90`, `print_coulomb_matr`) and
+an unbuffered runtime turns each into a file-system operation.
+
+```sh
+export FORT_BUFFERED=TRUE
+```
+
+Measured on fisherd with ifx, 3e7 values one per `WRITE`: **36.4 s unbuffered,
+20.6 s buffered (1.77x)** for byte-identical output.
+
+The switch is runtime-specific and the wrong one costs time:
+
+| runtime | default | variable | effect |
+|---|---|---|---|
+| ifx / ifort | unbuffered | `FORT_BUFFERED=TRUE` | on, 1.77x faster |
+| gfortran | **already buffered** | `GFORTRAN_UNBUFFERED_ALL=1` | **off, 1.53x slower** |
+
+So write `FORT_BUFFERED=TRUE` and, if gfortran is in play, leave
+`GFORTRAN_UNBUFFERED_ALL=0` rather than unset — that asserts the intended state
+instead of inheriting whatever the module system left behind.
+
+Two caveats. A killed job loses whatever is still in the runtime buffer, so this
+suits the "write, close, verify, then read" dataset flow and not a
+write-then-read-the-same-file-mid-run flow. And `FLUSH` only empties the runtime
+buffer; it does not force the data to disk.
+
+ABACUS needs no equivalent. It is C++: the CSC writer formats into an
+`std::ofstream` that is buffered by default (strace counts 2 `write` syscalls for
+2e5 formatted values) and flushes once per matrix block. Both ways of "tuning"
+it measured slower — `pubsetbuf(nullptr, 0)` 29.9 s against 6.7 s, and a 1 MiB
+`pubsetbuf` buffer 7.3 s against 6.7 s -- so the default is already the right
+one.
 
 `run_librpa.sh` should look like:
 

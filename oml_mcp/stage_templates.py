@@ -6,6 +6,48 @@ from typing import Mapping
 
 CONTROLLED_PERIODIC_STAGES = ("scf", "pyatb", "nscf", "preprocess", "librpa")
 
+# Buffering for the Fortran producer stage.
+#
+# FHI-aims writes its Coulomb export one complex number per WRITE. At 128 atoms
+# that is about 9.7e8 calls, and an unbuffered runtime turns each one into a
+# file-system operation. Measured on fisherd with ifx, writing 3e7 values one
+# per WRITE: 36.4 s unbuffered, 20.6 s with FORT_BUFFERED=TRUE (1.77x). The
+# reported end-to-end effect at 128 atoms is 19 min -> under 2 min for the same
+# files, byte for byte.
+#
+# The two vendor runtimes spell the switch differently and setting the wrong one
+# is not harmless: gfortran already buffers by default, and
+# GFORTRAN_UNBUFFERED_ALL=1 turns buffering off - measured 33.2 s -> 50.7 s on
+# the same payload. So the pair below sets ifx/ifort on and asserts gfortran's
+# default rather than leaving either to chance.
+#
+# ABACUS needs none of this. It is C++, its CSC writer formats into an
+# std::ofstream and flushes once per matrix block (`single_r_io.cpp` has no
+# per-value std::endl), and std::ofstream is buffered by default: strace counts
+# 2 write syscalls for 2e5 formatted values. Both directions of "fixing" it are
+# slower: pubsetbuf(nullptr, 0) - explicitly unbuffered - took 29.9 s against
+# 6.7 s, and a 1 MiB pubsetbuf buffer took 7.3 s against 6.7 s, so replacing the
+# default buffer is a pessimisation. There is no C++ equivalent to set here.
+FORTRAN_BUFFERED_ENVIRONMENT = {
+    "FORT_BUFFERED": "TRUE",
+    "GFORTRAN_UNBUFFERED_ALL": "0",
+}
+
+
+def render_fortran_environment(
+    environment: Mapping[str, str] | None = None,
+) -> str:
+    """Return the ``export`` lines a Fortran producer stage needs.
+
+    Added underneath a profile's own environment so a profile may still override
+    a value deliberately; the defaults here are the measured ones.
+    """
+    merged = dict(FORTRAN_BUFFERED_ENVIRONMENT)
+    if environment:
+        merged.update(environment)
+    return "".join(f"export {key}={shlex.quote(str(value))}\n" for key, value in merged.items())
+
+
 
 def stage_job_name(run_id: str, stage: str) -> str:
     if stage not in CONTROLLED_PERIODIC_STAGES:
@@ -106,6 +148,7 @@ def render_stage_script(
     if stage not in CONTROLLED_PERIODIC_STAGES:
         raise ValueError(f"unsupported controlled stage: {stage}")
     job_name = stage_job_name(run_id, stage)
+    _fortran_env = render_fortran_environment().rstrip("\n")
     return f"""#!/usr/bin/env bash
 #SBATCH --partition={resources['partition']}
 #SBATCH --nodes={resources['nodes']}
@@ -119,6 +162,7 @@ run_dir="$(pwd -P)"
 cd "$run_dir"
 source ".oml/env.sh"
 export OMP_NUM_THREADS="$OML_OMP_THREADS"
+{_fortran_env}
 export PYTHONDONTWRITEBYTECODE=1
 : "${{OML_ATTEMPT_ID:?missing controlled attempt identity}}"
 mkdir -p ".oml/stage-results"
