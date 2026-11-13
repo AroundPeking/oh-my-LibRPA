@@ -21,6 +21,14 @@ CONTROLLED_PERIODIC_STAGES = ("scf", "pyatb", "nscf", "preprocess", "librpa")
 # the same payload. So the pair below sets ifx/ifort on and asserts gfortran's
 # default rather than leaving either to chance.
 #
+# Scope, stated plainly: every stage OML can currently execute launches ABACUS,
+# LibRPA or python - all C++ or CPython, none of which reads either variable. So
+# inside OML today these exports are a no-op, and they are here for two reasons
+# only: the FHI-aims signatures live in a skill that ships a run_aims.sh recipe
+# for a human to run, and an aims stage added later inherits the right setting
+# instead of the wrong default. Do not read their presence as evidence that OML
+# runs a Fortran producer.
+#
 # ABACUS needs none of this. It is C++, its CSC writer formats into an
 # std::ofstream and flushes once per matrix block (`single_r_io.cpp` has no
 # per-value std::endl), and std::ofstream is buffered by default: strace counts

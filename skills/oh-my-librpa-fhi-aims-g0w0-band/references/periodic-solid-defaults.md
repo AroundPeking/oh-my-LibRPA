@@ -115,6 +115,10 @@ suits the "write, close, verify, then read" dataset flow and not a
 write-then-read-the-same-file-mid-run flow. And `FLUSH` only empties the runtime
 buffer; it does not force the data to disk.
 
+This belongs in `run_aims.sh`, which a person runs. OML's controlled stages
+launch ABACUS, LibRPA and python only — so far none of them is FHI-aims, which
+means the exports are a no-op inside OML today.
+
 ABACUS needs no equivalent. It is C++: the CSC writer formats into an
 `std::ofstream` that is buffered by default (strace counts 2 `write` syscalls for
 2e5 formatted values) and flushes once per matrix block. Both ways of "tuning"
