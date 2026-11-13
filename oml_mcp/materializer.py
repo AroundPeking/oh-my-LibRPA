@@ -465,7 +465,12 @@ def prepare_run(
         for stage in plan.stages:
             script = stage_dir / f"{stage}.slurm"
             script.write_text(
-                render_stage_script(stage, run_id=run_id, resources=profile.resources),
+                render_stage_script(
+                    stage,
+                    run_id=run_id,
+                    resources=profile.resources,
+                    environment=profile.environment,
+                ),
                 encoding="utf-8",
             )
             os.chmod(script, 0o700)

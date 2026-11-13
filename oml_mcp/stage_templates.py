@@ -152,11 +152,19 @@ def render_stage_script(
     *,
     run_id: str,
     resources: Mapping[str, str | int],
+    environment: Mapping[str, str] | None = None,
 ) -> str:
     if stage not in CONTROLLED_PERIODIC_STAGES:
         raise ValueError(f"unsupported controlled stage: {stage}")
     job_name = stage_job_name(run_id, stage)
-    _fortran_env = render_fortran_environment().rstrip("\n")
+    # The profile's own environment has already been written into .oml/env.sh,
+    # which this script sources first. Passing it here as well is what makes
+    # "a profile may override the buffering default" true: a bare export after
+    # the source would otherwise always win, silently.
+    _fortran_env = render_fortran_environment(
+        {k: v for k, v in (environment or {}).items()
+         if k in FORTRAN_BUFFERED_ENVIRONMENT}
+    ).rstrip("\n")
     return f"""#!/usr/bin/env bash
 #SBATCH --partition={resources['partition']}
 #SBATCH --nodes={resources['nodes']}

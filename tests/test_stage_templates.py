@@ -67,6 +67,36 @@ class FortranBufferingTest(unittest.TestCase):
         self.assertIn("export FORT_BUFFERED=FALSE", rendered)
         self.assertIn("export GFORTRAN_UNBUFFERED_ALL=0", rendered)
 
+    def test_the_override_survives_into_the_rendered_script(self):
+        # The rendered script sources .oml/env.sh first and then exports its own
+        # lines, so a bare default there would always beat the profile. The
+        # profile's value has to be threaded through or it is silently ignored.
+        from oml_mcp.stage_templates import render_stage_script
+
+        resources = {
+            "partition": "debug",
+            "nodes": 1,
+            "ntasks_per_node": 1,
+            "cpus_per_task": 4,
+            "memory_mb": 4000,
+        }
+        overridden = render_stage_script(
+            "scf",
+            run_id="r",
+            resources=resources,
+            environment={"FORT_BUFFERED": "FALSE"},
+        )
+        self.assertIn("export FORT_BUFFERED=FALSE", overridden)
+        self.assertNotIn("export FORT_BUFFERED=TRUE", overridden)
+        # An unrelated profile variable must not leak into the buffering block.
+        other = render_stage_script(
+            "scf",
+            run_id="r",
+            resources=resources,
+            environment={"PATH": "/usr/bin"},
+        )
+        self.assertIn("export FORT_BUFFERED=TRUE", other)
+
 
 if __name__ == "__main__":
     unittest.main()
