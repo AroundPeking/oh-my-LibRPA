@@ -40,6 +40,26 @@ class FortranBufferingTest(unittest.TestCase):
                 self.assertIn("export FORT_BUFFERED=TRUE", script)
                 self.assertIn("export GFORTRAN_UNBUFFERED_ALL=0", script)
 
+    def test_the_login_node_path_exports_it_too(self):
+        # The scheduled path exports this in its SBATCH prologue; the login-node
+        # path renders its own script and would otherwise differ from it.
+        from oml_mcp.stage_execution import render_login_node_script
+
+        runtime = {
+            "python": "/usr/bin/python3",
+            "mpi_launcher": "/usr/bin/mpirun",
+            "abacus": "/x/abacus",
+            "librpa": "/x/chi0_main.exe",
+            "mpi_ranks": 1,
+            "pyatb_mpi_ranks": 1,
+            "omp_threads": 8,
+        }
+        script = render_login_node_script(
+            "nscf", runtime=runtime, run_id="r", attempt_id="a"
+        )
+        self.assertIn("export FORT_BUFFERED=TRUE", script)
+        self.assertIn("export GFORTRAN_UNBUFFERED_ALL=0", script)
+
     def test_a_profile_may_still_override_a_value(self):
         from oml_mcp.stage_templates import render_fortran_environment
 

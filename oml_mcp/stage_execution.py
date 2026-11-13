@@ -182,15 +182,19 @@ def render_login_node_script(
         raise StageExecutionError(
             f"stage {stage} is not eligible for login-node execution"
         )
-    from .stage_templates import render_env
+    from .stage_templates import render_env, render_fortran_environment
 
     env = render_env(runtime, environment={}, run_id=run_id, plan_digest=attempt_id)
+    # The scheduled path exports this in the SBATCH prologue; the login-node path
+    # renders its own script, so it has to add the same lines or a producer stage
+    # run here would be unbuffered while the same stage run there is buffered.
+    fortran_env = render_fortran_environment()
     return f"""#!/usr/bin/env bash
 {LOGIN_NODE_MARKER}
 set -uo pipefail
 run_dir="$(pwd -P)"
 cd "$run_dir"
-{env}export PYTHONDONTWRITEBYTECODE=1
+{env}{fortran_env}export PYTHONDONTWRITEBYTECODE=1
 mkdir -p ".oml/stage-results"
 printf 'RUNNING:{attempt_id}\\n' > ".oml/stage-results/{stage}.status"
 status=0
