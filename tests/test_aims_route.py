@@ -265,3 +265,60 @@ class AimsMaterializationTest(unittest.TestCase):
         )
         self.assertEqual(result["basis_disclosure"]["state"], "not-applicable")
         self.assertIn("control.in", result["basis_disclosure"]["reason"])
+
+
+class AimsScopeGuardTest(unittest.TestCase):
+    """Checks that must hold for an aims bundle just as for an ABACUS one."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.tmp.name)
+        (self.root / "control.in").write_text(CONTROL, encoding="utf-8")
+        (self.root / "geometry.in").write_text(GEOMETRY, encoding="utf-8")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_an_input_dir_outside_the_bundle_is_refused(self):
+        # input_dir is producer-independent: LibRPA reads from it either way, so
+        # a path leaving the immutable bundle must fail on both branches.
+        from oml_mcp.errors import OMLError
+        from oml_mcp.materializer import _verify_controlled_scope
+
+        (self.root / "librpa.in").write_text(
+            "task = g0w0\ninput_dir = ../../elsewhere\nnfreq = 16\n",
+            encoding="utf-8",
+        )
+
+        class Plan:
+            route = "periodic_gw_aims"
+            options = {"system_type": "solid", "soc": False}
+
+        with self.assertRaises(OMLError) as caught:
+            _verify_controlled_scope(self.root, Plan())
+        self.assertIn("immutable run bundle", str(caught.exception))
+
+    def test_an_in_bundle_input_dir_is_accepted(self):
+        from oml_mcp.materializer import _verify_controlled_scope
+
+        (self.root / "librpa.in").write_text(
+            "task = g0w0\ninput_dir = .\nnfreq = 16\n", encoding="utf-8"
+        )
+
+        class Plan:
+            route = "periodic_gw_aims"
+            options = {"system_type": "solid", "soc": False}
+
+        _verify_controlled_scope(self.root, Plan())
+
+    def test_an_aims_bundle_cannot_run_an_abacus_route(self):
+        from oml_mcp.errors import OMLError
+        from oml_mcp.materializer import _verify_aims_scope
+
+        class Plan:
+            route = "periodic_gw"
+            options = {"system_type": "solid", "soc": False}
+
+        with self.assertRaises(OMLError) as caught:
+            _verify_aims_scope(self.root, Plan())
+        self.assertIn("FHI-aims bundle", str(caught.exception))

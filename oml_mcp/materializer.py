@@ -126,6 +126,10 @@ def _verify_controlled_scope(source: Path, plan: Any) -> None:
     if (source / "control.in").is_file() or (source / "geometry.in").is_file():
         _verify_aims_scope(source, plan)
         _verify_aims_inputs(source)
+        # input_dir is producer-independent: LibRPA reads from it either way, and
+        # a path outside the immutable bundle would let a run read files the
+        # plan never recorded.
+        _verify_librpa_input_dir(source)
         return
 
     unsafe_paths = []
@@ -207,6 +211,27 @@ def _verify_controlled_scope(source: Path, plan: Any) -> None:
             recovery="copy required inputs into the source bundle and use relative in-bundle directories",
         )
     _verify_stru_assets(source)
+
+
+def _verify_librpa_input_dir(source: Path) -> None:
+    """Refuse a librpa.in whose input_dir leaves the immutable run bundle."""
+    try:
+        librpa = parse_librpa_input(source / "librpa.in")
+    except ParseError as exc:
+        raise OMLError(
+            "RUN_PATH_UNSAFE",
+            f"cannot establish the LibRPA input directory: {exc}",
+            evidence=(str(source / "librpa.in"),),
+            recovery="repair librpa.in and create a new immutable plan",
+        ) from exc
+    input_dir = (librpa.value("input_dir", ".") or ".").strip().strip("'\"")
+    if input_dir not in {".", "./"}:
+        raise OMLError(
+            "RUN_PATH_UNSAFE",
+            "controlled input and asset directories must stay inside the immutable run bundle",
+            evidence=(f"librpa.in input_dir={input_dir}",),
+            recovery="copy required inputs into the source bundle and use relative in-bundle directories",
+        )
 
 
 def _verify_aims_scope(source: Path, plan: Any) -> None:
