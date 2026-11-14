@@ -223,9 +223,20 @@ def diagnose_run(
         report = inspect_stage_outputs(run_path, stage)
         reports = [report]
     else:
-        from .stage_templates import CONTROLLED_PERIODIC_STAGES
+        from .stage_templates import (
+            CONTROLLED_AIMS_STAGES,
+            CONTROLLED_PERIODIC_STAGES,
+        )
 
-        reports = [inspect_stage_outputs(run_path, s) for s in CONTROLLED_PERIODIC_STAGES]
+        # Scan whichever producer this run used. An aims run has no scf/nscf and
+        # an ABACUS run has no aims stage, so scanning only one list would report
+        # an untouched stage as NOT_EVALUATED and bury the real failure.
+        root = Path(run_path)
+        if (root / "control.in").is_file() or (root / "geometry.in").is_file():
+            stage_list = CONTROLLED_AIMS_STAGES
+        else:
+            stage_list = CONTROLLED_PERIODIC_STAGES
+        reports = [inspect_stage_outputs(run_path, s) for s in stage_list]
 
     issues = list_known_issues()
     matches: list[DiagnosticMatch] = []

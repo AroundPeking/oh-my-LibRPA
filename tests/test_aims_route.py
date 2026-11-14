@@ -322,3 +322,47 @@ class AimsScopeGuardTest(unittest.TestCase):
         with self.assertRaises(OMLError) as caught:
             _verify_aims_scope(self.root, Plan())
         self.assertIn("FHI-aims bundle", str(caught.exception))
+
+
+class AimsStageInspectionTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_a_producer_that_wrote_nothing_fails_inspection(self):
+        from oml_mcp.stage_inspection import inspect_stage_outputs
+
+        report = inspect_stage_outputs(self.root, "aims")
+        statuses = {g["gate_id"]: g["status"] for g in report["gates"]}
+        self.assertEqual(statuses["stage.aims.coulomb"], "FAIL")
+        self.assertEqual(statuses["stage.aims.handoff"], "FAIL")
+        self.assertFalse(report["accepted"])
+
+    def test_a_complete_producer_passes_the_output_gates(self):
+        from oml_mcp.stage_inspection import inspect_stage_outputs
+
+        (self.root / "coulomb_mat_1").write_text("x", encoding="utf-8")
+        for name in ("basis_out", "band_out", "stru_out"):
+            (self.root / name).write_text("x", encoding="utf-8")
+        report = inspect_stage_outputs(self.root, "aims")
+        statuses = {g["gate_id"]: g["status"] for g in report["gates"]}
+        self.assertEqual(statuses["stage.aims.coulomb"], "PASS")
+        self.assertEqual(statuses["stage.aims.handoff"], "PASS")
+
+    def test_the_known_issue_scan_picks_the_aims_stage_list(self):
+        # Scanning the ABACUS list against an aims run would report six untouched
+        # stages as NOT_EVALUATED and bury the aims failure.
+        from oml_mcp.known_issues import diagnose_run
+
+        (self.root / "control.in").write_text(CONTROL, encoding="utf-8")
+        (self.root / "geometry.in").write_text(GEOMETRY, encoding="utf-8")
+        report = diagnose_run(self.root)
+        gate_ids = {gate["gate_id"] for gate in report["failing_gates"]}
+        # The aims gates prove the aims list was scanned; their absence would
+        # mean the ABACUS list ran against an aims bundle.
+        self.assertIn("stage.aims.coulomb", gate_ids)
+        self.assertIn("stage.librpa.command", gate_ids)
+        self.assertNotIn("stage.scf.command", gate_ids)

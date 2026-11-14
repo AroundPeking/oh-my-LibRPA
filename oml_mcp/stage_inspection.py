@@ -634,6 +634,56 @@ def _librpa_input_gates(root: Path) -> list[GateResult]:
     return gates
 
 
+def _aims_gates(root: Path) -> list[GateResult]:
+    """Post-run checks for the FHI-aims producer stage.
+
+    The stage is accepted only when it left something LibRPA can read: the
+    Coulomb blocks, the basis tables and the eigenvalue/occupation file. A
+    producer that ran to completion but wrote none of these is a FAIL here,
+    because the stage script's own ``coulomb_mat_*`` check can be defeated by a
+    stale file from an earlier attempt in the same directory.
+    """
+    gates: list[GateResult] = []
+    coulomb = sorted(root.glob("coulomb_mat_*"))
+    if coulomb:
+        gates.append(
+            _pass(
+                "stage.aims.coulomb",
+                f"FHI-aims wrote {len(coulomb)} Coulomb block file(s)",
+                *(str(path.name) for path in coulomb[:4]),
+            )
+        )
+    else:
+        gates.append(
+            _fail(
+                "stage.aims.coulomb",
+                "no coulomb_mat_* file; FHI-aims did not export the Coulomb blocks LibRPA reads",
+                (str(root),),
+                "add 'output librpa' (and the subtags the case needs) to control.in",
+            )
+        )
+    required = ("basis_out", "band_out", "stru_out")
+    missing = [name for name in required if not (root / name).is_file()]
+    if missing:
+        gates.append(
+            _fail(
+                "stage.aims.handoff",
+                "the producer did not write every file the LibRPA stage reads",
+                tuple(missing),
+                "check control.in carries 'output librpa' and that the run finished",
+            )
+        )
+    else:
+        gates.append(
+            _pass(
+                "stage.aims.handoff",
+                "the producer wrote the basis, eigenvalue and structure handoff files",
+                *(required),
+            )
+        )
+    return gates
+
+
 def inspect_stage_outputs(
     run_path: str | Path,
     stage: str,
@@ -651,6 +701,7 @@ def inspect_stage_outputs(
             "nscf": _nscf_gates,
             "preprocess": _preprocess_gates,
             "librpa": _librpa_gates,
+            "aims": _aims_gates,
         }[stage](root)
     )
     counts = {status: sum(gate.status == status for gate in gates) for status in ("PASS", "WARN", "FAIL", "SKIP")}
