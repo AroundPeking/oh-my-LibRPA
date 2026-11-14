@@ -41,7 +41,7 @@ from .validators import validate_case as validate_case_data
 
 
 ArtifactKind = Literal["eigenvector", "velocity", "headwing"]
-ControlledStage = Literal["scf", "pyatb", "nscf", "preprocess", "librpa"]
+ControlledStage = Literal["scf", "pyatb", "nscf", "preprocess", "librpa", "aims"]
 AdmissionRoute = Literal[
     "periodic_3d_gw",
     "strict_2d_gw",

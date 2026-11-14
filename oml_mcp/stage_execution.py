@@ -33,7 +33,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
-from .stage_templates import CONTROLLED_PERIODIC_STAGES, stage_body
+from .stage_templates import (
+    CONTROLLED_PERIODIC_STAGES,
+    CONTROLLED_STAGE_NAMES,
+    stage_body,
+)
 
 
 # Where each controlled stage is allowed to run.
@@ -46,6 +50,8 @@ STAGE_EXECUTION_MODES: dict[str, str] = {
     "nscf": "login_node",
     "preprocess": "login_node",
     "librpa": "scheduler",
+    # FHI-aims is an MPI producer like ABACUS, so it belongs on the scheduler.
+    "aims": "scheduler",
 }
 
 VALID_EXECUTION_MODES = frozenset({"login_node", "scheduler"})
@@ -93,7 +99,7 @@ class LoginNodePolicy:
         ):
             raise StageExecutionError("login-node timeout_seconds must be a positive integer")
         for stage in self.allowed_stages:
-            if stage not in CONTROLLED_PERIODIC_STAGES:
+            if stage not in CONTROLLED_STAGE_NAMES:
                 raise StageExecutionError(f"unknown stage in login-node policy: {stage}")
             if STAGE_EXECUTION_MODES[stage] != "login_node":
                 raise StageExecutionError(
@@ -132,7 +138,7 @@ def plan_stage_placement(
     policy = login_node or LoginNodePolicy(enabled=False)
     placements: list[StagePlacement] = []
     for stage in stages:
-        if stage not in CONTROLLED_PERIODIC_STAGES:
+        if stage not in CONTROLLED_STAGE_NAMES:
             raise StageExecutionError(f"unsupported controlled stage: {stage}")
         intrinsic = STAGE_EXECUTION_MODES[stage]
         if intrinsic != "login_node":
@@ -176,7 +182,7 @@ def render_login_node_script(
     The script writes the same receipt as the scheduled path, so the existing
     stage-inspection gates apply without modification.
     """
-    if stage not in CONTROLLED_PERIODIC_STAGES:
+    if stage not in CONTROLLED_STAGE_NAMES:
         raise StageExecutionError(f"unsupported controlled stage: {stage}")
     if STAGE_EXECUTION_MODES[stage] != "login_node":
         raise StageExecutionError(

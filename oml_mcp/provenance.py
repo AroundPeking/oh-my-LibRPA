@@ -15,6 +15,7 @@ EXECUTION_INPUT_NAMES = frozenset(
         "KPT_scf",
         "KPT_nscf",
         "STRU",
+        "control.in",
         "librpa.in",
         "geometry.in",
         "get_diel.py",

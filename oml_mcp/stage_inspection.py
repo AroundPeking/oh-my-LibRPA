@@ -13,7 +13,7 @@ from .coulomb_diagnostics import (
 )
 from .models import GateResult
 from .parsers import ParseError
-from .stage_templates import CONTROLLED_PERIODIC_STAGES
+from .stage_templates import CONTROLLED_STAGE_NAMES
 
 
 NONFINITE_PATTERN = re.compile(r"(?<![A-Za-z])(?:nan|[+-]?inf(?:inity)?)(?![A-Za-z])", re.I)
@@ -641,7 +641,7 @@ def inspect_stage_outputs(
     expected_attempt_id: str | None = None,
 ) -> dict[str, object]:
     root = Path(run_path).expanduser().resolve()
-    if stage not in CONTROLLED_PERIODIC_STAGES:
+    if stage not in CONTROLLED_STAGE_NAMES:
         raise ValueError(f"unsupported controlled stage: {stage}")
     gates = [_command_gate(root, stage, expected_attempt_id)]
     gates.extend(

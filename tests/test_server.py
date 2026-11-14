@@ -115,7 +115,7 @@ class MCPServerTest(unittest.IsolatedAsyncioTestCase):
         stage_schema = by_name["submit_stage"].input_schema
         self.assertEqual(
             stage_schema["properties"]["stage"]["enum"],
-            ["scf", "pyatb", "nscf", "preprocess", "librpa"],
+            ["scf", "pyatb", "nscf", "preprocess", "librpa", "aims"],
         )
 
     async def call(self, name: str, arguments: dict):

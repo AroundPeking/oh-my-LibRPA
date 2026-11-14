@@ -23,6 +23,10 @@ ROUTE_STAGES = {
     "periodic_gw": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
     "periodic_gw_symmetry": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
     "periodic_gw_no_headwing": ("scf", "nscf", "preprocess", "librpa"),
+    # FHI-aims writes the Coulomb blocks, the KS eigenvectors and the velocity
+    # matrix its own GW consumer needs, so the aims route is two stages.
+    "periodic_gw_aims": ("aims", "librpa"),
+    "periodic_gw_aims_no_headwing": ("aims", "librpa"),
     "periodic_gw_symmetry_no_headwing": ("scf", "nscf", "preprocess", "librpa"),
     "strict_2d_gw_deferred": (),
     "strict_2d_gw": ("scf", "pyatb", "nscf", "preprocess", "librpa"),
@@ -39,6 +43,8 @@ def _capability_id(route: str) -> str | None:
         "periodic_gw_symmetry",
         "periodic_gw_no_headwing",
         "periodic_gw_symmetry_no_headwing",
+        "periodic_gw_aims",
+        "periodic_gw_aims_no_headwing",
     }:
         return "periodic_3d_gw"
     if route == "strict_2d_gw":
@@ -207,6 +213,55 @@ def _plan_gate(
     )
 
 
+def _plan_gw_route_aims(
+    *,
+    normalized_system: str,
+    use_symmetry: bool,
+    soc: bool,
+    headwing: bool | None,
+    assumptions: list[str],
+) -> tuple[str, bool]:
+    """Select the FHI-aims producer chain for a periodic G0W0 case.
+
+    Scope is deliberately narrow. FHI-aims writes the Coulomb blocks, the KS
+    eigenvectors and the velocity matrix LibRPA reads, so the chain is two stages
+    with no NSCF or preprocess in between. Everything this route cannot honour is
+    refused here, with the reason, rather than degraded silently.
+    """
+    if normalized_system in {"molecule", "molecular", "atom"}:
+        raise PlanError(
+            "the FHI-aims controlled route covers periodic solids only; "
+            "keep molecular cases on their reviewed workflow"
+        )
+    if normalized_system in {"2d", "two-dimensional"}:
+        raise PlanError(
+            "the FHI-aims controlled route does not carry the strict-2D Coulomb "
+            "treatment; use the ABACUS strict-2D route instead"
+        )
+    if normalized_system not in {"solid", "periodic"}:
+        raise PlanError(f"unsupported GW system_type: {normalized_system}")
+    if soc:
+        raise PlanError(
+            "the FHI-aims controlled route does not carry the SOC velocity "
+            "convention; keep SOC cases on their reviewed workflow"
+        )
+    if use_symmetry:
+        raise PlanError(
+            "FHI-aims has no k-star symmetry handoff; plan with use_symmetry=False"
+        )
+    if headwing is False:
+        assumptions.append(
+            "explicit diagnostic route disables head/wing replacement; "
+            "FHI-aims still writes the Coulomb blocks"
+        )
+        return "periodic_gw_aims_no_headwing", use_symmetry
+    assumptions.append(
+        "FHI-aims writes the Coulomb blocks, KS eigenvectors and velocity matrix; "
+        "LibRPA reads them directly without an NSCF or preprocess stage"
+    )
+    return "periodic_gw_aims", use_symmetry
+
+
 def plan_case(
     path: str | Path,
     *,
@@ -221,8 +276,8 @@ def plan_case(
     intake = ingest_case(path)
     if intake.stack == "mixed":
         raise PlanError("cannot plan a mixed ABACUS/FHI-aims case")
-    if intake.stack != "abacus_librpa":
-        raise PlanError(f"Phase 1 supports ABACUS cases, got {intake.stack}")
+    if intake.stack not in {"abacus_librpa", "fhi_aims_librpa"}:
+        raise PlanError(f"unsupported producer stack: {intake.stack}")
 
     profile = load_profile(profile_id=profile_id) if profile_id is not None else load_profile()
     is_v2 = profile["schema_version"] == 2
@@ -245,14 +300,23 @@ def plan_case(
             assumptions=assumptions,
         )
     elif normalized_task == "gw":
-        route, use_symmetry = _plan_gw_route(
-            normalized_system=normalized_system,
-            use_symmetry=use_symmetry,
-            soc=soc,
-            headwing=headwing,
-            is_v2=is_v2,
-            assumptions=assumptions,
-        )
+        if intake.stack == "fhi_aims_librpa":
+            route, use_symmetry = _plan_gw_route_aims(
+                normalized_system=normalized_system,
+                use_symmetry=use_symmetry,
+                soc=soc,
+                headwing=headwing,
+                assumptions=assumptions,
+            )
+        else:
+            route, use_symmetry = _plan_gw_route(
+                normalized_system=normalized_system,
+                use_symmetry=use_symmetry,
+                soc=soc,
+                headwing=headwing,
+                is_v2=is_v2,
+                assumptions=assumptions,
+            )
     else:
         raise PlanError(f"unsupported task: {task}")
 
@@ -265,7 +329,12 @@ def plan_case(
         "use_symmetry": use_symmetry,
         "soc": soc,
         "headwing": route
-        in {"periodic_gw", "periodic_gw_symmetry", "strict_2d_gw"},
+        in {
+            "periodic_gw",
+            "periodic_gw_symmetry",
+            "strict_2d_gw",
+            "periodic_gw_aims",
+        },
     }
     capability: dict[str, Any] | None = None
     if route == "strict_2d_gw_deferred":

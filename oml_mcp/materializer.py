@@ -75,19 +75,28 @@ def _match_periodic_plan(
             },
         )
     )
-    candidates = tuple(
-        plan_case(
-            source,
-            # A request that already names its own profile (the v2 Sternheimer
-            # probes above) must keep it, so the caller's profile is only a default.
-            **(
-                {"profile_id": profile_id, **request}
-                if profile_id is not None
-                else request
-            ),
-        )
-        for request in requests
-    )
+    # A request that this source cannot satisfy raises PlanError (an aims bundle
+    # has no symmetry lane, for example). That is not a stale plan - it is simply
+    # not this candidate - so it is dropped rather than propagated.
+    candidates = []
+    for request in requests:
+        try:
+            candidates.append(
+                plan_case(
+                    source,
+                    # A request that already names its own profile (the v2
+                    # Sternheimer probes above) must keep it, so the caller's
+                    # profile is only a default.
+                    **(
+                        {"profile_id": profile_id, **request}
+                        if profile_id is not None
+                        else request
+                    ),
+                )
+            )
+        except PlanError:
+            continue
+    candidates = tuple(candidates)
     matches = tuple(plan for plan in candidates if plan.digest == plan_digest)
     if len(matches) != 1:
         raise OMLError(
@@ -114,6 +123,11 @@ def _verify_controlled_scope(source: Path, plan: Any) -> None:
             evidence=(system_type,),
             recovery="keep strict 2D on its reviewed workflow until its end-to-end gates are implemented",
         )
+    if (source / "control.in").is_file() or (source / "geometry.in").is_file():
+        _verify_aims_scope(source, plan)
+        _verify_aims_inputs(source)
+        return
+
     unsafe_paths = []
     for input_name in ("INPUT_scf", "INPUT_nscf"):
         try:
@@ -193,6 +207,90 @@ def _verify_controlled_scope(source: Path, plan: Any) -> None:
             recovery="copy required inputs into the source bundle and use relative in-bundle directories",
         )
     _verify_stru_assets(source)
+
+
+def _verify_aims_scope(source: Path, plan: Any) -> None:
+    """Refuse the FHI-aims chains this executor does not carry.
+
+    The planner already narrows the scope; this repeats the check on the bundle
+    that is about to be copied, because a plan and a source tree can diverge
+    between planning and materialization.
+    """
+    route = getattr(plan, "route", "")
+    if route not in {"periodic_gw_aims", "periodic_gw_aims_no_headwing"}:
+        raise OMLError(
+            "ROUTE_NOT_EXECUTABLE",
+            f"an FHI-aims bundle cannot run the {route or 'unknown'} route",
+            evidence=(route or "<no route>",),
+            recovery="plan the case again so the bundle and the route agree",
+        )
+    options = getattr(plan, "options", {}) or {}
+    if options.get("soc"):
+        raise OMLError(
+            "ROUTE_NOT_EXECUTABLE",
+            "the FHI-aims controlled route does not carry the SOC velocity convention",
+            evidence=("soc=True",),
+            recovery="keep SOC cases on their reviewed workflow",
+        )
+    if str(options.get("system_type", "")).strip().lower() in {"2d", "two-dimensional"}:
+        raise OMLError(
+            "ROUTE_NOT_EXECUTABLE",
+            "the FHI-aims controlled route does not carry the strict-2D Coulomb treatment",
+            evidence=("system_type=2d",),
+            recovery="use the ABACUS strict-2D route instead",
+        )
+
+
+def _verify_aims_inputs(source: Path) -> None:
+    """Check the two files FHI-aims reads, and that control.in asks for LibRPA output.
+
+    Without ``output librpa`` the producer runs to completion and writes nothing
+    LibRPA can read, which surfaces much later as a reader error that does not
+    name the real cause.
+    """
+    failures = []
+    for name in ("geometry.in", "control.in"):
+        path = source / name
+        if path.is_symlink() or not path.is_file() or path.stat().st_size == 0:
+            failures.append(f"{name}: missing, empty, or a symlink")
+    control = source / "control.in"
+    if control.is_file() and not control.is_symlink():
+        try:
+            text = control.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            failures.append(f"control.in: unreadable ({exc})")
+            text = ""
+        if text and not _control_in_requests_librpa(text):
+            failures.append(
+                "control.in: no 'output librpa' line, so FHI-aims will not write "
+                "the Coulomb blocks LibRPA reads"
+            )
+    if failures:
+        raise OMLError(
+            "RUN_PATH_UNSAFE",
+            "the FHI-aims input bundle is incomplete",
+            evidence=tuple(failures),
+            recovery=(
+                "ship a non-empty geometry.in and control.in, and add "
+                "'output librpa' (plus 'binary'/'mommat' as needed) to control.in"
+            ),
+        )
+
+
+def _control_in_requests_librpa(text: str) -> bool:
+    """True when control.in carries an ``output librpa`` directive.
+
+    FHI-aims parses ``output librpa <subtags>``; the subtag list is free-form
+    (binary, mommat, df_only, noC, ...), so only the leading pair matters here.
+    """
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        fields = line.split()
+        if len(fields) >= 2 and fields[0] == "output" and fields[1].lower() == "librpa":
+            return True
+    return False
 
 
 def _verify_stru_assets(source: Path) -> None:
@@ -378,11 +476,14 @@ def prepare_run(
             ),
             recovery="pin a corrected LibRPA profile and add the required strict-2D gates before execution",
         )
+    aims_route = plan.route in {"periodic_gw_aims", "periodic_gw_aims_no_headwing"}
     executable_routes = {
         "periodic_gw",
         "periodic_gw_symmetry",
         "periodic_gw_no_headwing",
         "periodic_gw_symmetry_no_headwing",
+        "periodic_gw_aims",
+        "periodic_gw_aims_no_headwing",
     }
     if plan.route not in executable_routes or plan.options["soc"]:
         raise OMLError(
@@ -392,7 +493,10 @@ def prepare_run(
             recovery="keep this route on the existing workflow until a dedicated executor is approved",
         )
     _verify_controlled_scope(source, plan)
-    _verify_workflow_helpers(source, profile_id)
+    if not aims_route:
+        # The helper quartet is the ABACUS-side python glue; an aims bundle
+        # carries none of it and must not be asked for it.
+        _verify_workflow_helpers(source, profile_id)
     report = validate_case(
         source,
         task="gw",
@@ -444,11 +548,27 @@ def prepare_run(
         # The basis a run will submit is a scientific decision, so it is
         # disclosed here, inside the immutable run, and its digest is what a
         # human acknowledges before any stage is submitted.
-        disclosure = build_basis_disclosure(
-            temporary_dir,
-            records=_archive_records(profile),
-            soc=bool(plan.options["soc"]),
-        )
+        #
+        # An FHI-aims bundle carries its species blocks inside control.in and has
+        # no STRU, PP, NAO or ABFS set to describe. Skipping the disclosure there
+        # is only safe because the aims branch has no ABACUS basis choice at all;
+        # it is recorded as such so the acknowledgement step cannot read the
+        # absence as "the disclosure said nothing was wrong".
+        if aims_route:
+            disclosure = {
+                "state": "not-applicable",
+                "reason": (
+                    "an FHI-aims case supplies its basis in control.in species "
+                    "blocks; there is no ABACUS PP/NAO/ABFS set to disclose"
+                ),
+                "elements": {},
+            }
+        else:
+            disclosure = build_basis_disclosure(
+                temporary_dir,
+                records=_archive_records(profile),
+                soc=bool(plan.options["soc"]),
+            )
         disclosure["digest"] = disclosure_digest(disclosure)
         write_disclosure(temporary_dir, disclosure)
         env_path = oml_dir / "env.sh"

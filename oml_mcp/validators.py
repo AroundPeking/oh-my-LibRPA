@@ -1330,6 +1330,118 @@ def _reader_v1_payload_gates(
     return basis_gate, payload_gate, q_gate
 
 
+def _is_aims_bundle(case_root: Path) -> bool:
+    """True when the bundle is an FHI-aims case rather than an ABACUS one."""
+    return (case_root / "control.in").is_file() or (case_root / "geometry.in").is_file()
+
+
+def _validate_aims_case(
+    case_root: Path,
+    *,
+    profile: dict,
+    task: str,
+    system_type: str,
+) -> ValidationReport:
+    """Validate an FHI-aims + LibRPA bundle with the checks that apply to it.
+
+    The ABACUS gate chain cannot run here: there is no INPUT_scf, KPT, STRU or
+    PP/NAO/ABFS set. Rather than silently reporting those gates as passed, this
+    reports every one of them as SKIP with the reason, and runs the two checks
+    that do carry over -- the LibRPA input audit and the producer's own
+    completeness.
+    """
+    gates: list[GateResult] = []
+
+    control = case_root / "control.in"
+    geometry = case_root / "geometry.in"
+    missing = [
+        name
+        for name, path in (("control.in", control), ("geometry.in", geometry))
+        if path.is_symlink() or not path.is_file() or path.stat().st_size == 0
+    ]
+    if missing:
+        gates.append(
+            _fail(
+                "aims.inputs",
+                "the FHI-aims bundle is missing an input file",
+                tuple(missing),
+                "ship a non-empty control.in and geometry.in at the case root",
+            )
+        )
+    else:
+        from .materializer import _control_in_requests_librpa
+
+        text = control.read_text(encoding="utf-8", errors="replace")
+        if _control_in_requests_librpa(text):
+            gates.append(
+                _pass(
+                    "aims.inputs",
+                    "control.in and geometry.in are present and control.in asks for LibRPA output",
+                    str(control),
+                )
+            )
+        else:
+            gates.append(
+                _fail(
+                    "aims.inputs",
+                    "control.in does not carry an 'output librpa' directive",
+                    (str(control),),
+                    "add 'output librpa' (with the subtags the case needs, for example "
+                    "'binary mommat') so FHI-aims writes the Coulomb blocks LibRPA reads",
+                )
+            )
+
+    librpa_path = case_root / "librpa.in"
+    try:
+        from .librpa_input import audit_librpa_in
+
+        audit = audit_librpa_in(
+            librpa_path, dimension="2d" if system_type.strip().lower() in {"2d", "two-dimensional"} else "3d"
+        )
+        for finding in audit.findings:
+            gates.append(
+                GateResult(
+                    gate_id=finding.gate_id,
+                    status=finding.status,
+                    message=finding.message,
+                    evidence=(str(librpa_path),),
+                    repair=finding.repair or None,
+                )
+            )
+    except Exception as exc:  # noqa: BLE001 - report the failure, never swallow it
+        gates.append(
+            _fail(
+                "case.inputs",
+                f"cannot audit librpa.in: {exc}",
+                (str(librpa_path),),
+                "repair librpa.in and re-run the audit",
+            )
+        )
+
+    # Say what did not run rather than leaving the caller to infer it.
+    for gate_id, reason in (
+        ("abacus.producer", "this bundle has no ABACUS INPUT files"),
+        ("abacus.reader_v1", "this bundle has no ABACUS INPUT files"),
+        ("abacus.reader_keyword", "this bundle has no ABACUS INPUT files"),
+        ("abacus.cp_rmesh", "this bundle has no ABACUS INPUT files"),
+        ("nbands.consistency", "FHI-aims sizes its state space from control.in, not nbands"),
+        ("band_path.sampling", "the aims band path lives in control.in and is not parsed here"),
+        ("symmetry.alignment", "FHI-aims has no k-star symmetry handoff"),
+        ("basis.source", "aims carries its species blocks inside control.in"),
+        ("stage.state_space.band_out", "no ABACUS band_out in an aims producer run"),
+        ("librpa.periodic_3d_gw_continuation", "aims cases keep their own frequency contract"),
+        ("pyatb.policy", "the aims route has no PyATB stage"),
+    ):
+        gates.append(
+            _skip(
+                gate_id,
+                reason,
+            )
+        )
+
+    return ValidationReport(profile["profile_id"], tuple(gates))
+
+
 def validate_case(
     path: str | Path,
     *,
@@ -1357,6 +1469,10 @@ def validate_case(
                     "use stage = input or stage = pre_librpa",
                 ),
             ),
+        )
+    if _is_aims_bundle(case_root):
+        return _validate_aims_case(
+            case_root, profile=profile, task=task, system_type=system_type
         )
     parsed = _parse_inputs(case_root, profile_id=selected_profile_id)
     if isinstance(parsed, ValidationReport):

@@ -6,6 +6,16 @@ from typing import Mapping
 
 CONTROLLED_PERIODIC_STAGES = ("scf", "pyatb", "nscf", "preprocess", "librpa")
 
+# The FHI-aims producer chain. It shares the renderer and the stage bodies with
+# the ABACUS chain but not its stage list: LibRPA reads the aims Coulomb blocks,
+# eigenvectors and velocity matrix directly, so there is no NSCF or preprocess.
+CONTROLLED_AIMS_STAGES = ("aims", "librpa")
+
+# Anything that may appear as a controlled stage, whichever producer wrote the
+# mean field. Membership checks use this; "what stages does this run have" uses
+# the two tuples above.
+CONTROLLED_STAGE_NAMES = CONTROLLED_PERIODIC_STAGES + ("aims",)
+
 # Buffering for the Fortran producer stage.
 #
 # FHI-aims writes its Coulomb export one complex number per WRITE. At 128 atoms
@@ -58,7 +68,7 @@ def render_fortran_environment(
 
 
 def stage_job_name(run_id: str, stage: str) -> str:
-    if stage not in CONTROLLED_PERIODIC_STAGES:
+    if stage not in CONTROLLED_STAGE_NAMES:
         raise ValueError(f"unsupported controlled stage: {stage}")
     return f"oml-{run_id}-{stage}"
 
@@ -93,6 +103,8 @@ def render_env(
         "OML_MPI_LAUNCHER": runtime["mpi_launcher"],
         "OML_ABACUS": runtime["abacus"],
         "OML_LIBRPA": runtime["librpa"],
+        # Optional: only profiles that admit an FHI-aims case carry it.
+        **({"OML_AIMS": runtime["aims"]} if runtime.get("aims") else {}),
         "OML_MPI_RANKS": runtime["mpi_ranks"],
         "OML_PYATB_MPI_RANKS": runtime["pyatb_mpi_ranks"],
         "OML_OMP_THREADS": runtime["omp_threads"],
@@ -137,6 +149,24 @@ cp -- "INPUT_nscf" "INPUT"
         "preprocess": """
 "$OML_PYTHON" "preprocess_abacus_for_librpa_band.py" > "preprocess.${SLURM_JOB_ID:-manual}.out" 2>&1
 """,
+        # FHI-aims producer. It reads control.in/geometry.in directly - there is no
+        # copy-to-INPUT step, and no KPT file. The stage exists so the whole
+        # aims -> librpa chain runs under one controlled receipt; the Fortran
+        # buffering exported in the prologue is what makes its Coulomb export
+        # finish in minutes instead of tens of minutes.
+        "aims": """
+: "${OML_AIMS:?this profile has no FHI-aims binary; add runtime.aims}"
+test -s "geometry.in"
+test -s "control.in"
+"$OML_MPI_LAUNCHER" -np "$OML_MPI_RANKS" "$OML_AIMS" > "aims.${SLURM_JOB_ID:-manual}.out" 2>&1
+# The producer must have written at least one Coulomb block before LibRPA can
+# read the case; an empty hands-off here would fail much later with a reader
+# error that does not name the real cause.
+ls coulomb_mat_* > /dev/null 2>&1 || {
+    echo "FHI-aims finished without writing coulomb_mat_*; check control.in carries 'output librpa'" >&2
+    exit 1
+}
+""",
         "librpa": """
 OMP_NUM_THREADS="$OML_OMP_THREADS" "$OML_MPI_LAUNCHER" -np "$OML_MPI_RANKS" "$OML_LIBRPA" > "LibRPA.${SLURM_JOB_ID:-manual}.out" 2>&1
 """,
@@ -154,7 +184,7 @@ def render_stage_script(
     resources: Mapping[str, str | int],
     environment: Mapping[str, str] | None = None,
 ) -> str:
-    if stage not in CONTROLLED_PERIODIC_STAGES:
+    if stage not in CONTROLLED_STAGE_NAMES:
         raise ValueError(f"unsupported controlled stage: {stage}")
     job_name = stage_job_name(run_id, stage)
     # The profile's own environment has already been written into .oml/env.sh,

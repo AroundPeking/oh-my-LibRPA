@@ -115,9 +115,11 @@ suits the "write, close, verify, then read" dataset flow and not a
 write-then-read-the-same-file-mid-run flow. And `FLUSH` only empties the runtime
 buffer; it does not force the data to disk.
 
-This belongs in `run_aims.sh`, which a person runs. OML's controlled stages
-launch ABACUS, LibRPA and python only — so far none of them is FHI-aims, which
-means the exports are a no-op inside OML today.
+OML now runs this stage itself. `plan_case` accepts an `fhi_aims_librpa` bundle
+and routes it to `periodic_gw_aims` (`aims` -> `librpa`); `render_stage_script`
+writes both exports into the rendered `aims.slurm` prologue, so a controlled aims
+run is buffered without anyone remembering to type it. A hand-written
+`run_aims.sh` still needs the line.
 
 ABACUS needs no equivalent. It is C++: the CSC writer formats into an
 `std::ofstream` that is buffered by default (strace counts 2 `write` syscalls for

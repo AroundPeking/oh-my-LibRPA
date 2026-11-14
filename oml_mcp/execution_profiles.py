@@ -21,7 +21,13 @@ REQUIRED_RUNTIME_STRINGS = ("python", "mpi_launcher", "abacus", "librpa")
 REQUIRED_RUNTIME_INTS = ("mpi_ranks", "pyatb_mpi_ranks", "omp_threads")
 # Optional: the PyATB stage may need a different interpreter from the one that
 # runs the LibRPA-side helpers (a compiled pyatb extension is version-pinned).
-OPTIONAL_RUNTIME_STRINGS = ("pyatb_python",)
+OPTIONAL_RUNTIME_STRINGS = (
+    "pyatb_python",
+    # FHI-aims producer binary. Optional because ABACUS-only profiles have no
+    # aims stage and must keep loading; the aims stage body fails loudly when
+    # the selected profile omits it.
+    "aims",
+)
 PLACEHOLDER_FRAGMENTS = ("/path/to/", "your-", "replace-me", "example.invalid")
 SECRET_ENVIRONMENT_FRAGMENTS = ("PASSWORD", "PASSWD", "TOKEN", "SECRET", "OTP", "PRIVATE_KEY")
 MANAGED_ENVIRONMENT_NAMES = {

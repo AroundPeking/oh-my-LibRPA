@@ -100,3 +100,91 @@ class FortranBufferingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AimsStageTest(unittest.TestCase):
+    """The FHI-aims producer stage and the route that reaches it."""
+
+    def _resources(self):
+        return {
+            "partition": "debug",
+            "nodes": 1,
+            "ntasks_per_node": 4,
+            "cpus_per_task": 8,
+            "memory_mb": 64000,
+        }
+
+    def _runtime(self, with_aims=True):
+        runtime = {
+            "python": "/usr/bin/python3",
+            "mpi_launcher": "/usr/bin/mpirun",
+            "abacus": "/x/abacus",
+            "librpa": "/x/chi0_main.exe",
+            "mpi_ranks": 4,
+            "pyatb_mpi_ranks": 1,
+            "omp_threads": 8,
+        }
+        if with_aims:
+            runtime["aims"] = "/opt/aims/aims.mpi.x"
+        return runtime
+
+    def test_the_aims_stage_runs_the_producer_and_checks_the_output(self):
+        from oml_mcp.stage_templates import render_stage_script
+
+        script = render_stage_script(
+            "aims", run_id="r", resources=self._resources()
+        )
+        # It reads control.in/geometry.in in place; there is no copy-to-INPUT step
+        # and no KPT file, unlike the ABACUS stages.
+        self.assertIn('test -s "geometry.in"', script)
+        self.assertIn('test -s "control.in"', script)
+        self.assertIn('"$OML_AIMS"', script)
+        self.assertNotIn('cp -- "KPT_scf"', script)
+        # A silent producer that wrote nothing must fail here, not three stages
+        # later inside LibRPA's reader.
+        self.assertIn("coulomb_mat_*", script)
+
+    def test_the_aims_stage_carries_the_fortran_buffering(self):
+        # This is the stage the buffering exists for: FHI-aims writes one complex
+        # number per WRITE. 36.4 s -> 20.6 s for 3e7 values.
+        from oml_mcp.stage_templates import render_stage_script
+
+        script = render_stage_script(
+            "aims", run_id="r", resources=self._resources()
+        )
+        self.assertIn("export FORT_BUFFERED=TRUE", script)
+        self.assertIn("export GFORTRAN_UNBUFFERED_ALL=0", script)
+
+    def test_a_profile_without_an_aims_binary_fails_loudly(self):
+        from oml_mcp.stage_templates import render_env, render_stage_script
+
+        env = render_env(
+            self._runtime(with_aims=False),
+            environment={},
+            run_id="r",
+            plan_digest="d",
+        )
+        self.assertNotIn("OML_AIMS", env)
+        # The body must name the missing setting rather than exec an empty path.
+        script = render_stage_script(
+            "aims", run_id="r", resources=self._resources()
+        )
+        self.assertIn('${OML_AIMS:?', script)
+
+    def test_the_aims_stage_is_a_scheduler_stage(self):
+        from oml_mcp.stage_execution import STAGE_EXECUTION_MODES
+
+        self.assertEqual(STAGE_EXECUTION_MODES["aims"], "scheduler")
+
+    def test_aims_and_abacus_stage_lists_stay_distinct(self):
+        from oml_mcp.stage_templates import (
+            CONTROLLED_AIMS_STAGES,
+            CONTROLLED_PERIODIC_STAGES,
+            CONTROLLED_STAGE_NAMES,
+        )
+
+        # ABACUS runs must not be asked for an aims receipt.
+        self.assertNotIn("aims", CONTROLLED_PERIODIC_STAGES)
+        self.assertEqual(CONTROLLED_AIMS_STAGES, ("aims", "librpa"))
+        self.assertIn("aims", CONTROLLED_STAGE_NAMES)
+        self.assertIn("scf", CONTROLLED_STAGE_NAMES)

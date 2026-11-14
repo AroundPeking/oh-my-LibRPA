@@ -12,7 +12,7 @@ from typing import Any
 from .errors import OMLError
 from .execution_profiles import ExecutionProfile
 from .profiles import load_profile
-from .stage_templates import CONTROLLED_PERIODIC_STAGES, stage_job_name
+from .stage_templates import CONTROLLED_STAGE_NAMES, stage_job_name
 
 
 SCHEDULER_ID_PATTERN = re.compile(r"^(\d+)(?:;[^\s]+)?$")
@@ -525,7 +525,7 @@ class SlurmExecutor:
         attempt_id: str,
         remote_run_dir: str | None,
     ) -> str:
-        if stage not in CONTROLLED_PERIODIC_STAGES:
+        if stage not in CONTROLLED_STAGE_NAMES:
             raise OMLError(
                 "STATE_TRANSITION_DENIED",
                 f"unsupported controlled stage: {stage}",

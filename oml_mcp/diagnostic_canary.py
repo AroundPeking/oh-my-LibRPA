@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .stage_inspection import inspect_stage_outputs
-from .stage_templates import CONTROLLED_PERIODIC_STAGES
+from .stage_templates import CONTROLLED_PERIODIC_STAGES, CONTROLLED_STAGE_NAMES
 
 
 BATTERY_SCHEMA = "oml.diagnostic-battery.v1"
@@ -91,7 +91,7 @@ def run_diagnostic_battery(
         stage_list = CONTROLLED_PERIODIC_STAGES
     else:
         stage_list = tuple(dict.fromkeys(stages))
-        invalid = [stage for stage in stage_list if stage not in CONTROLLED_PERIODIC_STAGES]
+        invalid = [stage for stage in stage_list if stage not in CONTROLLED_STAGE_NAMES]
         if invalid:
             raise ValueError(f"unsupported controlled stage(s): {', '.join(invalid)}")
 

@@ -30,6 +30,14 @@ The default workflow is always two-stage:
 - `run_aims.sh`
 - `run_librpa.sh`
 
+OML executes the same two stages as `aims` -> `librpa`: `plan_case` accepts an
+`fhi_aims_librpa` bundle and selects the `periodic_gw_aims` route, whose stage
+list has no NSCF or preprocess step because FHI-aims writes the Coulomb blocks,
+the KS eigenvectors and the velocity matrix LibRPA reads. The rendered aims stage
+also exports `FORT_BUFFERED=TRUE` (and pins `GFORTRAN_UNBUFFERED_ALL=0`): the
+producer writes one complex number per `WRITE`, and buffering that measured
+1.77x faster for byte-identical output.
+
 The default division of labor is:
 
 - `FHI-aims`: MPI-heavy
