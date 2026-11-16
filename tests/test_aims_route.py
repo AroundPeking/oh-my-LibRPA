@@ -28,6 +28,19 @@ option_dielect_func = 3
 replace_w_head = t
 """
 
+# The shrink shape the validated 2026-10 MgO / BN benchmarks use: shrink on the
+# producer side, mommat for the band path, and version:1 which shrink requires.
+CONTROL_SHRINK = """xc                pbe
+relativistic      atomic_zora scalar
+k_grid            4 4 4
+qpe_calc          gw_expt
+anacon_type       1
+freq_grid_type    minimax
+frequency_points  16
+calculate_all_eigenstates
+output            librpa version:1 shrink_LU_inv_thr:1e-5 mommat
+"""
+
 
 class AimsRouteTest(unittest.TestCase):
     def setUp(self):
@@ -324,6 +337,55 @@ class AimsScopeGuardTest(unittest.TestCase):
         self.assertIn("FHI-aims bundle", str(caught.exception))
 
 
+AIMS_COMPLETE_OUTPUTS = (
+    "basis_out",
+    "band_out",
+    "stru_out",
+    "vxc_out",
+    "dielecfunc_out",
+    "bz_sampling_out",
+)
+
+# A band_out whose header says nstates == nbasis, so the shared state-space gate
+# is satisfied and each test can vary only the part it is about.
+AIMS_BAND_OUT = """        2
+        1
+        3
+        3
+"""
+
+AIMS_FINISHED = "          Have a nice day.\n------------------------------------------------------------\n"
+
+
+def write_aims_run(root, *, control=CONTROL, librpa=None, finished=True, shrink=False):
+    """Lay out an FHI-aims producer directory the way a real run leaves it.
+
+    ``mommat`` is written whenever control.in asks for it, because that is what
+    the producer does; a test that wants to see the missing-mommat gate fire
+    removes the file afterwards.
+    """
+    (root / "control.in").write_text(control, encoding="utf-8")
+    (root / "geometry.in").write_text(GEOMETRY, encoding="utf-8")
+    (root / "aims.out").write_text(AIMS_FINISHED if finished else "SCF step 1\n", encoding="utf-8")
+    (root / "coulomb_mat_1").write_text("x", encoding="utf-8")
+    for name in AIMS_COMPLETE_OUTPUTS:
+        if name == "band_out":
+            (root / name).write_text(AIMS_BAND_OUT, encoding="utf-8")
+        else:
+            (root / name).write_text("x", encoding="utf-8")
+    if shrink:
+        (root / "basis_out_shrink").write_text("x", encoding="utf-8")
+        (root / "Cs_shrinked_data_0.txt").write_text("x", encoding="utf-8")
+        (root / "shrink_sinvS_0.txt").write_text("x", encoding="utf-8")
+    if "mommat" in control.split("output", 1)[-1]:
+        (root / "mommat_ks_kpt_1.dat").write_text("x", encoding="utf-8")
+    if librpa is not None:
+        (root / "librpa.in").write_text(librpa, encoding="utf-8")
+    receipt = root / ".oml" / "stage-results"
+    receipt.mkdir(parents=True, exist_ok=True)
+    (receipt / "aims.status").write_text("COMMAND_COMPLETED\n", encoding="utf-8")
+
+
 class AimsStageInspectionTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -332,25 +394,97 @@ class AimsStageInspectionTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_a_producer_that_wrote_nothing_fails_inspection(self):
+    def statuses(self):
         from oml_mcp.stage_inspection import inspect_stage_outputs
 
         report = inspect_stage_outputs(self.root, "aims")
-        statuses = {g["gate_id"]: g["status"] for g in report["gates"]}
+        return {g["gate_id"]: g["status"] for g in report["gates"]}, report
+
+    def test_a_producer_that_wrote_nothing_fails_inspection(self):
+        statuses, report = self.statuses()
+        self.assertEqual(statuses["stage.aims.completion"], "FAIL")
         self.assertEqual(statuses["stage.aims.coulomb"], "FAIL")
         self.assertEqual(statuses["stage.aims.handoff"], "FAIL")
         self.assertFalse(report["accepted"])
 
     def test_a_complete_producer_passes_the_output_gates(self):
-        from oml_mcp.stage_inspection import inspect_stage_outputs
-
-        (self.root / "coulomb_mat_1").write_text("x", encoding="utf-8")
-        for name in ("basis_out", "band_out", "stru_out"):
-            (self.root / name).write_text("x", encoding="utf-8")
-        report = inspect_stage_outputs(self.root, "aims")
-        statuses = {g["gate_id"]: g["status"] for g in report["gates"]}
+        write_aims_run(self.root)
+        statuses, report = self.statuses()
+        self.assertEqual(statuses["stage.aims.completion"], "PASS")
         self.assertEqual(statuses["stage.aims.coulomb"], "PASS")
         self.assertEqual(statuses["stage.aims.handoff"], "PASS")
+        self.assertTrue(report["accepted"])
+
+    def test_a_producer_that_stopped_early_fails_completion(self):
+        write_aims_run(self.root, finished=False)
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.completion"], "FAIL")
+
+    def test_a_refused_control_in_is_named_in_the_evidence(self):
+        write_aims_run(self.root, finished=False)
+        (self.root / "aims.out").write_text(
+            " *** read_control: Please set the anacon_type keyword.\n", encoding="utf-8"
+        )
+        from oml_mcp.stage_inspection import inspect_stage_outputs
+
+        report = inspect_stage_outputs(self.root, "aims")
+        gate = next(g for g in report["gates"] if g["gate_id"] == "stage.aims.completion")
+        self.assertEqual(gate["status"], "FAIL")
+        self.assertTrue(
+            any("anacon_type" in item for item in gate["evidence"]),
+            gate["evidence"],
+        )
+
+    def test_every_file_librpa_names_must_be_written(self):
+        # dielecfunc_out is read late; without this gate its absence only shows
+        # up inside LibRPA, hours into the chi0 build.
+        write_aims_run(self.root)
+        (self.root / "dielecfunc_out").unlink()
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.handoff"], "FAIL")
+
+    def test_shrink_on_both_sides_passes(self):
+        write_aims_run(self.root, control=CONTROL_SHRINK, shrink=True, librpa="use_shrink_abfs = t\n")
+        statuses, report = self.statuses()
+        self.assertEqual(statuses["stage.aims.shrink"], "PASS")
+        self.assertTrue(report["accepted"])
+
+    def test_a_producer_shrink_the_consumer_ignores_fails(self):
+        # This is the exact 2026-11-15 failure: aims wrote Coulomb blocks on the
+        # 348-function reduced basis while LibRPA compared them against the full
+        # 860-function set and refused.
+        write_aims_run(self.root, control=CONTROL_SHRINK, shrink=True, librpa="use_shrink_abfs = f\n")
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.shrink"], "FAIL")
+
+    def test_a_consumer_shrink_the_producer_never_wrote_fails(self):
+        write_aims_run(self.root, librpa="use_shrink_abfs = t\n")
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.shrink"], "FAIL")
+
+    def test_shrink_without_the_reduced_handoff_files_fails(self):
+        write_aims_run(self.root, control=CONTROL_SHRINK, librpa="use_shrink_abfs = t\n")
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.shrink"], "FAIL")
+
+    def test_mommat_is_required_when_control_in_asks_for_it(self):
+        write_aims_run(self.root, control=CONTROL_SHRINK, shrink=True, librpa="use_shrink_abfs = t\n")
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.mommat"], "PASS")
+
+        # FHI-aims writes mommat only when qpe_calc and the full state space are
+        # both there; a producer that skipped one leaves no file behind.
+        (self.root / "mommat_ks_kpt_1.dat").unlink()
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.aims.mommat"], "FAIL")
+
+    def test_an_incomplete_state_space_fails_the_shared_gate(self):
+        # Same check the ABACUS chain runs: nstates must equal nbasis, or
+        # EXX/GW are computed on a truncated state space.
+        write_aims_run(self.root)
+        (self.root / "band_out").write_text("        2\n        1\n        2\n        3\n", encoding="utf-8")
+        statuses, _ = self.statuses()
+        self.assertEqual(statuses["stage.state_space.nbands_vs_nbasis"], "FAIL")
 
     def test_the_known_issue_scan_picks_the_aims_stage_list(self):
         # Scanning the ABACUS list against an aims run would report six untouched
@@ -366,3 +500,52 @@ class AimsStageInspectionTest(unittest.TestCase):
         self.assertIn("stage.aims.coulomb", gate_ids)
         self.assertIn("stage.librpa.command", gate_ids)
         self.assertNotIn("stage.scf.command", gate_ids)
+
+
+class AimsShrinkValidatorTest(unittest.TestCase):
+    """The pre-run half of the shrink check.
+
+    Stage inspection catches a shrink mismatch after the producer has run, which
+    is hours too late on a real case: the aims export alone takes tens of
+    minutes. The validator runs on the bundle, before anything is submitted.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.tmp.name)
+        (self.root / "control.in").write_text(CONTROL_SHRINK, encoding="utf-8")
+        (self.root / "geometry.in").write_text(GEOMETRY, encoding="utf-8")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _librpa(self, text):
+        (self.root / "librpa.in").write_text(text, encoding="utf-8")
+
+    def _status(self):
+        from oml_mcp.validators import validate_case
+
+        report = validate_case(self.root, task="gw", system_type="solid")
+        return next(g.status for g in report.gates if g.gate_id == "aims.shrink")
+
+    def test_a_matching_pair_passes(self):
+        self._librpa("task = g0w0\nuse_shrink_abfs = t\n")
+        self.assertEqual(self._status(), "PASS")
+
+    def test_a_producer_shrink_the_consumer_ignores_fails_before_the_run(self):
+        self._librpa("task = g0w0\nuse_shrink_abfs = f\n")
+        self.assertEqual(self._status(), "FAIL")
+
+    def test_a_missing_consumer_switch_fails(self):
+        self._librpa("task = g0w0\n")
+        self.assertEqual(self._status(), "FAIL")
+
+    def test_a_consumer_shrink_without_a_producer_shrink_fails(self):
+        (self.root / "control.in").write_text(CONTROL, encoding="utf-8")
+        self._librpa("task = g0w0\nuse_shrink_abfs = t\n")
+        self.assertEqual(self._status(), "FAIL")
+
+    def test_no_shrink_anywhere_passes(self):
+        (self.root / "control.in").write_text(CONTROL, encoding="utf-8")
+        self._librpa("task = g0w0\n")
+        self.assertEqual(self._status(), "PASS")

@@ -1335,6 +1335,70 @@ def _is_aims_bundle(case_root: Path) -> bool:
     return (case_root / "control.in").is_file() or (case_root / "geometry.in").is_file()
 
 
+def _aims_shrink_agreement(case_root: Path, control: Path) -> GateResult:
+    """Compare control.in's shrink request against librpa.in's shrink switch."""
+    from .materializer import _control_in_requests_librpa
+
+    try:
+        text = control.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return _fail(
+            "aims.shrink",
+            f"cannot read control.in: {exc}",
+            (str(control),),
+            "ship a readable control.in",
+        )
+    subtags: tuple[str, ...] = ()
+    for raw in text.splitlines():
+        fields = raw.split("#", 1)[0].split()
+        if len(fields) >= 2 and fields[0] == "output" and fields[1].lower() == "librpa":
+            subtags = tuple(fields[2:])
+            break
+    producer = any(tag.startswith("shrink_LU_inv_thr") for tag in subtags)
+
+    librpa_path = case_root / "librpa.in"
+    consumer: bool | None = None
+    try:
+        for raw in librpa_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            name, separator, value = raw.partition("=")
+            if separator and name.strip() == "use_shrink_abfs":
+                consumer = value.split("#", 1)[0].strip().lower() in {"t", "true", "1", "on"}
+                break
+    except OSError:
+        consumer = None
+
+    if producer and consumer is not True:
+        return _fail(
+            "aims.shrink",
+            "control.in shrinks the auxiliary basis but librpa.in does not consume it",
+            (
+                f"control.in: {' '.join(subtags)}",
+                f"librpa.in: use_shrink_abfs = {consumer}",
+            ),
+            "set 'use_shrink_abfs = t' in librpa.in, or drop shrink_LU_inv_thr from "
+            "control.in; with shrink on, the Coulomb blocks are built on the reduced "
+            "auxiliary basis and LibRPA refuses to read them otherwise",
+        )
+    if consumer is True and not producer:
+        return _fail(
+            "aims.shrink",
+            "librpa.in consumes a shrunk basis that control.in never requests",
+            (
+                "librpa.in: use_shrink_abfs = t",
+                f"control.in: {'no output librpa line' if not subtags else 'no shrink_LU_inv_thr'}",
+            ),
+            "add 'shrink_LU_inv_thr:<value>' to control.in's 'output librpa' line, or "
+            "set 'use_shrink_abfs = f' in librpa.in",
+        )
+    if producer:
+        return _pass(
+            "aims.shrink",
+            "shrink is requested by control.in and consumed by librpa.in",
+            f"control.in: {' '.join(subtags)}",
+        )
+    return _pass("aims.shrink", "neither control.in nor librpa.in asks for a shrink")
+
+
 def _validate_aims_case(
     case_root: Path,
     *,
@@ -1390,6 +1454,12 @@ def _validate_aims_case(
                     "'binary mommat') so FHI-aims writes the Coulomb blocks LibRPA reads",
                 )
             )
+
+    # The producer and the consumer have to agree about the optional paths
+    # before anything runs: an aims run with shrink_LU_inv_thr on one side and
+    # use_shrink_abfs on the other is a guaranteed LibRPA reader error, and it
+    # costs hours of chi0 to reach.
+    gates.append(_aims_shrink_agreement(case_root, control))
 
     librpa_path = case_root / "librpa.in"
     try:

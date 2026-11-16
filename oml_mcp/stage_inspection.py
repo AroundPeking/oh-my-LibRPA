@@ -634,16 +634,200 @@ def _librpa_input_gates(root: Path) -> list[GateResult]:
     return gates
 
 
+AIMS_COMPLETION_PATTERN = re.compile(r"(?m)^\s*Have a nice day\.\s*$")
+
+# Every file the staged librpa.in names. The producer must write all of them, not
+# just the three the reader opens first: a missing dielecfunc_out or
+# bz_sampling_out only surfaces inside LibRPA, after the chi0 build has burnt
+# hours, and the error there does not name the producer.
+AIMS_HANDOFF_FILES = (
+    "basis_out",
+    "band_out",
+    "stru_out",
+    "vxc_out",
+    "dielecfunc_out",
+    "bz_sampling_out",
+)
+
+
+def _control_in_librpa_subtags(root: Path) -> tuple[str, ...] | None:
+    """Return the subtags on control.in's ``output librpa`` line, or None.
+
+    None means control.in is absent or carries no such line. An empty tuple
+    means the line exists with no subtags.
+    """
+    path = root / "control.in"
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    for raw in text.splitlines():
+        fields = raw.split("#", 1)[0].split()
+        if len(fields) >= 2 and fields[0] == "output" and fields[1].lower() == "librpa":
+            return tuple(fields[2:])
+    return None
+
+
+def _aims_completion_gate(root: Path) -> GateResult:
+    """Require FHI-aims' own end-of-run banner in aims.out.
+
+    The producer validates control.in and stops on an unknown or incomplete
+    'output librpa' subtag, an unset qpe_calc, a bad anacon_type, a non-minimax
+    freq_grid_type, and shrink without version:1. Every one of those exits
+    before the Coulomb export, but the process still returns and the slurm log
+    still looks ordinary. The banner is what distinguishes "the calculation
+    finished" from "the producer refused the input".
+    """
+    path = root / "aims.out"
+    repair = "read aims.out for a 'read_control' message; the producer refused the input"
+    if not _safe_nonempty(root, path):
+        return _fail(
+            "stage.aims.completion",
+            "aims.out is missing, empty, linked, or escaped",
+            (str(path),),
+            "run the aims stage and check that it wrote its stdout to aims.out",
+        )
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return _fail("stage.aims.completion", f"cannot read aims.out: {exc}", (str(path),), repair)
+    refusal = re.search(r"(?m)^\s*\*\*\*\s*read_control:.*$", text)
+    if refusal is not None:
+        return _fail(
+            "stage.aims.completion",
+            "FHI-aims rejected control.in before finishing",
+            (str(path), refusal.group(0).strip()),
+            repair,
+        )
+    if AIMS_COMPLETION_PATTERN.search(text) is None:
+        return _fail(
+            "stage.aims.completion",
+            "aims.out has no end-of-run banner, so the producer did not finish",
+            (str(path),),
+            "the calculation stopped early; find the last message in aims.out",
+        )
+    return _pass(
+        "stage.aims.completion",
+        "FHI-aims reached its end-of-run banner",
+        str(path),
+    )
+
+
+def _aims_shrink_gate(root: Path) -> GateResult:
+    """Check the auxiliary-basis shrink handoff, on the switch that selects it.
+
+    With shrink on, FHI-aims writes the Coulomb blocks on the reduced auxiliary
+    basis (348 functions for the diamond-carbon test) while basis_out keeps the
+    full set (860). LibRPA compares the two and refuses with
+    "Coulomb v1 Naux=348 does not match basis_aux.nb_total=860" unless
+    use_shrink_abfs is on and it is told where the reduced table lives. Running
+    the producer with shrink on and the consumer with it off is the failure this
+    gate exists to catch, and it costs nothing to detect: it is a comparison of
+    one input switch against which files exist.
+    """
+    subtags = _control_in_librpa_subtags(root)
+    producer_shrink = subtags is not None and any(
+        tag.startswith("shrink_LU_inv_thr") for tag in subtags
+    )
+    consumer_shrink = _librpa_switch(root, "use_shrink_abfs")
+    if producer_shrink and consumer_shrink is not True:
+        return _fail(
+            "stage.aims.shrink",
+            "control.in shrinks the auxiliary basis but librpa.in does not consume it",
+            (
+                "control.in: output librpa ... shrink_LU_inv_thr"
+                f"({'/'.join(subtags) if subtags else ''})",
+                f"librpa.in: use_shrink_abfs = {consumer_shrink}",
+            ),
+            "set 'use_shrink_abfs = t' in librpa.in, or drop shrink_LU_inv_thr "
+            "from control.in; the Coulomb blocks are built on the reduced basis "
+            "and LibRPA refuses to read them otherwise",
+        )
+    if consumer_shrink is True and not producer_shrink:
+        return _fail(
+            "stage.aims.shrink",
+            "librpa.in consumes a shrunk basis that the producer never wrote",
+            (
+                "librpa.in: use_shrink_abfs = t",
+                f"control.in: {'no output librpa line' if subtags is None else 'no shrink_LU_inv_thr'}",
+            ),
+            "add 'shrink_LU_inv_thr:<value>' to control.in's 'output librpa' "
+            "line, or set 'use_shrink_abfs = f' in librpa.in",
+        )
+    if not producer_shrink:
+        return _pass(
+            "stage.aims.shrink",
+            "neither side asks for an auxiliary-basis shrink",
+        )
+    missing = [
+        name
+        for name in ("basis_out_shrink",)
+        if not _safe_nonempty(root, root / name)
+    ]
+    missing.extend(
+        family
+        for family in ("Cs_shrinked_data_*", "shrink_sinvS_*")
+        if not tuple(path for path in root.glob(family) if _safe_nonempty(root, path))
+    )
+    if missing:
+        return _fail(
+            "stage.aims.shrink",
+            "shrink is requested on both sides but the reduced-basis handoff is incomplete",
+            tuple(missing),
+            "the producer stopped before writing the shrunk auxiliary basis; "
+            "check aims.out and that shrink_LU_inv_thr is paired with version:1",
+        )
+    return _pass(
+        "stage.aims.shrink",
+        "the reduced auxiliary basis and its shrunk overlap are present",
+        "basis_out_shrink",
+        *(path.name for path in sorted(root.glob("Cs_shrinked_data_*"))[:2]),
+        *(path.name for path in sorted(root.glob("shrink_sinvS_*"))[:2]),
+    )
+
+
+def _aims_mommat_gate(root: Path) -> GateResult:
+    """Require the velocity matrix elements when the case asks for a band path.
+
+    LibRPA reads mommat for the band path; FHI-aims writes it only when
+    'mommat' is on the output librpa line. A run without it gets through chi0
+    and the self-energy and then has nothing to interpolate onto the path.
+    """
+    subtags = _control_in_librpa_subtags(root)
+    if subtags is None or not any(tag.startswith("mommat") for tag in subtags):
+        return _pass("stage.aims.mommat", "control.in does not request mommat")
+    paths = tuple(
+        path for path in root.glob("mommat_ks_kpt_*") if _safe_nonempty(root, path)
+    )
+    if not paths:
+        return _fail(
+            "stage.aims.mommat",
+            "control.in requests mommat but the producer wrote no mommat_ks_kpt_*",
+            ("control.in: output librpa ... mommat", str(root)),
+            "the qpe_calc or calculate_all_eigenstates setting may be missing; "
+            "check aims.out",
+        )
+    return _pass(
+        "stage.aims.mommat",
+        f"the producer wrote {len(paths)} velocity matrix file(s)",
+        *(path.name for path in paths[:3]),
+    )
+
+
 def _aims_gates(root: Path) -> list[GateResult]:
     """Post-run checks for the FHI-aims producer stage.
 
-    The stage is accepted only when it left something LibRPA can read: the
-    Coulomb blocks, the basis tables and the eigenvalue/occupation file. A
-    producer that ran to completion but wrote none of these is a FAIL here,
-    because the stage script's own ``coulomb_mat_*`` check can be defeated by a
-    stale file from an earlier attempt in the same directory.
+    This mirrors what the ABACUS chain checks between stages: the producer
+    finished, it wrote every file the consumer names, and the two input files
+    agree about the optional paths (shrink, mommat) before LibRPA spends hours
+    discovering they do not.
+
+    The stage script's own ``coulomb_mat_*`` check is not enough on its own: a
+    stale file from an earlier attempt in the same directory satisfies it, and it
+    says nothing about the rest of the handoff.
     """
-    gates: list[GateResult] = []
+    gates: list[GateResult] = [_aims_completion_gate(root)]
+
     coulomb = sorted(root.glob("coulomb_mat_*"))
     if coulomb:
         gates.append(
@@ -662,13 +846,13 @@ def _aims_gates(root: Path) -> list[GateResult]:
                 "add 'output librpa' (and the subtags the case needs) to control.in",
             )
         )
-    required = ("basis_out", "band_out", "stru_out")
-    missing = [name for name in required if not (root / name).is_file()]
+
+    missing = [name for name in AIMS_HANDOFF_FILES if not _safe_nonempty(root, root / name)]
     if missing:
         gates.append(
             _fail(
                 "stage.aims.handoff",
-                "the producer did not write every file the LibRPA stage reads",
+                "the producer did not write every file the staged librpa.in names",
                 tuple(missing),
                 "check control.in carries 'output librpa' and that the run finished",
             )
@@ -677,10 +861,14 @@ def _aims_gates(root: Path) -> list[GateResult]:
         gates.append(
             _pass(
                 "stage.aims.handoff",
-                "the producer wrote the basis, eigenvalue and structure handoff files",
-                *(required),
+                "the producer wrote every file the staged librpa.in names",
+                *AIMS_HANDOFF_FILES,
             )
         )
+
+    gates.append(_aims_shrink_gate(root))
+    gates.append(_aims_mommat_gate(root))
+    gates.extend(_state_space_gate(root))
     return gates
 
 
