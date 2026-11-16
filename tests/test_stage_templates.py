@@ -188,3 +188,48 @@ class AimsStageTest(unittest.TestCase):
         self.assertEqual(CONTROLLED_AIMS_STAGES, ("aims", "librpa"))
         self.assertIn("aims", CONTROLLED_STAGE_NAMES)
         self.assertIn("scf", CONTROLLED_STAGE_NAMES)
+
+
+class AimsStageChecksTest(unittest.TestCase):
+    """The post-launch checks in the rendered aims stage.
+
+    Each one corresponds to a failure observed on the fisherd C k444 run on
+    2026-11-15/16, where FHI-aims exited 0 and the problem only surfaced later.
+    """
+
+    def render(self):
+        from oml_mcp.stage_templates import render_stage_script
+
+        resources = {
+            "partition": "debug",
+            "nodes": 1,
+            "ntasks_per_node": 4,
+            "cpus_per_task": 6,
+            "memory_mb": 120000,
+        }
+        return render_stage_script("aims", run_id="c-k444", resources=resources)
+
+    def test_the_stage_raises_the_stack_limit(self):
+        # Without it FHI-aims stops before reading control.in; Slurm does not
+        # raise the limit for the job.
+        self.assertIn("ulimit -s unlimited", self.render())
+
+    def test_a_refused_control_in_fails_the_stage(self):
+        body = self.render()
+        self.assertIn("read_control:", body)
+        self.assertIn("FHI-aims rejected control.in", body)
+
+    def test_a_run_without_the_finish_banner_fails_the_stage(self):
+        self.assertIn("Have a nice day", self.render())
+
+    def test_every_handoff_file_is_required(self):
+        body = self.render()
+        for name in (
+            "basis_out",
+            "band_out",
+            "stru_out",
+            "vxc_out",
+            "dielecfunc_out",
+            "bz_sampling_out",
+        ):
+            self.assertIn(name, body, name)

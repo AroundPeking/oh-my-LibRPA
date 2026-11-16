@@ -154,14 +154,42 @@ cp -- "INPUT_nscf" "INPUT"
         # aims -> librpa chain runs under one controlled receipt; the Fortran
         # buffering exported in the prologue is what makes its Coulomb export
         # finish in minutes instead of tens of minutes.
+        #
+        # The checks after the launch mirror what the ABACUS stages do between
+        # producers, for the same reason: every one of these conditions has been
+        # observed on a real run, the producer exits 0 either way, and LibRPA's
+        # own error for the first two arrives hours later inside chi0 without
+        # naming the cause.
         "aims": """
 : "${OML_AIMS:?this profile has no FHI-aims binary; add runtime.aims}"
 test -s "geometry.in"
 test -s "control.in"
+# FHI-aims needs an unlimited stack; it stops with "Current stacksize too low"
+# before reading control.in otherwise. Slurm does not raise it by default.
+ulimit -s unlimited 2>/dev/null || true
 "$OML_MPI_LAUNCHER" -np "$OML_MPI_RANKS" "$OML_AIMS" > "aims.${SLURM_JOB_ID:-manual}.out" 2>&1
-# The producer must have written at least one Coulomb block before LibRPA can
-# read the case; an empty hands-off here would fail much later with a reader
-# error that does not name the real cause.
+# The producer validates control.in itself and stops on an unknown or
+# incomplete 'output librpa', a missing qpe_calc, a bad anacon_type, a
+# non-minimax freq_grid_type, or shrink without version:1 - each with a
+# "*** read_control:" line and exit status 0.
+refusal="$(grep -m1 -E '^\s*\*\*\*\s*read_control:' "aims.${SLURM_JOB_ID:-manual}.out" || true)"
+if [ -n "$refusal" ]; then
+    echo "FHI-aims rejected control.in: $refusal" >&2
+    exit 1
+fi
+grep -q "Have a nice day" "aims.${SLURM_JOB_ID:-manual}.out" || {
+    echo "FHI-aims did not reach its end-of-run banner; the calculation stopped early" >&2
+    exit 1
+}
+# One glob is not enough: a stale Coulomb block from an earlier attempt
+# satisfies it, and the files LibRPA reads last are the ones a truncated run
+# omits.
+for required in basis_out band_out stru_out vxc_out dielecfunc_out bz_sampling_out; do
+    test -s "$required" || {
+        echo "FHI-aims finished without writing $required; LibRPA reads it" >&2
+        exit 1
+    }
+done
 ls coulomb_mat_* > /dev/null 2>&1 || {
     echo "FHI-aims finished without writing coulomb_mat_*; check control.in carries 'output librpa'" >&2
     exit 1
