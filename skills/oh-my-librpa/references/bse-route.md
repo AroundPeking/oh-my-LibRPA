@@ -793,32 +793,62 @@ full f table (MiB), the eps2, and the amplitudes of only the states whose
 density appears in a figure. For Si's 14x14x14 case one state is 1.09 MiB, so
 the first ten cost 5.3 MiB compressed against 59 GiB for the lot.
 
-## Coulomb cutoff: match the key to the ABACUS build
+## Coulomb cutoff: `rpa_cut_coulomb` needs a build that has it
 
-`rpa_cut_coulomb` does **not** exist on `master_ghj`. It is on upstream
-`develop` only, and `git grep '"rpa_cut_coulomb"' <master_ghj>` returns nothing.
-ABACUS quits on an unrecognised key
-(`THE PARAMETER NAME 'x' IS INCORRECT!` -> `WARNING_QUIT`), so putting the line
-into an input for a `master_ghj` build stops the run before SCF, not WARN.
+`rpa_cut_coulomb`, `rpa_cut_radius` and `rpa_cut_width` are **not** on
+`master_ghj` (a61d907) — that branch knows only `rpa_abfs_preorth`,
+`rpa_abfs_preorth_threshold`, `rpa_ccp_rmesh_times`, `rpa_handoff`, `rpa_outdir`
+and `rpa_out_vel`. They come from upstream `develop` (PR #8212). ABACUS quits on
+an unrecognised key (`THE PARAMETER NAME 'x' IS INCORRECT!` -> `WARNING_QUIT` ->
+`exit(1)`), so the line stops the run before SCF on an unpatched `master_ghj`.
+
+Two ways forward, and they are not interchangeable:
+
+1. Do not write the key. Everything else in this note works on unpatched
+   `master_ghj`; the Si dual-grid run reported here did exactly that and its
+   `INPUT_scf` has no `rpa_cut_*` line.
+2. Use a build that carries the pick. The branch
+   `pick/rpa_cut_coulomb_master_ghj` on `AroundPeking/abacus-develop` is
+   `master_ghj` plus that feature, so `exx_ewald_dimension`,
+   `out_librpa_reader_version` and `out_librpa_2d_coulomb_method` are all still
+   there.
 
 Check the binary you will actually run, not the tutorial:
 
 ```bash
 B=~/app/abacus/<build>/abacus
-strings "$B" | grep -c 'rpa_cut_coulomb'    # 0 on master_ghj, >=1 on develop
-strings "$B" | grep -E '^rpa_[a-z_]+$' | sort -u   # what this build accepts
+strings "$B" | grep -cx rpa_cut_coulomb      # 1 = patched, 0 = not
+strings "$B" | grep -xE 'rpa_[a-z_]+' | sort -u   # what this build accepts
 ```
 
-On a `master_ghj` build the accepted RPA keys are `rpa_abfs_preorth`,
-`rpa_abfs_preorth_threshold`, `rpa_ccp_rmesh_times`, `rpa_handoff`,
-`rpa_outdir` and `rpa_out_vel`. The Si dual-grid run reported here used that
-family of build and therefore set **no** `rpa_cut_coulomb` line at all, which is
-why its `INPUT_scf` has none. Do not add one "for consistency": on that build it
-is a hard stop.
+### What the pick had to change
 
-Where the line does belong is the `develop`-based build, whose default is
-`hard` and whose `log_erfc` option smooths the truncated Coulomb tail. That is a
-different numerical series and has to be reported as such.
+The upstream commit does not apply to `master_ghj` as-is. Four things differ,
+and each one is a hard failure if copied over verbatim:
+
+- `Makefile.Objects` / `module_ri/CMakeLists.txt` list sources
+  (`invmat_ri.o`, `lri_cv.cpp`, `exx_workspace.cpp`, `ri_util.cpp`) that this
+  branch does not have;
+- `input_parameter.h` on `master_ghj` carries a larger `exx` block
+  (`exx_ewald_dimension`, `exx_v_threshold_long`, the vcd switches), so the
+  three new members are inserted rather than replacing the block;
+- **upstream validates these keys with `item.domain.set_choices` / `set_rule`,
+  and `master_ghj`'s `Input_Item` has no `domain` member at all** — it only has
+  `check_value`. All three had to be rewritten as `check_value` lambdas that
+  `WARNING_QUIT` on the same bad values, otherwise the file does not compile;
+- the two test files were renamed on this branch, so the new unit test lands in
+  `module_ri/test/` and is registered there.
+
+### It only reaches the Fock cut family
+
+`init_exx_info` writes the three tags into `coulomb_param` for
+`Coulomb_Type::Fock` only, and raises if any `rpa_cut_*` is non-default without a
+Fock component. The full Coulomb and a ground-state `exx_use_ewald` kernel are
+untouched. So on a 2D case the smoothing applies to the cut-Coulomb export that
+LibRPA and LibBSE read, not to the `2D Ewald` head/wing machinery.
+
+`rpa_cut_width` must satisfy `1 < w <= 1.25`; a width of exactly 1 is rejected,
+because the smoothing then degenerates to a sharp sphere.
 
 ## Reading the official tutorial's exciton plots
 

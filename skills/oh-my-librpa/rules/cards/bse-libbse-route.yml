@@ -390,3 +390,20 @@
   applies_to:
     mode: bse
     stage: bse
+
+- id: bse-rpa-cut-coulomb-build-gate-926
+  scene: Writing rpa_cut_coulomb / rpa_cut_radius / rpa_cut_width into INPUT_scf for a BSE or GW case, or porting that feature to a branch that lacks it
+  symptom: ABACUS stops before SCF with "THE PARAMETER NAME 'rpa_cut_coulomb' IS INCORRECT!" and a WARNING_QUIT notice; or the pick compiles but the value check never fires, so an invalid kernel string is silently accepted
+  root_cause: The three keys exist only on upstream develop (PR #8212), not on master_ghj. ABACUS treats an unrecognised key as fatal, not as a warning. Porting the commit needs an API translation on top of the conflicts: develop validates with item.domain.set_choices and set_rule, while master_ghj's Input_Item has only check_value
+  fix:
+    - Check the binary before writing the line, since the source tree may not be the one that was built
+    - On an unpatched master_ghj, omit all three keys rather than approximating them; the rest of the 2D route does not need them
+    - When porting, rewrite each item.domain.set_choices as a check_value lambda that WARNING_QUITs on the same rejected values, and confirm the invalid-value path still exits
+    - Keep the three tags confined to Coulomb_Type::Fock; the pick raises if any is non-default without a Fock component, and the full Coulomb is deliberately untouched
+  verify:
+    - strings of the actual executable, not the source, report the three key names
+    - an invalid rpa_cut_coulomb or a width of 1 exits non-zero with the new message
+    - exx_ewald_dimension and out_librpa_reader_version are still present, so the 2D Ewald route survives the pick
+  applies_to:
+    mode: bse
+    stage: bse
