@@ -37,7 +37,6 @@ exx_pca_threshold		10
 #exx_cauchy_threshold	1E-7
 
 exx_singularity_correction     massidda
-rpa_cut_coulomb                log_erfc
 exx_ccp_rmesh_times	    3
 rpa_ccp_rmesh_times     6
 exx_real_number         1

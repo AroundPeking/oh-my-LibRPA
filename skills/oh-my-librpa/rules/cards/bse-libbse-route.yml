@@ -283,21 +283,6 @@
     mode: bse
     stage: bse
 
-- id: bse-rpa-cut-coulomb-log-erfc-919
-  scene: Writing or reviewing an ABACUS INPUT_scf that will feed LibRPA GW or BSE
-  symptom: A run silently uses the default hard truncation, so its Coulomb matrices differ from every other case in the project and the numbers are not comparable
-  root_cause: ABACUS defaults rpa_cut_coulomb to hard. The standing choice for this project is log_erfc, which conditions the auxiliary-basis Coulomb matrix better; the official Fisherd99 BSE tutorial sets it too. Omitting the line is the failure mode, because nothing warns about it
-  fix:
-    - Always spell out rpa_cut_coulomb log_erfc in INPUT_scf's LibRI block, next to exx_singularity_correction massidda
-    - Never leave it to the default, and never mix hard and log_erfc cases in one comparison
-    - When quoting numbers from a run that used hard, say so explicitly
-  verify:
-    - Grep the INPUT_scf actually copied to the run directory, not the archived template, for rpa_cut_coulomb
-    - Confirm the value is log_erfc before submitting the SCF
-  applies_to:
-    mode: bse
-    stage: scf
-
 - id: bse-exciton-plot-recipe-920
   scene: Plotting an exciton wavefunction or density for the first time in a new case
   symptom: It is unclear whether to use ABACUS's lr_solver plot or the skill's script, which keys each needs, and in what order the stages must run

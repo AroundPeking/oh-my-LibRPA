@@ -793,28 +793,32 @@ full f table (MiB), the eps2, and the amplitudes of only the states whose
 density appears in a figure. For Si's 14x14x14 case one state is 1.09 MiB, so
 the first ten cost 5.3 MiB compressed against 59 GiB for the lot.
 
-## `rpa_cut_coulomb = log_erfc` is the standing choice
+## Coulomb cutoff: match the key to the ABACUS build
 
-The tutorial sets `rpa_cut_coulomb log_erfc` in `INPUT_scf` and that is the
-setting to use from now on for ABACUS + LibRPA production, BSE included. The
-ABACUS default is `hard`; a `hard` truncation makes the auxiliary-basis Coulomb
-matrix noticeably worse conditioned, so anything that reads
-`coulomb_unshrinked_cut_*` or `coulomb_cut_*` inherits that.
+`rpa_cut_coulomb` does **not** exist on `master_ghj`. It is on upstream
+`develop` only, and `git grep '"rpa_cut_coulomb"' <master_ghj>` returns nothing.
+ABACUS quits on an unrecognised key
+(`THE PARAMETER NAME 'x' IS INCORRECT!` -> `WARNING_QUIT`), so putting the line
+into an input for a `master_ghj` build stops the run before SCF, not WARN.
 
-```text
-# INPUT_scf, LibRI block
-exx_singularity_correction massidda
-rpa_cut_coulomb            log_erfc
-out_unshrinked_v           1
-exx_pca_threshold          10
-shrink_abfs_pca_thr        1e-6
-shrink_lu_inv_thr          1e-3
+Check the binary you will actually run, not the tutorial:
+
+```bash
+B=~/app/abacus/<build>/abacus
+strings "$B" | grep -c 'rpa_cut_coulomb'    # 0 on master_ghj, >=1 on develop
+strings "$B" | grep -E '^rpa_[a-z_]+$' | sort -u   # what this build accepts
 ```
 
-`log_erfc` was missing from every earlier run in this workspace (both the
-`3x3x3 -> 4x4x4` and `7x7x7 -> 14x14x14` cases used the default `hard`), so
-those numbers came from a hard-truncated Coulomb. When comparing against them,
-say which truncation was in force — the two are not interchangeable.
+On a `master_ghj` build the accepted RPA keys are `rpa_abfs_preorth`,
+`rpa_abfs_preorth_threshold`, `rpa_ccp_rmesh_times`, `rpa_handoff`,
+`rpa_outdir` and `rpa_out_vel`. The Si dual-grid run reported here used that
+family of build and therefore set **no** `rpa_cut_coulomb` line at all, which is
+why its `INPUT_scf` has none. Do not add one "for consistency": on that build it
+is a hard stop.
+
+Where the line does belong is the `develop`-based build, whose default is
+`hard` and whose `log_erfc` option smooths the truncated Coulomb tail. That is a
+different numerical series and has to be reported as such.
 
 ## Reading the official tutorial's exciton plots
 
