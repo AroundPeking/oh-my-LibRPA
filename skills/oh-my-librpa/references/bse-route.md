@@ -850,6 +850,44 @@ LibRPA and LibBSE read, not to the `2D Ewald` head/wing machinery.
 `rpa_cut_width` must satisfy `1 < w <= 1.25`; a width of exactly 1 is rejected,
 because the smoothing then degenerates to a sharp sphere.
 
+## The screened W a 2D BSE reads is already Gamma-averaged
+
+The question that decides a 2D BSE setup: does the exported
+`Wc_Mu_*_iR_*_ifreq_0.mtx` carry the 2D-averaged Gamma head/wing, or the raw
+numerical one? With the right switch triple it carries the average, and the
+order in the code is what guarantees it:
+
+```
+compute_g0w0.cpp:836   Wc_freq_q = compute_Wc_freq_q_blacs(..., replace_w_head,
+                                                              option_dielect_func, ...)
+epsilon.cpp:3100       if (gamma_full_headwing) df_headwing->rewrite_eps_abf_space(...)
+epsilon.cpp:3272       epsilon_solver_coulwc_1   <- Wc solved AFTER the rewrite
+gw.cpp:1540            CT_FT_Wc_freq_q(..., Wc_freq_q, ..., output_wc_rf, ...)
+```
+
+`gamma_full_headwing` is
+`is_gamma_point(q) && !epsmac_LF_imagfreq.empty() && option_dielect_func == 3`,
+so the three switches below are all load-bearing:
+
+| switch | what it does | if missing |
+|---|---|---|
+| `option_dielect_func = 3` | triggers `gamma_full_headwing`, i.e. head **and** wing | 4 gives head-only, no wing |
+| `replace_w_head = t` | allows the model epsilon to replace the Gamma head/wing | `f` keeps the raw numerical Gamma |
+| `use_2d_dielectric = t` | normalises by the in-plane area | `f` dilutes the average by the 3D cell volume |
+
+The 2D normalisation is visible in
+`rpa_headwing_reciprocal_cell_volume`: with `use_2d_dielectric` it returns
+`|G.e11*G.e22 - G.e12*G.e21|` (the in-plane area) instead of `|G.Det()|`.
+
+A 3D case needs the first two and must **not** set the third. The Si dual-grid
+run in this note is exactly that, so copying its `librpa.in` to a 2D material
+gives 3D normalisation.
+
+**Do not confuse the screened W with the bare kernel.** `build_bare_coulomb` in
+LibBSE reads `dataset.vq_cut` unconditionally and ignores `use_fullcoul_wc`;
+that is the bare Coulomb entering the Hartree term, a separate object from the
+screened `Wc`. The averaging above concerns only the latter.
+
 ## Reading the official tutorial's exciton plots
 
 `https://fisherd99.github.io/abacus-librpa-bse-tutorial` ships

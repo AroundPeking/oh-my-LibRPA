@@ -407,3 +407,19 @@
   applies_to:
     mode: bse
     stage: bse
+
+- id: bse-2d-wc-gamma-average-927
+  scene: Setting up the LibRPA stage of a 2D GW-BSE case, or reusing a 3D case's librpa.in for a monolayer and wondering why the binding energy comes out too small
+  symptom: The screened interaction handed to BSE carries 3D normalisation on a monolayer, so the exciton binding energy is diluted; or option_dielect_func = 4 is used and only the head is corrected while the wing is dropped
+  root_cause: Three independent switches all have to be set for the exported Wc to carry the 2D Gamma-averaged head and wing. option_dielect_func = 3 is what makes gamma_full_headwing true at all; replace_w_head = t lets the model epsilon overwrite the Gamma point; use_2d_dielectric = t makes the normalisation use the in-plane area instead of the cell volume. The rewrite happens at epsilon.cpp:3100, before the Wc solve at epsilon.cpp:3272, so the exported Wc inherits it
+  fix:
+    - Set option_dielect_func = 3, replace_w_head = t and use_2d_dielectric = t together for a 2D case; 4 is head-only
+    - Compute the binding energy from the exported Wc, not from a W rebuilt by hand, so the averaging is whatever the run actually used
+    - Keep the screened W and the bare Coulomb apart - LibBSE build_bare_coulomb reads vq_cut unconditionally and ignores use_fullcoul_wc
+  verify:
+    - Confirm the run log's Gamma block reports the analytic head and wing overwrite, not the head-only one
+    - Confirm use_2d_dielectric is echoed as T in the input summary; rpa_headwing_reciprocal_cell_volume then returns the in-plane area
+    - Re-run a 3D case unchanged as a control: it must not set use_2d_dielectric, and its binding energy must shift if you add it
+  applies_to:
+    mode: bse
+    stage: bse
