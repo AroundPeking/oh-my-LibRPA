@@ -25,10 +25,10 @@ dump-shaped file, on duplicate keys, on a missing required threshold, and on a
   with ``need_wing`` false, so the wing is never built.
 
 ``rpa_headwing_mode`` is **not** checked here. LibRPA consumes it only in the
-RPA total-energy paths (``compute_rpa.cpp``, ``tasks/rpa.cpp``,
-``tasks/sternheimer_rpa.cpp``, ``compute_RPA_correlation_blacs_2d``); the
-``g0w0``/``g0w0_band`` tasks never read it, so it cannot change a GW band
-structure and demanding it on a GW input only invites a spurious failure.
+RPA total-energy paths (``src/api/compute_rpa.cpp``, ``driver/tasks/rpa.cpp``,
+``src/core/epsilon.cpp``); the ``g0w0`` path never reads it, so it cannot change
+a GW band structure and demanding it on a GW input only invites a spurious
+failure.
 """
 
 from __future__ import annotations
@@ -136,8 +136,10 @@ def _dielect_finding(dimension: str, keys: dict[str, str]) -> Finding | None:
             return Finding(
                 "librpa.input.dielect",
                 "FAIL",
-                "option_dielect_func = 4 is the strict-2D dielectric path on a 3D run",
-                "use option_dielect_func = 3 for the 3D route",
+                "option_dielect_func = 4 selects the analytic head only, and it is not a "
+                "3D route value",
+                "use option_dielect_func = 3 for the 3D route; the strict-2D route also uses 3, "
+                "with use_2d_dielectric = t",
             )
         if fullcoul is True:
             return Finding(
@@ -156,9 +158,9 @@ def _dielect_finding(dimension: str, keys: dict[str, str]) -> Finding | None:
         # gate reports the strict-2D contract satisfied.
         #
         # rpa_headwing_mode is deliberately not checked: it is consumed only by
-        # the RPA-energy paths (compute_rpa.cpp, tasks/rpa.cpp,
-        # tasks/sternheimer_rpa.cpp, compute_RPA_correlation_blacs_2d) and never
-        # by g0w0/g0w0_band, so it cannot affect a GW band structure.
+        # the RPA-energy paths (src/api/compute_rpa.cpp, driver/tasks/rpa.cpp,
+        # src/core/epsilon.cpp) and never by the g0w0 path, so it cannot affect
+        # a GW band structure.
         problems = []
         if dielect != 3:
             problems.append(

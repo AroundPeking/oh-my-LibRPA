@@ -317,11 +317,11 @@
 
 - id: bse-band-output-without-g0w0-band-921
   scene: Deciding which LibRPA task produces the band tables a dual-grid BSE case needs, or why a band figure built from the mesh-shaped band table is not a real band structure
-  symptom: Either the case is rerun with g0w0_band under the false assumption that band tables require it, or a mesh-shaped band table is drawn as a band structure, giving a sawtooth or a set of disconnected dots that contains sampled points rather than a dispersive path
-  root_cause: 'Two different needs are being conflated. The band table that LibBSE consumes must be mesh-shaped, because band_to_energy_qp.py turns it into energy_qp_fine; only task = g0w0_band (a deprecated name that still carries unique behaviour) writes GW_band_spin_*, since driver/task_gw.cpp has neither band_kpath_info nor GW_band_spin, so the OML-wide task = g0w0 default cannot be followed on this stage. A published band figure is a different object again: it needs quasiparticle energies sampled continuously along a path, and no subset or reordering of a regular mesh provides that'
+  symptom: Either the case is rerun with a second GW pass under the false assumption that band tables require a different task, or a mesh-shaped band table is drawn as a band structure, giving a sawtooth or a set of disconnected dots that contains sampled points rather than a dispersive path
+  root_cause: 'Two different needs are being conflated. The band table that LibBSE consumes must be mesh-shaped, because band_to_energy_qp.py turns it into energy_qp_fine; task = g0w0 writes GW_band_spin_* whenever band_kpath_info is present, and g0w0_band is only an alias that forwards to it. A published band figure is a different object: it needs quasiparticle energies sampled continuously along a path, and no subset or reordering of a regular mesh provides that'
   fix:
-    - Leave KPT_nscf as the dense mesh for the BSE input; converting it to a path breaks energy_qp_fine, but still run the deprecated task = g0w0_band so the table is written at all
-    - Run a separate deprecated g0w0_band pass with KPT in Line mode when a band figure is required, writing into its own OUT.librpa_band and librpa_band.d
+    - Leave KPT_nscf as the dense mesh for the BSE input; converting it to a path breaks energy_qp_fine
+    - Run a separate g0w0 pass with KPT in Line mode when a band figure is required, writing into its own OUT.librpa_band and librpa_band.d
     - Never draw a band structure from a regular mesh, not by concatenating mesh rows in file order and not by extracting the few mesh points that happen to lie on a line; both give sampled points rather than a dispersive path. The official tutorial's plot_compare.py commits the first error
     - Keep the exciton-density plot on the dense mesh, where a mesh is exactly what is wanted
   verify:
@@ -337,7 +337,7 @@
   symptom: Either the run is planned so that only some of the band figure, absorption spectrum and exciton wavefunction are recoverable, or a 59 GiB amplitude set is archived when a few MiB of contracted output would carry the spectrum
   root_cause: The three deliverables come from different stages. A conventional GW band figure needs quasiparticle energies on a k-path, which a dense-mesh BSE run does not provide by itself. The absorption spectrum needs only the oscillator-strength table, because the velocity matrix and energy denominator are already contracted into it. The exciton density needs the amplitudes, one per state, and nothing else provides them
   fix:
-    - Run the dense-mesh GW+BSE for the spectrum and the exciton densities, and add a separate short g0w0_band pass over a real k-path when a conventional band figure is required
+    - Run the dense-mesh GW+BSE for the spectrum and the exciton densities, and add a separate short g0w0 pass over a real k-path when a conventional band figure is required
     - Do not treat the mesh-shaped band table as a band-path figure; it is the LibBSE input, not a plot
     - Archive the full oscillator-strength table plus eps2 for the spectrum, and only the amplitudes of states that appear in a figure
     - Do not archive the velocity matrix for its own sake; it is already folded into the oscillator strengths
@@ -350,9 +350,9 @@
     stage: bse
 
 - id: bse-band-path-pass-operations-923
-  scene: Launching the k-path g0w0_band pass that produces a publishable band figure, or wondering why it is stuck after q_gamma
+  scene: Launching the k-path g0w0 pass that produces a publishable band figure, or wondering why it is stuck after q_gamma
   symptom: The run dies with a missing-file error one file at a time, the log stops growing for an hour, or the process vanishes after ten minutes even though nothing reported a failure
-  root_cause: Three separate traps. g0w0_band reads a long chain of auxi liary files from its input_dir, each a hard stop when absent, and it needs the full Coulomb rather than the cut one. A second mpirun on the same node starves the first so neither progresses. And a plain nohup background job under an SSH session is killed when the session closes. The quiet stretch after q_gamma makes both the starvation and the kill look like a slow calculation
+  root_cause: Three separate traps. The GW pass reads a long chain of auxiliary files from its input_dir, each a hard stop when absent, and both Coulomb families are read, with use_fullcoul_exx / use_fullcoul_eps / use_fullcoul_wc selecting which one each term sees (defaults — exx off, eps ON, wc off — so the full family is read even when no switch is written). A second mpirun on the same node starves the first so neither progresses. And a plain nohup background job under an SSH session is killed when the session closes. The quiet stretch after q_gamma makes both the starvation and the kill look like a slow calculation
   fix:
     - Symlink band_out.txt, the k-sampling stru_out.txt, bz_sampling_out, the four basis files, KS_eigenvector_0.dat, the v1_coulomb_full_iq_ family, and velocity_matrix from the dense run into OUT.librpa_band before launching
     - Run exactly one mpirun, and check for a leftover instance before starting another

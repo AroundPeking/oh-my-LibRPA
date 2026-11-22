@@ -14,7 +14,7 @@ stages and their success criteria do not overlap:**
 | how selected | ABACUS `esolver_type lr` + `xc_kernel bse` | a separate `LibBSE` executable reading `libbse.in` |
 | stage 4 lives in | the same ABACUS binary | `LibBSE` from <https://github.com/HGAQ/LibBSE> |
 | screening handed over as | `librpa.d/Wc_iR_*_ifreq_0.mtx` on disk | `librpa.d/Wc_Mu_*_ifreq_0.mtx` blocks, in memory |
-| stage-3 task | `g0w0_band` (deprecated name, but the only task that writes `GW_band_spin_*`) | the same deprecated name, for the same reason; plain `g0w0` writes no band table |
+| stage-3 task | `g0w0` — writes `GW_band_spin_*` whenever `band_kpath_info` is present | the same; `g0w0_band` is only an alias that forwards to it |
 | multi-grid | `bse_use_fine_kgrid` on the ABACUS side | `bse_use_fine_kgrid` in `libbse.in`, plus an `energy_qp_fine` table |
 | sections below | "Four stages" … "Exciton density plots" | "LibBSE route" onward |
 
@@ -91,49 +91,49 @@ actually emitted in `OUT.bse/trans_dipole_*` before interpreting it.
    `preprocess_abacus_for_librpa_band.py -i OUT.nscf -o OUT.librpa` to write
    `band_kpath_info`, `band_KS_eigenvalue_k_*.txt`,
    `band_KS_eigenvector_k_*.txt`, `band_vxc_k_*.txt`.
-   Skipping this stage is allowed only with `bse_use_fine_kgrid 0`.
-3. LibRPA GW — must run the **band channel** and must write the static screened
-   interaction in the auxiliary basis, because stage 4 reads both. See the
-   section below: with current LibRPA the channel is selected by the task name,
-   and the OML-wide `task = g0w0` default does not produce it.
+   Skipping this stage is allowed only with `bse_use_fine_kgrid 0`. ABACUS's own
+   description of the switch says modes **1 and 2** both require
+   `band_kpath_info`, `band_KS_eigenvector_k_{index}.txt`, `KS_band_spin_{index}.txt`
+   and `GW_band_spin_{index}.txt` (`source_io/module_parameter/read_inp_bse.cpp`);
+   mode 1 is a uniform fine grid, mode 2 a non-uniform one.
+3. LibRPA GW — must write the band tables and the static screened interaction in
+   the auxiliary basis, because stage 4 reads both. `task = g0w0` does both; see
+   the section below.
 4. BSE — `esolver_type lr` together with `xc_kernel bse`.
 
-## Stage 3 must be the band channel, not plain g0w0
-
-This conflicts with the OML-wide rule that new inputs use `task = g0w0`, so it
-needs the explicit reason here.
+## Stage 3 writes the band tables
 
 BSE stage 4 reads, via `read_energy_qp_from_band_files`, per-k point band files
 named `GW_band_spin_<n>.txt`, `KS_band_spin_<n>.txt` and the dense-grid
-eigenvectors. In LibRPA those files are written by one function only:
-`task_g0w0_band` (`driver/task_gw_band.cpp` emits `GW_band_spin_<n>.dat`). The
-plain `task_g0w0` path (`driver/task_gw.cpp`) writes `energy_qp` and the gap
-print but never `GW_band_spin_*`, and it does not read `band_kpath_info`.
+eigenvectors. **`task = g0w0` writes all of them** whenever
+`band_kpath_info` is present in `input_dir`; `g0w0_band` is now only an alias
+whose body is a deprecation warning plus a call to `task_g0w0()`. Unify on
+`g0w0` — the OML-wide default applies here.
 
-Verify this in the tree you will run rather than trusting either the tutorial
-or this note:
+Verify this in the tree you will run, and check which source file is compiled
+before grepping it. Some trees carry a stale `driver/task_gw.cpp` that defines a
+different `task_g0w0` yet is absent from `CMakeLists.txt`; grepping that file
+gives the opposite answer.
 
 ```bash
 R=~/app/librpa/<tree>
-grep -rn '"GW_band_spin_' $R/driver/    # expect exactly one hit: task_gw_band.cpp
-grep -rn 'task_lower == "g0w0_band"' $R/driver/   # the task-string dispatch
+grep -n 'tasks/g0w0'       $R/driver/CMakeLists.txt   # the compiled source
+grep -c 'band_kpath_info'  $R/driver/tasks/g0w0.cpp   # expect >= 1
+grep -c 'GW_band_spin'     $R/driver/tasks/g0w0.cpp   # expect >= 1
+grep -n 'task_gw.cpp'      $R/driver/CMakeLists.txt   # empty = dead file
 ```
 
-Quote the patterns and match the full dispatch expression. Looser forms mislead:
-an unquoted `GW_band_spin` also matches `"QSGW_band_spin_"` in
-`task_qsgw_band.cpp`, bare `"g0w0_band"` matches four `Profiler::start/stop`
-labels, and `g0w0_band` unquoted additionally matches the function name
-`task_g0w0_band`.
+An end-to-end confirmation: a run that printed
+`Loaded band k-path file OUT.librpa/band_kpath_info, starting band calculation`
+under `task = g0w0` and produced the three `*_band_spin_1.dat` tables.
 
-The dispatch lives in `driver/task.cpp` in some trees (`{"g0w0_band",
-task_t::G0W0_band}`) and in `driver/main.cpp` in others
-(`task_lower == "g0w0_band"`); try both forms, and a tree matching neither
-cannot offer this route.
-
-So for this route the LibRPA input keeps the band task name. Treat the
-OML-wide `g0w0` preference as inapplicable here and say so in the run log,
-rather than silently writing a task name that will leave stage 4 without its
-GW band files.
+If `band_kpath_info` is absent, the driver prints
+`Band k-path file ... is not found under ..., skip band calculation`, writes
+`energy_qp` and returns. **A missing band table therefore means a missing
+`band_kpath_info`, not the wrong task name** — which is the trap the older
+version of this note fell into: it blamed the task name, so a project could
+spend a rerun switching names while the real cause was an `input_dir` that
+never received the preprocessed file.
 
 ## Stage-3/4 contract: the W(R) sidecar
 
@@ -216,13 +216,15 @@ files; it does not redirect this one.
 ```bash
 B=~/app/librpa/<build>/chi0_main.exe
 for k in output_wc_rf output_Wc_Rf_mat output_wc_rf_atom_pair \
-         ifreq_output_wc_end g0w0_band; do
+         ifreq_output_wc_end band_kpath_info; do
   printf "%-28s %s\n" "$k" "$(grep -c "$k" "$B")"
 done
 ```
 
-A zero on `g0w0_band` means that build cannot run this route at all. Confirm
-the probe is meaningful by also probing a key you know that build predates.
+A zero on `band_kpath_info` or on the three `output_wc_rf*` switches means the
+build cannot run this route at all — the band tables and the screening sidecar
+are the two things it must produce. Confirm the probe is meaningful by also
+probing a key you know that build predates.
 
 Then confirm the writer, not just the switch — in the source tree that built
 that binary:
@@ -497,7 +499,7 @@ symlink. Consequences worth planning for:
 ## Stage-3 `librpa.in` that actually worked
 
 ```text
-task = g0w0_band          # deprecated name; still the only task that writes GW_band_spin_*
+task = g0w0
 input_dir = OUT.librpa_band
 input_preset = abacus
 fn_vxc_scf = ../OUT.scf/vxc_out.dat      # .dat, not .txt, for ABACUS SCF output
@@ -533,12 +535,11 @@ Notes that cost time to rediscover:
 - `output_wc_rf t` + `ifreq_output_wc_end 1` is what emits
   `Wc_Mu_<Mu>_Nu_<Nu>_iR_<iR>_ifreq_0.mtx`. Without it LibBSE finds no
   screening.
-- the entry above says `task = g0w0` was enough. It is not. This input used
-  the deprecated `task = g0w0_band` with `input_dir = OUT.librpa_band`, and the run prints
-  `Loaded band k-path file OUT.librpa_band/band_kpath_info, starting band
-  calculation`. Plain `g0w0` has neither `band_kpath_info` nor
-  `GW_band_spin` anywhere in `driver/task_gw.cpp`, so it writes no band table
-  and the route-A rule does apply here.
+- `input_dir = OUT.librpa_band` is the path-sampled directory from stage 2, and
+  the run prints `Loaded band k-path file OUT.librpa_band/band_kpath_info,
+  starting band calculation`. Without that file the driver says
+  `Band k-path file ... is not found`, writes `energy_qp` and returns — no band
+  table. The task name is never the cause; see "Stage 3 writes the band tables".
 - keep `mpirun -np 1` for LibRPA and give it the cores as OpenMP threads; the
   compressed-Wc export is only validated single-rank.
 - **all five `v1_` prefixes are needed.** Omitting `prefix_coul_cut` alone stops
@@ -937,35 +938,12 @@ the average densities agreed early while the conditional one kept failing, and
 it is a useful diagnostic: when only the conditional density is wrong, suspect
 the translation index and the hole-side conjugation before the gauge.
 
-### The band tables need the deprecated band task
+### The dual grid: which mesh is dense, and what it does to the table
 
-`preprocess_abacus_for_librpa_band.py` writes `band_kpath_info` from whatever
-`KPT_nscf` holds, but **only the deprecated `task = g0w0_band` consumes it and
-writes `GW_band_spin_<n>.dat`** — a name upstream now treats as a compatibility
-alias, yet the only one carrying the band-writing behaviour. Plain `task = g0w0` neither reads `band_kpath_info`
-nor writes any `*_band_spin_*` table — it writes `energy_qp` and
-`self_energy_omega.dat` and stops. Check that in the tree you will run:
+`KPT_nscf` carries the dense regular mesh (for Si, `14 14 14` = 2744 points), so:
 
-```bash
-R=~/app/librpa/<tree>
-grep -c 'GW_band_spin' $R/driver/task_gw.cpp        # expect 0
-grep -c 'band_kpath_info' $R/driver/task_gw.cpp     # expect 0
-grep -c 'GW_band_spin' $R/driver/task_gw_band.cpp   # expect >= 1
-```
-
-So `g0w0_band` is a prerequisite here, and this is one of the cases where the
-OML-wide `task = g0w0` default cannot be followed. Upstream treats
-`g0w0_band` as a deprecated compatibility alias for `g0w0`
-(`docs/guide/installation.md`), which is why the default changed — but the
-deprecation covers the *name*, not the band-writing behaviour, and no
-replacement path writes the tables yet. Record the exception explicitly in the
-case notes rather than silently mixing the two.
-
-In the dual-grid BSE workflow `KPT_nscf` is the dense regular mesh (for Si,
-`14 14 14` = 2744 points), so:
-
-- with the deprecated `task = g0w0_band` the `KS_/EXX_/GW_band_spin_1.dat` tables come out
-  with one row per **dense mesh point**, not per path node;
+- `task = g0w0` writes the `KS_/EXX_/GW_band_spin_1.dat` tables with one row
+  per **dense mesh point**, not per path node;
 - LibBSE's `energy_qp_fine` is produced from that same table by
   `band_to_energy_qp.py`, so the mesh-shaped table is exactly what BSE needs.
 
@@ -974,7 +952,7 @@ figure. Two things to keep apart:
 
 | want | what to do |
 |---|---|
-| band tables for BSE | leave `KPT_nscf` as the dense mesh, but still run the deprecated `task = g0w0_band` |
+| band tables for BSE | leave `KPT_nscf` as the dense mesh; `task = g0w0` writes the table |
 | a conventional band figure | a second run with a real path in `KPT_nscf`, so `band_kpath_info` holds the path |
 
 **Plotting from mesh-shaped tables.** Concatenating 2744 mesh points in file
@@ -997,7 +975,7 @@ A published GW+BSE case needs three figures, and they come from two runs:
 
 | figure | what it needs | which run |
 |---|---|---|
-| GW band structure | QP energies sampled **continuously along a path** | a separate `g0w0_band` with `KPT` in `Line` mode |
+| GW band structure | QP energies sampled **continuously along a path** | a separate `g0w0` pass with `KPT` in `Line` mode |
 | absorption spectrum | `oscillator_strength_*.dat` | the dense-mesh BSE |
 | exciton wavefunction | `Excitation_Amplitude_*.dat` | the dense-mesh BSE |
 
@@ -1039,10 +1017,12 @@ path.
    carries the legacy k sampling), `bz_sampling_out`, `basis_out`,
    `basis_wfc_out`, `basis_aux_out`, `basis_aux_shrink_out`,
    `KS_eigenvector_0.dat`, the `v1_coulomb_full_iq_*` family, and
-   `velocity_matrix`. Note `g0w0_band` needs the **full** Coulomb, not only the
-   cut one.
+   `velocity_matrix`. Both Coulomb families are read, and which one each term
+   sees is set by three independent switches:
+   `use_fullcoul_exx` (exchange), `use_fullcoul_eps` (the chi0 metric) and
+   `use_fullcoul_wc` (the screened interaction).
 
-4. `librpa.in` with the deprecated `task = g0w0_band`, `input_dir = OUT.librpa_band`,
+4. `librpa.in` with `task = g0w0`, `input_dir = OUT.librpa_band`,
    `output_dir = librpa_band.d`.
 
 **Cost and operations**: the screening is recomputed, so budget a normal G0W0

@@ -101,8 +101,8 @@ have different scaling. With `inverse`, LibRPA can still use the complete
 4. Before staging, audit the LibRPA input with `scripts/verify_librpa_input.py`:
    - `--dimension 3d --require-cs-threshold --control-in control.in` for a 3D solid;
    - `--dimension 2d` for a strict-2D case.
-   A failure stops the workflow. Never rebuild `librpa.in` from the driver parameter dump: `cs_R_threshold` is a dump name, the input key is `cs_threshold`, and an unknown key is silently ignored (default `1e-6`, not the intended `0`). A 3D run must not carry the strict-2D switches `option_dielect_func = 4` or `use_fullcoul_wc = t`.
-   A failure stops the workflow. Never rebuild `librpa.in` from the driver parameter dump: `cs_R_threshold` is a dump name, the input key is `cs_threshold`, and an unknown key is silently ignored (the default is `1e-6`, not the intended `0`). A 3D run must not carry the strict-2D switches `option_dielect_func = 4` or `use_fullcoul_wc = t`.
+   A failure stops the workflow. Never rebuild `librpa.in` from the driver parameter dump: `cs_R_threshold` is a dump name, the input key is `cs_threshold`, and an unknown key is silently ignored (default `1e-6`, not the intended `0`). A 3D run must not carry the strict-2D switches `use_2d_dielectric = t` or `use_fullcoul_wc = t`, and not `option_dielect_func = 4` either — that value is head-only for a 2D case and simply wrong for 3D.
+   A failure stops the workflow. Never rebuild `librpa.in` from the driver parameter dump: `cs_R_threshold` is a dump name, the input key is `cs_threshold`, and an unknown key is silently ignored (the default is `1e-6`, not the intended `0`). A 3D run must not carry the strict-2D switches `use_2d_dielectric = t` or `use_fullcoul_wc = t`, and not `option_dielect_func = 4` either — that value is head-only for a 2D case and simply wrong for 3D.
 5. If ABACUS comparison inputs exist, preserve the ABACUS structure, `k_grid`, band path, and band-point counts unless the user explicitly overrides them.
 6. Stage two scripts:
    - `run_aims.sh` for the MPI-heavy aims stage

@@ -60,8 +60,8 @@ stay true* on the way.
 6. For optical spectra, exciton binding energies or exciton envelope densities,
    apply `references/bse-route.md`. Decide **route A (in-ABACUS `ESolver_BSE`)
    versus route B (standalone `LibBSE`)** before writing any input: the two read
-   different screening sidecars (`Wc_iR_*` versus `Wc_Mu_*`), use different
-   stage-3 task names, and do not share inputs. A named LibBSE example or a
+   different screening sidecars (`Wc_iR_*` versus `Wc_Mu_*`), need different
+   stage-3 post-processing, and do not share inputs. A named LibBSE example or a
    dual-grid request (`333 -> 444`, `777 -> 14 14 14`) means route B.
 7. Before any GW or RPA calculation, query the LibRPA materials database through
    its MCP server for similar materials: `search_materials` for the same or a
