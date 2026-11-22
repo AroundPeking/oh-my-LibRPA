@@ -68,16 +68,29 @@ class LibrpaInputAuditTest(unittest.TestCase):
         self.assertIn("librpa.input.dielect", [f.gate_id for f in report.findings])
 
     def test_strict2d_input_passes_only_with_the_full_contract(self):
+        # option_dielect_func = 3 is the only value that builds the wing: the
+        # G0W0 driver passes need_wing = (option_dielect_func == 3). Value 4
+        # enters the same block with need_wing false, which is head-only.
+        # rpa_headwing_mode is not part of a GW contract at all.
         complete = _write(
             self.root,
-            "task = g0w0\noption_dielect_func = 4\nuse_fullcoul_wc = t\n"
-            "use_2d_dielectric = t\nrpa_headwing_mode = qavg\n",
+            "task = g0w0\noption_dielect_func = 3\nuse_fullcoul_wc = t\n"
+            "use_2d_dielectric = t\n",
             "complete.in",
         )
         self.assertTrue(audit_librpa_in(complete, dimension="2d").ok)
+        head_only = _write(
+            self.root,
+            "task = g0w0\noption_dielect_func = 4\nuse_fullcoul_wc = t\n"
+            "use_2d_dielectric = t\n",
+            "head_only.in",
+        )
+        report = audit_librpa_in(head_only, dimension="2d")
+        self.assertFalse(report.ok)
+        self.assertIn("expected 3", report.findings[0].message)
         partial = _write(
             self.root,
-            "task = g0w0\noption_dielect_func = 4\nuse_fullcoul_wc = t\n",
+            "task = g0w0\noption_dielect_func = 3\nuse_fullcoul_wc = t\n",
             "partial.in",
         )
         self.assertFalse(audit_librpa_in(partial, dimension="2d").ok)

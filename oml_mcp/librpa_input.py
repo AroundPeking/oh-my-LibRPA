@@ -7,12 +7,28 @@ mistakes into wrong physics instead of an error:
   ``cs_R_threshold`` while the input key is ``cs_threshold``; the line is
   dropped and ``cs_threshold`` falls back to its 1e-6 default;
 * reusing a strict-2D input for a 3D system keeps
-  ``option_dielect_func = 4`` and ``use_fullcoul_wc = t``.
+  ``option_dielect_func = 3`` with ``use_2d_dielectric = t`` and
+  ``use_fullcoul_wc = t``.
 
 This module rejects those inputs and checks that the 3D/2D dielectric switches
 agree with the route. It is intentionally conservative: it fails on a
 dump-shaped file, on duplicate keys, on a missing required threshold, and on a
 2D/3D switch mismatch; it does not try to whitelist every valid LibRPA key.
+
+``option_dielect_func`` values mean:
+
+* ``3`` - analytic head **and** wing correction. This is the strict-2D route.
+  The G0W0 driver passes ``need_wing = (option_dielect_func == 3)`` into
+  ``initialize_ds_headwing``, so only 3 computes the wing
+  (``src/api/compute_g0w0.cpp``).
+* ``4`` - analytic head correction only. It enters the same head/wing block but
+  with ``need_wing`` false, so the wing is never built.
+
+``rpa_headwing_mode`` is **not** checked here. LibRPA consumes it only in the
+RPA total-energy paths (``compute_rpa.cpp``, ``tasks/rpa.cpp``,
+``tasks/sternheimer_rpa.cpp``, ``compute_RPA_correlation_blacs_2d``); the
+``g0w0``/``g0w0_band`` tasks never read it, so it cannot change a GW band
+structure and demanding it on a GW input only invites a spurious failure.
 """
 
 from __future__ import annotations
@@ -132,23 +148,35 @@ def _dielect_finding(dimension: str, keys: dict[str, str]) -> Finding | None:
             )
         return None
     if dimension == "2d":
+        # option_dielect_func = 3 is analytic head AND wing; = 4 is analytic head
+        # ONLY. The G0W0 driver passes need_wing = (option_dielect_func == 3)
+        # into initialize_ds_headwing (src/api/compute_g0w0.cpp); with 4 the wing
+        # is silently skipped while every other switch still looks correct.
+        # Writing 4 here downgrades the run to a head-only correction while the
+        # gate reports the strict-2D contract satisfied.
+        #
+        # rpa_headwing_mode is deliberately not checked: it is consumed only by
+        # the RPA-energy paths (compute_rpa.cpp, tasks/rpa.cpp,
+        # tasks/sternheimer_rpa.cpp, compute_RPA_correlation_blacs_2d) and never
+        # by g0w0/g0w0_band, so it cannot affect a GW band structure.
         problems = []
-        if dielect != 4:
-            problems.append(f"option_dielect_func={keys.get('option_dielect_func')!r} expected 4")
+        if dielect != 3:
+            problems.append(
+                f"option_dielect_func={keys.get('option_dielect_func')!r} expected 3 "
+                "(=4 is head-only, not the strict-2D head+wing route)"
+            )
         if fullcoul is not True:
             problems.append(f"use_fullcoul_wc={keys.get('use_fullcoul_wc')!r} expected t")
         if _as_bool(keys.get("use_2d_dielectric")) is not True:
             problems.append("use_2d_dielectric must be t")
-        if (keys.get("rpa_headwing_mode") or "").strip().lower() != "qavg":
-            problems.append(f"rpa_headwing_mode={keys.get('rpa_headwing_mode')!r} expected qavg")
         if problems:
             return Finding(
                 "librpa.input.dielect",
                 "FAIL",
                 "librpa.in does not match the strict-2D dielectric contract: "
                 + "; ".join(problems),
-                "use the strict-2D input (option_dielect_func=4, use_fullcoul_wc=t, "
-                "use_2d_dielectric=t, rpa_headwing_mode=qavg)",
+                "use the strict-2D input (option_dielect_func=3, use_fullcoul_wc=t, "
+                "use_2d_dielectric=t); rpa_headwing_mode only affects RPA energies",
             )
         return None
     return Finding(
