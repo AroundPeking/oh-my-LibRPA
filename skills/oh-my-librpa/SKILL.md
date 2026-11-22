@@ -58,7 +58,11 @@ stay true* on the way.
    paths, hashes, source revisions, scheduler resources, and the duplicate-job
    check.
 6. For optical spectra, exciton binding energies or exciton envelope densities,
-   apply `references/bse-route.md`.
+   apply `references/bse-route.md`. Decide **route A (in-ABACUS `ESolver_BSE`)
+   versus route B (standalone `LibBSE`)** before writing any input: the two read
+   different screening sidecars (`Wc_iR_*` versus `Wc_Mu_*`), use different
+   stage-3 task names, and do not share inputs. A named LibBSE example or a
+   dual-grid request (`333 -> 444`, `777 -> 14 14 14`) means route B.
 7. Before any GW or RPA calculation, query the LibRPA materials database through
    its MCP server for similar materials: `search_materials` for the same or a
    related material, `list_basis_sets(element=...)` for every recorded
@@ -224,10 +228,25 @@ numerical, and scientific conclusions separate.
   required same-matrix endpoint test.
 - `references/gw-route.md` — periodic and molecular G0W0 route contracts.
 - `references/rpa-route.md` — RPA total-energy route contracts.
-- `references/bse-route.md` — GW+BSE route: the four `scf -> nscf -> GW -> BSE`
-  stages, the `Wc_iR_*_ifreq_0.mtx` sidecar that stage 4 requires from stage 3,
-  the version-dependent spelling of the W(R) output switch, and the hard
-  boundary that this BSE solves Q = 0 excitons only.
+- `references/bse-route.md` — GW+BSE route, in two parts. **Route A** is the
+  in-ABACUS `ESolver_BSE` (`esolver_type lr` + `xc_kernel bse`): the four
+  `scf -> nscf -> GW -> BSE` stages and the `Wc_iR_*_ifreq_0.mtx` sidecar. **Route B**
+  is the standalone `LibBSE` executable driven by `libbse.in`: dual-grid
+  (`bse_use_fine_kgrid 1`, coarse RI + fine KS/QP), the `Wc_Mu_*_ifreq_0.mtx`
+  handoff, the reader-v1 prefix contract that stage 3 must spell out, the
+  large-basis `coulomb_unshrinked_cut` gate that needs `out_unshrinked_v 1`,
+  the k-pair batch count that predicts the kernel cost, the ELPA-OpenMP build
+  requirement, and the disk split between the Coulomb export and the TDA
+  amplitude dump. Both solve Q = 0 excitons only. Also covers the two working
+  routes to an **exciton envelope density** (ABACUS `lr_solver plot` after the
+  assert-IO fix, and a standalone rebuild from the amplitudes), the eps2
+  conversion for LibBSE spectra, and the amplitude-dump disk blowup.
+- `rules/cards/bse-libbse-route.yml` — the route-B failure signatures: choosing
+  between route A and route B, the `v1_` versus legacy filename contract, the
+  `Naux=334 vs 794` abort, the batch-count cost proxy, the four validation
+  gates for `energy_qp_fine`, the assert-wrapped amplitude IO that silently
+  zeroes every plotted density, and the AO conventions needed to contract
+  amplitudes in real space.
 - `references/regression-route.md` — regression and reference comparison rules.
 - `references/ws2-2d-qsgw-g0w0-hr.md` — WS2 2D standard recipe: one `qsgw` task
   carrying the band channel, G0W0 eqp and QSGW bands together, H(R) and
@@ -248,3 +267,21 @@ numerical, and scientific conclusions separate.
   IBZ-only `coulomb_*`), and the required report structure.
 - `references/server-profiles.md` — server and execution profile layout.
 - `references/abacus-merge-compat.md` — ABACUS merge compatibility notes.
+
+## BSE plotting tools shipped with this skill
+
+None of these need an ABACUS build. The slice tools read a `.dat` slice that a
+run already wrote, so a figure can be reproduced from an archived result without
+recomputing the kernel.
+
+| script | needs | purpose |
+|---|---|---|
+| `scripts/plot_exciton_slice.py` | **stdlib only** | plot one or two slices side by side; reads the plane, the pinned particle and the coherent-sum mesh from the `ABACUS_EXCITON_SLICE` header |
+| `scripts/exciton_density_from_amplitudes.py` | numpy | rebuild a density slice from the BSE amplitudes, wavefunctions and orbital |
+| `scripts/exciton_weight_from_amplitudes.py` | numpy | per-k exciton weight and dominant transition |
+| `scripts/spectrum_to_eps2.py` | numpy | convert `spectrum_*.dat` to the dielectric function |
+| `scripts/esolver_lr_lcao_bse.assert_io.patch` | — | move ABACUS's amplitude IO out of `assert`, which `-O3 -DNDEBUG` compiles away |
+
+The split matters: `plot_exciton_slice.py` stays importable where numpy is
+absent (the database CI runs without it), so a figure contract can be checked
+in the same environment that validates the record.

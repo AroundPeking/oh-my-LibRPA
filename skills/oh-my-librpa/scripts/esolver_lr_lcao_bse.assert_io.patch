@@ -1,0 +1,86 @@
+--- esolver_m9.cpp	2026-11-19 11:47:12
++++ esolver_patched.cpp	2026-11-19 13:33:03
+@@ -1,5 +1,6 @@
+ #include "esolver_lr_lcao_bse.h"
+ #include <array>
++#include <stdexcept>
+ #include "source_cell/module_neighbor/sltk_atom_arrange.h"
+ #include "source_io/module_parameter/parameter.h"
+ #include "source_io/module_output/print_info.h"
+@@ -208,11 +209,15 @@
+                                         const int& dim,
+                                         const int& nst,
+                                         const int& prec = 8) -> void {
++                // NOT inside assert(): a Release build defines NDEBUG, which
++                // deletes the whole call instead of just the check.
+                 if (GlobalV::MY_RANK == 0)
+                 {
+-                    assert(nst == LR_Util::write_value(efile_out(label), prec, e, nst));
++                    const int wrote_e = LR_Util::write_value(efile_out(label), prec, e, nst);
++                    if (wrote_e != nst) throw std::runtime_error("failed to write " + efile_out(label));
+                 }
+-                assert(nst * dim == LR_Util::write_value(vfile_out(label), prec, v, nst, dim));
++                const int wrote_v = LR_Util::write_value(vfile_out(label), prec, v, nst, dim);
++                if (wrote_v != nst * dim) throw std::runtime_error("failed to write " + vfile_out(label));
+                 ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "write tda states " + label);
+             };
+             auto write_full_states = [&](const std::string& label,
+@@ -224,10 +229,13 @@
+                                          const int& prec = 8) -> void {
+                 if (GlobalV::MY_RANK == 0)
+                 {
+-                    assert(nst == LR_Util::write_value(efile_out("full_"+label), prec, e, nst));
++                    const int wrote_fe = LR_Util::write_value(efile_out("full_" + label), prec, e, nst);
++                    if (wrote_fe != nst) throw std::runtime_error("failed to write " + efile_out("full_" + label));
+                 }
+-                assert(nst * dim == LR_Util::write_value(vfile_out("full_X_"+label), prec, X, nst, dim));
+-                assert(nst * dim == LR_Util::write_value(vfile_out("full_Y_"+label), prec, Y, nst, dim));
++                const int wrote_fx = LR_Util::write_value(vfile_out("full_X_" + label), prec, X, nst, dim);
++                if (wrote_fx != nst * dim) throw std::runtime_error("failed to write " + vfile_out("full_X_" + label));
++                const int wrote_fy = LR_Util::write_value(vfile_out("full_Y_" + label), prec, Y, nst, dim);
++                if (wrote_fy != nst * dim) throw std::runtime_error("failed to write " + vfile_out("full_Y_" + label));
+                 ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "write full states " + label);
+             };
+ 
+@@ -303,28 +311,34 @@
+         std::cout << "Reading BSE excitation states from file." << std::endl;
+         auto read_tda_states = [&](const std::string& label, Real<T>* e, T* v, const int& dim, const int& nst)->void
+         {
++            // NOT inside assert(): NDEBUG would delete the read itself.
+             if (GlobalV::MY_RANK == 0) {
+-                assert(nst == LR_Util::read_value(efile_in(label), e, nst));
++                const int got_e = LR_Util::read_value(efile_in(label), e, nst);
++                if (got_e != nst) throw std::runtime_error("cannot read " + efile_in(label));
+                 ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + efile_in(label));
+             }
+ #ifdef __MPI
+             MPI_Bcast(e, nst, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+ #endif
+-            assert(nst * dim == LR_Util::read_value(vfile_in(label), v, nst, dim));
++            const int got_v = LR_Util::read_value(vfile_in(label), v, nst, dim);
++            if (got_v != nst * dim) throw std::runtime_error("cannot read " + vfile_in(label));
+             ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + vfile_in(label));
+         };
+         auto read_full_states = [&](const std::string& label, Real<T>* e, T* X, T* Y, const int& dim, const int& nst)->void
+         {
+             if (GlobalV::MY_RANK == 0) {
+-                assert(nst == LR_Util::read_value(efile_in("full_"+label), e, nst));
+-                ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + efile_in("full_"+label));
++                const int got_fe = LR_Util::read_value(efile_in("full_" + label), e, nst);
++                if (got_fe != nst) throw std::runtime_error("cannot read " + efile_in("full_" + label));
++                ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + efile_in("full_" + label));
+             }
+ #ifdef __MPI
+             MPI_Bcast(e, nst, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+ #endif
+-            assert(nst * dim == LR_Util::read_value(vfile_in("full_X_"+label), X, nst, dim));
+-            ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + vfile_in("full_X_"+label));
+-            assert(nst * dim == LR_Util::read_value(vfile_in("full_Y_"+label), Y, nst, dim));
++            const int got_fx = LR_Util::read_value(vfile_in("full_X_" + label), X, nst, dim);
++            if (got_fx != nst * dim) throw std::runtime_error("cannot read " + vfile_in("full_X_" + label));
++            ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + vfile_in("full_X_" + label));
++            const int got_fy = LR_Util::read_value(vfile_in("full_Y_" + label), Y, nst, dim);
++            if (got_fy != nst * dim) throw std::runtime_error("cannot read " + vfile_in("full_Y_" + label));
+             ModuleBase::GlobalFunc::DONE(GlobalV::ofs_running, "finish reading " + vfile_in("full_Y_"+label));
+         };
+ 

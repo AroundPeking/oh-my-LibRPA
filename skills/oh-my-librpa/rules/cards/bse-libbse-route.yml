@@ -1,0 +1,407 @@
+- id: bse-libbse-route-choice-901
+  scene: Preparing an optical-spectrum or exciton calculation for ABACUS plus LibRPA
+  symptom: The inputs are written but the route is ambiguous, or a route-A input set is handed to LibBSE
+  root_cause: Two unrelated BSE implementations sit behind the same GW stage. Route A is ABACUS ESolver_BSE selected by esolver_type lr plus xc_kernel bse and consumes librpa.d/Wc_iR_*_ifreq_0.mtx. Route B is the standalone LibBSE executable driven by libbse.in and consumes librpa.d/Wc_Mu_*_ifreq_0.mtx. Their stages, filenames and success criteria do not overlap
+  fix:
+    - Ask which implementation the user means before writing inputs, or infer it from a named example such as examples/07_abacus_librpa_libbse_interpolate_333_444
+    - Treat a dual-grid request (333 -> 444, 777 -> 14 14 14) or an explicit LibBSE mention as route B and read the LibBSE route section of references/bse-route.md
+    - Keep the two route sections in bse-route.md distinct rather than merging their stage tables
+  verify:
+    - Confirm the stage-4 executable name matches the chosen route (ABACUS binary versus LibBSE)
+    - Confirm the screening sidecar actually present on disk matches the route (Wc_iR versus Wc_Mu)
+  applies_to:
+    mode: bse
+    stage: planning
+
+- id: bse-libbse-stage3-filenames-902
+  scene: Running the LibRPA GW stage that feeds LibBSE
+  symptom: LibRPA aborts with "No shrink_sinvS files found", "No Coulomb files found with prefix coulomb_mat", or LibBSE aborts with "Coulomb v1 Naux=334 does not match basis_aux.nb_total=794"
+  root_cause: The LibRPA driver defaults are FHI-aims names (Cs_data, coulomb_mat, shrink_sinvS_, stru_out, band_out). ABACUS reader-v1 writes v1_-prefixed names plus .txt spellings, and input_preset abacus only patches fn_stru, fn_eigocc_scf and fn_vxc_scf. LibBSE fills FileReaderOptions with the hardcoded LibRPA defaults and cannot be reconfigured
+  fix:
+    - Spell the reader-v1 prefixes out in librpa.in - prefix_lri_coeff, prefix_lri_coeff_shrink, prefix_shrink_sinvS, prefix_coul_full
+    - Point fn_vxc_scf at OUT.scf/vxc_out.dat because ABACUS writes .dat there even though the reader-v1 family uses .txt
+    - Create symlinks in OUT.librpa for the names stage 4 cannot configure - stru_out, band_out, Cs_data_N.txt, Cs_shrinked_data_N.txt, coulomb_unshrinked_cut_*
+    - Do not turn reader-v1 off to obtain legacy names — that removes velocity_matrix and the basis files instead
+  verify:
+    - Confirm librpa.in lists every prefix that appears as v1_* in OUT.librpa
+    - Confirm OUT.librpa contains stru_out, band_out, velocity_matrix, basis_aux_out and coulomb_unshrinked_cut_1.txt under exactly those names
+    - Confirm the printed "Coulomb reader (<prefix>) ... binary v1" lines match the prefixes that were set
+  applies_to:
+    mode: bse
+    stage: librpa
+
+- id: bse-libbse-unshrinked-basis-gate-903
+  scene: Choosing the bare Coulomb export that LibBSE pairs with basis_aux_out
+  symptom: LibBSE stops in the reader with "Coulomb v1 Naux=334 does not match basis_aux.nb_total=794"
+  root_cause: LibBSE validates that the Coulomb auxiliary size equals the basis_aux size it read. basis_aux_out is the large 794-function set, while v1_coulomb_cut_iq_* is written from the RPA-level cut Coulomb already shrunk to 334. Only out_unshrinked_v writes the large-basis cut Coulomb, and it uses the plain legacy name coulomb_unshrinked_cut_*
+  fix:
+    - Set out_unshrinked_v 1 together with shrink_abfs_pca_thr 1e-6 in the SCF input
+    - Symlink coulomb_unshrinked_cut_* to the names LibBSE resolves, and leave the v1_coulomb_cut_iq_* family unused
+    - Budget disk space — for a 2-atom Si cell with a 794-function auxiliary basis the populated q points cost 2.57 GiB each
+  verify:
+    - Confirm basis_aux_out reports the large count and coulomb_unshrinked_cut_1.txt reports the same Naux
+    - Confirm OUT.librpa/velocity_matrix exists, since only reader-v1 writes it and out_unshrinked_v does not replace that
+  applies_to:
+    mode: bse
+    stage: scf
+
+- id: bse-libbse-batch-proxy-904
+  scene: Estimating whether a dual-grid LibBSE run fits in a scheduler wall-time limit
+  symptom: The run looks cheap because only nk_fine grows, but the kernel takes hours
+  root_cause: bse_ri_batch_blocks bounds how many k-pair blocks each rank holds, so the collective batch count printed at the start of each contraction scales as nk_fine squared divided by batch size and rank count, and every batch rebuilds the MO vertex on the fly
+  fix:
+    - Read the RI streaming line printed at each contraction (Hartree or screened, max N k-pair blocks per rank, R collective batches) and use R as the cost proxy
+    - Reduce wall time by raising MPI ranks, not batch size, because the batch count only falls with ranks
+    - Check the count before committing a mesh larger than the reference 333 -> 444 case
+  verify:
+    - Record R for Hartree A and screened A in the run log; Hartree B and screened B only appear when bse_tda is full, since bse_calculation.cpp guards both on solve_full
+    - Compare the recorded R against the elapsed wall time per contraction before quoting a runtime for a new mesh
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-qp-conversion-gates-905
+  scene: Building energy_qp_fine from the LibRPA band tables for a dual-grid LibBSE run
+  symptom: band_to_energy_qp.py raises a shape assertion, or a rewritten converter silently accepts a wrong grid
+  root_cause: The upstream script hardcodes a 64-row 4x4x4 grid, and the historical band writer stored occupations k-weighted by 1/nk, so a naive rewrite either rejects valid data or admits an incomplete mesh
+  fix:
+    - Infer the uniform grid size from the coordinates instead of assuming it, and require exactly nk equals N cubed distinct points
+    - Require KS and QP tables to agree on the k-point ordering within 1e-7 before converting
+    - Detect the k-weighted occupation convention and undo it before validating four filled and four empty bands
+    - Write energies in Hartree, sorted by grid key, one K_point block per point
+  verify:
+    - Build a synthetic NxNxN table, run the upstream numpy script and the replacement, and diff the outputs byte for byte
+    - Feed negative cases - a missing k point, a wrong occupation, an off-grid coordinate - and confirm each is rejected
+  applies_to:
+    mode: bse
+    stage: nscf
+
+- id: bse-libbse-coul-cut-prefix-906
+  scene: Running the LibRPA GW stage with use_shrink_abfs on, in reader-v1 mode
+  symptom: LibRPA aborts with "No Coulomb files found with prefix coulomb_cut"
+  root_cause: The driver reads two separate bare-Coulomb families. prefix_coul_cut feeds the GW self-energy and must be the shrink-basis one LibRPA actually contracts with, while prefix_coul_full feeds the dielectric head/wing. Only prefix_coul_full was overridden to the v1 name, so the cut Coulomb still pointed at the FHI-aims default that reader-v1 never writes
+  fix:
+    - Set prefix_coul_cut to the v1 shrink-basis family (v1_coulomb_cut_iq_ in this build), not to the large-basis coulomb_unshrinked_cut that LibBSE consumes
+    - Keep prefix_coul_full on its own v1 family (v1_coulomb_full_iq_)
+    - Treat the two prefixes as independent - the totals differ because the cut family is shrink-basis and the unshrinked one is large-basis
+  verify:
+    - Confirm librpa.in sets both prefix_coul_cut and prefix_coul_full
+    - Confirm the GW log prints one Coulomb reader line per family (binary v1) and reaches the self-energy stage
+  applies_to:
+    mode: bse
+    stage: librpa
+
+- id: bse-libbse-elpa-openmp-907
+  scene: 'Building ELPA for LibBSE, or diagnosing the omp_threads status -3 abort'
+  symptom: LibBSE runs the whole kernel construction and then every rank aborts with status -3 while setting omp_threads
+  root_cause: 'ELPA configure.ac accepts OpenMP only when enableval equals yes, so --enable-openmp=1 falls into the else branch and builds a library without OpenMP. LibBSE unconditionally calls elpa_set with omp_threads, which a non-OpenMP ELPA rejects with status -3. The failure lands after hours of kernel work, not at startup'
+  fix:
+    - Configure with --enable-openmp and no =1, and confirm the log says "checking whether --enable-openmp is specified... yes"
+    - Install to a separate prefix (the library is named libelpa_openmp.so, not libelpa.so) and build LibBSE against it
+    - Keep the non-OpenMP prefix for anything that does not set omp_threads, and select between them through LD_LIBRARY_PATH
+    - Never run make distclean inside the shared thirdparty ELPA tree; extract a fresh copy from the source tarball instead
+  verify:
+    - Confirm nm or the install listing shows libelpa_openmp.so.* and ldd shows libgomp
+    - Confirm a tiny LibBSE run reaches the eigenvalue print rather than aborting at omp_threads
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-spectrum-normalisation-908
+  scene: Comparing two LibBSE absorption spectra computed on different fine grids
+  symptom: The denser-grid spectrum is an order of magnitude taller, and it looks like the physics changed
+  root_cause: broaden_oscillator_spectrum in src/bse/spectrum.cpp sums a Lorentzian over every state of every fine k point and does not divide by the k-point count, so the absolute value of S scales with nk_fine
+  fix:
+    - Compare peak positions and line shape, never raw peak heights, between two meshes
+    - Divide both spectra by their own nk_fine before comparing intensities
+    - Report the log line total oscillator strength as the f-sum indicator, since that is a per-state quantity and does not inherit the nk factor
+  verify:
+    - Confirm int S dE / nk agrees between the two meshes to within the same margin as the logged total oscillator strength
+    - Confirm the peak positions are unchanged even when the heights differ by ~10x
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-disk-budget-909
+  scene: Reserving quota for a large dual-grid LibBSE run
+  symptom: The run fills the quota, and the estimate based on the coarse q-point count is five times too high while the actually dominant item is missed
+  root_cause: Two separate consumers. The unshrinked cut Coulomb looks like nk_coarse files but only the symmetry-allowed ones carry data - three real 2.57 GiB files out of eight for a 2-atom Si cell - while the TDA amplitude dump writes one file per excitation and dwarfs everything else (59.3 GiB for 43904 states)
+  fix:
+    - Size the Coulomb export by the populated q points, and check file sizes rather than counting files
+    - Either budget for the amplitude dump or set out_bse_eigenvectors 0 when the eigenvectors are not needed downstream
+    - Compute the amplitude volume as dimension x dimension x 16 bytes before submitting
+    - Budget memory from sacct, not from one RSS sample — measured 10.4 GB per rank at 32 ranks but 17.4 GB at 8 ranks, so use ranks x 18 GB as the conservative bound
+  verify:
+    - Confirm du on OUT.librpa and libbse.d separately after the first successful stage rather than extrapolating from the reference case
+    - Confirm the free quota covers the projected total before starting a convergence series
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-gib-vs-gb-910
+  scene: Quoting LibBSE output sizes or comparing them against a scheduler memory or quota figure
+  symptom: The same export is reported as both 7.7 GB and 7.8 GB in two places, or a size estimate misses the quota by about 7 percent
+  root_cause: du -h and ls -l human-readable output are binary units (GiB) while sacct memory and quota figures are decimal (GB), and a mixed set of "GB" labels silently mixes the two conventions
+  fix:
+    - Quote the Coulomb export and any du-derived figure in GiB, and sacct or quota figures in GB, with the unit spelled out
+    - Convert once explicitly when a number must feed a quota or memory calculation, using 1 GiB = 1.074 GB
+  verify:
+    - Confirm every size in the note carries GiB or GB and that the two differ by the 7.4 percent factor where both appear
+    - Confirm the total against ls -l byte sums before quoting it
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-eps2-conversion-911
+  scene: Plotting a LibBSE absorption spectrum against a published eps2 curve
+  symptom: The spectrum is two to three orders of magnitude taller than the paper, so either the run is wrong or the axis is
+  root_cause: spectrum_<spin>_<tda>.dat holds a broadened oscillator-strength density, not eps2. broaden_oscillator_spectrum applies neither 1/N_k nor 1/V, and LibBSE stores f = 2 Omega_Ry |d|^2 instead of the physical 2 Omega_Ha |d|^2, so two factors separate the file from the dielectric function
+  fix:
+    - Convert with eps2 = 2 pi^2/(N_k V) sum_S (f_file/2 / Omega_S^Ha) L(w-Omega_S), with V the primitive-cell volume in Bohr^3
+    - Never label spectrum_*.dat as eps2, and never compare its raw height between two meshes
+    - Judge correctness from the peak position and the f-sum, not the height
+  verify:
+    - Confirm the converted peak matches the reference eps2 within the expected band-window error (Si 7x7x7 -> 14x14x14 gives 38.4 at 4.09 eV against ~39 at 4.1 eV)
+    - Confirm int w eps2 dw recovers a plausible fraction of 2 pi^2 N_e/V (85 percent on the dense mesh, 105 percent on the coarse discrete one)
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-exciton-density-912
+  scene: Producing an exciton wavefunction or density plot from a LibBSE run
+  symptom: The user asks for the exciton envelope, a density slice, or a cube file, and there is nothing in libbse.d
+  root_cause: LibBSE has no density output at all - its inputs are 26 keys and none is lr_solver, plot_istate, or exciton_slice_*. Only ABACUS's own ESolver_BSE writes Exciton_avg_*_slice_* through lr_solver plot, and that path needs a text-format producer plus its own eigenvectors
+  fix:
+    - State the boundary first — LibBSE gives amplitudes and k-weights only
+    - Reassemble the per-rank amplitudes to get the k-space weight and the dominant pair per k point, which is checkable and honest
+    - Treat a full real-space envelope as a separate code-development task requiring the NAO products
+    - Do not present route-A slices as validated — on M9 the same route-A run gave a negative lowest excitation and all-zero slices
+  verify:
+    - Confirm sum |X|^2 equals 1 after reassembling all ranks
+    - Confirm sum_k weight1(k) equals 1 and that the k-weight table matches trans_kweight_*.dat
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-abacus-assert-io-913
+  scene: An ABACUS LR/BSE run claims to have written or read excitation amplitudes but the files are missing or the plot comes out all zeros
+  symptom: The log prints "finish reading ..." or "write tda states ...", yet the file does not exist on disk, and every exciton density slice is 0.00000000e+00
+  root_cause: In esolver_lr_lcao_bse.cpp all five amplitude writes and all five reads are wrapped inside assert(...). A Release build with -O3 -DNDEBUG compiles the whole call away while the neighbouring DONE(...) log line still executes, so the run looks successful and X silently stays zero-initialised
+  fix:
+    - Check the binary for assert machinery first — nm -D <abacus> | grep -c __assert_fail should be non-zero for a build where this IO works
+    - Cross-check a claimed read against the file actually existing; the DONE line prints outside the assert so it proves nothing
+    - Either move the five writes and five reads out of assert in esolver_lr_lcao_bse.cpp, or build that binary with -DCMAKE_BUILD_TYPE=Debug
+    - Do not diagnose a zero slice as a physics or kernel problem before ruling this out
+  verify:
+    - Confirm OUT.bse/Excitation_Amplitude_<spin>_<rank>.dat files appear after a fresh BSE run
+    - Confirm the slice file contains non-zero values instead of a uniform 0.00000000e+00
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-libbse-exciton-density-migration-914
+  scene: Deciding whether to port ABACUS's exciton_plotter into LibBSE or keep plotting inside ABACUS
+  symptom: LibBSE has no density output at all, and someone proposes migrating exciter code between the two codes
+  root_cause: 'The plotter is not a self-contained module. It needs LCAO_Orbitals radial data, UnitCell, K_Vectors, psi::Psi AO coefficients, Grid_Driver, Parallel_Grid, PW_Basis, Parallel_2D, DensityMatrix and ModuleGint::cal_gint_rho, i.e. a large slice of ABACUS. LibBSE in contrast is 70 source files with no AO machinery, no UnitCell and no spherical harmonics'
+  fix:
+    - Keep the density plot in ABACUS; do not port the plotter into LibBSE
+    - Use LibBSE for the spectrum and its amplitudes, and ABACUS for a real-space density once the assert defect is fixed and a trustworthy kernel is available
+    - If a LibBSE-side density is truly required, scope it as a small standalone tool that reads the AO eigenvectors and the .orb radial tables, not as a port of the ABACUS class
+  verify:
+    - Confirm the chosen path produces a density whose integral matches the expected electron or hole count
+    - Confirm the same state gives the same peak in the branch where eps2 is validated
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-exciton-density-two-routes-915
+  scene: Producing an exciton density or wavefunction plot for a BSE calculation, with either ABACUS or LibBSE as the eigensolver
+  symptom: LibBSE writes no density at all, ABACUS's lr_solver plot writes all zeros, and it is unclear which artefacts are even sufficient to rebuild the envelope
+  root_cause: Two independent facts. First, the amplitude IO in ABACUS sits inside assert and is compiled away by NDEBUG, so plot reads zeros. Second, LibBSE simply has no density output; but the density is recoverable from wfk<ik>_nao.txt plus Excitation_Amplitude_* plus the .orb radial tables plus stru_out, because the average density only needs AO coefficients contracted with the effective two-particle density matrix
+  fix:
+    - Apply scripts/esolver_lr_lcao_bse.assert_io.patch to move the 5 writes and 5 reads out of assert, rebuild abacus_std_para only, then run lr_solver elpa once and lr_solver plot once against the same read_file_dir
+    - Prefer the .dat slice over the .cube — the cube integrates to zero and about half its grid points are negative, so its density matrix is fed to cal_gint_rho in the wrong index order
+    - Keep the Python route as well — scripts/exciton_density_from_amplitudes.py needs no ABACUS binary and runs unchanged on LibBSE amplitudes
+    - Use the average density forms rho_hole = sum_kc |sum_v X_kvc phi_vk|^2 and rho_elec = sum_kv |sum_c X_kvc phi_ck|^2, which are non-negative by construction
+  verify:
+    - Feed ABACUS amplitudes to the reconstruction and require correlation above 0.95 against ABACUS's own slice
+    - Confirm the density is non-negative everywhere; negative values mean a wrong AO order or a wrong k-vector convention
+    - Confirm sum|X|^2 equals 1 before computing anything
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-exciton-ao-conventions-916
+  scene: Contracting AO eigenvectors with BSE amplitudes in real space, outside ABACUS
+  symptom: The reconstructed density is negative, rotated, or displaced by a cell, even though the amplitude bookkeeping looks right
+  root_cause: Four conventions differ from the obvious guess. The .orb radial table stores R(r) rather than r*R(r). AO m ordering follows iw2_ylm = L*L + j with j running straight through each block. wfk k vectors are Cartesian in units of 2*pi/lat0 and must be converted to direct coordinates before the Bloch phase. ABACUS amplitudes are split per rank as [all nk][local pairs], not contiguously over the global pair index
+  fix:
+    - Verify the radial convention numerically by integrating R^2 r^2 dr over the .orb grid; it must come out near 1 for every shell
+    - Read the m ordering from source_cell/atom_spec.cpp (iw2_ylm = L*L + m) instead of assuming ylm.cpp's internal packing
+    - Convert k with k_d = k_c . (latvec/lat0)^T and check that k_d * nk lands on integers
+    - For ABACUS amplitudes either run the BSE serially (layout becomes plain [k][v][c]) or read the paraX_ descriptor, which the file does not carry
+  verify:
+    - Check that k_d * nk is integral for several k points
+    - Check that sum over shells of R^2 r^2 dr equals 1 within a percent
+    - Check that reconstructing a KS wavefunction and integrating |psi|^2 over the cell gives 1
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-exciton-plot-average-vs-conditional-917
+  scene: Choosing or comparing ABACUS's two exciton plot modes, average and conditional, or rebuilding either from amplitudes
+  symptom: The conditional slice looks nothing like what ABACUS's lr_solver plot produces, or comes out 1e-6 where the average is 1e-2, and the temptation is to blame the phase convention vaguely or to declare the mode unusable
+  root_cause: They are different objects. average marginalises one particle (incoherent k-sum, blind to phase conventions), conditional pins one particle and keeps the k-sum coherent, so every phase detail matters. Four concrete defects produced the mismatch, and only three of them can affect the conditional path at all
+  fix:
+    - Keep the k-sum coherent for the conditional mode, using the home-cell value carried by exp(+2pi i k.T)
+    - Use the absolute floor(u_frac) as the translation index, not one relative to the window start
+    - On the hole side evaluate conj(phi) and negate the translation phase
+    - Transpose the hole-side effective density matrix, since cal_effective_dmk_hole builds X^H X rather than X X^H
+    - Call vdot(C, ref) rather than vdot(ref, C), matching ABACUS's inner_product(psi(ik), psi(0))
+    - Divide the conditional output by rho_hole(r_h) if a density is wanted, since the raw value carries 1/Bohr^6
+  verify:
+    - Confirm the reconstruction reaches correlation 1.000000 against lr_solver plot on all four densities, with relative differences only at the 1e-7 level
+    - Confirm the slice header's fixed_particle position and slice_pos agree when the intent is a slice through the pinned point
+    - Confirm the electron density at the pinned hole is orders of magnitude below the peak, and the peak-to-hole distance is a sensible exciton radius
+  applies_to:
+    mode: bse
+    stage: bse
+- id: bse-exciton-plot-tutorial-match-918
+  scene: Comparing a fresh exciton density plot against the official Fisherd99 tutorial reference slices
+  symptom: The patterns look completely different, or a reproduction comes out with half the spot density, and it is unclear whether the kernel, the grid or the plot settings are to blame
+  root_cause: Three independent causes stack up. The tutorial slices plane ca with range -4..4 and npoints 200 (201x201) on a 5x5x5 -> 6x6x6 mesh, so a reproduction on plane ab with a 79x79 window and a different mesh cannot match. Their cmake sets no CMAKE_BUILD_TYPE, so NDEBUG stays undefined and the amplitude IO actually runs. And a genuinely broken kernel can still produce a plausible-looking picture
+  fix:
+    - Copy their plot settings verbatim first, plane and range and npoints included, before changing the mesh
+    - Take the fine-mesh density into account, since the spot detail is set by it
+    - Use the spot period along u as the discriminant, measured in primitive cells rather than pixels
+    - Treat bvk in the slice header as metadata only; nk_u and nk_v are written at exciton_plotter.cpp:193 and never enter the arithmetic
+  verify:
+    - Confirm the reproduction uses plane ca with range -4 4 -4 4 and npoints 200 before comparing
+    - Confirm the spot period comes out 0.50 primitive cells, matching the tutorial, and investigate any factor-of-two mismatch
+    - Confirm the slice header energy is physically sensible, since a negative excitation energy means the kernel is wrong no matter how good the picture looks
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-rpa-cut-coulomb-log-erfc-919
+  scene: Writing or reviewing an ABACUS INPUT_scf that will feed LibRPA GW or BSE
+  symptom: A run silently uses the default hard truncation, so its Coulomb matrices differ from every other case in the project and the numbers are not comparable
+  root_cause: ABACUS defaults rpa_cut_coulomb to hard. The standing choice for this project is log_erfc, which conditions the auxiliary-basis Coulomb matrix better; the official Fisherd99 BSE tutorial sets it too. Omitting the line is the failure mode, because nothing warns about it
+  fix:
+    - Always spell out rpa_cut_coulomb log_erfc in INPUT_scf's LibRI block, next to exx_singularity_correction massidda
+    - Never leave it to the default, and never mix hard and log_erfc cases in one comparison
+    - When quoting numbers from a run that used hard, say so explicitly
+  verify:
+    - Grep the INPUT_scf actually copied to the run directory, not the archived template, for rpa_cut_coulomb
+    - Confirm the value is log_erfc before submitting the SCF
+  applies_to:
+    mode: bse
+    stage: scf
+
+- id: bse-exciton-plot-recipe-920
+  scene: Plotting an exciton wavefunction or density for the first time in a new case
+  symptom: It is unclear whether to use ABACUS's lr_solver plot or the skill's script, which keys each needs, and in what order the stages must run
+  root_cause: Two routes exist with different inputs and different prerequisites, and the plot stage is easily run before the amplitudes exist or with a slice geometry that does not match the intent
+  fix:
+    - Choose route 1 when ABACUS produced the amplitudes, route 2 when LibBSE did; both write the same ABACUS_EXCITON_SLICE header
+    - For route 1, run lr_solver elpa first, then lr_solver plot with plot_istate and the exciton_slice_* keys, since plot reads OUT.bse rather than recomputing
+    - For route 2, pass workdir amplitudes orb state kind plane slice-pos npoints range out, plus fixed-point for cond-* and bvk for the header
+    - Convert the resulting spectrum to eps2 with the same tool chain rather than reimplementing the prefactor
+  verify:
+    - Confirm the slice header records the grid, plane, and range that were intended, and that fixed_particle appears for cond-*
+    - Confirm the output is nonnegative for average densities and that the conditional peak sits a sensible distance from the pinned particle
+    - Confirm the run needed no recomputation of the kernel, since plotting consumes existing amplitudes and wavefunctions only
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-band-output-without-g0w0-band-921
+  scene: Deciding which LibRPA task produces the band tables a dual-grid BSE case needs, or why a band figure built from the mesh-shaped band table is not a real band structure
+  symptom: Either the case is rerun with g0w0_band under the false assumption that band tables require it, or a mesh-shaped band table is drawn as a band structure, giving a sawtooth or a set of disconnected dots that contains sampled points rather than a dispersive path
+  root_cause: 'Two different needs are being conflated. The band table that LibBSE consumes must be mesh-shaped, because band_to_energy_qp.py turns it into energy_qp_fine; only task = g0w0_band (a deprecated name that still carries unique behaviour) writes GW_band_spin_*, since driver/task_gw.cpp has neither band_kpath_info nor GW_band_spin, so the OML-wide task = g0w0 default cannot be followed on this stage. A published band figure is a different object again: it needs quasiparticle energies sampled continuously along a path, and no subset or reordering of a regular mesh provides that'
+  fix:
+    - Leave KPT_nscf as the dense mesh for the BSE input; converting it to a path breaks energy_qp_fine, but still run the deprecated task = g0w0_band so the table is written at all
+    - Run a separate deprecated g0w0_band pass with KPT in Line mode when a band figure is required, writing into its own OUT.librpa_band and librpa_band.d
+    - Never draw a band structure from a regular mesh, not by concatenating mesh rows in file order and not by extracting the few mesh points that happen to lie on a line; both give sampled points rather than a dispersive path. The official tutorial's plot_compare.py commits the first error
+    - Keep the exciton-density plot on the dense mesh, where a mesh is exactly what is wanted
+  verify:
+    - Confirm band_kpath_info row count matches KPT_nscf, and that the band table row count matches it too
+    - Confirm the gap read from an extracted straight-line subset equals the gap computed over the whole mesh
+    - Confirm band_to_energy_qp.py still consumes the mesh table without complaint before changing anything about the grid
+  applies_to:
+    mode: bse
+    stage: gw
+
+- id: bse-three-deliverables-one-run-922
+  scene: Planning what one GW+BSE run must produce, or deciding which BSE output files to archive
+  symptom: Either the run is planned so that only some of the band figure, absorption spectrum and exciton wavefunction are recoverable, or a 59 GiB amplitude set is archived when a few MiB of contracted output would carry the spectrum
+  root_cause: The three deliverables come from different stages. A conventional GW band figure needs quasiparticle energies on a k-path, which a dense-mesh BSE run does not provide by itself. The absorption spectrum needs only the oscillator-strength table, because the velocity matrix and energy denominator are already contracted into it. The exciton density needs the amplitudes, one per state, and nothing else provides them
+  fix:
+    - Run the dense-mesh GW+BSE for the spectrum and the exciton densities, and add a separate short g0w0_band pass over a real k-path when a conventional band figure is required
+    - Do not treat the mesh-shaped band table as a band-path figure; it is the LibBSE input, not a plot
+    - Archive the full oscillator-strength table plus eps2 for the spectrum, and only the amplitudes of states that appear in a figure
+    - Do not archive the velocity matrix for its own sake; it is already folded into the oscillator strengths
+  verify:
+    - Confirm the spectrum can be regenerated from the archived oscillator-strength table alone, and that it matches the archived eps2
+    - Confirm each archived amplitude state reproduces the figure it backs, with the truncated files giving the same sum|X|^2 as the full set
+    - Confirm the band figure's k-points are a genuine path rather than a regular mesh relabelled as one
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-band-path-pass-operations-923
+  scene: Launching the k-path g0w0_band pass that produces a publishable band figure, or wondering why it is stuck after q_gamma
+  symptom: The run dies with a missing-file error one file at a time, the log stops growing for an hour, or the process vanishes after ten minutes even though nothing reported a failure
+  root_cause: Three separate traps. g0w0_band reads a long chain of auxi liary files from its input_dir, each a hard stop when absent, and it needs the full Coulomb rather than the cut one. A second mpirun on the same node starves the first so neither progresses. And a plain nohup background job under an SSH session is killed when the session closes. The quiet stretch after q_gamma makes both the starvation and the kill look like a slow calculation
+  fix:
+    - Symlink band_out.txt, the k-sampling stru_out.txt, bz_sampling_out, the four basis files, KS_eigenvector_0.dat, the v1_coulomb_full_iq_ family, and velocity_matrix from the dense run into OUT.librpa_band before launching
+    - Run exactly one mpirun, and check for a leftover instance before starting another
+    - Export OMP_NUM_THREADS=1 and OPENBLAS_NUM_THREADS=1, since 32 ranks times threaded BLAS stalls on the OpenMP-loop warning
+    - Submit with sbatch; both nohup and setsid nohup disown were reaped within an hour or two on this cluster
+    - Judge liveness from /proc/pid/stat utime deltas rather than from log growth, since the Wing_mu stage prints nothing
+    - Put the last Line node at a count of 1 and turn symmetry off, or ABACUS rejects the KPT
+  verify:
+    - Confirm the KPT is Line mode with the final count 1, and that the dense-grid suffix and OUT.librpa are untouched
+    - Confirm exactly one mpirun process group owns chi0_main
+    - Confirm band_kpath_info row count equals the interpolated path length and that the resulting band table has that many rows rather than a mesh product
+  applies_to:
+    mode: bse
+    stage: gw
+
+- id: bse-conditional-supercell-period-924
+  scene: Choosing a plot window and slice plane for a conditional exciton density, or interpreting why the conditional pattern does not repeat every cell and does not appear pinned
+  symptom: The conditional slice looks aperiodic, or repeats at some arbitrary-looking distance, or the pinned particle leaves no visible signature at its own position
+  root_cause: Three separate conventions. The two modes have different periodicities, since the average density is periodic on one primitive cell while the conditional one keeps the k-sum coherent and is periodic only on the mesh-sized supercell. The slice offset is a distance in Bohr rather than a fractional coordinate, so it must equal the pinned point component along the plane normal. And at the pin the free particle must vanish by orthogonality, which only becomes visible when the plane actually passes through it
+  fix:
+    - Size the window from the k mesh, at least two supercells, rather than from the unit cell
+    - Set the slice offset to the pinned point component along the normal, for an ab slice that is the c component in Bohr
+    - Expect a node at the pinned point, orders of magnitude below the peak, not a maximum
+    - Record the coherent-sum mesh as its own kpoints header line, since bvk keeps the coarse mesh and would place the periodic images at the wrong spacing
+    - Do not parallelise by slicing the window into strips, since the home-cell cache is rebuilt per invocation and the total work grows
+  verify:
+    - Confirm the correlation is 1.0 after shifting by one supercell and clearly below 1 after shifting by one cell
+    - Confirm the value at the pinned point is orders of magnitude below the peak once the plane passes through it
+    - Confirm the average density from the same data still has a one-cell period, as a control
+  applies_to:
+    mode: bse
+    stage: bse
+
+- id: bse-database-record-presentation-925
+  scene: Publishing a BSE or exciton calculation as a LibRPA database record, or fixing one that readers report as broken
+  symptom: The outer chip row shows only PBE/EXX/GW, the band figure carries a single mesh dot, the axis reads k0/k1 instead of the special points, the optical section shows band figures, a metric renders as a JSON blob, or the BSE code is missing from Software
+  root_cause: Six independent causes, none of them in the physics. The method list has no BSE entry. A Gamma-centred odd SCF mesh contains no fcc special points, so only Gamma can carry a mesh dot. The archived KPT has no node labels, so the figure falls back to positional names. The optical figure filter matches the whole path, and a record id containing "exciton" then matches every band figure. A metric given as an object renders as raw JSON. And the software allow-list accepts only the front end and LibRPA
+  fix:
+    - Derive the BSE chip from an optical property or an archived BSE input, in BOTH the browser reader and the MCP reader, since a parity test compares them
+    - Name the line nodes in the archived KPT with # L / # G / # X / # W / # K so the axis shows the special points
+    - Match optical figures on the file name and label, never the whole path
+    - Keep each optical number a scalar with its own unit; split a peak into energy and height rather than storing an object
+    - Allow a third software entry and render it, so the code that produced the spectrum is credited
+    - State the mesh parity in the record when the dot layer looks sparse, instead of leaving a reader to guess
+  verify:
+    - Confirm the chip row shows BSE beside the mean-field and GW chips
+    - Confirm the axis labels are the special points and that the dot count matches what the mesh can actually sample
+    - Confirm the optical section shows only optical figures and that every metric is a number with a unit
+    - Confirm Software lists each participating code with an immutable identity
+  applies_to:
+    mode: bse
+    stage: bse
