@@ -190,18 +190,47 @@ external file (`native-velocity-boundary-501`).
 
 ## Velocity source
 
-`g0w0_headwing_velocity` selects `file` (default) or `native`. Prefer `native`
+`option_velocity` selects `pyatb` (default) or `native`. Prefer `native`
 whenever the producer writes `H(R)`, `S(R)` and `r(R)` from the same run that
 wrote the bands and eigenvectors: LibRPA differentiates those blocks in the
-loaded mean-field frame, so no external optical code is needed. The native route
-requires `use_kpara_scf_eigvec = f`, a full-mesh or SOC-symmetric k treatment,
-and wavefunctions from the same execution as the matrices; each violation aborts
-in preflight. `option_dielect_func = 6` is a preset that selects native and
-resolves to the numerical option 3.
+loaded mean-field frame, so no external optical code is needed. Point it at the
+three CSR blocks and declare their units:
 
-The external `velocity_matrix` and `mommat_ks_kpt_*` readers remain the general
-route for datasets produced elsewhere. On a shared mean field the two routes
-agree to about 1e-5 eV in the quasiparticle energies.
+```text
+option_velocity = native
+g0w0_fn_hr = hrs1_nao.csr      # H(R); g0w0_fn_hr_spin1 pairs the second spin
+g0w0_fn_sr = sr_nao.csr
+g0w0_fn_rr = rr.csr
+g0w0_hr_unit = Ry              # Ha, Ry or eV
+g0w0_rr_unit = Bohr
+```
+
+Three details decide whether that works:
+
+- **ABACUS names the overlap `sr_nao.csr`, LibRPA's default is `srs1_nao.csr`.**
+  Always set `g0w0_fn_sr` explicitly; the default silently points at a file
+  ABACUS does not write.
+- **All three names resolve against `input_dir`**, so a producer whose CSRs sit
+  in `OUT.ABACUS/` needs `../../scf/OUT.ABACUS/hrs1_nao.csr` and so on.
+- `option_velocity = native` needs `replace_w_head = t` plus
+  `option_dielect_func` in {3, 4, 53}, and options 3 and 53 additionally need
+  `use_scalapack_gw_wc = t`. An IBZ SCF grid is fine — LibRPA expands the
+  irreducible points to the full mesh itself without solving an eigenproblem
+  ("expanded N IBZ states to M full-grid states"). `use_kpara_scf_eigvec = t`
+  is allowed too; the restriction was lifted.
+
+The `pyatb` route still reads the external bundle
+`pyatb_librpa_df/velocity_matrix` and remains the general route for datasets
+produced elsewhere. On a shared mean field the two routes agree to about 1e-5 eV
+in the quasiparticle energies.
+
+**Retired keys.** `g0w0_headwing_velocity` and `use_pyatb` are removed and the
+driver rejects them by name for every task, including `qsgw`; the
+`option_dielect_func = 6` preset is gone as well. An old input carrying any of
+the three aborts at parse time instead of running with a different velocity
+source than its author intended. Profiles pinned to revisions before the
+retirement (`7e40c5bb`, `c87103df`, `1c52e917` and earlier) still use
+`use_pyatb`, and their gates and tests keep it on purpose.
 
 ## Spin And SOC
 

@@ -56,6 +56,14 @@ Do not mix a symmetry producer's Coulomb/LRI/eigenvector files with a full-q `st
 
 Generate PyATB data on the full regular k grid belonging to the producer. IBZ points and k-star weights are not a substitute for the full grid required by the analytic head/wing sums.
 
+**This step is optional when the producer wrote `H(R)`, `S(R)` and `r(R)`.** With
+`option_velocity = native`, LibRPA differentiates those blocks itself and expands
+an IBZ grid to the full mesh internally, so no PyATB bundle and no full-BZ SCF
+rerun are needed. Prefer native in that case: it removes both the PyATB
+dependency and the separate full-grid producer the bundle route demands. Keep the
+bundle route when the producer cannot write the three CSR blocks, or when the
+dataset was produced elsewhere.
+
 Require matching full-grid k count, state count, basis size, spin/SOC mode, and nonempty velocity and wave-function data. For a band calculation, use a semantically matched current-ABACUS band source. A 121-point path is the current project plotting convention, not part of the strict-2D formula.
 
 ## Run LibRPA
@@ -65,11 +73,19 @@ Use the production input in the reference file. The hard switches are:
 ```text
 option_dielect_func = 3
 replace_w_head = t
-use_pyatb = t
+option_velocity = native
 use_2d_dielectric = t
 use_fullcoul_eps = t
 use_fullcoul_wc = t
 use_scalapack_gw_wc = t
+
+# option_velocity = native also needs the three CSR blocks and their units:
+g0w0_fn_hr = hrs1_nao.csr
+g0w0_fn_sr = sr_nao.csr     # ABACUS writes sr_nao.csr, not the srs1_nao default
+g0w0_fn_rr = rr.csr
+g0w0_hr_unit = Ry
+g0w0_rr_unit = Bohr
+
 vq_threshold = 0
 libri_chi0_threshold_C = 1e-4
 libri_chi0_threshold_G = 1e-5

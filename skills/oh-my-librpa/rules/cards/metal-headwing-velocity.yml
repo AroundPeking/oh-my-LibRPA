@@ -2,53 +2,58 @@
   scene: Preparing a head/wing calculation and deciding whether LibRPA can compute the velocity itself
   symptom: >-
     The user asks to drop the external velocity file, or a native run aborts in
-    the localized-velocity preflight, or an IBZ run is rejected for lacking SOC
-    magnetic symmetry
+    the localized-velocity preflight, or an old input carrying `use_pyatb` or
+    `g0w0_headwing_velocity` stops at parse time
   root_cause: >-
-    `g0w0_headwing_velocity = native` differentiates H(R), S(R) and r(R) in the
-    loaded mean-field eigenframe and therefore needs four things at once: the
-    four real-space matrix files, the complete AO x band frame of every k point
-    on the rank that owns it, a wavefunction set produced by the same ABACUS run
-    as those matrices, and a k-space treatment that is either full-mesh or
-    symmetry-restorable through SOC magnetic symmetry. Each missing item aborts
-    in preflight rather than producing a wrong number, so the abort text names
-    the constraint.
+    `option_velocity = native` differentiates H(R), S(R) and r(R) in the loaded
+    mean-field eigenframe and therefore needs four things at once: the three
+    real-space matrix files with their declared units, the complete AO x band
+    frame of every k point on the rank that owns it, a wavefunction set produced
+    by the same ABACUS run as those matrices, and a k-space treatment that is
+    either the full mesh or an IBZ whose k-stars cover it. Each missing item
+    aborts in preflight rather than producing a wrong number, so the abort text
+    names the constraint. The retired spellings `g0w0_headwing_velocity` and
+    `use_pyatb` are rejected by name for every task, so an archived input has to
+    be rewritten rather than merely accepted.
   fix:
     - >-
       Prefer native whenever the producer writes H(R)/S(R)/r(R) from the same
       run that also writes band_out and the KS eigenvectors. Set
-      `g0w0_headwing_velocity = native` (or `option_dielect_func = 6`, which
-      selects native and resolves to numerical option 3).
+      `option_velocity = native` and leave `option_dielect_func` at the numerical
+      value (3, 4 or 53); the old option-6 preset and the old
+      `g0w0_headwing_velocity` selector are both gone and rejected.
     - >-
-      Point the driver at the four CSR blocks with `g0w0_fn_hr`,
+      Point the driver at the three CSR blocks with `g0w0_fn_hr`,
       `g0w0_fn_hr_spin1` (nspin = 2), `g0w0_fn_sr`, `g0w0_fn_rr`, and declare
-      their units with `g0w0_hr_unit` and `g0w0_rr_unit`. ABACUS writes
-      `hrs1_nao.csr`, `hrs2_nao.csr`, `srs1_nao.csr`, `rr.csr` with
-      `out_mat_hs2` and `out_mat_r`; the H and S blocks carry a
-      `CSR Format` section, the r blocks use the older `STEP:` header, and both
-      are readable.
+      their units with `g0w0_hr_unit` and `g0w0_rr_unit`. **The overlap name
+      differs by side**: ABACUS writes `sr_nao.csr` while LibRPA's default is
+      `srs1_nao.csr`, so `g0w0_fn_sr` must always be set explicitly. The names
+      resolve against `input_dir`, so a producer whose CSRs live in `OUT.ABACUS/`
+      needs a `../../scf/OUT.ABACUS/...` prefix. The H and S blocks carry a
+      `CSR Format` section, the r blocks use the older `STEP:` header.
     - >-
-      Set `use_kpara_scf_eigvec = f`. Native needs the full AO x band frame per
-      k point; k-point-parallel distribution is genuinely incompatible, not
-      conservatively rejected.
+      `use_kpara_scf_eigvec = t` is allowed: native fetches each AO x band block
+      from the rank that owns it and broadcasts that copy. The earlier blanket
+      rejection of k-point-parallel distribution no longer applies.
     - >-
       Keep the wavefunctions and the H/S/R/r blocks from one ABACUS execution.
       Mixing a freshly recomputed set of matrices with an archived wavefunction
       set fails the metric check at about 1e-4 even when both are individually
       converged. When a dataset cannot be regenerated, stay on
-      `g0w0_headwing_velocity = file`.
+      `option_velocity = pyatb`.
     - >-
-      An IBZ SCF grid is accepted only when the state is a spinor with SOC
-      magnetic symmetry; a scalar non-SOC IBZ run is rejected. Run the full mesh
-      or stay on the file route.
+      An IBZ SCF grid is accepted for any spin treatment: LibRPA expands the
+      irreducible points to the full mesh before differentiating and solves no
+      eigenproblem ("expanded N IBZ states to M full-grid states"). This is what
+      makes native cheaper than the bundle route, which still needs a separate
+      full-grid producer.
     - >-
       `task = rpa` never calls the native preparation. Native applies to
       `g0w0` and `g0w0_band` only.
     - >-
-      Keep the external-file route available. `velocity_matrix` and
-      `mommat_ks_kpt_*` remain the general text readers for datasets produced by
-      another optical code, and `g0w0_headwing_velocity` still defaults to
-      `file` so existing inputs keep their meaning.
+      Keep the external-file route available. `option_velocity = pyatb` (the
+      default) reads `pyatb_librpa_df/velocity_matrix` and `mommat_ks_kpt_*`, and
+      remains the general route for datasets produced by another optical code.
   verify:
     - >-
       The native preflight prints its four invariants; require metric below
